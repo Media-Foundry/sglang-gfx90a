@@ -37,6 +37,7 @@ from sglang.srt.utils import (
     get_bool_env_var,
     is_cpu,
     is_cuda,
+    is_gfx95_supported,
     is_hip,
     is_npu,
     set_weight_attrs,
@@ -63,6 +64,7 @@ _is_hip = is_hip()
 _is_cpu = is_cpu()
 _is_npu = is_npu()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
+_use_aiter_dense_gemm = _use_aiter and is_gfx95_supported()
 
 if _use_aiter:
     from aiter.ops.shuffle import shuffle_weight
@@ -232,7 +234,7 @@ class UnquantizedLinearMethod(LinearMethodBase):
                 output = output.view(x_shapes[0], x_shapes[1], -1)
             return output
 
-        elif _use_aiter and type(layer.weight.data) is torch.Tensor:
+        elif _use_aiter_dense_gemm and type(layer.weight.data) is torch.Tensor:
             return tgemm.mm(x, layer.weight, bias, otype=x.dtype)
 
         elif (

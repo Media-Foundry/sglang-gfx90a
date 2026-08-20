@@ -22,6 +22,7 @@ from sglang.srt.utils.async_probe import sanitize_nan_logits
 from sglang.srt.utils.common import (
     get_bool_env_var,
     is_cuda,
+    is_gfx90a_supported,
     is_hip,
     is_musa,
     is_npu,
@@ -56,6 +57,12 @@ if _use_aiter:
 # torch.argmax (which always returns a valid index). Default off so behavior is
 # unchanged elsewhere.
 _disable_aiter_greedy_sample = get_bool_env_var("SGLANG_DISABLE_AITER_GREEDY_SAMPLE")
+# AIter's greedy kernel returns vocab_size for all -inf rows on gfx90a. SGLang
+# treats that sentinel as an invalid token ("NaN happened"); torch.argmax keeps
+# the result in range and is the correct fallback on gfx90a.
+_disable_aiter_greedy_sample = (
+    _disable_aiter_greedy_sample or is_gfx90a_supported()
+)
 
 if is_npu():
     import torch_npu

@@ -6,6 +6,8 @@ import threading
 from typing import Tuple
 
 import torch
+import triton
+import triton.language as tl
 
 from sglang.kernels.jit.utils import is_arch_support_pdl
 from sglang.srt.distributed.device_communicators.pynccl_allocator import (
@@ -122,6 +124,440 @@ FP32 = "float32"
 INT32 = "int32"
 
 
+@triton.jit
+def _mhc_weighted_sum_kernel(
+    x,
+    pre,
+    y,
+    hidden_size: tl.constexpr,
+    stride_xt: tl.constexpr,
+    stride_xc: tl.constexpr,
+    stride_xh: tl.constexpr,
+    stride_pt: tl.constexpr,
+    stride_pc: tl.constexpr,
+    stride_yt: tl.constexpr,
+    stride_yh: tl.constexpr,
+    BLOCK_H: tl.constexpr,
+):
+    token_id = tl.program_id(0)
+    h_block = tl.program_id(1)
+    offs = h_block * BLOCK_H + tl.arange(0, BLOCK_H)
+    mask = offs < hidden_size
+
+    p0 = tl.load(pre + token_id * stride_pt + 0 * stride_pc)
+    p1 = tl.load(pre + token_id * stride_pt + 1 * stride_pc)
+    p2 = tl.load(pre + token_id * stride_pt + 2 * stride_pc)
+    p3 = tl.load(pre + token_id * stride_pt + 3 * stride_pc)
+
+    base = x + token_id * stride_xt + offs * stride_xh
+    v0 = tl.load(base + 0 * stride_xc, mask=mask, other=0.0).to(tl.float32)
+    v1 = tl.load(base + 1 * stride_xc, mask=mask, other=0.0).to(tl.float32)
+    v2 = tl.load(base + 2 * stride_xc, mask=mask, other=0.0).to(tl.float32)
+    v3 = tl.load(base + 3 * stride_xc, mask=mask, other=0.0).to(tl.float32)
+    out = p0 * v0 + p1 * v1 + p2 * v2 + p3 * v3
+    tl.store(y + token_id * stride_yt + offs * stride_yh, out, mask=mask)
+
+
+@triton.jit
+def _mhc_post_combine_kernel(
+    x,
+    residual,
+    post,
+    comb,
+    out,
+    hidden_size: tl.constexpr,
+    stride_xt: tl.constexpr,
+    stride_xh: tl.constexpr,
+    stride_rt: tl.constexpr,
+    stride_ri: tl.constexpr,
+    stride_rh: tl.constexpr,
+    stride_pt: tl.constexpr,
+    stride_po: tl.constexpr,
+    stride_ct: tl.constexpr,
+    stride_ci: tl.constexpr,
+    stride_co: tl.constexpr,
+    stride_ot: tl.constexpr,
+    stride_oo: tl.constexpr,
+    stride_oh: tl.constexpr,
+    BLOCK_H: tl.constexpr,
+):
+    token_id = tl.program_id(0)
+    out_hc = tl.program_id(1)
+    h_block = tl.program_id(2)
+    offs = h_block * BLOCK_H + tl.arange(0, BLOCK_H)
+    mask = offs < hidden_size
+
+    post_v = tl.load(post + token_id * stride_pt + out_hc * stride_po)
+    x_v = tl.load(x + token_id * stride_xt + offs * stride_xh, mask=mask, other=0.0).to(
+        tl.float32
+    )
+    acc = post_v * x_v
+
+    r_base = residual + token_id * stride_rt + offs * stride_rh
+    c_base = comb + token_id * stride_ct + out_hc * stride_co
+    c0 = tl.load(c_base + 0 * stride_ci)
+    c1 = tl.load(c_base + 1 * stride_ci)
+    c2 = tl.load(c_base + 2 * stride_ci)
+    c3 = tl.load(c_base + 3 * stride_ci)
+    r0 = tl.load(r_base + 0 * stride_ri, mask=mask, other=0.0).to(tl.float32)
+    r1 = tl.load(r_base + 1 * stride_ri, mask=mask, other=0.0).to(tl.float32)
+    r2 = tl.load(r_base + 2 * stride_ri, mask=mask, other=0.0).to(tl.float32)
+    r3 = tl.load(r_base + 3 * stride_ri, mask=mask, other=0.0).to(tl.float32)
+    acc += c0 * r0 + c1 * r1 + c2 * r2 + c3 * r3
+
+    tl.store(
+        out + token_id * stride_ot + out_hc * stride_oo + offs * stride_oh,
+        acc,
+        mask=mask,
+    )
+
+
+def mhc_weighted_sum_triton(
+    x: torch.Tensor,
+    pre: torch.Tensor,
+) -> torch.Tensor | None:
+    if (
+        not torch.version.hip
+        or x.ndim != 3
+        or pre.ndim != 2
+        or x.shape[1] != 4
+        or pre.shape[1] != 4
+        or x.shape[0] != pre.shape[0]
+        or x.dtype != torch.bfloat16
+    ):
+        return None
+
+    num_tokens, _, hidden_size = x.shape
+    y = torch.empty((num_tokens, hidden_size), dtype=x.dtype, device=x.device)
+    block_h = 256
+    grid = (num_tokens, triton.cdiv(hidden_size, block_h))
+    _mhc_weighted_sum_kernel[grid](
+        x,
+        pre,
+        y,
+        hidden_size,
+        x.stride(0),
+        x.stride(1),
+        x.stride(2),
+        pre.stride(0),
+        pre.stride(1),
+        y.stride(0),
+        y.stride(1),
+        BLOCK_H=block_h,
+        num_warps=4,
+    )
+    return y
+
+
+def mhc_post_combine_triton(
+    x: torch.Tensor,
+    residual: torch.Tensor,
+    post: torch.Tensor,
+    comb: torch.Tensor,
+) -> torch.Tensor | None:
+    if (
+        not torch.version.hip
+        or x.ndim != 2
+        or residual.ndim != 3
+        or post.ndim != 2
+        or comb.ndim != 3
+        or residual.shape[1] != 4
+        or post.shape[1] != 4
+        or comb.shape[1:] != (4, 4)
+        or x.shape[0] != residual.shape[0]
+        or x.shape[0] != post.shape[0]
+        or x.shape[0] != comb.shape[0]
+        or x.shape[1] != residual.shape[2]
+        or x.dtype != torch.bfloat16
+        or residual.dtype != torch.bfloat16
+    ):
+        return None
+
+    num_tokens, hidden_size = x.shape
+    out = torch.empty_like(residual)
+    block_h = 256
+    grid = (num_tokens, 4, triton.cdiv(hidden_size, block_h))
+    _mhc_post_combine_kernel[grid](
+        x,
+        residual,
+        post,
+        comb,
+        out,
+        hidden_size,
+        x.stride(0),
+        x.stride(1),
+        residual.stride(0),
+        residual.stride(1),
+        residual.stride(2),
+        post.stride(0),
+        post.stride(1),
+        comb.stride(0),
+        comb.stride(1),
+        comb.stride(2),
+        out.stride(0),
+        out.stride(1),
+        out.stride(2),
+        BLOCK_H=block_h,
+        num_warps=4,
+    )
+    return out
+
+
+@triton.jit
+def _hc_split_sinkhorn4_kernel(
+    mixes,
+    hc_scale,
+    hc_base,
+    pre,
+    post,
+    comb,
+    stride_mb: tl.constexpr,
+    stride_ms: tl.constexpr,
+    stride_pb: tl.constexpr,
+    stride_ps: tl.constexpr,
+    stride_pv: tl.constexpr,
+    stride_ob: tl.constexpr,
+    stride_os: tl.constexpr,
+    stride_ov: tl.constexpr,
+    stride_cb: tl.constexpr,
+    stride_cs: tl.constexpr,
+    stride_ci: tl.constexpr,
+    stride_cj: tl.constexpr,
+    seq_len: tl.constexpr,
+    eps: tl.constexpr,
+    sinkhorn_iters: tl.constexpr,
+):
+    pid = tl.program_id(0)
+    b = pid // seq_len
+    s = pid - b * seq_len
+    mix = mixes + b * stride_mb + s * stride_ms
+
+    scale0 = tl.load(hc_scale + 0)
+    scale1 = tl.load(hc_scale + 1)
+    scale2 = tl.load(hc_scale + 2)
+
+    offs4 = tl.arange(0, 4)
+    pre_v = (
+        1.0
+        / (
+            1.0
+            + tl.exp(
+                -(
+                    tl.load(mix + offs4) * scale0
+                    + tl.load(hc_base + offs4)
+                )
+            )
+        )
+        + eps
+    )
+    post_v = (
+        2.0
+        / (
+            1.0
+            + tl.exp(
+                -(
+                    tl.load(mix + 4 + offs4) * scale1
+                    + tl.load(hc_base + 4 + offs4)
+                )
+            )
+        )
+    )
+    tl.store(pre + b * stride_pb + s * stride_ps + offs4 * stride_pv, pre_v)
+    tl.store(post + b * stride_ob + s * stride_os + offs4 * stride_ov, post_v)
+
+    c00 = tl.load(mix + 8) * scale2 + tl.load(hc_base + 8)
+    c01 = tl.load(mix + 9) * scale2 + tl.load(hc_base + 9)
+    c02 = tl.load(mix + 10) * scale2 + tl.load(hc_base + 10)
+    c03 = tl.load(mix + 11) * scale2 + tl.load(hc_base + 11)
+    c10 = tl.load(mix + 12) * scale2 + tl.load(hc_base + 12)
+    c11 = tl.load(mix + 13) * scale2 + tl.load(hc_base + 13)
+    c12 = tl.load(mix + 14) * scale2 + tl.load(hc_base + 14)
+    c13 = tl.load(mix + 15) * scale2 + tl.load(hc_base + 15)
+    c20 = tl.load(mix + 16) * scale2 + tl.load(hc_base + 16)
+    c21 = tl.load(mix + 17) * scale2 + tl.load(hc_base + 17)
+    c22 = tl.load(mix + 18) * scale2 + tl.load(hc_base + 18)
+    c23 = tl.load(mix + 19) * scale2 + tl.load(hc_base + 19)
+    c30 = tl.load(mix + 20) * scale2 + tl.load(hc_base + 20)
+    c31 = tl.load(mix + 21) * scale2 + tl.load(hc_base + 21)
+    c32 = tl.load(mix + 22) * scale2 + tl.load(hc_base + 22)
+    c33 = tl.load(mix + 23) * scale2 + tl.load(hc_base + 23)
+
+    m0 = tl.maximum(tl.maximum(c00, c01), tl.maximum(c02, c03))
+    m1 = tl.maximum(tl.maximum(c10, c11), tl.maximum(c12, c13))
+    m2 = tl.maximum(tl.maximum(c20, c21), tl.maximum(c22, c23))
+    m3 = tl.maximum(tl.maximum(c30, c31), tl.maximum(c32, c33))
+    c00 = tl.exp(c00 - m0)
+    c01 = tl.exp(c01 - m0)
+    c02 = tl.exp(c02 - m0)
+    c03 = tl.exp(c03 - m0)
+    c10 = tl.exp(c10 - m1)
+    c11 = tl.exp(c11 - m1)
+    c12 = tl.exp(c12 - m1)
+    c13 = tl.exp(c13 - m1)
+    c20 = tl.exp(c20 - m2)
+    c21 = tl.exp(c21 - m2)
+    c22 = tl.exp(c22 - m2)
+    c23 = tl.exp(c23 - m2)
+    c30 = tl.exp(c30 - m3)
+    c31 = tl.exp(c31 - m3)
+    c32 = tl.exp(c32 - m3)
+    c33 = tl.exp(c33 - m3)
+
+    r0 = c00 + c01 + c02 + c03
+    r1 = c10 + c11 + c12 + c13
+    r2 = c20 + c21 + c22 + c23
+    r3 = c30 + c31 + c32 + c33
+    c00 = c00 / r0 + eps
+    c01 = c01 / r0 + eps
+    c02 = c02 / r0 + eps
+    c03 = c03 / r0 + eps
+    c10 = c10 / r1 + eps
+    c11 = c11 / r1 + eps
+    c12 = c12 / r1 + eps
+    c13 = c13 / r1 + eps
+    c20 = c20 / r2 + eps
+    c21 = c21 / r2 + eps
+    c22 = c22 / r2 + eps
+    c23 = c23 / r2 + eps
+    c30 = c30 / r3 + eps
+    c31 = c31 / r3 + eps
+    c32 = c32 / r3 + eps
+    c33 = c33 / r3 + eps
+
+    d0 = c00 + c10 + c20 + c30 + eps
+    d1 = c01 + c11 + c21 + c31 + eps
+    d2 = c02 + c12 + c22 + c32 + eps
+    d3 = c03 + c13 + c23 + c33 + eps
+    c00 = c00 / d0
+    c10 = c10 / d0
+    c20 = c20 / d0
+    c30 = c30 / d0
+    c01 = c01 / d1
+    c11 = c11 / d1
+    c21 = c21 / d1
+    c31 = c31 / d1
+    c02 = c02 / d2
+    c12 = c12 / d2
+    c22 = c22 / d2
+    c32 = c32 / d2
+    c03 = c03 / d3
+    c13 = c13 / d3
+    c23 = c23 / d3
+    c33 = c33 / d3
+
+    for _ in tl.static_range(0, sinkhorn_iters - 1):
+        r0 = c00 + c01 + c02 + c03 + eps
+        r1 = c10 + c11 + c12 + c13 + eps
+        r2 = c20 + c21 + c22 + c23 + eps
+        r3 = c30 + c31 + c32 + c33 + eps
+        c00 = c00 / r0
+        c01 = c01 / r0
+        c02 = c02 / r0
+        c03 = c03 / r0
+        c10 = c10 / r1
+        c11 = c11 / r1
+        c12 = c12 / r1
+        c13 = c13 / r1
+        c20 = c20 / r2
+        c21 = c21 / r2
+        c22 = c22 / r2
+        c23 = c23 / r2
+        c30 = c30 / r3
+        c31 = c31 / r3
+        c32 = c32 / r3
+        c33 = c33 / r3
+
+        d0 = c00 + c10 + c20 + c30 + eps
+        d1 = c01 + c11 + c21 + c31 + eps
+        d2 = c02 + c12 + c22 + c32 + eps
+        d3 = c03 + c13 + c23 + c33 + eps
+        c00 = c00 / d0
+        c10 = c10 / d0
+        c20 = c20 / d0
+        c30 = c30 / d0
+        c01 = c01 / d1
+        c11 = c11 / d1
+        c21 = c21 / d1
+        c31 = c31 / d1
+        c02 = c02 / d2
+        c12 = c12 / d2
+        c22 = c22 / d2
+        c32 = c32 / d2
+        c03 = c03 / d3
+        c13 = c13 / d3
+        c23 = c23 / d3
+        c33 = c33 / d3
+
+    out = comb + b * stride_cb + s * stride_cs
+    tl.store(out + 0 * stride_ci + 0 * stride_cj, c00)
+    tl.store(out + 0 * stride_ci + 1 * stride_cj, c01)
+    tl.store(out + 0 * stride_ci + 2 * stride_cj, c02)
+    tl.store(out + 0 * stride_ci + 3 * stride_cj, c03)
+    tl.store(out + 1 * stride_ci + 0 * stride_cj, c10)
+    tl.store(out + 1 * stride_ci + 1 * stride_cj, c11)
+    tl.store(out + 1 * stride_ci + 2 * stride_cj, c12)
+    tl.store(out + 1 * stride_ci + 3 * stride_cj, c13)
+    tl.store(out + 2 * stride_ci + 0 * stride_cj, c20)
+    tl.store(out + 2 * stride_ci + 1 * stride_cj, c21)
+    tl.store(out + 2 * stride_ci + 2 * stride_cj, c22)
+    tl.store(out + 2 * stride_ci + 3 * stride_cj, c23)
+    tl.store(out + 3 * stride_ci + 0 * stride_cj, c30)
+    tl.store(out + 3 * stride_ci + 1 * stride_cj, c31)
+    tl.store(out + 3 * stride_ci + 2 * stride_cj, c32)
+    tl.store(out + 3 * stride_ci + 3 * stride_cj, c33)
+
+
+def hc_split_sinkhorn4_triton(
+    mixes: torch.Tensor,
+    hc_scale: torch.Tensor,
+    hc_base: torch.Tensor,
+    hc_mult: int,
+    sinkhorn_iters: int,
+    eps: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
+    if (
+        not torch.version.hip
+        or hc_mult != 4
+        or mixes.ndim != 3
+        or mixes.shape[-1] != 24
+        or hc_scale.numel() < 3
+        or hc_base.numel() < 24
+        or sinkhorn_iters < 1
+    ):
+        return None
+
+    b, s, _ = mixes.shape
+    pre = torch.empty((b, s, 4), dtype=torch.float32, device=mixes.device)
+    post = torch.empty((b, s, 4), dtype=torch.float32, device=mixes.device)
+    comb = torch.empty((b, s, 4, 4), dtype=torch.float32, device=mixes.device)
+    grid = (b * s,)
+    _hc_split_sinkhorn4_kernel[grid](
+        mixes,
+        hc_scale,
+        hc_base,
+        pre,
+        post,
+        comb,
+        mixes.stride(0),
+        mixes.stride(1),
+        pre.stride(0),
+        pre.stride(1),
+        pre.stride(2),
+        post.stride(0),
+        post.stride(1),
+        post.stride(2),
+        comb.stride(0),
+        comb.stride(1),
+        comb.stride(2),
+        comb.stride(3),
+        seq_len=s,
+        eps=eps,
+        sinkhorn_iters=sinkhorn_iters,
+        num_warps=1,
+    )
+    return pre, post, comb
+
+
 @tilelang.jit(pass_configs=pass_configs)
 def hc_split_sinkhorn_kernel(hc: int, sinkhorn_iters: int, eps: float):
     n = T.symbolic("n")
@@ -198,6 +634,37 @@ def hc_split_sinkhorn(
     eps: float = 1e-6,
 ):
     b, s, _ = mixes.size()
+
+    # TileLang 0.1.11 emits an HSACO that cannot be loaded on gfx90a. Keep the
+    # exact reference math available there; hc_mult is only 4 for DSV4, so this
+    # is small compared with the surrounding attention and MoE work.
+    props = torch.cuda.get_device_properties(mixes.device)
+    if getattr(props, "gcnArchName", "").split(":", 1)[0] == "gfx90a":
+        triton_result = hc_split_sinkhorn4_triton(
+            mixes, hc_scale, hc_base, hc_mult, sinkhorn_iters, eps
+        )
+        if triton_result is not None:
+            return triton_result
+
+        mixes = mixes.view(b, s, (2 + hc_mult) * hc_mult)
+        pre = (
+            torch.sigmoid(mixes[..., :hc_mult] * hc_scale[0] + hc_base[:hc_mult])
+            + eps
+        )
+        post = 2 * torch.sigmoid(
+            mixes[..., hc_mult : 2 * hc_mult] * hc_scale[1]
+            + hc_base[hc_mult : 2 * hc_mult]
+        )
+        comb = (
+            mixes[..., 2 * hc_mult :] * hc_scale[2] + hc_base[2 * hc_mult :]
+        ).view(b, s, hc_mult, hc_mult)
+        comb = torch.softmax(comb, dim=-1) + eps
+        comb = comb / (comb.sum(dim=-2, keepdim=True) + eps)
+        for _ in range(sinkhorn_iters - 1):
+            comb = comb / (comb.sum(dim=-1, keepdim=True) + eps)
+            comb = comb / (comb.sum(dim=-2, keepdim=True) + eps)
+        return pre, post, comb
+
     pre = mixes.new_empty(b, s, hc_mult)
     post = mixes.new_empty(b, s, hc_mult)
     comb = mixes.new_empty(b, s, hc_mult, hc_mult)

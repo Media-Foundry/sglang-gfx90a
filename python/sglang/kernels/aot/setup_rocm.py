@@ -40,6 +40,23 @@ include_dirs = [
     root / "csrc",
 ]
 
+# Conda's ROCm SDK compiler does not always add the system ROCm headers.
+# In particular, PyTorch's HIP extension headers include thrust/complex.h,
+# which is shipped by the ROCm core SDK (for example /opt/rocm/core-7.14).
+_rocm_roots = []
+for _env_name in ("ROCM_PATH", "HIP_PATH"):
+    _value = os.environ.get(_env_name)
+    if _value:
+        _rocm_roots.append(Path(_value))
+_rocm_roots.extend(sorted(Path("/opt/rocm").glob("core-*/"), reverse=True))
+_rocm_include_root = None
+for _rocm_root in _rocm_roots:
+    _rocm_include = _rocm_root / "include"
+    if (_rocm_include / "thrust" / "complex.h").exists():
+        include_dirs.append(_rocm_include)
+        _rocm_include_root = _rocm_root
+        break
+
 sources = [
     "csrc/allreduce/custom_all_reduce.hip",
     "csrc/allreduce/deterministic_all_reduce.hip",
@@ -62,6 +79,9 @@ sources = [
 cxx_flags = ["-O3"]
 libraries = ["hiprtc", "amdhip64", "c10", "torch", "torch_python"]
 extra_link_args = ["-Wl,-rpath,$ORIGIN/../../torch/lib", f"-L/usr/lib/{arch}-linux-gnu"]
+if _rocm_include_root is not None:
+    _rocm_lib = _rocm_include_root / "lib"
+    extra_link_args.extend([f"-L{_rocm_lib}", f"-Wl,-rpath,{_rocm_lib}"])
 
 default_target = "gfx942"
 amdgpu_target = os.environ.get("AMDGPU_TARGET", default_target)
@@ -74,21 +94,22 @@ if torch.cuda.is_available():
 else:
     print(f"Warning: torch.cuda not available. Using default target: {amdgpu_target}")
 
-if amdgpu_target not in ["gfx942", "gfx950", "gfx1250"]:
+if amdgpu_target not in ["gfx90a", "gfx942", "gfx950", "gfx1250"]:
     print(
-        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. Expected 'gfx942', 'gfx950', or 'gfx1250'."
+        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. Expected 'gfx90a', 'gfx942', 'gfx950', or 'gfx1250'."
     )
     sys.exit(1)
 
 fp8_macro = (
-    "-DHIP_FP8_TYPE_FNUZ" if amdgpu_target == "gfx942" else "-DHIP_FP8_TYPE_E4M3"
+    "-DHIP_FP8_TYPE_FNUZ" if amdgpu_target in ["gfx90a", "gfx942"] else "-DHIP_FP8_TYPE_E4M3"
 )
 
 # Dynamic shared-memory budget for the TopK kernels.
+# - gfx90a (MI250): use the conservative 48 KiB budget shared with gfx942.
 # - gfx942 (MI300/MI325): LDS is typically 64KB per workgroup -> keep dynamic smem <= ~48KB
 #   (leaves room for static shared allocations in the kernel).
 # - gfx95x (MI350) and gfx1250: LDS is larger -> allow the original 128KB dynamic smem.
-topk_dynamic_smem_bytes = 48 * 1024 if amdgpu_target == "gfx942" else 32 * 1024 * 4
+topk_dynamic_smem_bytes = 48 * 1024 if amdgpu_target in ["gfx90a", "gfx942"] else 32 * 1024 * 4
 
 hipcc_flags = [
     "-DNDEBUG",

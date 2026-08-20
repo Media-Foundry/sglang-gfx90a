@@ -1260,7 +1260,10 @@ class Envs:
     # Quantize the SWA fp8 KV cache from bf16-rounded values (matches
     # trainer-side QAT and the DSA-CP path) instead of fp32 registers.
     SGLANG_DSV4_USE_BF16_KV_QUANT_SOURCE = EnvBool(False)
-
+    # Cast DSV4 RMSNorm weights to bf16 after loading so ROCm/AIter can use its
+    # fused rmsnorm kernels instead of falling back to native torch fp32-weight
+    # math. Experimental and explicit because it changes stored parameter dtype.
+    SGLANG_DSV4_USE_BF16_RMSNORM_WEIGHT = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
@@ -1270,9 +1273,12 @@ class Envs:
     SGLANG_OPT_USE_FLASHINFER_MHC = EnvBool(False)
     SGLANG_DSV4_MHC_PREWARM = EnvBool(True)
     SGLANG_OPT_USE_TRITON_FUSED_MHC = EnvBool(True)
+    SGLANG_OPT_USE_TRITON_MHC_COMBINE = EnvBool(False)
     SGLANG_OPT_FUSE_MHC_POST_PRE = EnvBool(False)
     SGLANG_OPT_USE_TILELANG_INDEXER = EnvBool(False)
     SGLANG_OPT_USE_AITER_INDEXER = EnvBool(False)
+    SGLANG_OPT_USE_TRITON_INDEXER_POST = EnvBool(True)
+    SGLANG_OPT_USE_TRITON_INDEXER_FULL = EnvBool(True)
     SGLANG_OPT_DSV4_NONPAGED_INDEXER = EnvBool(True)
     # Per-rank local query rows (after DP-attention sharding when enabled),
     # not request ISL.

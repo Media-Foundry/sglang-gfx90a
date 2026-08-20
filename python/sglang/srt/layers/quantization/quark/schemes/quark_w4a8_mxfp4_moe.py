@@ -36,12 +36,23 @@ __all__ = ["QuarkW4A8MXFp4MoE"]
 _is_hip = is_hip()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 if _use_aiter:
-    from aiter.ops.shuffle import (
-        shuffle_scale,
-        shuffle_scale_a16w4,
-        shuffle_weight,
-        shuffle_weight_a16w4,
-    )
+    try:
+        from aiter.ops.shuffle import (
+            shuffle_scale,
+            shuffle_scale_a16w4,
+            shuffle_weight,
+            shuffle_weight_a16w4,
+        )
+    except ImportError:
+        from aiter.ops.shuffle import (
+            shuffle_scale_a16w4,
+            shuffle_weight,
+            shuffle_weight_a16w4,
+        )
+
+        def shuffle_scale(scale, num_experts, is_gu_interleave=True, is_w13_scale=True):
+            del is_gu_interleave
+            return shuffle_scale_a16w4(scale, num_experts, is_w13_scale)
 
 OCP_MX_BLOCK_SIZE = 32
 

@@ -266,11 +266,17 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         from sglang.srt.configs.model_config import (
             get_dsa_index_topk,
             is_deepseek_dsa,
+            is_deepseek_v4,
         )
 
         hf_config = model_runner.model_config.hf_config
-        if is_hip() and is_deepseek_dsa(hf_config):
-            self.dsa_index_topk = get_dsa_index_topk(hf_config)
+        if is_hip() and (is_deepseek_dsa(hf_config) or is_deepseek_v4(hf_config)):
+            self.dsa_index_topk = (
+                get_dsa_index_topk(hf_config)
+                if is_deepseek_dsa(hf_config)
+                else getattr(hf_config, "index_topk", None)
+            )
+            assert self.dsa_index_topk is not None
             self.dsa_dual_graph = True
             logger.info(
                 "[dense-decode] DSA dual-graph enabled: capturing "

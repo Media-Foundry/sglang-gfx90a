@@ -141,7 +141,14 @@ def _require_fp4_dtype():
 
 
 if _use_aiter or _use_hip_int4:
-    from aiter.ops.shuffle import shuffle_scale, shuffle_weight
+    try:
+        from aiter.ops.shuffle import shuffle_scale, shuffle_weight
+    except ImportError:
+        from aiter.ops.shuffle import shuffle_scale_a16w4, shuffle_weight
+
+        def shuffle_scale(scale, num_experts, is_gu_interleave=True, is_w13_scale=True):
+            del is_gu_interleave
+            return shuffle_scale_a16w4(scale, num_experts, is_w13_scale)
 
 if _use_aiter:
     from sglang.srt.layers.quantization.fp8_utils import (

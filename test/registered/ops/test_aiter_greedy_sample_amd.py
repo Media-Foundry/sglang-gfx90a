@@ -191,11 +191,17 @@ class TestAiterGreedyIntegration(unittest.TestCase):
 
         _mock_global_server_args()
 
-        patches = {"_use_aiter": use_aiter}
+        # Force the kernel path for kernel/integration comparisons. Production
+        # defaults disable AIter greedy on gfx90a because its all -inf sentinel
+        # is out of range; that default is covered separately below.
+        patches = {
+            "_use_aiter": use_aiter,
+            "_disable_aiter_greedy_sample": False,
+        }
         if use_aiter:
             patches["_aiter_greedy_sample"] = self._greedy_sample_fn
 
-        with mock.patch.multiple(sampler_mod, **patches):
+        with mock.patch.multiple(sampler_mod, create=True, **patches):
             sampler = sampler_mod.Sampler()
             batch_size = logits.shape[0]
             positions = torch.arange(batch_size, device=self.device, dtype=torch.int32)
@@ -239,6 +245,40 @@ class TestAiterGreedyIntegration(unittest.TestCase):
             torch.equal(out.cpu(), expected.cpu()),
             "Fallback path should produce torch.argmax results",
         )
+
+    def test_gfx90a_default_disables_aiter_greedy(self):
+        from sglang.srt.layers import sampler as sampler_mod
+        from sglang.srt.layers.logits_processor import LogitsProcessorOutput
+
+        if not sampler_mod.is_gfx90a_supported():
+            self.skipTest("This regression covers gfx90a only")
+
+        batch_size, vocab_size = 4, 32000
+        logits = torch.randn(
+            batch_size, vocab_size, device=self.device, dtype=torch.bfloat16
+        )
+        sampling_info = _make_sampling_info(batch_size, vocab_size, self.device)
+        _mock_global_server_args()
+
+        with mock.patch.multiple(
+            sampler_mod,
+            create=True,
+            _use_aiter=True,
+            _aiter_greedy_sample=mock.Mock(
+                side_effect=AssertionError("AIter greedy must not run on gfx90a")
+            ),
+        ):
+            sampler = sampler_mod.Sampler()
+            output = sampler.forward(
+                logits_output=LogitsProcessorOutput(next_token_logits=logits),
+                sampling_info=sampling_info,
+                return_logprob=False,
+                top_logprobs_nums=[0] * batch_size,
+                token_ids_logprobs=[None] * batch_size,
+                positions=torch.arange(batch_size, device=self.device, dtype=torch.int32),
+            )
+
+        self.assertTrue(torch.equal(output.cpu(), torch.argmax(logits, dim=-1).cpu()))
 
     def test_aiter_greedy_with_return_logprob(self):
         batch_size, vocab_size = 16, 32000

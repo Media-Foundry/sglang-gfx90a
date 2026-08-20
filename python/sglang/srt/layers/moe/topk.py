@@ -126,6 +126,13 @@ _is_npu = is_npu()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 _is_musa = is_musa()
 
+_aiter_topk_gating = None
+if _use_aiter:
+    try:
+        from aiter import topk_gating as _aiter_topk_gating
+    except ImportError:
+        pass
+
 # Epsilon added to the top-k weight sum before renormalization, matching the
 # DeepSeek reference gate (modeling_deepseek.py: `topk_weight.sum(...) + 1e-20`)
 # and flashinfer's trtllm routing kernels (mSumEpsilon). With sigmoid scoring
@@ -1245,9 +1252,11 @@ def biased_topk_jit_kernel_impl(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert hidden_states.shape[0] == gating_output.shape[0], "Number of tokens mismatch"
 
-    if _use_aiter and scoring_func == "sqrtsoftplus" and num_fused_shared_experts == 0:
-        from aiter import topk_gating
-
+    if (
+        _aiter_topk_gating is not None
+        and scoring_func == "sqrtsoftplus"
+        and num_fused_shared_experts == 0
+    ):
         num_tokens = gating_output.shape[0]
         topk_weights = torch.empty(
             (num_tokens, topk), dtype=torch.float32, device=gating_output.device
@@ -1256,7 +1265,7 @@ def biased_topk_jit_kernel_impl(
             (num_tokens, topk), dtype=torch.int32, device=gating_output.device
         )
 
-        topk_gating(
+        _aiter_topk_gating(
             topk_weights,
             topk_ids,
             gating_output,
@@ -1273,7 +1282,10 @@ def biased_topk_jit_kernel_impl(
 
         topk_weights, topk_ids = moe_fused_gate(
             gating_output,
-            correction_bias,
+            # The Triton gate uses fp32 bias arithmetic. Some DeepSeek
+            # checkpoints store correction_bias in bf16, while the reference
+            # router semantics are fp32, so normalize at this boundary.
+            correction_bias.to(torch.float32),
             topk=topk,
             scoring_func=scoring_func,
             num_fused_shared_experts=num_fused_shared_experts,

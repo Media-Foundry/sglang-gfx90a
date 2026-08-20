@@ -66,7 +66,12 @@ _is_sm120_supported = is_sm120_supported()
 _is_gfx95_supported = is_gfx95_supported()
 _is_musa = is_musa()
 
-_use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
+# AIter's generic FP8 quantizer emits CDNA3/4-only `v_cvt_pk_fp8_f32`
+# instructions. Keep AIter enabled for the MoE runner on CDNA2, but use the
+# portable SGLang/Triton FP8 linear path on gfx90a.
+_use_aiter = (
+    get_bool_env_var("SGLANG_USE_AITER") and _is_hip and _is_gfx95_supported
+)
 _use_aiter_gfx95 = _use_aiter and _is_gfx95_supported
 # ROCm 7.0 hipcc miscompiles gemm_a8w8_blockscale_bpreshuffle on gfx95 (#23319).
 _use_aiter_bpreshuffle_gfx95 = _use_aiter_gfx95 and get_hip_version() >= (7, 2, 0)
