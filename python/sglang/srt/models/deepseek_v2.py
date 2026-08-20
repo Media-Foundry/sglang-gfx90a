@@ -308,7 +308,11 @@ class DeepseekV2MLP(nn.Module):
                 "Only silu is supported for now."
             )
         self.act_fn = SiluAndMul()
-        self.use_fused_clamp_act_mul = _is_hip
+        self.use_fused_clamp_act_mul = (
+            _is_hip
+            and _is_gfx95_supported
+            and envs.SGLANG_OPT_USE_FUSED_CLAMP_ACT_MUL.get()
+        )
         self._fused_clamp_fp8_checked = False
         self._fused_clamp_use_fp8 = False
 
@@ -454,6 +458,15 @@ class DeepseekV2MLP(nn.Module):
                     [_g.clamp(max=_lim), _u.clamp(min=-_lim, max=_lim)], dim=-1
                 )
                 x = self.act_fn(gate_up)
+            elif _is_hip and not _is_gfx95_supported:
+                # The gfx90a JIT variant includes CUDA's cuda_fp8.h and cannot
+                # compile with ROCm. Keep the exact bounded-SwiGLU semantics
+                # in eager Torch until a CDNA2 kernel is available.
+                _g, _u = gate_up.chunk(2, dim=-1)
+                _lim = float(self.swiglu_limit)
+                x = torch.nn.functional.silu(_g.clamp(max=_lim)) * _u.clamp(
+                    min=-_lim, max=_lim
+                )
             else:
                 M, N = gate_up.shape
                 x = gate_up.new_empty((M, N // 2))

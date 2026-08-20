@@ -226,6 +226,17 @@ DEEPSEEK_V4_STACKED_PARAMS_MAPPING: List[Tuple[str, str, int]] = [
 _FLASHINFER_MHC_PRE_SPLITS = (1, 2, 4, 8, 16)
 
 
+def _maybe_cast_rmsnorm_weight_bf16(norm: nn.Module) -> None:
+    if (
+        _is_hip
+        and envs.SGLANG_DSV4_USE_BF16_RMSNORM_WEIGHT.get()
+        and isinstance(norm, RMSNorm)
+        and norm.has_weight
+        and norm.weight.data.dtype != torch.bfloat16
+    ):
+        norm.weight.data = norm.weight.data.bfloat16().contiguous()
+
+
 @functools.cache
 def _cuda_sm_count() -> int:
     return torch.cuda.get_device_properties(0).multi_processor_count
@@ -1574,11 +1585,10 @@ class MQALayer(MqaAttentionBase):
             # dispatch the cheaper decode::head64 variant; attn_sink is sliced to
             # this rank and padded to match.
             padded_num_heads = 64 if self.n_local_heads <= 64 else self.n_heads
-            # Only [0:n_local_heads] is written below. Uninitialized padded TP
-            # heads inject NaN into attention on gfx942 (fnuz), so zero-init
-            # there; other archs tolerate new_empty and skip the per-forward
-            # memset.
-            if _is_gfx942_supported:
+            # Only [0:n_local_heads] is written below, but ROCm DSV4 attention
+            # consumes the full padded tensor. Uninitialized tail heads can
+            # therefore inject NaNs (observed on gfx90a and gfx942).
+            if _is_hip:
                 q_padded = x.new_zeros(x.shape[0], padded_num_heads, self.head_dim)
             else:
                 q_padded = x.new_empty(x.shape[0], padded_num_heads, self.head_dim)
@@ -1855,6 +1865,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         )
 
     def refresh_mhc_norm_weight_cache(self):
+        _maybe_cast_rmsnorm_weight_bf16(self.input_layernorm)
+        _maybe_cast_rmsnorm_weight_bf16(self.post_attention_layernorm)
         # Cache bf16 norm weights so the fused path does not allocate/cast per forward.
         self._input_layernorm_weight_bf16 = (
             self.input_layernorm.weight.data.bfloat16().contiguous()
@@ -1993,7 +2005,15 @@ class DeepseekV4DecoderLayer(nn.Module):
         with use_symmetric_memory(
             get_tp_group(), disabled=not is_allocation_symmetric()
         ):
-            y = (pre.squeeze(1).unsqueeze(-1) * x_flat.view(shape)).sum(dim=1).to(dtype)
+            y = None
+            if _is_hip and envs.SGLANG_OPT_USE_TRITON_MHC_COMBINE.get():
+                from sglang.kernels.ops.layernorm.mhc import mhc_weighted_sum_triton
+
+                y = mhc_weighted_sum_triton(x.view(shape), pre.squeeze(1))
+            if y is None:
+                y = (
+                    pre.squeeze(1).unsqueeze(-1) * x_flat.view(shape)
+                ).sum(dim=1).to(dtype)
         return y, post.squeeze(1), comb.squeeze(1), False
 
     def hc_post(
@@ -2032,6 +2052,13 @@ class DeepseekV4DecoderLayer(nn.Module):
         assert residual.shape == (x.shape[0], self.hc_mult, x.shape[-1])
         assert post.shape == (x.shape[0], self.hc_mult)
         assert comb.shape == (x.shape[0], self.hc_mult, self.hc_mult)
+
+        if _is_hip and envs.SGLANG_OPT_USE_TRITON_MHC_COMBINE.get():
+            from sglang.kernels.ops.layernorm.mhc import mhc_post_combine_triton
+
+            result = mhc_post_combine_triton(x, residual, post, comb)
+            if result is not None:
+                return result
 
         @compile_in_capture_mode
         def hc_post_torch_impl(x, residual, post, comb):
@@ -2321,6 +2348,14 @@ class DeepseekV4DecoderLayer(nn.Module):
             dp_gather_replicate(hidden_states, local_hidden_states, forward_batch)
         _a2a_scatter_chunks: Optional[List[torch.Tensor]] = None
         if _use_tp_attn_a2a_scatter:
+            if input_ids is None:
+                input_ids = torch.zeros(
+                    hidden_states.shape[0],
+                    dtype=torch.long,
+                    device=hidden_states.device,
+                )
+            if input_ids_global is None:
+                input_ids_global = input_ids
             s, r = get_parallel().attn_tp_size, get_parallel().attn_tp_rank
             _a2a_scatter_chunks = list(hidden_states.tensor_split(s))
             hidden_states = _a2a_scatter_chunks[r].contiguous()
@@ -3424,6 +3459,7 @@ class DeepseekV4ForCausalLM(nn.Module):
             ):
                 self_attn.indexer.compressor.apply_ape_hotfix()
             layer.refresh_mhc_norm_weight_cache()
+        _maybe_cast_rmsnorm_weight_bf16(self.model.norm)
 
     @staticmethod
     def remap_weight_name_to_dpsk_hf_format(

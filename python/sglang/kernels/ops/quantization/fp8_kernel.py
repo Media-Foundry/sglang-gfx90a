@@ -1328,13 +1328,18 @@ def select_w8a8_block_fp8_matmul_kernel(M, N, META):
 if _is_hip:
 
     def use_w8a8_block_fp8_matmul_unrolledx4(M, N, META):
+        if torch.version.hip and (
+            torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0]
+            == "gfx90a"
+        ):
+            return False
         # Use manually unrolledx4 kernel on AMD GPU when the grid size is small.
         # Empirical testing shows the sweet spot lies when it's less than the # of
         # compute units available on the device.
         num_workgroups = triton.cdiv(M, META["BLOCK_SIZE_M"]) * triton.cdiv(
             N, META["BLOCK_SIZE_N"]
         )
-        num_workgroups <= get_device_core_count()
+        return num_workgroups <= get_device_core_count()
 
     def select_w8a8_block_fp8_matmul_kernel(M, N, META):
         if use_w8a8_block_fp8_matmul_unrolledx4(M, N, META):

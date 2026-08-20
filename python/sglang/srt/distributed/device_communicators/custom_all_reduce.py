@@ -3,6 +3,7 @@
 # Adapted from https://github.com/vllm-project/vllm/blob/v0.6.4.post1/vllm/distributed/device_communicators/custom_all_reduce.py
 
 import ctypes
+import inspect
 import logging
 from contextlib import contextmanager
 from functools import partial
@@ -397,6 +398,10 @@ def dispatch_custom_allreduce(
 
             logger.info("[AR] Using AiterCustomAllreduce (AMD default)")
             tms_cudagraph = envs.SGLANG_MEMORY_SAVER_CUDA_GRAPH.get()
+            if "enable_register_for_capturing" not in inspect.signature(
+                AiterCustomAllreduce
+            ).parameters:
+                return AiterCustomAllreduce
             return partial(
                 AiterCustomAllreduce,
                 enable_register_for_capturing=not tms_cudagraph,

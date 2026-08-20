@@ -18,7 +18,7 @@ from sglang.srt.layers.moe.moe_runner.base import (
     register_pre_permute,
 )
 from sglang.srt.layers.moe.utils import MoeRunnerBackend
-from sglang.srt.utils import get_bool_env_var, get_int_env_var
+from sglang.srt.utils import get_bool_env_var, get_int_env_var, is_gfx95_supported
 
 if TYPE_CHECKING:
     from sglang.srt.layers.moe.token_dispatcher.base import CombineInput
@@ -110,6 +110,101 @@ def _aiter_quant_type(quant_type: AiterQuantType):
     return getattr(QuantType, quant_type.value)
 
 
+# CDNA2 has no pre-tuned AIter FP4 row, but its CK MXFP4 kernels can execute
+# the DeepSeek-V4 TP4/EP4 shape when a concrete kernel is selected. Keep the
+# names here instead of copying a gfx942 tune file: the kernels are generic
+# CK FP4/BF16 kernels, while the assembly table is not valid on gfx90a.
+_GFX90A_DSV4_FP4_KERNEL1 = (
+    "moe_ck2stages_gemm1_256x32x128x128_1x4_MulABScale_v3_"
+    "Nswizzle0_Quant3_MulRoutedWeight0_silu_FP4X2_FP4X2_B16"
+)
+_GFX90A_DSV4_FP4_KERNEL2 = (
+    "moe_ck2stages_gemm2_256x32x128x128_1x4_MulABScaleExpertWeight_v3_"
+    "Nswizzle0_Quant3_MulRoutedWeight1_FP4X2_FP4X2_B16"
+)
+
+
+def _install_gfx90a_dsv4_fp4_tune(
+    *,
+    hidden_states: torch.Tensor,
+    w13_weight: torch.Tensor,
+    topk: int,
+    output_dtype: Optional[torch.dtype],
+    quant_info: AiterMoeQuantInfo,
+) -> None:
+    """Register the validated CDNA2 DeepSeek-V4 FP4 CK fallback in AIter."""
+    if quant_info.quant_type is not AiterQuantType.PER_1X32:
+        return
+    if hidden_states.device.type != "cuda" or w13_weight.device.type != "cuda":
+        return
+    if output_dtype not in (None, torch.bfloat16):
+        return
+    if quant_info.doweight_stage1:
+        return
+
+    try:
+        import importlib
+        from aiter.jit.utils.chip_info import get_cu_num, get_gfx
+
+        aiter_fused_moe = importlib.import_module("aiter.fused_moe")
+    except (ImportError, RuntimeError):
+        return
+
+    if get_gfx() != "gfx90a":
+        return
+
+    # Avoid AIter's table lookup KeyError for non-tuned gfx90a shapes.
+    if "gfx90a" not in aiter_fused_moe.fused_moe_1stage_dict:
+        aiter_fused_moe.fused_moe_1stage_dict["gfx90a"] = (
+            aiter_fused_moe.fused_moe_1stage_dict["gfx942"]
+        )
+
+    # This is intentionally limited to the rank shape validated on MI250X.
+    if w13_weight.dtype != getattr(torch, "float4_e2m1fn_x2", None):
+        return
+    if w13_weight.ndim != 3 or w13_weight.shape[1] != 4096:
+        return
+    if w13_weight.shape[0] != 64 or w13_weight.shape[2] != 2048:
+        return
+    if topk != 6:
+        return
+
+    # Preserve AIter's normal tuned CSV entries and append one process-local
+    # entry for the validated gfx90a shape.
+    if aiter_fused_moe.cfg_2stages is None:
+        try:
+            import pandas as pd
+            from aiter.jit.core import AITER_CONFIGS
+
+            df = pd.read_csv(AITER_CONFIGS.AITER_CONFIG_FMOE_FILE)
+            index_cols = [
+                "cu_num", "token", "model_dim", "inter_dim", "expert", "topk",
+                "act_type", "dtype", "q_dtype_a", "q_dtype_w", "q_type",
+                "use_g1u1", "doweight_stage1",
+            ]
+            aiter_fused_moe.cfg_2stages = df.set_index(index_cols).to_dict("index")
+        except Exception:
+            aiter_fused_moe.cfg_2stages = {}
+
+    padded_token = aiter_fused_moe.get_padded_M(int(hidden_states.shape[0]))
+    model_dim = int(w13_weight.shape[2] * 2)
+    inter_dim = int(w13_weight.shape[1] // 2)
+    key = (
+        int(get_cu_num()), padded_token, model_dim, inter_dim,
+        int(w13_weight.shape[0]), int(topk), "ActivationType.Silu",
+        str(output_dtype or torch.bfloat16), str(w13_weight.dtype),
+        str(w13_weight.dtype), "QuantType.per_1x32", 1, 0,
+    )
+    if key not in aiter_fused_moe.cfg_2stages:
+        aiter_fused_moe.cfg_2stages[key] = {
+            "block_m": 32, "ksplit": 0,
+            "kernelName1": _GFX90A_DSV4_FP4_KERNEL1,
+            "kernelName2": _GFX90A_DSV4_FP4_KERNEL2,
+            "run_1stage": 0,
+        }
+        aiter_fused_moe.get_2stage_cfgs.cache_clear()
+
+
 @functools.cache
 def _aiter_fused_moe_supports_no_combine() -> bool:
     """Probe whether the installed aiter.fused_moe accepts a `no_combine` kwarg.
@@ -121,6 +216,42 @@ def _aiter_fused_moe_supports_no_combine() -> bool:
     from aiter.fused_moe import fused_moe
 
     return "no_combine" in inspect.signature(fused_moe).parameters
+
+
+@functools.cache
+def _aiter_fused_moe_parameters() -> frozenset[str]:
+    import inspect
+
+    from aiter.fused_moe import fused_moe
+
+    return frozenset(inspect.signature(fused_moe).parameters)
+
+
+@functools.cache
+def _install_gfx90a_aiter_quant_fallback() -> None:
+    if is_gfx95_supported():
+        return
+
+    import importlib
+
+    from aiter import QuantType
+    from aiter.ops.quant import get_hip_quant, get_triton_quant
+
+    fused_moe_module = importlib.import_module("aiter.fused_moe")
+    triton_fp4_quant = get_triton_quant(QuantType.per_1x32)
+
+    def get_quant(quant_type):
+        if quant_type != QuantType.per_1x32:
+            return get_hip_quant(quant_type)
+
+        def quant_fp4(x, scale=None, quant_dtype=None, **kwargs):
+            if x.dtype == quant_dtype and scale is not None:
+                return x, scale
+            return triton_fp4_quant(x, scale=None, quant_dtype=quant_dtype)
+
+        return quant_fp4
+
+    fused_moe_module.get_quant = get_quant
 
 
 class AiterRunnerCore(MoeRunnerCore):
@@ -151,6 +282,16 @@ class AiterRunnerCore(MoeRunnerCore):
 
         from aiter.fused_moe import fused_moe
 
+        _install_gfx90a_aiter_quant_fallback()
+
+        _install_gfx90a_dsv4_fp4_tune(
+            hidden_states=runner_input.hidden_states,
+            w13_weight=quant_info.w13_weight,
+            topk=int(runner_input.topk_ids.shape[-1]),
+            output_dtype=runner_input.output_dtype,
+            quant_info=quant_info,
+        )
+
         from sglang.srt.environ import envs
 
         a1_scale = (
@@ -166,7 +307,8 @@ class AiterRunnerCore(MoeRunnerCore):
             extra["num_local_tokens"] = runner_input.num_local_tokens
         if runner_input.output_dtype is not None:
             extra["dtype"] = runner_input.output_dtype
-        if self.config.activation == "situ":
+        fused_moe_parameters = _aiter_fused_moe_parameters()
+        if self.config.activation == "situ" and "gate_mode" in fused_moe_parameters:
             from aiter.ops.flydsl.moe_common import GateMode
 
             extra["gate_mode"] = GateMode.SEPARATED.value
@@ -174,7 +316,7 @@ class AiterRunnerCore(MoeRunnerCore):
                 extra["beta"] = float(self.config.gemm1_alpha)
             if self.config.gemm1_clamp_limit is not None:
                 extra["linear_beta"] = float(self.config.gemm1_clamp_limit)
-        elif quant_info.swiglu_limit > 0:
+        elif quant_info.swiglu_limit > 0 and "gate_mode" in fused_moe_parameters:
             # GateMode is only needed for the gpt-oss MXFP4 swiglu_limit path.
             # Import lazily so models that don't use it (e.g. DeepSeek-V3 fp8,
             # swiglu_limit==0) still run on aiter builds where this module
@@ -339,12 +481,35 @@ def _pre_permute_deepep_to_aiter(
         is_w4a4 = weight_quant == AiterQuantType.PER_1X32
         is_fp4_dispatch = hidden_states.dtype == torch.float4_e2m1fn_x2
 
+        skip_gfx90a_prequant = get_bool_env_var(
+            "SGLANG_GFX90A_AITER_MORI_SKIP_PREQUANT", "false"
+        )
+
+        if (
+            is_w4a4
+            and a1_scale is None
+            and not is_fp4_dispatch
+            and not is_gfx95_supported()
+            and not skip_gfx90a_prequant
+        ):
+            # CDNA2 has no native FP4 conversion. AIter's HIP module_quant
+            # emits unsupported FP8 instructions and its FP4 conversion is a
+            # gfx950-only intrinsic. Quantize through AIter's Triton fallback
+            # and pass pre-quantized activations to fused_moe.
+            from aiter import QuantType
+            from aiter.ops.quant import get_triton_quant
+
+            hidden_states, a1_scale = get_triton_quant(QuantType.per_1x32)(
+                hidden_states, shuffle=False
+            )
+            is_fp4_dispatch = True
+
         # AITER fused_moe Clamped-SwiGLU is dispatched with
         # gate_mode=INTERLEAVE, for which AITER picks a bf16/fp8 `q_dtype_a`
         # Refer to https://github.com/ROCm/aiter/blob/a2617c366dc7271a1662ecda2023d19f6ccefcec/aiter/fused_moe.py#L406-L412
         swiglu_interleave = quant_info.swiglu_limit > 0 and get_bool_env_var(
             "SGLANG_USE_AITER_MOE_GU_ITLV", "true"
-        )
+        ) and "gate_mode" in _aiter_fused_moe_parameters()
 
         if is_w4a4 and a1_scale is not None and not is_fp4_dispatch:
             # W4A4 weights with FP8 dispatch: dequant FP8->BF16 first; the

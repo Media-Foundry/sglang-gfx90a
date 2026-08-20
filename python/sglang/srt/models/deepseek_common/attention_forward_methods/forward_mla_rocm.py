@@ -73,7 +73,7 @@ _SGLANG_EXPERIMENTAL_LORA_OPTI = envs.SGLANG_EXPERIMENTAL_LORA_OPTI.get()
 if TYPE_CHECKING:
     from sglang.srt.models.deepseek_v2 import DeepseekV2AttentionMLA
 
-if _use_aiter:
+if _use_aiter_gfx95:
     # aiter ROCm/aiter#2958 renamed the public `fused_qk_rmsnorm` in
     # `aiter.ops.fused_qk_norm_rope_cache_quant` to a private `_fused_qk_rmsnorm`
     # and introduced a unified entry point in `aiter.ops.fused_qk_rmsnorm_group_quant`
@@ -401,7 +401,7 @@ class DeepseekMLARocmForwardMixin:
                     )
                     if _use_aiter_bpreshuffle_gfx95:
                         q = materialize_bpreshuffle_fp8_scale_tuple(q)
-            elif _use_aiter:
+            elif _use_aiter_gfx95:
                 q, k_nope = fused_qk_rmsnorm_bf16(
                     q,
                     self.q_a_layernorm.weight,

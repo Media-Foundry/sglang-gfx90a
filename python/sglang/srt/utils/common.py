@@ -1042,6 +1042,15 @@ def is_gfx95_supported():
 
 
 @lru_cache(maxsize=1)
+def is_gfx90a_supported():
+    """Whether the current HIP device is an AMD CDNA2 gfx90a GPU."""
+    if torch.version.hip:
+        gcn_arch = torch.cuda.get_device_properties(0).gcnArchName
+        return gcn_arch.split(":", 1)[0] == "gfx90a"
+    return False
+
+
+@lru_cache(maxsize=1)
 def is_gfx942_supported():
     """
     Returns whether the current platform is AMD CDNA3 (gfx942 — MI300X / MI325X).
@@ -2418,6 +2427,13 @@ def broadcast_pyobj(
 
             dist.broadcast(tensor_size, src=src, group=dist_group)
             dist.broadcast(tensor_data, src=src, group=dist_group)
+        # On ROCm, the Gloo source can return before peer ranks have finished
+        # copying the serialized payload.  A source rank then entering the
+        # next NCCL collective can make request-receiver collectives diverge.
+        # Synchronize CPU-group object broadcasts before returning to the
+        # scheduler loop.
+        if is_hip() and force_cpu_device and dist_group is not None:
+            dist.barrier(group=dist_group)
         return data
     else:
         tensor_size = torch.tensor([0], dtype=torch.long, device=device)
@@ -2425,6 +2441,8 @@ def broadcast_pyobj(
         size = tensor_size.item()
 
         if size == 0:
+            if is_hip() and force_cpu_device and dist_group is not None:
+                dist.barrier(group=dist_group)
             return []
 
         tensor_data = torch.empty(size, dtype=torch.uint8, device=device)
@@ -2432,6 +2450,8 @@ def broadcast_pyobj(
 
         serialized_data = bytes(tensor_data.cpu().numpy())
         data = pickle.loads(serialized_data)
+        if is_hip() and force_cpu_device and dist_group is not None:
+            dist.barrier(group=dist_group)
         return data
 
 

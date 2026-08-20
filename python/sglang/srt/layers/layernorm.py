@@ -39,6 +39,7 @@ from sglang.srt.utils import (
     is_cpu,
     is_cuda,
     is_flashinfer_available,
+    is_gfx95_supported,
     is_hip,
     is_musa,
     is_npu,
@@ -51,6 +52,7 @@ _is_hip = is_hip()
 _is_musa = is_musa()
 _is_npu = is_npu()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
+_use_aiter_gfx95 = _use_aiter and is_gfx95_supported()
 _is_cpu_amx_available = cpu_has_amx_support()
 _is_cpu = is_cpu()
 _is_xpu = is_xpu()
@@ -219,7 +221,7 @@ def _forward_with_allreduce_fusion(
                 residual = residual + post_residual_addition
 
             # Prefer AITER fused AR+RMSNorm when enabled on AMD.
-            if _use_aiter:
+            if _use_aiter_gfx95:
                 fused_result = tensor_model_parallel_fused_allreduce_rmsnorm(
                     x, residual, weight, norm_module.variance_epsilon
                 )
@@ -238,7 +240,7 @@ def _forward_with_allreduce_fusion(
                     return fused_result
 
             # For AITER route, preserve correctness when fused path is unavailable.
-            if _use_aiter and get_exec().comm.enable_aiter_allreduce_fusion:
+            if _use_aiter_gfx95 and get_exec().comm.enable_aiter_allreduce_fusion:
                 x = tensor_model_parallel_all_reduce(x)
                 return norm_module.forward(x, residual, None)
 
@@ -279,7 +281,7 @@ def _forward_with_allreduce_fusion_quant_per_group(
     lossy. Standard attention layers (single FP8 ``qkv_proj``) use
     ``keep_bf16=False``.
     """
-    if residual is None or not _use_aiter:
+    if residual is None or not _use_aiter_gfx95:
         return None
 
     from sglang.srt.distributed import (
@@ -1134,7 +1136,7 @@ class GemmaRMSNorm(BaseFusedOp):
         residual: Optional[torch.Tensor] = None,
         post_residual_addition: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if _use_aiter and _has_rocm_triton_gemma_rms_norm:
+        if _use_aiter_gfx95 and _has_rocm_triton_gemma_rms_norm:
             if residual is not None:
                 if post_residual_addition is not None:
                     residual = residual + post_residual_addition

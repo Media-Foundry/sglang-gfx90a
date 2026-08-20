@@ -210,7 +210,17 @@ if _is_hip:
         from aiter.ops.triton.quant import dynamic_mxfp4_quant
         from aiter.utility.fp4_utils import e8m0_shuffle
     except ImportError as err:
-        dynamic_mxfp4_quant = e8m0_shuffle = err
+        try:
+            from aiter.ops.shuffle import shuffle_scale_a16w4, shuffle_weight, shuffle_weight_a16w4
+
+            def shuffle_scale(scale, num_experts, is_gu_interleave=True, is_w13_scale=True):
+                del is_gu_interleave
+                return shuffle_scale_a16w4(scale, num_experts, is_w13_scale)
+
+            from aiter.ops.triton.quant import dynamic_mxfp4_quant
+            from aiter.utility.fp4_utils import e8m0_shuffle
+        except ImportError:
+            dynamic_mxfp4_quant = e8m0_shuffle = err
 
 
 def _pad_hopper_mxfp4_scale(scale, k_size):
