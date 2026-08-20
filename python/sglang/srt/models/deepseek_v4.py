@@ -167,6 +167,7 @@ from sglang.srt.utils import (
     LazyValue,
     add_prefix,
     get_bool_env_var,
+    is_gfx90a_supported,
     is_gfx95_supported,
     is_gfx942_supported,
     log_info_on_rank0,
@@ -215,6 +216,20 @@ logger = logging.getLogger(__name__)
 
 _FP8_WO_A_GEMM = envs.SGLANG_OPT_FP8_WO_A_GEMM.get()
 _MHC_POST_MULT_VALUE = 2.0
+
+
+def _mori_rotated_chunk_index(rank: int, world_size: int, layer_id: int) -> int:
+    """Map a physical rank to its layer-rotated logical token chunk."""
+    owner = layer_id % world_size
+    return (rank - owner) % world_size
+
+
+def _restore_mori_rotated_chunks(
+    physical_chunks: List[torch.Tensor], layer_id: int
+) -> List[torch.Tensor]:
+    """Restore physical-rank gather results to logical token-chunk order."""
+    owner = layer_id % len(physical_chunks)
+    return physical_chunks[owner:] + physical_chunks[:owner]
 
 DEEPSEEK_V4_STACKED_PARAMS_MAPPING: List[Tuple[str, str, int]] = [
     ("gate_up_proj", "gate_proj", 0),
@@ -302,6 +317,9 @@ def _flashinfer_hc_pre(
 
 
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
+_use_gfx90a_mhc_pre_mix = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX"
+)
 # PoC: compute the (replicated TP1) shared expert on LOCAL hidden before the dp
 # gather instead of on the gathered global buffer. Requires
 # SGLANG_SHARED_EXPERT_TP1=1 (replicated shared expert). Default OFF.
@@ -726,6 +744,18 @@ class MqaAttentionBase(nn.Module):
             tp_rank=self.attn_tp_rank,
             tp_size=self.attn_tp_size,
         )
+
+        if (
+            is_gfx90a_supported()
+            and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get()
+        ):
+            projections = (
+                (self.wqkv_a,)
+                if self.fuse_wqa_wkv
+                else (self.wq_a, self.wkv)
+            )
+            for projection in (*projections, self.wq_b, self.wo_b):
+                projection._cache_block_fp8_weight_as_bf16 = True
 
         from sglang.kernels.ops.attention.deepseek_v4_rope import precompute_freqs_cis
 
@@ -1741,19 +1771,19 @@ class MQALayer(MqaAttentionBase):
             )
             o = output
         else:
-            wo_a_weight = getattr(self.wo_a, "weight", None)
-            if wo_a_weight is not None:
-                wo_a = wo_a_weight.view(self.n_local_groups, self.o_lora_rank, -1)
-                o = _apply_wo_a_bf16_matmul(
-                    o, wo_a, is_decode=forward_batch.forward_mode.is_decode()
+            wo_a = self.wo_a.weight.view(self.n_local_groups, self.o_lora_rank, -1)
+            grouped_output = None
+            if _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
+                from sglang.kernels.ops.quantization.bf16_gemv import (
+                    gfx90a_bf16_grouped_gemv,
                 )
-            else:
-                o = _apply_gguf_grouped_wo_a(
-                    o,
-                    self.wo_a.qweight,
-                    self.wo_a.qweight_type.weight_type,
-                    self.o_lora_rank,
-                )
+
+                grouped_output = gfx90a_bf16_grouped_gemv(o, wo_a)
+            o = (
+                grouped_output
+                if grouped_output is not None
+                else torch.einsum("tgd,grd->tgr", o, wo_a)
+            )
 
         o, _ = self.wo_b(o.flatten(1))
         if self.attn_tp_size > 1 and self.attn_tp_size < get_parallel().tp_size:
@@ -1986,7 +2016,23 @@ class DeepseekV4DecoderLayer(nn.Module):
             rsqrt = torch.rsqrt(s_out / k + self.rms_norm_eps)
             mixes = (d_out * rsqrt.unsqueeze(1)).unsqueeze(1)
         else:
-            x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
+            mixes = None
+            if (
+                _is_hip
+                and _use_gfx90a_mhc_pre_mix
+                and get_moe_a2a_backend().is_none()
+            ):
+                from sglang.kernels.ops.layernorm.mhc import (
+                    gfx90a_mhc_pre_mix_triton,
+                )
+
+                mixes = gfx90a_mhc_pre_mix_triton(
+                    x, hc_fn, self.rms_norm_eps
+                )
+            if mixes is None:
+                x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
+            else:
+                x_flat = x.flatten(1)
 
         pre, post, comb = _get_mhc_ops().hc_split_sinkhorn(
             mixes,
@@ -2347,6 +2393,10 @@ class DeepseekV4DecoderLayer(nn.Module):
             # states are replicated and must not be summed by a partial gather.
             dp_gather_replicate(hidden_states, local_hidden_states, forward_batch)
         _a2a_scatter_chunks: Optional[List[torch.Tensor]] = None
+        _rotate_a2a_owner = False
+        _shared_tp_output = None
+        _shared_tp_event = None
+        _shared_tp_fused_gather = False
         if _use_tp_attn_a2a_scatter:
             if input_ids is None:
                 input_ids = torch.zeros(
@@ -2358,9 +2408,43 @@ class DeepseekV4DecoderLayer(nn.Module):
                 input_ids_global = input_ids
             s, r = get_parallel().attn_tp_size, get_parallel().attn_tp_rank
             _a2a_scatter_chunks = list(hidden_states.tensor_split(s))
-            hidden_states = _a2a_scatter_chunks[r].contiguous()
-            input_ids = input_ids.tensor_split(s)[r].contiguous()
-            input_ids_global = input_ids_global.tensor_split(s)[r].contiguous()
+            _do_mori_shared_tp = getattr(
+                self.mlp, "_mori_shared_expert_tp", False
+            )
+            if _do_mori_shared_tp:
+                # Attention output is still replicated here. Run one TP shard of
+                # the shared expert per rank on the MoE side stream while the
+                # main stream runs routed experts. Only the small output
+                # all-reduce remains on the critical path.
+                if self.mlp.alt_stream is not None:
+                    current_stream = torch.cuda.current_stream()
+                    self.mlp.alt_stream.wait_stream(current_stream)
+                    with torch.cuda.stream(self.mlp.alt_stream):
+                        _shared_tp_output = self.mlp._forward_shared_experts(
+                            hidden_states, replicated_input=True
+                        )
+                        _shared_tp_output.record_stream(self.mlp.alt_stream)
+                        _shared_tp_event = self.mlp.alt_stream.record_event()
+                    if is_in_breakable_cuda_graph():
+                        current_stream.wait_event(_shared_tp_event)
+                else:
+                    _shared_tp_output = self.mlp._forward_shared_experts(
+                        hidden_states, replicated_input=True
+                    )
+            _rotate_a2a_owner = (
+                envs.SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER.get()
+                and get_moe_a2a_backend().is_mori()
+            )
+            chunk_index = (
+                _mori_rotated_chunk_index(r, s, self.layer_id)
+                if _rotate_a2a_owner
+                else r
+            )
+            hidden_states = _a2a_scatter_chunks[chunk_index].contiguous()
+            input_ids = input_ids.tensor_split(s)[chunk_index].contiguous()
+            input_ids_global = input_ids_global.tensor_split(s)[
+                chunk_index
+            ].contiguous()
         # Skip the MoE-internal post-experts all_reduce when we will do the
         # reduce via reduce_scatterv/reduce_scatter at the combine below
         # (else double-reduce).
@@ -2370,8 +2454,20 @@ class DeepseekV4DecoderLayer(nn.Module):
                 forward_batch,
                 input_ids=input_ids,
                 input_ids_global=input_ids_global,
-                skip_shared_experts=_do_shared_local,
+                skip_shared_experts=_do_shared_local or _shared_tp_output is not None,
             )
+        if _shared_tp_output is not None:
+            if _shared_tp_event is not None:
+                torch.cuda.current_stream().wait_event(_shared_tp_event)
+            # Each physical rank owns one distinct logical routed-token chunk.
+            # Insert it into that rank's full-row shared partial, then reduce
+            # once. The result is already the replicated next-layer tensor, so
+            # this also replaces the layer-end token all-gather.
+            _shared_tp_chunks = list(_shared_tp_output.tensor_split(s))
+            _shared_tp_chunks[chunk_index].add_(hidden_states)
+            _shared_tp_output = get_tp_group().all_reduce(_shared_tp_output)
+            hidden_states = _shared_tp_output
+            _shared_tp_fused_gather = True
         if _use_cp and get_moe_a2a_backend().is_none():
             hidden_states = dsa_cp_reduce_scatter_hidden_states(hidden_states)
         elif _use_tp_moe_gather:
@@ -2408,10 +2504,23 @@ class DeepseekV4DecoderLayer(nn.Module):
             if _shared_local is not None:
                 n = hidden_states.shape[0]
                 hidden_states = hidden_states + _shared_local[:n]
-        if _use_tp_attn_a2a_scatter:
+        if _use_tp_attn_a2a_scatter and not _shared_tp_fused_gather:
             assert _a2a_scatter_chunks is not None
-            gathered = [torch.empty_like(t) for t in _a2a_scatter_chunks]
+            if _rotate_a2a_owner:
+                s = len(_a2a_scatter_chunks)
+                gathered = [
+                    torch.empty_like(
+                        _a2a_scatter_chunks[
+                            _mori_rotated_chunk_index(r, s, self.layer_id)
+                        ]
+                    )
+                    for r in range(s)
+                ]
+            else:
+                gathered = [torch.empty_like(t) for t in _a2a_scatter_chunks]
             attn_tp_all_gather(gathered, hidden_states.contiguous())
+            if _rotate_a2a_owner:
+                gathered = _restore_mori_rotated_chunks(gathered, self.layer_id)
             hidden_states = torch.cat(gathered)
         return hidden_states
 

@@ -52,6 +52,8 @@ from sglang.srt.configs.model_config import (
 from sglang.srt.distributed import (
     divide,
     get_pp_group,
+    get_tp_group,
+    tensor_model_parallel_all_gather,
     tensor_model_parallel_all_reduce,
 )
 from sglang.srt.environ import envs
@@ -210,6 +212,7 @@ from sglang.srt.utils import (
     BumpAllocator,
     LazyValue,
     add_prefix,
+    is_gfx90a_supported,
     is_non_idle_and_non_empty,
     make_layers,
     use_intel_amx_backend,
@@ -252,6 +255,32 @@ logger = logging.getLogger(__name__)
 
 # One-time SGLANG_OPT_MOE_QUANT_ONCE engagement log (see _moe_quant_once_enabled).
 _moe_quant_once_logged = False
+
+_DSV4_GFX90A_GATED_GEMM_CONFIG = {
+    "BLOCK_SIZE_M": 32,
+    "BLOCK_SIZE_N": 128,
+    "BLOCK_SIZE_K": 128,
+    "GROUP_SIZE_M": 1,
+    "num_warps": 8,
+    "num_stages": 2,
+    "waves_per_eu": 1,
+    "matrix_instr_nonkdim": 16,
+    "cache_modifier": ".cg",
+    "kpack": 2,
+}
+
+_DSV4_GFX90A_TP4_GATED_GEMM_CONFIG = {
+    "BLOCK_SIZE_M": 32,
+    "BLOCK_SIZE_N": 64,
+    "BLOCK_SIZE_K": 128,
+    "GROUP_SIZE_M": 1,
+    "num_warps": 4,
+    "num_stages": 2,
+    "waves_per_eu": 0,
+    "matrix_instr_nonkdim": 16,
+    "cache_modifier": ".cg",
+    "kpack": 2,
+}
 
 _enable_pcg_dsv2_dual_stream = (
     _is_cuda and envs.SGLANG_ENABLE_PCG_DSV2_DUAL_STREAM.get()
@@ -324,6 +353,37 @@ class DeepseekV2MLP(nn.Module):
         gateup_pre_quant: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
     ):
         if (self.tp_size == 1) and x.shape[0] == 0:
+            return x
+
+        if (
+            getattr(self, "_use_aiter_bounded_gated_gemm", False)
+            and not isinstance(x, tuple)
+            and x.shape[0] == 1
+            and self.swiglu_limit is not None
+            and getattr(
+                self.gate_up_proj, "_use_cached_block_fp8_bf16_weight", False
+            )
+            and tuple(self.gate_up_proj.weight.shape)
+            in ((4096, 4096), (1024, 4096))
+        ):
+            from aiter.ops.triton.gemm.basic.gemm_a16w16_gated import (
+                gemm_a16w16_gated,
+            )
+
+            gated_config = (
+                _DSV4_GFX90A_TP4_GATED_GEMM_CONFIG
+                if self.gate_up_proj.weight.shape[0] == 1024
+                else _DSV4_GFX90A_GATED_GEMM_CONFIG
+            )
+            x = gemm_a16w16_gated(
+                x,
+                self.gate_up_proj.weight,
+                dtype=torch.bfloat16,
+                config=gated_config,
+                activation="silu",
+                swiglu_limit=float(self.swiglu_limit),
+            )
+            x, _ = self.down_proj(x)
             return x
 
         if (
@@ -736,6 +796,12 @@ class DeepseekV2MoE(nn.Module):
         self.shared_experts_is_fp8 = False
         self.shared_experts_weight_block_size = None
         self._shared_expert_tp1 = False
+        self._mori_shared_expert_tp = (
+            is_deepseek_v4
+            and is_gfx90a_supported()
+            and get_moe_a2a_backend().is_mori()
+            and envs.SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP.get()
+        )
         # Shared experts: skip when fused into MoE kernel
         # (self.num_fused_shared_experts > 0) or when DeepEP/MegaMOE fusion is enabled.
         if (
@@ -753,7 +819,10 @@ class DeepseekV2MoE(nn.Module):
                 or get_moe_a2a_backend().is_pplx()
                 or get_moe_a2a_backend().is_mooncake()
                 or get_moe_a2a_backend().is_nixl()
-                or get_moe_a2a_backend().is_mori()
+                or (
+                    get_moe_a2a_backend().is_mori()
+                    and not self._mori_shared_expert_tp
+                )
                 or get_moe_a2a_backend().is_ascend_fuseep()
                 or get_moe_a2a_backend().is_flashinfer()
                 or get_moe_a2a_backend().is_megamoe()
@@ -771,6 +840,28 @@ class DeepseekV2MoE(nn.Module):
                 prefix=add_prefix("shared_experts", prefix),
                 **(dict(tp_rank=0, tp_size=1) if _shared_expert_use_tp1 else {}),
             )
+            if (
+                is_deepseek_v4
+                and is_gfx90a_supported()
+            ):
+                cache_all_shared = (
+                    envs.SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT.get()
+                )
+                if (
+                    cache_all_shared
+                    or envs.SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP.get()
+                ):
+                    self.shared_experts.gate_up_proj._cache_block_fp8_weight_as_bf16 = (
+                        True
+                    )
+                if (
+                    cache_all_shared
+                    or envs.SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN.get()
+                ):
+                    self.shared_experts.down_proj._cache_block_fp8_weight_as_bf16 = True
+                self.shared_experts._use_aiter_bounded_gated_gemm = (
+                    envs.SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP.get()
+                )
             # Flags must be set before weight load so
             # process_weights_after_loading sees them and builds the
             # [Up, Gate]-interleaved weight + scale.
@@ -959,7 +1050,10 @@ class DeepseekV2MoE(nn.Module):
                 )
         else:
             return self.forward_deepep(
-                hidden_states, forward_batch, input_ids_global=input_ids_global
+                hidden_states,
+                forward_batch,
+                input_ids_global=input_ids_global,
+                skip_shared_experts=skip_shared_experts,
             )
 
     def forward_normal_dual_stream(
@@ -1277,9 +1371,14 @@ class DeepseekV2MoE(nn.Module):
         hidden_states: torch.Tensor,
         forward_batch: ForwardBatch,
         input_ids_global: Optional[torch.Tensor] = None,
+        skip_shared_experts: bool = False,
     ) -> torch.Tensor:
         shared_output = None
-        sbo_enabled_flag = self._fuse_shared_experts_inside_sbo and not self.is_nextn
+        sbo_enabled_flag = (
+            not skip_shared_experts
+            and self._fuse_shared_experts_inside_sbo
+            and not self.is_nextn
+        )
         sbo_overlap_dispatch_flag = (
             sbo_enabled_flag and SboFlags.enable_dispatch_shared_one_stream_overlap()
         )
@@ -1290,7 +1389,11 @@ class DeepseekV2MoE(nn.Module):
         if hidden_states.shape[0] > 0:
             # router_logits: (num_tokens, n_experts)
             router_logits = self.gate(hidden_states, forward_batch=forward_batch)
-            if not sbo_enabled_flag and self.num_fused_shared_experts == 0:
+            if (
+                not skip_shared_experts
+                and not sbo_enabled_flag
+                and self.num_fused_shared_experts == 0
+            ):
                 if self.alt_stream is not None:
                     self.alt_stream.wait_stream(torch.cuda.current_stream())
                     with torch.cuda.stream(self.alt_stream):
@@ -1484,12 +1587,18 @@ class DeepseekV2MoE(nn.Module):
 
         if (
             hidden_states.shape[0] > 0
+            and not skip_shared_experts
             and not sbo_enabled_flag
             and self.num_fused_shared_experts == 0
             and self.alt_stream is not None
             and not is_in_breakable_cuda_graph()
         ):
             torch.cuda.current_stream().wait_event(shared_event)
+
+        if shared_output is not None and self._mori_shared_expert_tp:
+            shared_output = get_tp_group().reduce_scatter_along_dim(
+                shared_output, dim=0
+            )
 
         if shared_output is not None:
             x = shared_output
@@ -1513,8 +1622,13 @@ class DeepseekV2MoE(nn.Module):
         hidden_states,
         gemm_output_zero_allocator: BumpAllocator = None,
         pre_quant_input: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
+        replicated_input: bool = False,
     ):
         if (hidden_states.shape[0] > 0) and (self.num_fused_shared_experts == 0):
+            if self._mori_shared_expert_tp and not replicated_input:
+                hidden_states = tensor_model_parallel_all_gather(
+                    hidden_states, dim=0
+                )
             if pre_quant_input is not None:
                 # SGLANG_OPT_MOE_QUANT_ONCE: (q, s) rows may be padded to a
                 # multiple of 4; the padded rows flow through the MLP (all ops

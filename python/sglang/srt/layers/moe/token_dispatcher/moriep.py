@@ -85,6 +85,7 @@ class MoriEPNormalDispatchOutput(NamedTuple):
     origin_topk_ids: torch.Tensor
     origin_topk_weights: torch.Tensor
     out_dtype: torch.dtype
+    combine_output_buffer: Optional[torch.Tensor]
 
     @property
     def format(self) -> DispatchOutputFormat:
@@ -102,6 +103,7 @@ class MoriEPLLDispatchOutput(NamedTuple):
     origin_topk_ids: torch.Tensor
     origin_topk_weights: torch.Tensor
     out_dtype: torch.dtype
+    combine_output_buffer: Optional[torch.Tensor]
 
     @property
     def format(self) -> DispatchOutputFormat:
@@ -261,6 +263,18 @@ def init_mori_op(
     warp_num_per_block = cfg.warp_num_per_block
     block_num = cfg.block_num
     rdma_block_num = cfg.rdma_block_num
+    if mode == EpMode.INTRA_NODE:
+        block_num = get_int_env_var(
+            "SGLANG_MORI_INTRANODE_BLOCK_NUM", block_num
+        )
+        warp_num_per_block = get_int_env_var(
+            "SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK", warp_num_per_block
+        )
+        if block_num < 1 or warp_num_per_block < 1:
+            raise ValueError(
+                "SGLANG_MORI_INTRANODE_BLOCK_NUM and "
+                "SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK must be positive"
+            )
 
     hidden_dim = hidden_size
     scale_dim = 1
@@ -305,7 +319,7 @@ def init_mori_op(
         f"[MORI init] {world_size=} {rank=} {hidden_size=} {params_dtype=} "
         f"{num_max_dispatch_tokens_per_rank=} {num_local_experts=} "
         f"{router_topk=} {mode=} {dispatch_dtype=} {combine_dtype=} "
-        f"{use_external_inp_buf=} "
+        f"{use_external_inp_buf=} {block_num=} {warp_num_per_block=} "
     )
 
     def check_mori_compatibility(kwargs: dict) -> None:
@@ -404,11 +418,13 @@ class _MoriEPDispatcherImplBase:
         self.num_max_dispatch_tokens_per_rank = get_int_env_var(
             "SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK", 4096
         )
-
         self.enable_sdma = get_bool_env_var("MORI_ENABLE_SDMA", "false")
-        self.use_external_inp_buf = True
+        self.use_external_inp_buf = get_bool_env_var(
+            "SGLANG_MORI_USE_EXTERNAL_INP_BUF", "true"
+        )
 
         self._mori_op = None
+        self._registered_combine_input = None
         self.dispatch_dtype = DispatchDtype.bf16
         self.combine_dtype = CombineDtype.bf16
 
@@ -534,7 +550,34 @@ class _MoriEPDispatcherImplBase:
         self.meta_overlap_args = None
 
     def _combine_kwargs(self, hidden_states: torch.Tensor) -> dict:
-        return {}
+        block_num = get_int_env_var(
+            "SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM", -1
+        )
+        warp_per_block = get_int_env_var(
+            "SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK", -1
+        )
+        kwargs = {}
+        if block_num > 0:
+            kwargs["block_num"] = block_num
+        if warp_per_block > 0:
+            kwargs["warp_per_block"] = warp_per_block
+        return kwargs
+
+    def _get_registered_combine_input(self, dtype: torch.dtype) -> torch.Tensor:
+        if self._registered_combine_input is None:
+            self._registered_combine_input = (
+                self.mori_op.get_registered_combine_input_buffer(
+                    dtype, hidden_dim=self.hidden_size
+                )
+            )
+        return self._registered_combine_input
+
+    def _aiter_combine_output_buffer(
+        self, dtype: torch.dtype
+    ) -> Optional[torch.Tensor]:
+        if self.use_external_inp_buf:
+            return None
+        return self._get_registered_combine_input(dtype)
 
 
 class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
@@ -651,6 +694,7 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
             origin_topk_ids=topk_ids,
             origin_topk_weights=topk_weights,
             out_dtype=output_dtype,
+            combine_output_buffer=self._aiter_combine_output_buffer(output_dtype),
         )
 
     def _dispatch_core(
@@ -662,7 +706,6 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
         previous_event: Optional[torch.cuda.Event] = None,
     ):
         done_event: Optional[torch.cuda.Event] = None
-
         record = _should_record_expert_distribution()
 
         if self._comm_stream:
@@ -753,6 +796,18 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
         topk_ids: torch.Tensor,
         topk_weights: torch.Tensor,
     ):
+        if not self.use_external_inp_buf:
+            registered = self._get_registered_combine_input(hidden_states.dtype)
+            if hidden_states.shape[0] > registered.shape[0]:
+                raise RuntimeError(
+                    "Mori registered combine input is too small: "
+                    f"need {hidden_states.shape[0]} rows, got {registered.shape[0]}"
+                )
+            # New AIter builds write stage-2 directly here. Keep the copy as a
+            # compatibility fallback for other runners and older AIter builds.
+            if hidden_states.data_ptr() != registered.data_ptr():
+                registered[: hidden_states.shape[0]].copy_(hidden_states)
+            hidden_states = registered[: hidden_states.shape[0]]
         previous_event = self._capture_event_if_async() if self._comm_stream else None
         return hidden_states, topk_ids, topk_weights, previous_event
 
@@ -775,7 +830,6 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
         previous_event: Optional[torch.cuda.Event],
     ):
         done_event: Optional[torch.cuda.Event] = None
-
         if self._comm_stream:
             compute_stream = torch.cuda.current_stream()
             comm_stream = self._comm_stream
@@ -933,6 +987,7 @@ class _MoriEPDispatcherImplLowLatency(_MoriEPDispatcherImplBase):
             origin_topk_ids=topk_ids,
             origin_topk_weights=topk_weights,
             out_dtype=output_dtype,
+            combine_output_buffer=self._aiter_combine_output_buffer(output_dtype),
         )
 
     def _dispatch_core(

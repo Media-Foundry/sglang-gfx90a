@@ -76,6 +76,7 @@ class AiterRunnerInput(RunnerInput):
     # Mori-only fused_moe kwargs.
     num_local_tokens: Optional[torch.Tensor] = None
     output_dtype: Optional[torch.dtype] = None
+    output_tensor: Optional[torch.Tensor] = None
 
     @property
     def runner_backend(self) -> MoeRunnerBackend:
@@ -169,22 +170,13 @@ def _install_gfx90a_dsv4_fp4_tune(
     if topk != 6:
         return
 
-    # Preserve AIter's normal tuned CSV entries and append one process-local
-    # entry for the validated gfx90a shape.
+    # gfx90a has no upstream per_1x32 entries. Avoid loading AIter's merged CSV
+    # here: this function first runs during CUDA graph capture, and four ranks
+    # serializing on AIter's temporary-file lock can enter Mori collectives at
+    # different times and deadlock the capture. The exact validated shape above
+    # is the only gfx90a entry this process needs.
     if aiter_fused_moe.cfg_2stages is None:
-        try:
-            import pandas as pd
-            from aiter.jit.core import AITER_CONFIGS
-
-            df = pd.read_csv(AITER_CONFIGS.AITER_CONFIG_FMOE_FILE)
-            index_cols = [
-                "cu_num", "token", "model_dim", "inter_dim", "expert", "topk",
-                "act_type", "dtype", "q_dtype_a", "q_dtype_w", "q_type",
-                "use_g1u1", "doweight_stage1",
-            ]
-            aiter_fused_moe.cfg_2stages = df.set_index(index_cols).to_dict("index")
-        except Exception:
-            aiter_fused_moe.cfg_2stages = {}
+        aiter_fused_moe.cfg_2stages = {}
 
     padded_token = aiter_fused_moe.get_padded_M(int(hidden_states.shape[0]))
     model_dim = int(w13_weight.shape[2] * 2)
@@ -308,6 +300,11 @@ class AiterRunnerCore(MoeRunnerCore):
         if runner_input.output_dtype is not None:
             extra["dtype"] = runner_input.output_dtype
         fused_moe_parameters = _aiter_fused_moe_parameters()
+        if (
+            runner_input.output_tensor is not None
+            and "moe_out" in fused_moe_parameters
+        ):
+            extra["moe_out"] = runner_input.output_tensor
         if self.config.activation == "situ" and "gate_mode" in fused_moe_parameters:
             from aiter.ops.flydsl.moe_common import GateMode
 
@@ -451,6 +448,7 @@ def _pre_permute_deepep_to_aiter(
     a1_scale: Optional[torch.Tensor] = None
     num_local_tokens: Optional[torch.Tensor] = None
     output_dtype: Optional[torch.dtype] = None
+    output_tensor: Optional[torch.Tensor] = None
     quant_type = quant_info.quant_type
 
     if is_mori:
@@ -459,6 +457,7 @@ def _pre_permute_deepep_to_aiter(
         a1_scale = dispatch_output.hidden_states_scale
         num_local_tokens = dispatch_output.num_recv_tokens_per_expert
         output_dtype = dispatch_output.out_dtype
+        output_tensor = dispatch_output.combine_output_buffer
 
         # Truncate dispatch tensors to the configured cap; mori combine only
         # reads [0, totalRecvTokenNum), so the truncated result needs no
@@ -565,6 +564,7 @@ def _pre_permute_deepep_to_aiter(
         a1_scale=a1_scale,
         num_local_tokens=num_local_tokens,
         output_dtype=output_dtype,
+        output_tensor=output_tensor,
     )
 
 

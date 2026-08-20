@@ -1300,6 +1300,23 @@ class Envs:
     # fused rmsnorm kernels instead of falling back to native torch fp32-weight
     # math. Experimental and explicit because it changes stored parameter dtype.
     SGLANG_DSV4_USE_BF16_RMSNORM_WEIGHT = EnvBool(False)
+    # Cache only DSV4's replicated shared-expert block-FP8 weights as BF16.
+    # This trades about 1 GiB/GPU for faster M=1 GEMV on gfx90a.
+    SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT = EnvBool(False)
+    SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP = EnvBool(False)
+    SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN = EnvBool(False)
+    # Fuse the M=1 BF16 shared gate/up GEMM with bounded SwiGLU on gfx90a.
+    SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP = EnvBool(False)
+    # Partition DSV4's Mori shared expert across TP ranks. DSV4 runs this before
+    # its model-level token scatter, where the input rows are still replicated.
+    SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP = EnvBool(False)
+    # Rotate the TP-attention -> A2A token-chunk owner by layer. This keeps the
+    # logical token order unchanged while spreading replicated TP1 shared-
+    # expert work across EP ranks without another collective.
+    SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER = EnvBool(False)
+    # Cache DSV4 attention's block-FP8 projection weights as BF16 on gfx90a.
+    # This targets decode GEMV and trades roughly 1 GiB/GPU for lower latency.
+    SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================

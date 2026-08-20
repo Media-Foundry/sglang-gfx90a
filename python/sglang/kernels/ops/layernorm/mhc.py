@@ -125,6 +125,121 @@ INT32 = "int32"
 
 
 @triton.jit
+def _gfx90a_mhc_pre_mix_kernel(
+    residual,
+    fn,
+    mixes,
+    k: tl.constexpr,
+    n: tl.constexpr,
+    rms_eps: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    offs_n = tl.program_id(0) * BLOCK_N + tl.arange(0, BLOCK_N)
+    acc = tl.zeros((BLOCK_N,), tl.float32)
+    sq_sum = tl.zeros((), tl.float32)
+    for k_start in tl.static_range(0, k, BLOCK_K):
+        offs_k = k_start + tl.arange(0, BLOCK_K)
+        x = tl.load(residual + offs_k).to(tl.float32)
+        w = tl.load(
+            fn + offs_n[:, None] * k + offs_k[None, :],
+            mask=offs_n[:, None] < n,
+            other=0.0,
+        )
+        acc += tl.sum(w * x[None, :], axis=1)
+        sq_sum += tl.sum(x * x, axis=0)
+    scale = tl.rsqrt(sq_sum / k + rms_eps)
+    tl.store(mixes + offs_n, acc * scale, mask=offs_n < n)
+
+
+@triton.jit
+def _gfx90a_mhc_mix_kernel(
+    residual,
+    fn,
+    rsqrt,
+    mixes,
+    k: tl.constexpr,
+    n: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    offs_n = tl.program_id(0) * BLOCK_N + tl.arange(0, BLOCK_N)
+    acc = tl.zeros((BLOCK_N,), tl.float32)
+    for k_start in tl.static_range(0, k, BLOCK_K):
+        offs_k = k_start + tl.arange(0, BLOCK_K)
+        x = tl.load(residual + offs_k).to(tl.float32)
+        w = tl.load(
+            fn + offs_n[:, None] * k + offs_k[None, :],
+            mask=offs_n[:, None] < n,
+            other=0.0,
+        )
+        acc += tl.sum(w * x[None, :], axis=1)
+    scale = tl.load(rsqrt)
+    tl.store(mixes + offs_n, acc * scale, mask=offs_n < n)
+
+
+@triton.jit
+def _gfx90a_mhc_rsqrt_kernel(
+    residual,
+    rsqrt,
+    k: tl.constexpr,
+    rms_eps: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    offs_k = tl.arange(0, BLOCK_K)
+    x = tl.load(residual + offs_k, mask=offs_k < k, other=0.0).to(tl.float32)
+    sq_sum = tl.sum(x * x, axis=0)
+    tl.store(rsqrt, tl.rsqrt(sq_sum / k + rms_eps))
+
+
+def gfx90a_mhc_pre_mix_triton(
+    residual: torch.Tensor,
+    fn: torch.Tensor,
+    rms_eps: float,
+) -> torch.Tensor | None:
+    if (
+        not torch.version.hip
+        or residual.shape != (1, 4, 4096)
+        or residual.dtype != torch.bfloat16
+        or not residual.is_contiguous()
+        or fn.shape != (24, 16384)
+        or fn.dtype != torch.float32
+        or not fn.is_contiguous()
+        or getattr(
+            torch.cuda.get_device_properties(residual.device), "gcnArchName", ""
+        ).split(":", 1)[0]
+        != "gfx90a"
+    ):
+        return None
+
+    residual_flat = residual.flatten(1)
+    rsqrt = torch.empty((1, 1), dtype=torch.float32, device=residual.device)
+    _gfx90a_mhc_rsqrt_kernel[(1,)](
+        residual_flat,
+        rsqrt,
+        k=16384,
+        rms_eps=rms_eps,
+        BLOCK_K=16384,
+        num_warps=8,
+    )
+    mixes = torch.empty((1, 1, 24), dtype=torch.float32, device=residual.device)
+    block_n = 1
+    block_k = 1024
+    _gfx90a_mhc_mix_kernel[(triton.cdiv(24, block_n),)](
+        residual_flat,
+        fn,
+        rsqrt,
+        mixes,
+        k=16384,
+        n=24,
+        BLOCK_N=block_n,
+        BLOCK_K=block_k,
+        num_warps=1,
+    )
+    return mixes
+
+
+@triton.jit
 def _mhc_weighted_sum_kernel(
     x,
     pre,
@@ -507,6 +622,70 @@ def _hc_split_sinkhorn4_kernel(
     tl.store(out + 3 * stride_ci + 3 * stride_cj, c33)
 
 
+@triton.jit
+def _hc_split_sinkhorn4_vector_kernel(
+    mixes,
+    hc_scale,
+    hc_base,
+    pre,
+    post,
+    comb,
+    stride_mb: tl.constexpr,
+    stride_ms: tl.constexpr,
+    stride_pb: tl.constexpr,
+    stride_ps: tl.constexpr,
+    stride_pv: tl.constexpr,
+    stride_ob: tl.constexpr,
+    stride_os: tl.constexpr,
+    stride_ov: tl.constexpr,
+    stride_cb: tl.constexpr,
+    stride_cs: tl.constexpr,
+    stride_ci: tl.constexpr,
+    stride_cj: tl.constexpr,
+    seq_len: tl.constexpr,
+    eps: tl.constexpr,
+    sinkhorn_iters: tl.constexpr,
+):
+    pid = tl.program_id(0)
+    b = pid // seq_len
+    s = pid - b * seq_len
+    mix = mixes + b * stride_mb + s * stride_ms
+
+    scale0 = tl.load(hc_scale)
+    scale1 = tl.load(hc_scale + 1)
+    scale2 = tl.load(hc_scale + 2)
+    offs4 = tl.arange(0, 4)
+
+    pre_v = tl.sigmoid(
+        tl.load(mix + offs4) * scale0 + tl.load(hc_base + offs4)
+    ) + eps
+    post_v = 2.0 * tl.sigmoid(
+        tl.load(mix + 4 + offs4) * scale1 + tl.load(hc_base + 4 + offs4)
+    )
+    tl.store(pre + b * stride_pb + s * stride_ps + offs4 * stride_pv, pre_v)
+    tl.store(post + b * stride_ob + s * stride_os + offs4 * stride_ov, post_v)
+
+    offs16 = tl.arange(0, 16)
+    rows = offs16 // 4
+    cols = offs16 % 4
+    values = (
+        tl.load(mix + 8 + offs16) * scale2 + tl.load(hc_base + 8 + offs16)
+    )
+    matrix = tl.reshape(values, (4, 4))
+    matrix = tl.exp(matrix - tl.max(matrix, axis=1)[:, None])
+    matrix = matrix / tl.sum(matrix, axis=1)[:, None] + eps
+    matrix = matrix / (tl.sum(matrix, axis=0)[None, :] + eps)
+    for _ in tl.static_range(0, sinkhorn_iters - 1):
+        matrix = matrix / (tl.sum(matrix, axis=1)[:, None] + eps)
+        matrix = matrix / (tl.sum(matrix, axis=0)[None, :] + eps)
+
+    out = comb + b * stride_cb + s * stride_cs
+    tl.store(
+        out + rows * stride_ci + cols * stride_cj,
+        tl.reshape(matrix, (16,)),
+    )
+
+
 def hc_split_sinkhorn4_triton(
     mixes: torch.Tensor,
     hc_scale: torch.Tensor,
@@ -531,7 +710,7 @@ def hc_split_sinkhorn4_triton(
     post = torch.empty((b, s, 4), dtype=torch.float32, device=mixes.device)
     comb = torch.empty((b, s, 4, 4), dtype=torch.float32, device=mixes.device)
     grid = (b * s,)
-    _hc_split_sinkhorn4_kernel[grid](
+    _hc_split_sinkhorn4_vector_kernel[grid](
         mixes,
         hc_scale,
         hc_base,
@@ -1051,7 +1230,7 @@ def prewarm_mhc_pre(
     from sglang.srt.runtime_context import get_schedule
 
     hc_mult, hidden_size = residual.shape[-2], residual.shape[-1]
-    max_num_tokens = get_schedule().chunked_prefill_size
+    max_num_tokens = max(1, get_schedule().chunked_prefill_size)
     buckets = get_mhc_pre_token_count_representatives(
         max_num_tokens, hc_mult * hidden_size
     )

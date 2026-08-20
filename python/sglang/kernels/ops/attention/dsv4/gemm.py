@@ -147,6 +147,14 @@ def linear_bf16_fp32(
     *,
     hpc_kernel_min_m: Optional[int] = None,
 ) -> torch.Tensor:
+    if _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
+        from sglang.kernels.ops.quantization.bf16_gemv import (
+            gfx90a_bf16_fp32_gemv,
+        )
+
+        output = gfx90a_bf16_fp32_gemv(x, y)
+        if output is not None:
+            return output
     if _use_aiter and y.dtype == torch.bfloat16:
         return tgemm.mm(x, y, otype=x.dtype).float()
     elif hpc_kernel_min_m is not None:
