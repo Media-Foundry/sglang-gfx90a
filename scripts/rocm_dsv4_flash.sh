@@ -4,45 +4,22 @@ set -euo pipefail
 ROOT_DIR="${SGLANG_DIR:-/home/pc/Code/sglang}"
 PYTHON_BIN="${PYTHON_BIN:-/home/pc/anaconda3/envs/DS/bin/python}"
 MODEL_PATH="${MODEL_PATH:-/home/pc/models/modelscope}"
-LANE="${LANE:-default}"
-if [[ "${1:-}" == "batch" || "${1:-}" == "single" ]]; then
-  LANE="$1"
-  shift
-fi
-
-DEFAULT_GPUS="0,1,2,3"
-DEFAULT_PORT="30000"
-DEFAULT_BENCH_NREQ="4"
-DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="4"
+DEFAULT_GPUS="4,5,6,7"
+DEFAULT_PORT="30001"
+DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="1"
 DEFAULT_CHUNKED_PREFILL_SIZE="256"
 DEFAULT_MORI_MAX_DISPATCH_TOKENS_PER_RANK="256"
-DEFAULT_DISABLE_ATTN_TP_GATHER="0"
-case "${LANE}" in
-  batch|default)
-    LANE_NAME="batch"
-    ;;
-  single)
-    LANE_NAME="single"
-    DEFAULT_GPUS="4,5,6,7"
-    DEFAULT_PORT="30001"
-    DEFAULT_BENCH_NREQ="1"
-    DEFAULT_CHUNKED_PREFILL_SIZE="256"
-    DEFAULT_MORI_MAX_DISPATCH_TOKENS_PER_RANK="256"
-    DEFAULT_DISABLE_ATTN_TP_GATHER="1"
-    ;;
-  *)
-    echo "unknown lane: ${LANE}" >&2
-    exit 2
-    ;;
-esac
+DEFAULT_DISABLE_ATTN_TP_GATHER="1"
+DEFAULT_MAX_TOTAL_TOKENS="4096"
+DEFAULT_MEM_FRACTION_STATIC="0.80"
 
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-${DEFAULT_PORT}}"
 BASE_URL="http://${HOST}:${PORT}"
-LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_${LANE_NAME}.log}"
-PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_${LANE_NAME}.pid}"
-PROFILE_DIR="${PROFILE_DIR:-/tmp/sglang_speed_profile_dsv4_${LANE_NAME}}"
-PROFILE_ID="${PROFILE_ID:-dsv4_${LANE_NAME}_probe}"
+LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_ar.log}"
+PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_ar.pid}"
+PROFILE_DIR="${PROFILE_DIR:-/tmp/sglang_speed_profile_dsv4_ar}"
+PROFILE_ID="${PROFILE_ID:-dsv4_ar_probe}"
 
 export PYTHONPATH="${PYTHONPATH:-${ROOT_DIR}/python:${ROOT_DIR}/python/sglang/kernels/aot/build/lib.linux-x86_64-cpython-312:${ROOT_DIR}/python/sglang/kernels/aot/python}"
 ROCM_ROOT="${ROCM_ROOT:-/opt/rocm/core-7.14}"
@@ -53,20 +30,47 @@ if [[ -d "${ROCM_ROOT}/lib" ]]; then
   export LIBRARY_PATH="${ROCM_ROOT}/lib${LIBRARY_PATH:+:${LIBRARY_PATH}}"
   export LD_LIBRARY_PATH="${ROCM_ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 fi
+export DEEPEP_MODE="${DEEPEP_MODE:-normal}"
+export MORI_ENABLE_SDMA="${MORI_ENABLE_SDMA:-0}"
+if [[ "${MORI_ENABLE_SDMA}" == "1" ]]; then
+  MORI_APPLICATION_LIB="${MORI_APPLICATION_LIB:-/tmp/mori/python/mori/libmori_application.so}"
+  if [[ ! -f "${MORI_APPLICATION_LIB}" ]]; then
+    echo "MORI_ENABLE_SDMA=1 requires ${MORI_APPLICATION_LIB}" >&2
+    exit 1
+  fi
+  # Mori statically embeds hsakmt. Preload it before PyTorch initializes HSA,
+  # otherwise Anvil's second KFD state fails AcquireSystemProperties on ROCm.
+  export LD_PRELOAD="${MORI_APPLICATION_LIB}${LD_PRELOAD:+:${LD_PRELOAD}}"
+fi
 export HIP_VISIBLE_DEVICES="${HIP_VISIBLE_DEVICES:-${DEFAULT_GPUS}}"
 export SGLANG_USE_AITER="${SGLANG_USE_AITER:-1}"
 export SGLANG_HACK_FLASHMLA_BACKEND="${SGLANG_HACK_FLASHMLA_BACKEND:-triton}"
 export SGLANG_OPT_USE_AITER_MHC_PRE="${SGLANG_OPT_USE_AITER_MHC_PRE:-0}"
 export SGLANG_OPT_USE_AITER_MHC_POST="${SGLANG_OPT_USE_AITER_MHC_POST:-0}"
 export SGLANG_OPT_USE_TRITON_MHC_COMBINE="${SGLANG_OPT_USE_TRITON_MHC_COMBINE:-1}"
+export SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX="${SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX:-1}"
 export SGLANG_OPT_USE_TRITON_INDEXER_POST="${SGLANG_OPT_USE_TRITON_INDEXER_POST:-1}"
 export SGLANG_OPT_USE_TRITON_INDEXER_FULL="${SGLANG_OPT_USE_TRITON_INDEXER_FULL:-1}"
+export SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT="${SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT:-0}"
+export SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR="${SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR:-1}"
+export SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP:-1}"
+export SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN="${SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN:-1}"
+export SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP:-1}"
+export SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP="${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP:-1}"
+if [[ "${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP}" == "1" ]]; then
+  export SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER="${SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER:-0}"
+else
+  export SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER="${SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER:-1}"
+fi
 export MORI_DISABLE_TOPO="${MORI_DISABLE_TOPO:-1}"
 export MORI_DISABLE_AUTO_XGMI="${MORI_DISABLE_AUTO_XGMI:-1}"
 export MORI_SHMEM_HEAP_SIZE="${MORI_SHMEM_HEAP_SIZE:-6G}"
 export SGLANG_MORI_DISPATCH_DTYPE="${SGLANG_MORI_DISPATCH_DTYPE:-bf16}"
 export SGLANG_MORI_COMBINE_DTYPE="${SGLANG_MORI_COMBINE_DTYPE:-bf16}"
 export SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK:-${DEFAULT_MORI_MAX_DISPATCH_TOKENS_PER_RANK}}"
+export SGLANG_MORI_USE_EXTERNAL_INP_BUF="${SGLANG_MORI_USE_EXTERNAL_INP_BUF:-0}"
+export SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM="${SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM:-32}"
+export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK:-4}"
 
 server_args=(
   --model-path "${MODEL_PATH}"
@@ -78,9 +82,9 @@ server_args=(
   --attention-backend "${ATTENTION_BACKEND:-dsv4}"
   --cuda-graph-max-bs-decode "${CUDA_GRAPH_MAX_BS_DECODE:-${DEFAULT_CUDA_GRAPH_MAX_BS_DECODE}}"
   --chunked-prefill-size "${CHUNKED_PREFILL_SIZE:-${DEFAULT_CHUNKED_PREFILL_SIZE}}"
-  --max-total-tokens "${MAX_TOTAL_TOKENS:-8192}"
+  --max-total-tokens "${MAX_TOTAL_TOKENS:-${DEFAULT_MAX_TOTAL_TOKENS}}"
   --swa-full-tokens-ratio "${SWA_FULL_TOKENS_RATIO:-0.3}"
-  --mem-fraction-static "${MEM_FRACTION_STATIC:-0.82}"
+  --mem-fraction-static "${MEM_FRACTION_STATIC:-${DEFAULT_MEM_FRACTION_STATIC}}"
   --disable-overlap-schedule
   --skip-server-warmup
   --enable-tokenizer-batch-encode
@@ -89,41 +93,47 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
-if [[ "${DISABLE_CUSTOM_ALL_REDUCE:-1}" == "1" ]]; then
+if [[ "${DISABLE_CUSTOM_ALL_REDUCE:-0}" == "1" ]]; then
   server_args+=(--disable-custom-all-reduce)
 fi
 if [[ "${DISABLE_ATTN_TP_GATHER:-${DEFAULT_DISABLE_ATTN_TP_GATHER}}" == "1" ]]; then
   server_args+=(--disable-attn-tp-gather)
 fi
-if [[ -n "${SPECULATIVE_ALGORITHM:-}" ]]; then
-  server_args+=(--speculative-algorithm "${SPECULATIVE_ALGORITHM}")
+if [[ -n "${DEEPEP_MODE:-}" ]]; then
+  server_args+=(--deepep-mode "${DEEPEP_MODE}")
 fi
-if [[ -n "${SPECULATIVE_DRAFT_MODEL_PATH:-}" ]]; then
-  server_args+=(--speculative-draft-model-path "${SPECULATIVE_DRAFT_MODEL_PATH}")
+if [[ "${ENABLE_SINGLE_BATCH_OVERLAP:-0}" == "1" ]]; then
+  server_args+=(--enable-single-batch-overlap)
 fi
-if [[ -n "${SPECULATIVE_DSPARK_BLOCK_SIZE:-}" ]]; then
-  server_args+=(--speculative-dspark-block-size "${SPECULATIVE_DSPARK_BLOCK_SIZE}")
+if [[ "${ENABLE_PROFILE_CUDA_GRAPH:-0}" == "1" ]]; then
+  export SGLANG_ENABLE_CUDA_GRAPH_CAPTURE_TRACE="${SGLANG_ENABLE_CUDA_GRAPH_CAPTURE_TRACE:-1}"
+  server_args+=(--enable-profile-cuda-graph)
 fi
-if [[ -n "${SPECULATIVE_DSPARK_SPS_TABLE_PATH:-}" ]]; then
-  server_args+=(--speculative-dspark-sps-table-path "${SPECULATIVE_DSPARK_SPS_TABLE_PATH}")
+if [[ "${DISABLE_DECODE_CUDA_GRAPH:-0}" == "1" ]]; then
+  server_args+=(--disable-decode-cuda-graph)
 fi
-if [[ -n "${SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH:-}" ]]; then
-  server_args+=(
-    --speculative-dspark-confidence-sts-path
-    "${SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH}"
-  )
-fi
-if [[ "${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-0}" == "1" ]]; then
-  server_args+=(--speculative-dspark-align-verify-tokens-to-graph-tier)
-fi
+speculative_env_vars=(
+  SPECULATIVE_ALGORITHM
+  SPECULATIVE_DRAFT_MODEL_PATH
+  SPECULATIVE_DSPARK_BLOCK_SIZE
+  SPECULATIVE_DSPARK_SPS_TABLE_PATH
+  SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH
+  SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER
+)
+for var_name in "${speculative_env_vars[@]}"; do
+  if [[ -n "${!var_name:-}" && "${!var_name}" != "0" ]]; then
+    echo "error: ${var_name} is set; this harness only permits native AR decode" >&2
+    exit 2
+  fi
+done
 
 usage() {
   cat <<'EOF'
-Usage: scripts/rocm_dsv4_flash.sh [batch|single] <command> [args]
+Usage: scripts/rocm_dsv4_flash.sh <command> [args]
 
-Lanes:
-  batch                 Defaults to GPU 0-3, port 30000, bench nreq=4.
-  single                Defaults to GPU 4-7, port 30001, bench nreq=1.
+This script measures the single-request AR path only. It defaults to GPU 4-7
+and port 30001, and never sends a batched payload. CUDA graph capture may keep
+larger prepared tiers; that does not change the request batch size.
 
 Commands:
   start                 Start the TP4/EP4 ROCm DSV4 service in background.
@@ -131,24 +141,66 @@ Commands:
   stop                  Stop the background service from the pid file.
   status                Show service process and ROCm VRAM/PID state.
   logs [n]              Tail the last n log lines, default 120.
-  bench [tokens] [n] [reps]
-                        Run official-prompt throughput probe.
-                        Defaults: tokens=256, n=batch/single default, reps=1.
-  both-bench [tokens] [reps]
-                        Run batch lane and single lane probes concurrently.
+  bench [tokens] [reps] Run official-prompt single-request AR probe.
                         Defaults: tokens=256, reps=1.
-  profile [tokens] [n] [steps]
+  profile [tokens] [steps]
                         Start SGLang stage profiler, then send one request.
-                        Defaults: tokens=32, n=batch/single default, steps=1.
+                        Defaults: tokens=32, steps=1.
                         ROCprofiler may segfault after stop on this stack.
-  parse-profile [dir]   Summarize saved EXTEND/DECODE trace kernel time.
+  parse-profile [dir]   Summarize kernels and steady per-layer decode time.
+
+AR-only contract:
+  Any SPECULATIVE_* setting is rejected before the command runs. This harness
+  always measures one model forward per generated token.
 
 Optional env:
-  SPECULATIVE_ALGORITHM=DSPARK
-  SPECULATIVE_DSPARK_BLOCK_SIZE=5
-  SPECULATIVE_DSPARK_SPS_TABLE_PATH=/path/to/sps.json
-  SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH=/path/to/sts.json
   DISABLE_ATTN_TP_GATHER=1   # single lane default; set 0 to restore padded graph capture.
+  SGLANG_MORI_INTRANODE_BLOCK_NUM=<n>
+  SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK=<n>
+                              # Override Mori intra-node launch geometry for probes.
+  SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM=32
+  SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK=4
+                              # Independently tune zero-copy combine. The defaults
+                              # are validated for EP4, one-token decode on gfx90a.
+  SGLANG_MORI_USE_EXTERNAL_INP_BUF=0
+                              # Direct AIter stage-2 output into Mori's registered
+                              # peer-read buffer. Enabled by default; set 1 for push.
+  SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT=1
+                              # Opt in to the experimental shared-expert BF16
+                              # weight cache. It is not graph-capture stable yet.
+  SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR=1
+                              # Cache the three decode attention projections as
+                              # BF16 on gfx90a. Enabled by default; costs ~1 GiB/GPU.
+  SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP=1
+  SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN=1
+                              # Cache both shared-expert projections as BF16 on
+                              # gfx90a. Both are enabled by default with the 4096
+                              # token / 0.80 static-memory decode profile.
+  SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP=1
+                              # Fuse the single-token BF16 gate/up projection
+                              # with DSV4's bounded SwiGLU on the owner rank.
+  SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP=1
+                              # Partition Mori's DSV4 shared expert across TP,
+                              # overlap it with routed MoE, then use one peer AR
+                              # for shared sum + routed gather. Default enabled.
+                              # Keep DISABLE_ATTN_TP_GATHER=1 for graph BS=1.
+  SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER=1
+                              # Rotate each layer's real token chunk across the
+                              # four Mori ranks. Defaults off with shared TP (the
+                              # TP shards are already balanced), on with the TP1
+                              # shared-expert fallback.
+  DISABLE_CUSTOM_ALL_REDUCE=0 # Use the fixed AIter peer-read custom AR.
+  DEEPEP_MODE=low_latency     # Experimental Mori AsyncLL split-phase transport.
+  MORI_ENABLE_SDMA=1          # Move AsyncLL transport to copy engines.
+  MORI_APPLICATION_LIB=/tmp/mori/python/mori/libmori_application.so
+                              # Preloaded before PyTorch so Anvil and HSA share
+                              # one KFD thunk state. For the old path set both
+                              # DEEPEP_MODE=normal and MORI_ENABLE_SDMA=0.
+  ENABLE_SINGLE_BATCH_OVERLAP=1
+                              # Overlap communication inside one request; this
+                              # does not create a multi-request batch.
+  ENABLE_PROFILE_CUDA_GRAPH=1 # Record kernels while the decode graph is captured.
+  DISABLE_DECODE_CUDA_GRAPH=1 # Eager-only operator probe; not an AR benchmark mode.
 EOF
 }
 
@@ -237,15 +289,14 @@ status() {
 
 bench() {
   local tokens="${1:-256}"
-  local nreq="${2:-${DEFAULT_BENCH_NREQ}}"
-  local reps="${3:-1}"
-  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${nreq}" "${reps}" <<'PY'
+  local reps="${2:-1}"
+  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${reps}" <<'PY'
 import json
 import sys
 import time
 import urllib.request
 
-base_url, tokens, nreq, reps = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+base_url, tokens, reps = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 url = base_url + "/generate"
 prompt = "<｜begin▁of▁sentence｜><｜User｜>Explain why 2+2=4 in one sentence.<｜Assistant｜><think>"
 opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -263,66 +314,38 @@ def send(payload, timeout):
 for rep in range(reps):
     salt_ns = time.time_ns()
     sampling_params = {"temperature": 0, "max_new_tokens": tokens}
-    if nreq == 1:
-        payload = {
-            "text": prompt,
-            "sampling_params": sampling_params,
-            "cache_salt": f"bench-{tokens}-{nreq}-{rep}-0-{salt_ns}",
-        }
-    else:
-        payload = {
-            "text": [prompt] * nreq,
-            "sampling_params": sampling_params,
-            "cache_salt": [
-                f"bench-{tokens}-{nreq}-{rep}-{i}-{salt_ns}" for i in range(nreq)
-            ],
-        }
-    print(f"BEGIN rep={rep} tokens={tokens} nreq={nreq}", flush=True)
-    dt, out = send(payload, timeout=max(1200, tokens * max(2, nreq)))
-    rows = out if isinstance(out, list) else [out]
-    lens = [len(row.get("output_ids") or []) for row in rows]
-    total = sum(lens)
-    first_text = (rows[0].get("text") or "")[:96]
-    reasons = [row.get("meta_info", {}).get("finish_reason") for row in rows]
+    payload = {
+        "text": prompt,
+        "sampling_params": sampling_params,
+        "cache_salt": f"ar-{tokens}-{rep}-{salt_ns}",
+    }
+    print(f"BEGIN rep={rep} tokens={tokens} mode=single-request-AR", flush=True)
+    dt, out = send(payload, timeout=max(1200, tokens * 2))
+    output_tokens = len(out.get("output_ids") or [])
+    first_text = (out.get("text") or "")[:96]
+    reason = out.get("meta_info", {}).get("finish_reason")
     print(
         "END "
-        f"rep={rep} wall={dt:.3f}s nreq={len(rows)} out_lens={lens} "
-        f"total_tokens={total} sum_tok/s={total / dt:.3f} "
-        f"per_req_tok/s={(total / len(rows)) / dt:.3f} "
-        f"decode_step_ms={(dt / max(lens or [1])) * 1000:.1f} "
-        f"finish={reasons} "
+        f"rep={rep} wall={dt:.3f}s output_tokens={output_tokens} "
+        f"ar_tok/s={output_tokens / dt:.3f} "
+        f"ar_ms/token={(dt / max(output_tokens, 1)) * 1000:.1f} "
+        f"finish={reason} "
         f"text0={first_text!r}",
         flush=True,
     )
 PY
 }
 
-both_bench() {
-  local tokens="${1:-256}"
-  local reps="${2:-1}"
-  local script_path
-  script_path="$(realpath "$0")"
-  "${script_path}" batch bench "${tokens}" 4 "${reps}" &
-  local batch_pid=$!
-  "${script_path}" single bench "${tokens}" 1 "${reps}" &
-  local single_pid=$!
-  local rc=0
-  wait "${batch_pid}" || rc=$?
-  wait "${single_pid}" || rc=$?
-  return "${rc}"
-}
-
 profile() {
   local tokens="${1:-32}"
-  local nreq="${2:-${DEFAULT_BENCH_NREQ}}"
-  local steps="${3:-1}"
+  local steps="${2:-1}"
   rm -rf "${PROFILE_DIR}"
   mkdir -p "${PROFILE_DIR}"
   curl --noproxy '*' -sS --max-time 30 -X POST "${BASE_URL}/start_profile" \
     -H 'Content-Type: application/json' \
     -d "{\"output_dir\":\"${PROFILE_DIR}\",\"profile_id\":\"${PROFILE_ID}\",\"num_steps\":${steps},\"profile_by_stage\":true,\"activities\":[\"CPU\",\"GPU\"],\"with_stack\":false,\"record_shapes\":false}"
   echo
-  bench "${tokens}" "${nreq}" 1
+  bench "${tokens}" 1
 }
 
 parse_profile() {
@@ -340,6 +363,15 @@ import sys
 trace_dir = sys.argv[1]
 
 def category(name):
+    if "_gemm_a16_w16_gated_kernel" in name:
+        return "shared bounded gate/up GEMM"
+    if (
+        "cross_device_reduce" in name
+        or "reduce_scatter_first_dim" in name
+        or "allgather_vec" in name
+        or "allgather_naive" in name
+    ):
+        return "AIter peer collectives"
     if "_hc_split_sinkhorn4" in name:
         return "MHC split sinkhorn Triton"
     if "_mhc_weighted_sum" in name or "_mhc_post_combine" in name:
@@ -352,6 +384,22 @@ def category(name):
         return "Mori dispatch"
     if "EpCombineIntraNodeKernel" in name:
         return "Mori combine"
+    if "EpDispatchLowLatencyAsyncSendCopy" in name:
+        return "Mori AsyncLL dispatch send copy"
+    if "EpDispatchLowLatencyAsyncSendTransfer" in name:
+        return "Mori AsyncLL dispatch SDMA"
+    if "EpDispatchLowLatencyAsyncRecvTransfer" in name:
+        return "Mori AsyncLL dispatch recv wait"
+    if "EpDispatchLowLatencyAsyncRecvCopy" in name:
+        return "Mori AsyncLL dispatch recv copy"
+    if "EpCombineLowLatencyAsyncSendCopy" in name:
+        return "Mori AsyncLL combine send copy"
+    if "EpCombineLowLatencyAsyncSendTransfer" in name:
+        return "Mori AsyncLL combine SDMA"
+    if "EpCombineLowLatencyAsyncRecvTransfer" in name:
+        return "Mori AsyncLL combine recv wait"
+    if "EpCombineLowLatencyAsyncRecvCopy" in name:
+        return "Mori AsyncLL combine recv copy"
     if "ck::kernel_moe_mxgemm" in name or "moe_ck" in name:
         return "AIter CK FP4 MoE GEMM"
     if "_moe_mxfp4_sort" in name:
@@ -389,8 +437,14 @@ def category(name):
     return "other kernels"
 
 stage_data = {}
-for path in sorted(glob.glob(os.path.join(trace_dir, "*.trace.json.gz"))):
-    stage = "DECODE" if "-DECODE." in path else "EXTEND"
+trace_paths = glob.glob(os.path.join(trace_dir, "*.trace.json.gz"))
+trace_paths += glob.glob(os.path.join(trace_dir, "cuda_graph_capture-*.json.gz"))
+for path in sorted(trace_paths):
+    stage = (
+        "DECODE"
+        if "-DECODE." in path or "cuda_graph_capture-" in os.path.basename(path)
+        else "EXTEND"
+    )
     rank = re.search(r"TP-(\d+)", os.path.basename(path)).group(1)
     with gzip.open(path, "rt") as f:
         events = json.load(f).get("traceEvents", [])
@@ -399,6 +453,7 @@ for path in sorted(glob.glob(os.path.join(trace_dir, "*.trace.json.gz"))):
     steps = []
     graphs = []
     kernels = []
+    timed_kernels = []
     for event in events:
         if event.get("ph") != "X":
             continue
@@ -413,12 +468,14 @@ for path in sorted(glob.glob(os.path.join(trace_dir, "*.trace.json.gz"))):
             cats[cat] += dur_ms
             calls[cat] += 1
             kernels.append((dur_ms, name))
+            timed_kernels.append((event.get("ts", 0), dur_ms, cat, name))
     stage_data[(stage, rank)] = {
         "cats": cats,
         "calls": calls,
         "steps": steps,
         "graphs": graphs,
         "kernels": kernels,
+        "timed_kernels": timed_kernels,
     }
 
 if not stage_data:
@@ -453,6 +510,107 @@ for stage in ("EXTEND", "DECODE"):
     print("top kernels TP0:")
     for dur, name in sorted(stage_data[(stage, "0")]["kernels"], reverse=True)[:12]:
         print(f"  {dur:8.3f} ms {name[:160]}")
+
+    if stage != "DECODE":
+        continue
+
+    print("steady layer intervals (bounded by consecutive Mori dispatches):")
+    intervals_by_rank = {}
+    for rank in ranks:
+        timed = sorted(stage_data[(stage, rank)]["timed_kernels"])
+        boundaries = [
+            ts
+            for ts, _dur, cat, _name in timed
+            if cat in ("Mori dispatch", "Mori AsyncLL dispatch send copy")
+        ]
+        intervals = []
+        for begin, end in zip(boundaries, boundaries[1:]):
+            wall_ms = (end - begin) / 1000.0
+            per_cat = collections.Counter()
+            for ts, dur_ms, cat, _name in timed:
+                if begin <= ts < end:
+                    per_cat[cat] += dur_ms
+            intervals.append((wall_ms, per_cat))
+        intervals_by_rank[rank] = intervals
+        if not intervals:
+            print(f"  TP{rank}: unavailable (fewer than two dispatch kernels)")
+            continue
+
+        median_ms = statistics.median(wall for wall, _cats in intervals)
+        # Profiler startup can leave one rank waiting in its first collective.
+        # Keep normal layer variation, but reject intervals far outside the
+        # steady distribution and report how many were excluded.
+        steady = [
+            item
+            for item in intervals
+            if 0.25 * median_ms <= item[0] <= 3.0 * median_ms
+        ]
+        rejected = len(intervals) - len(steady)
+        mean_wall = statistics.mean(wall for wall, _cats in steady)
+        print(
+            f"  TP{rank}: layers={len(steady)}/{len(intervals)} "
+            f"mean_wall={mean_wall:.3f} ms median_wall={median_ms:.3f} ms "
+            f"rejected_startup_or_gap={rejected}"
+        )
+        steady_cats = sorted(
+            set().union(*(cats for _wall, cats in steady)),
+            key=lambda cat: -statistics.mean(cats[cat] for _wall, cats in steady),
+        )
+        for cat in steady_cats[:12]:
+            mean_cat = statistics.mean(cats[cat] for _wall, cats in steady)
+            print(
+                f"    {cat:30s} {mean_cat:7.4f} ms/layer "
+                f"{100.0 * mean_cat / mean_wall:5.1f}% wall"
+            )
+
+    shared_cats = (
+        "shared bounded gate/up GEMM",
+        "dense W8A8 FP8 matmul",
+    )
+    print("shared-expert owner balance:")
+    for rank in ranks:
+        intervals = intervals_by_rank.get(rank, [])
+        owner = [
+            item
+            for item in intervals
+            if any(item[1][cat] > 0 for cat in shared_cats)
+        ]
+        other = [
+            item
+            for item in intervals
+            if all(item[1][cat] == 0 for cat in shared_cats)
+        ]
+        if not owner or not other:
+            print(
+                f"  TP{rank}: owner_layers={len(owner)} other_layers={len(other)}"
+            )
+            continue
+        print(
+            f"  TP{rank}: owner_layers={len(owner)} other_layers={len(other)} "
+            f"owner_wall={statistics.mean(x[0] for x in owner):.4f} ms "
+            f"other_wall={statistics.mean(x[0] for x in other):.4f} ms "
+            "shared_gate_up="
+            f"{statistics.mean(sum(x[1][cat] for cat in shared_cats) for x in owner):.4f} ms"
+        )
+
+    if intervals_by_rank and all(intervals_by_rank.get(rank) for rank in ranks):
+        num_layers = min(len(intervals_by_rank[rank]) for rank in ranks)
+        critical_counts = collections.Counter()
+        critical_walls = []
+        for layer_idx in range(num_layers):
+            layer_walls = {
+                rank: intervals_by_rank[rank][layer_idx][0] for rank in ranks
+            }
+            critical_rank = max(layer_walls, key=layer_walls.get)
+            critical_counts[critical_rank] += 1
+            critical_walls.append(layer_walls[critical_rank])
+        print(
+            "  critical_rank_layers="
+            f"{dict(sorted(critical_counts.items()))} "
+            f"mean={statistics.mean(critical_walls):.4f} ms "
+            f"p50={statistics.median(critical_walls):.4f} ms "
+            f"max={max(critical_walls):.4f} ms"
+        )
 PY
 }
 
@@ -475,10 +633,6 @@ case "${1:-}" in
   bench)
     shift
     bench "$@"
-    ;;
-  both-bench)
-    shift
-    both_bench "$@"
     ;;
   profile)
     shift

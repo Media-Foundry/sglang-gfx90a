@@ -55,6 +55,7 @@ from sglang.srt.layers.quantization.base_config import (
 from sglang.srt.layers.quantization.fp8_utils import (
     _use_aiter_bpreshuffle_gfx95,
     apply_fp8_linear,
+    block_quant_dequant,
     can_auto_enable_marlin_fp8,
     cutlass_fp8_supported,
     deepgemm_w8a8_block_fp8_linear_with_fallback,
@@ -852,6 +853,21 @@ class Fp8LinearMethod(LinearMethodBase):
     def process_weights_after_loading(self, layer: Module) -> None:
         if self.block_quant:
             self.process_weights_after_loading_block_quant(layer)
+            if getattr(layer, "_cache_block_fp8_weight_as_bf16", False):
+                if self.weight_block_size != [128, 128]:
+                    raise ValueError(
+                        "BF16 weight caching requires block-FP8 weight_block_size=[128, 128]"
+                    )
+                layer.weight = Parameter(
+                    block_quant_dequant(
+                        layer.weight.data,
+                        layer.weight_scale_inv.data,
+                        self.weight_block_size,
+                        torch.bfloat16,
+                    ).contiguous(),
+                    requires_grad=False,
+                )
+                layer._use_cached_block_fp8_bf16_weight = True
         else:
             layer.weight = Parameter(layer.weight.data, requires_grad=False)
 
@@ -967,6 +983,19 @@ class Fp8LinearMethod(LinearMethodBase):
         x: torch.Tensor,
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        if getattr(layer, "_use_cached_block_fp8_bf16_weight", False):
+            if isinstance(x, tuple):
+                raise TypeError("Cached BF16 block-FP8 weight requires BF16 activation")
+            if bias is None:
+                from sglang.kernels.ops.quantization.bf16_gemv import (
+                    gfx90a_bf16_gemv,
+                )
+
+                output = gfx90a_bf16_gemv(x, layer.weight)
+                if output is not None:
+                    return output
+            return F.linear(x, layer.weight, bias)
+
         if self.use_marlin:
             return torch.ops.sglang.apply_fp8_marlin_linear(
                 input=x,
