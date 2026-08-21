@@ -188,10 +188,21 @@ def _install_gfx90a_dsv4_fp4_tune(
         str(w13_weight.dtype), "QuantType.per_1x32", 1, 0,
     )
     if key not in aiter_fused_moe.cfg_2stages:
+        from sglang.srt.environ import envs
+
+        gfx90a_ksplit = envs.SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT.get()
         aiter_fused_moe.cfg_2stages[key] = {
-            "block_m": 32, "ksplit": 0,
-            "kernelName1": _GFX90A_DSV4_FP4_KERNEL1,
-            "kernelName2": _GFX90A_DSV4_FP4_KERNEL2,
+            "block_m": 32,
+            "ksplit": gfx90a_ksplit,
+            # With split-K, leave the names empty so AIter selects its CKTile
+            # BF16-activation/FP4-weight implementation.  The validated legacy
+            # CK pair remains the ksplit=0 baseline.
+            "kernelName1": (
+                "" if gfx90a_ksplit > 1 else _GFX90A_DSV4_FP4_KERNEL1
+            ),
+            "kernelName2": (
+                "" if gfx90a_ksplit > 1 else _GFX90A_DSV4_FP4_KERNEL2
+            ),
             "run_1stage": 0,
         }
         aiter_fused_moe.get_2stage_cfgs.cache_clear()
@@ -334,26 +345,46 @@ class AiterRunnerCore(MoeRunnerCore):
         if self.config.no_combine:
             extra["no_combine"] = True
 
-        output = fused_moe(
-            hidden_states=runner_input.hidden_states,
-            w1=quant_info.w13_weight,
-            w2=quant_info.w2_weight,
-            topk_weight=runner_input.topk_weights,
-            topk_ids=runner_input.topk_ids,
-            quant_type=_aiter_quant_type(runner_input.quant_type),
-            activation=_aiter_activation(self.config.activation),
-            w1_scale=quant_info.w13_scale,
-            w2_scale=quant_info.w2_scale,
-            a1_scale=a1_scale,
-            a2_scale=quant_info.a2_scale,
-            bias1=quant_info.b13,
-            bias2=quant_info.b2,
-            expert_mask=quant_info.expert_mask,
-            doweight_stage1=quant_info.doweight_stage1,
-            hidden_pad=quant_info.hidden_pad,
-            intermediate_pad=quant_info.intermediate_pad,
-            **extra,
-        )
+        try:
+            output = fused_moe(
+                hidden_states=runner_input.hidden_states,
+                w1=quant_info.w13_weight,
+                w2=quant_info.w2_weight,
+                topk_weight=runner_input.topk_weights,
+                topk_ids=runner_input.topk_ids,
+                quant_type=_aiter_quant_type(runner_input.quant_type),
+                activation=_aiter_activation(self.config.activation),
+                w1_scale=quant_info.w13_scale,
+                w2_scale=quant_info.w2_scale,
+                a1_scale=a1_scale,
+                a2_scale=quant_info.a2_scale,
+                bias1=quant_info.b13,
+                bias2=quant_info.b2,
+                expert_mask=quant_info.expert_mask,
+                doweight_stage1=quant_info.doweight_stage1,
+                hidden_pad=quant_info.hidden_pad,
+                intermediate_pad=quant_info.intermediate_pad,
+                **extra,
+            )
+        except RuntimeError as exc:
+            hs = runner_input.hidden_states
+            local = runner_input.num_local_tokens
+            local_value = (
+                int(local.item())
+                if local is not None and not torch.cuda.is_current_stream_capturing()
+                else "captured"
+            )
+            raise RuntimeError(
+                "AIter fused_moe rejected its dispatch contract: "
+                f"hidden(shape={tuple(hs.shape)}, stride={hs.stride()}, "
+                f"dtype={hs.dtype}, contiguous={hs.is_contiguous()}, "
+                f"ptr_mod256={hs.data_ptr() % 256}); "
+                f"topk_ids={tuple(runner_input.topk_ids.shape)}; "
+                f"num_local_tokens={local_value}; "
+                f"w1={tuple(quant_info.w13_weight.shape)} "
+                f"w2={tuple(quant_info.w2_weight.shape)}; "
+                f"quant_type={runner_input.quant_type}. Original error: {exc}"
+            ) from exc
         return AiterRunnerOutput(hidden_states=output)
 
     @property

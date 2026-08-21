@@ -113,6 +113,14 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
             if post_warmup_hook is not None:
                 post_warmup_hook()
 
+        # forward_fn is asynchronous. Without a final drain, faster ranks can
+        # enter HIP graph capture while peers are still inside the last Mori
+        # warmup collective. A faster gfx90a MHC pre-mix made this latent race
+        # deterministic. Keep capture start rank-aligned; this is startup-only
+        # and adds no replay/decode overhead.
+        self._device_module.synchronize()
+        self._tp_group.barrier()
+
         graph = torch.cuda.CUDAGraph()
 
         graph_ctx: Callable[..., AbstractContextManager]

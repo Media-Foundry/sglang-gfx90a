@@ -144,11 +144,11 @@ if _use_aiter:
 # computes the whole gate in fp32); the epsilon underflows to zero in float16.
 _RENORMALIZE_SUM_EPSILON = 1e-20
 
-# Experimental: skip the HIP padded-token routing-weight masking entirely.
+# Experimental: skip the HIP padded-token id and routing-weight masking.
 # Padded (CUDA-graph) rows are discarded downstream and the MoE combine is
-# per-token, so zeroing their weights is in principle unnecessary. Gated off by
-# default because it is a numerics-affecting change that must be validated with
-# an accuracy run before becoming the default.
+# per-token; the fused router already emits valid in-range ids, while a padded
+# zero hidden row remains zero through bias-free experts. Gated off by default
+# until full graph/output validation is complete.
 _skip_hip_pad_mask = get_bool_env_var("SGLANG_MORI_NO_PAD_MASK", "False")
 
 
@@ -1290,10 +1290,7 @@ def biased_topk_jit_kernel_impl(
         # fp32 copy of this static routing bias on every MoE invocation.
         topk_weights, topk_ids = moe_fused_gate(
             gating_output,
-            # The Triton gate uses fp32 bias arithmetic. Some DeepSeek
-            # checkpoints store correction_bias in bf16, while the reference
-            # router semantics are fp32, so normalize at this boundary.
-            correction_bias.to(torch.float32),
+            correction_bias,
             topk=topk,
             scoring_func=scoring_func,
             num_fused_shared_experts=num_fused_shared_experts,
@@ -1531,7 +1528,7 @@ def biased_grouped_topk_gpu(
 
         return jit_grouped_gate(
             gating_output.to(dtype=torch.float32),
-            correction_bias.to(dtype=torch.float32),
+            correction_bias,
             topk,
             scoring_func="sigmoid",
             num_fused_shared_experts=num_fused_shared_experts,
@@ -1610,7 +1607,7 @@ def biased_grouped_topk_gpu(
 
         return jit_grouped_gate(
             gating_output.to(dtype=torch.float32),
-            correction_bias.to(dtype=torch.float32),
+            correction_bias,
             topk,
             scoring_func="sigmoid",
             num_fused_shared_experts=num_fused_shared_experts,
@@ -2075,7 +2072,7 @@ def _post_process_topk_ids(
             and use_per_rank_shared_slots
             and not _eplb_remap_enabled()
         )
-        if not _fold_pad_into_append:
+        if not _fold_pad_into_append and not _skip_hip_pad_mask:
             _mask_topk_ids_padded_region(topk_ids, num_token_non_padded, fill_value=0)
         # The logical->physical remap is only meaningful when a real
         # expert-location mapping exists. With a trivial placement and EPLB off

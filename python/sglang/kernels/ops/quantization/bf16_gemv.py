@@ -2,6 +2,45 @@ import torch
 import triton
 import triton.language as tl
 
+from sglang.srt.environ import envs
+
+
+@triton.jit
+def _bf16_mfma_gemv_kernel(
+    x,
+    weight,
+    out,
+    n: tl.constexpr,
+    k: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    """CDNA2 decode GEMV expressed as a 16-row MFMA tile.
+
+    All logical M rows address the same activation vector.  MFMA therefore
+    computes sixteen identical rows while reading each weight tile once; only
+    row zero is stored.  This deliberately trades redundant matrix arithmetic
+    for CDNA2 XDL throughput and wins only on selected N/K shapes.
+    """
+    pid_n = tl.program_id(0)
+    offs_n = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    offs_m = tl.arange(0, 16)
+    acc = tl.zeros((16, BLOCK_N), tl.float32)
+    for k_start in tl.range(0, k, BLOCK_K, num_stages=2):
+        offs_k = k_start + tl.arange(0, BLOCK_K)
+        activation = tl.load(x + offs_m[:, None] * 0 + offs_k[None, :])
+        weights = tl.load(
+            weight + offs_k[:, None] + offs_n[None, :] * k,
+            mask=offs_n[None, :] < n,
+            other=0.0,
+        )
+        acc = tl.dot(activation, weights, acc, input_precision="ieee")
+    tl.store(
+        out + offs_m[:, None] * n + offs_n[None, :],
+        acc,
+        mask=(offs_m[:, None] == 0) & (offs_n[None, :] < n),
+    )
+
 
 @triton.jit
 def _bf16_gemv_kernel(
@@ -52,6 +91,23 @@ def gfx90a_bf16_gemv(
 
     n, k = weight.shape
     out = torch.empty((1, n), dtype=x.dtype, device=x.device)
+    if envs.SGLANG_DSV4_GFX90A_MFMA_GEMV.get() and (n, k) in (
+        (8192, 1024),
+        (4096, 2048),
+    ):
+        block_n, num_warps = ((32, 1) if n == 8192 else (16, 2))
+        block_k = 32
+        _bf16_mfma_gemv_kernel[(triton.cdiv(n, block_n),)](
+            x,
+            weight,
+            out,
+            n=n,
+            k=k,
+            BLOCK_N=block_n,
+            BLOCK_K=block_k,
+            num_warps=num_warps,
+        )
+        return out
     block_n = 8
     block_k = 512
     _bf16_gemv_kernel[(triton.cdiv(n, block_n),)](

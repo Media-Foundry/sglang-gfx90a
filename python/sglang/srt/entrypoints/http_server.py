@@ -2366,16 +2366,33 @@ def _freeze_gc_after_server_warmup(server_args: ServerArgs):
     freeze_headers = {}
     if freeze_key:
         freeze_headers["Authorization"] = f"Bearer {freeze_key}"
-    try:
-        res = requests.post(
-            server_args.url() + "/freeze_gc",
-            headers=freeze_headers,
-            timeout=10,
-            verify=server_args.ssl_verify(),
-        )
-        res.raise_for_status()
-    except requests.exceptions.RequestException:
-        logger.warning("post-warmup freeze_gc failed", exc_info=True)
+    # Do not block the startup coroutine with a loopback request. With
+    # --skip-server-warmup the HTTP endpoint can already answer while the
+    # tokenizer-manager RPC state still returns 502; retry after this function
+    # yields and lets application startup finish.
+    def freeze_when_rpc_ready():
+        for attempt in range(30):
+            try:
+                res = requests.post(
+                    server_args.url() + "/freeze_gc",
+                    headers=freeze_headers,
+                    timeout=10,
+                    verify=server_args.ssl_verify(),
+                )
+                res.raise_for_status()
+                logger.info("Post-warmup GC freeze completed.")
+                return
+            except requests.exceptions.RequestException:
+                if attempt == 29:
+                    logger.warning("post-warmup freeze_gc failed", exc_info=True)
+                    return
+                time.sleep(1)
+
+    threading.Thread(
+        target=freeze_when_rpc_ready,
+        name="sglang-freeze-gc",
+        daemon=True,
+    ).start()
 
 
 def _wait_and_warmup(

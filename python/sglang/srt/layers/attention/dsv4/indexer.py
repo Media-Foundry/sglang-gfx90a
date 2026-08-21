@@ -165,6 +165,7 @@ if triton is not None:
         out_stride_b: tl.constexpr,
         out_stride_s: tl.constexpr,
         FP8_TY: tl.constexpr,
+        DOT_TY: tl.constexpr,
         BLOCK_S: tl.constexpr,
         BLOCK_H: tl.constexpr,
         BLOCK_D: tl.constexpr,
@@ -193,7 +194,7 @@ if triton is not None:
         page_base = page_ids * kv_stride_page
         kv_offsets = page_base[:, None] + pos_in_page[:, None] * 128 + offs_d[None, :]
         kv_u8_vals = tl.load(kvcache_u8 + kv_offsets, mask=valid_s[:, None], other=0)
-        kv_vals = kv_u8_vals.to(FP8_TY, bitcast=True).to(tl.bfloat16)
+        kv_vals = kv_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
 
         h_mask = offs_h < num_heads
         q_u8_vals = tl.load(
@@ -204,7 +205,7 @@ if triton is not None:
             mask=h_mask[:, None],
             other=0,
         )
-        q_vals = q_u8_vals.to(FP8_TY, bitcast=True).to(tl.bfloat16)
+        q_vals = q_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
 
         scores = tl.dot(kv_vals, tl.trans(q_vals)).to(tl.float32)
         w = tl.load(
@@ -294,7 +295,12 @@ def _fp8_paged_mqa_logits_triton(
         (batch_size, max_seq_len), dtype=torch.float32, device=q_fp8.device
     )
 
-    block_s = 16
+    block_s = envs.SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S.get()
+    if block_s not in (16, 32, 64, 128):
+        raise ValueError(
+            "SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S must be one of 16, 32, 64, 128; "
+            f"got {block_s}"
+        )
     block_h = triton.next_power_of_2(num_heads)
     if block_h > 64:
         _debug_fp8_paged_mqa_logits_skip(
@@ -302,6 +308,11 @@ def _fp8_paged_mqa_logits_triton(
         )
         return None
     fp8_ty = tl.float8e4b8 if is_fp8_fnuz() else tl.float8e4nv
+    dot_ty = (
+        tl.float16
+        if envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get()
+        else tl.bfloat16
+    )
     grid = (batch_size, triton.cdiv(max_seq_len, block_s))
     _fp8_paged_mqa_logits_kernel[grid](
         q_u8,
@@ -324,6 +335,7 @@ def _fp8_paged_mqa_logits_triton(
         out.stride(0),
         out.stride(1),
         FP8_TY=fp8_ty,
+        DOT_TY=dot_ty,
         BLOCK_S=block_s,
         BLOCK_H=block_h,
         BLOCK_D=128,

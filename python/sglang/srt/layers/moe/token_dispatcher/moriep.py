@@ -424,7 +424,10 @@ class _MoriEPDispatcherImplBase:
         )
 
         self._mori_op = None
-        self._registered_combine_input = None
+        # A decode-specialized Mori instance may coexist with the general
+        # prefill instance. Their registered combine buffers are not
+        # interchangeable, so cache one tensor per concrete operator.
+        self._registered_combine_inputs = {}
         self.dispatch_dtype = DispatchDtype.bf16
         self.combine_dtype = CombineDtype.bf16
 
@@ -564,13 +567,13 @@ class _MoriEPDispatcherImplBase:
         return kwargs
 
     def _get_registered_combine_input(self, dtype: torch.dtype) -> torch.Tensor:
-        if self._registered_combine_input is None:
-            self._registered_combine_input = (
-                self.mori_op.get_registered_combine_input_buffer(
-                    dtype, hidden_dim=self.hidden_size
-                )
+        op = self.mori_op
+        key = (id(op), dtype)
+        if key not in self._registered_combine_inputs:
+            self._registered_combine_inputs[key] = (
+                op.get_registered_combine_input_buffer(dtype, hidden_dim=self.hidden_size)
             )
-        return self._registered_combine_input
+        return self._registered_combine_inputs[key]
 
     def _aiter_combine_output_buffer(
         self, dtype: torch.dtype
@@ -592,6 +595,37 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
         self._comm_stream = None
         if self.enable_dual_stream:
             self._comm_stream = CommStreamPool.get_stream_from_pool(self.group)
+        self.decode_num_max_dispatch_tokens_per_rank = get_int_env_var(
+            "SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK", 0
+        )
+        self._decode_mori_op = None
+        self._use_general_mori_op = False
+
+    @property
+    def mori_op(self):
+        """Use a smaller independent Mori plan for decode when requested."""
+        decode_capacity = self.decode_num_max_dispatch_tokens_per_rank
+        if decode_capacity <= 0 or self._use_general_mori_op:
+            return super().mori_op
+        if self._decode_mori_op is None:
+            if self.quant_config is None:
+                self._apply_dispatch_dtype_override()
+            self._decode_mori_op = init_mori_op(
+                self.group,
+                self.router_topk,
+                self.num_experts,
+                self.num_local_experts,
+                self.hidden_size,
+                self.params_dtype,
+                decode_capacity,
+                self.deepep_mode,
+                self.instance_id + 1,
+                self.dispatch_dtype,
+                self.combine_dtype,
+                self.enable_sdma,
+                self.use_external_inp_buf,
+            )
+        return self._decode_mori_op
 
     def _capture_event_if_async(self) -> Optional[torch.cuda.Event]:
         assert self.enable_dual_stream, "dual stream must be enabled"
@@ -606,6 +640,14 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
         hidden_states: torch.Tensor,
         topk_output: TopKOutput,
     ):
+        # The Mori capacity is input tokens per rank (not routed rows). Short
+        # prefills may safely reuse the decode plan; a larger prefill chunk
+        # switches to the general plan and keeps it through combine_b.
+        self._use_general_mori_op = (
+            self.decode_num_max_dispatch_tokens_per_rank > 0
+            and hidden_states.shape[0]
+            > self.decode_num_max_dispatch_tokens_per_rank
+        )
         topk_weights, topk_ids = topk_output.topk_weights, topk_output.topk_ids
 
         num_token = hidden_states.shape[0]
@@ -866,6 +908,7 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
                 hidden_states, None, topk_ids, **combine_kwargs
             )[0]
 
+        self._use_general_mori_op = False
         return combined_hidden_states, done_event
 
     def set_quant_config(self, quant_config: dict):
