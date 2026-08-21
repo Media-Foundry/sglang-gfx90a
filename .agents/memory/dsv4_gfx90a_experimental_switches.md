@@ -4,6 +4,25 @@
 `scripts/rocm_dsv4_flash.sh`。这里不把目标仓库的普通上游开关当成我们新增的
 调试开关。当前测试口径仍是 TP4/EP4、Mori、batch=1、原生 AR。
 
+## GPU 实验前置检查（强制）
+
+每次启动性能 probe、服务 A/B 或 profiler 之前，先运行：
+
+```bash
+amd-smi process --general --sort-by-pid -g 4 5 6 7
+```
+
+必须核对可见 GPU 上的 PID、进程名和 VRAM 占用都符合本轮实验预期。尤其检查：
+
+- 上一次服务的孤儿 scheduler / launch_server；
+- 因工具超时仍在运行的 standalone benchmark、Triton/CK probe；
+- hipcc/JIT 编译进程与缓存锁；
+- 四个服务 rank 的显存是否对称。
+
+发现非预期进程时，先按明确 PID 停止本轮产生的残留进程，等待 `amd-smi process`
+确认显存释放，再建立干净基线。资源检查未通过时产生的吞吐数据一律作废，不能
+用于判断优化、提交或回退。
+
 ## 优先关注
 
 | 开关 | 当前 harness 默认 | 作用 | 风险/备注 |
@@ -59,6 +78,11 @@
 - `ENABLE_SINGLE_BATCH_OVERLAP`、`DISABLE_DECODE_CUDA_GRAPH`、
   `ENABLE_PROFILE_CUDA_GRAPH`：实验/诊断开关，不改变“单请求”定义，但会改变 graph
   或 profiler 口径。
+- `DISABLE_OVERLAP_SCHEDULE`：harness 默认 `0`，启用 scheduler overlap；设为 `1`
+  时恢复旧的 `--disable-overlap-schedule` 基线。
+- `ENABLE_SINGLE_BATCH_OVERLAP`：harness 默认 `1`。必须和 scheduler overlap 配套；
+  仅开启 scheduler overlap 会在约 58 tok/s 的快态和 50--52 tok/s 的慢态之间抖动，
+  配套后单请求快态可稳定复现。
 
 ## AR 口径保护
 
@@ -112,3 +136,14 @@
   `49.65 tok/s`，组合候选稳态为 `53.50 / 53.81 / 54.13 / 54.04 / 54.14
   tok/s`，中位数 `54.04 tok/s`（约 `+8.8%`）。
 - 8 并发回归为 `218.45 / 217.96 tok/s`，保持高于 `180 tok/s` 验收线。
+
+## 2026-08-21 scheduler overlap checkpoint
+
+- 正常 Mori、TP4/EP4、graph tiers `1/2/4/8`、纯 AR 下，同时启用 scheduler
+  overlap 与 single-batch overlap。
+- 单请求 256-token 两组复验：第一组稳态集中在 `58.18--59.05 tok/s`，第二组
+  中位约 `58.48 tok/s`；相对同机干净旧基线约 `54.5 tok/s`，提升约 `7--8%`。
+- 8 个独立并发请求 aggregate AR 为 `231.43 / 233.27 tok/s`；所有请求均实际
+  输出 256 token 且 `finish=length`。
+- scheduler overlap 单独开启会出现 50--52 tok/s 慢态，因此两个开关作为一组
+  生产默认，不用单次 58+ 峰值冒充稳定结果。
