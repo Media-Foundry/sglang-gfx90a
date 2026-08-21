@@ -123,6 +123,10 @@ class PagedIndexerMetadata:
     def __post_init__(self):
         if (
             envs.SGLANG_FP8_PAGED_MQA_LOGITS_TORCH.get()
+            or (
+                is_hip()
+                and envs.SGLANG_OPT_USE_TRITON_INDEXER_FULL.get()
+            )
             or is_xpu()
             or envs.SGLANG_OPT_USE_AITER_INDEXER.get()
         ) and not self.force_deep_gemm_metadata:

@@ -100,6 +100,7 @@ export SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_WARP_NU
 export SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM="${SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM:-32}"
 export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK:-4}"
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
+export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
 # routes six experts per token, so the static grid must cover every row that a
@@ -196,6 +197,9 @@ Commands:
   logs [n]              Tail the last n log lines, default 120.
   bench [tokens] [reps] Run official-prompt single-request AR probe.
                         Defaults: tokens=256, reps=1.
+  bench-context [words] [tokens] [reps]
+                        Run native AR beyond DSV4's dense indexer threshold.
+                        Defaults: words=2300, tokens=128, reps=3.
   bench-concurrent [tokens] [requests] [reps]
                         Run independent native-AR requests concurrently.
                         Defaults: tokens=256, requests=4, reps=1.
@@ -413,6 +417,72 @@ for rep in range(reps):
         f"ar_ms/token={(dt / max(output_tokens, 1)) * 1000:.1f} "
         f"finish={reason} "
         f"text0={first_text!r}",
+        flush=True,
+    )
+PY
+}
+
+bench_context() {
+  local words="${1:-2300}"
+  local tokens="${2:-128}"
+  local reps="${3:-3}"
+  "${PYTHON_BIN}" - "${BASE_URL}" "${words}" "${tokens}" "${reps}" <<'PY'
+import json
+import sys
+import time
+import urllib.request
+
+base_url = sys.argv[1]
+words, tokens, reps = map(int, sys.argv[2:])
+url = base_url + "/generate"
+# Repetition is intentional: cache_salt prevents prefix-cache reuse, while the
+# server-reported prompt token count makes every long-context result auditable.
+prompt = "<｜begin▁of▁sentence｜><｜User｜>" + " indexer" * words + "<｜Assistant｜><think>"
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+for rep in range(reps):
+    payload = {
+        "text": prompt,
+        "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+        "cache_salt": f"ar-context-{words}-{tokens}-{rep}-{time.time_ns()}",
+        "stream": True,
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    start = time.perf_counter()
+    first_chunk_at = None
+    last_chunk_at = None
+    out = {}
+    with opener.open(req, timeout=max(1200, tokens * 4)) as response:
+        for raw in response:
+            line = raw.decode().strip()
+            if not line.startswith("data:"):
+                continue
+            payload_text = line[len("data:") :].strip()
+            if payload_text == "[DONE]":
+                break
+            out = json.loads(payload_text)
+            now = time.perf_counter()
+            first_chunk_at = now if first_chunk_at is None else first_chunk_at
+            last_chunk_at = now
+    end = time.perf_counter()
+    dt = end - start
+    output_tokens = len(out.get("output_ids") or [])
+    meta = out.get("meta_info", {})
+    prompt_tokens = meta.get(
+        "prompt_tokens", meta.get("input_token_logprobs", "unknown")
+    )
+    decode_dt = max((last_chunk_at or end) - (first_chunk_at or end), 1e-9)
+    decode_tokens = max(output_tokens - 1, 0)
+    print(
+        f"END rep={rep} prompt_tokens={prompt_tokens} output_tokens={output_tokens} "
+        f"wall={dt:.3f}s ttft={(first_chunk_at - start):.3f}s "
+        f"decode_tok/s={decode_tokens / decode_dt:.3f} "
+        f"finish={meta.get('finish_reason')}",
         flush=True,
     )
 PY
@@ -786,6 +856,10 @@ case "${1:-}" in
   bench-concurrent)
     shift
     bench_concurrent "$@"
+    ;;
+  bench-context)
+    shift
+    bench_context "$@"
     ;;
   profile)
     shift
