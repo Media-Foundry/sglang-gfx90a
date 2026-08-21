@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def _jit_gfx90a_mhc_post_pre_module(iters: int) -> Module:
     fast_math = envs.SGLANG_DSV4_GFX90A_MHC_FAST_MATH.get()
     return load_jit(
-        f"gfx90a_mhc_post_pre_wave64_v3_i{iters}_{'fast' if fast_math else 'precise'}",
+        f"gfx90a_mhc_post_pre_wave64_v4_fp16_i{iters}_{'fast' if fast_math else 'precise'}",
         cuda_files=["deepseek_v4/gfx90a_mhc_post_pre.cuh"],
         cuda_wrappers=[
             ("run", "sglang::Gfx90aMhcPostPreKernel::run"),
@@ -66,7 +66,7 @@ def gfx90a_mhc_post_pre(
         or residual.dtype != torch.bfloat16
         or previous_post.dtype != torch.float32
         or previous_comb.dtype != torch.float32
-        or fn.dtype != torch.float32
+        or fn.dtype != torch.float16
         or hc_scale.dtype != torch.float32
         or hc_base.dtype != torch.float32
         or norm_weight.dtype != torch.bfloat16

@@ -2759,6 +2759,7 @@ def mhc_fused_post_pre(
             # following collective spins.  ForwardBatch.batch_size is global
             # within this TP/EP group and therefore safe for graph capture.
             and global_batch_size == 1
+            and fn_fp16 is not None
             and norm_weight is not None
             and norm_eps is not None
         ):
@@ -2789,7 +2790,7 @@ def mhc_fused_post_pre(
                         residual_flat,
                         post_layer_mix.view(num_tokens, hc_mult),
                         comb_res_mix.view(num_tokens, hc_mult, hc_mult),
-                        fn,
+                        fn_fp16,
                         hc_scale,
                         hc_base,
                         norm_weight_bf,

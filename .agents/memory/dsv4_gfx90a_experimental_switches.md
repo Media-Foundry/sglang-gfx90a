@@ -33,6 +33,7 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 | `SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A` | `1` | 允许 Mori decode 使用 Triton pre-mix | 必须同时保留 `MAX_BS=4`；无限制会让 tier-8 graph 四 rank 同步自旋 |
 | `SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_MAX_BS` | `4` | Triton pre-mix 的最大全局 graph tier | `0` 表示无限制；当前生产候选为 4，tier8 使用 AIter MHC |
 | `SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR` | `1` | 将 DSV4 attention projection 的 block-FP8 权重缓存为 BF16，匹配 gfx90a grouped GEMV | 约增加 1 GiB/GPU；kernel 只覆盖固定 decode shape，失败应回退 einsum |
+| `SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV` | `0` | 为三个 M=1 投影 shape 追加 per-row INT8 权重缓存并使用 CDNA2 dot4 | kernel-only 分别约快 53%/28%/20%；会增加显存且改变投影数值，必须做完整 AR 正确性和吞吐 A/B |
 | `SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP` / `_DOWN` | `1` / `1` | shared expert gate/up、down 权重 BF16 cache | 约增加显存；必须在权重加载前设置 |
 | `SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP` | `1` | 将单 token gate/up 与 bounded SwiGLU 融合 | 依赖 AIter gated GEMM；需要单独做数值/graph A/B |
 | `SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS` | `8` | 将全局 bs1 的 native Sinkhorn 从 20 次减到 8 次 | 仅全局 bs1 生效；bs2/4/8 固定 20，避免改变多请求 expert balance |
@@ -145,5 +146,138 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   中位约 `58.48 tok/s`；相对同机干净旧基线约 `54.5 tok/s`，提升约 `7--8%`。
 - 8 个独立并发请求 aggregate AR 为 `231.43 / 233.27 tok/s`；所有请求均实际
   输出 256 token 且 `finish=length`。
+
+### Mori decode capacity 分层（2026-08-21，未采用）
+
+- `SGLANG_MORI_DECODE_TIERED_CAPACITY=1` 会按进入 dispatcher 的每-rank token
+  行数选择更小的 decode plan；当前 shared-expert TP4 + graph bs<=8 下，所有 tier
+  实际最多只有 2 行，因此都安全复用了 capacity=2，而不是原来的 capacity=16。
+- graph 1/2/4/8 全部捕获成功，纯 AR 256-token 七轮为
+  `57.30 / 58.70 / 58.70 / 58.75 / 50.58 / 56.41 / 58.56 tok/s`。
+- 稳态没有超过约 59 tok/s 基线，说明缩小 plan/buffer 没有减少固定 32-block Mori
+  progress kernel 的关键开销。该开关保持默认关闭，不作为性能提交。
+
+### Graph upload / Mori CU footprint / FP4 dispatch（2026-08-21）
+
+- 显式 `hipGraphUpload` 可完成所有 graph capture，但七轮只有
+  `58.50 / 59.04 / 59.07 / 52.40 / 54.88 / 55.51 / 45.08 tok/s`；它不降低
+  每次大 graph replay 的 host traversal，保持默认关闭。
+- Mori dispatch+combine 同时从 32 blocks 降至 24 blocks，前五轮为
+  `59.32 / 59.66 / 59.76 / 59.77 / 59.68 tok/s`，约 1--2% 正向但不足提交；
+  16 blocks 已越过通信/计算让路拐点，结果 `50.52--59.55 tok/s` 且抖动更大。
+- gfx90a FP4 dispatch 直通已验证可运行：Triton MXFP4 quant、Mori packed FP4
+  transport、AIter `GU_ITLV=0` separated gate/up，且 HSACO 只额外实例化 FP4
+  dispatch symbol。七轮为
+  `54.53 / 57.09 / 57.27 / 57.29 / 57.24 / 51.17 / 57.27 tok/s`；省掉一次
+  stage-1 quant 和减半 payload 仍抵不过 separated gate/up 回退，不能作为默认。
 - scheduler overlap 单独开启会出现 50--52 tok/s 慢态，因此两个开关作为一组
   生产默认，不用单次 58+ 峰值冒充稳定结果。
+
+### 下一轮结构优化优先级（2026-08-21）
+
+- full-Triton indexer selector 已在 `c093503759` 接通，但长上下文仍会落地完整
+  `[batch, max_seq_len]` FP32 logits，再由独立 Top-K 重读；真正目标是 page/CTA
+  local Top-512、二级 merge 并直接输出 physical slot。短 prompt 不能验证这一点。
+- 短上下文先做 `SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT=0/2/4/8` 的完整
+  scheduler-overlap + graph A/B。必须同时看 Mori progress 和最慢 rank，不能用
+  standalone expert GEMM 代替端到端结论。
+- KSPLIT 无收益后，转向 `M<=4/8/16` 的 gfx90a wave64 FP4-weight/BF16-activation
+  expert kernel，减少 block_m=32 padding、sort/permute 和在线 MXFP4 quant 开销。
+- Mori 按 `normal+CU`、`low_latency`、`low_latency+SDMA` 顺序做单变量实验；记录
+  dispatch/expert/combine 的四 rank 最慢值。外部 input buffer 直写协议暂不改。
+- unified-KV 已消除 64-head attention 算术，但仍可能创建并清零 64-head
+  `q_padded`；应让 unified-KV 直接使用 local-head `q_out`，旧 backend 才分配 padding。
+- 正式正确性验收需补 output token-id hash、legacy/overlap 逐 token parity、
+  256/2048 tokens、BS 1/2/4/8、tier 下降、长短交错及 prefill/decode 混跑。
+
+### INT8 projection GEMV（2026-08-21，未采用）
+
+- CDNA2 `V_DOT4_I32_I8` kernel-only 对三个 shape 分别约快 53%/28%/20%，但完整
+  Mori graph 内每层三次合计仍约 37 us，端到端只到约 `59.18 tok/s`，相对当前
+  基线约 1%。保持 `SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV=0`，不提交为正式收益。
+
+### FP4 MoE KSPLIT / Mori AsyncLL（2026-08-21，进行中）
+
+- `KSPLIT=2` 的纯 AR 256-token 为 `24.24 / 24.23 / 26.78 / 27.26 /
+  25.65 tok/s`；`KSPLIT=4` 为 `20.39 / 23.64 / 23.78 tok/s`。两者都确实
+  命中 CKTile A16W4，并绕过两次在线 MXFP4 activation quant，不是 selector 假开关。
+- `KSPLIT=4` trace 的每层 CK/rocBLAS 类耗时约 `0.38--0.48 ms`、临界层约
+  `0.95 ms`，而 ksplit=0 基线整层约 `0.37 ms`。AIter 的 per-1x32 测试在非
+  gfx950 上直接跳过；通用 CKTile 小 M kernel 当前不适合作为 gfx90a 正式路径。
+- `DEEPEP_MODE=low_latency, MORI_ENABLE_SDMA=0` 的五轮为 `20.66 / 21.08 /
+  22.18 / 19.94 / 20.78 tok/s`。trace 显示 AsyncLL CU transfer/wait 每层约
+  `0.6--0.9 ms`，上游固定的 `64 blocks x 8 waves` 对 BS1 明显过量。
+- 新增默认不改变行为的 AsyncLL geometry 开关：
+  `SGLANG_MORI_ASYNCLL_BLOCK_NUM`（默认 64）、
+  `SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK`（默认 8）、
+  `SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM`（默认 32）。先测 8/16/32 blocks；
+  每次 GPU 实验前仍必须先运行 `amd-smi process --general --sort-by-pid -g 4 5 6 7`。
+- `low_latency + SDMA`（通用 capacity=256）可到 `40.37 / 47.22 / 49.09 /
+  49.54 / 41.31 tok/s`，明显好于无 SDMA，但仍低于 normal Mori。
+- AsyncLL transport capacity 直接缩到 16 或 64 都会在 CUDA graph capture 尾部
+  `torch.cuda.synchronize()` 永久等待；faulthandler 已确认不是 CPU 编译。该实验
+  改用独立、默认关闭的
+  `SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK`，不要复用 normal
+  Mori 的默认 capacity=16。
+- 保持稳定 capacity=256，仅设 `SGLANG_MORI_MOE_MAX_INPUT_TOKENS=64` 可把 AIter
+  padded-token key 从 1024 降到 64；七轮为 `43.12 / 48.42 / 49.71 / 50.74 /
+  50.59 / 50.33 / 49.39 tok/s`，仍不足以替代 normal。前三轮之后 hash 稳定为
+  `1d765b3ef2548259`，但早期 hash 不同，必须与 normal 同 harness 对照。
+
+### 小优化叠加与正确性筛选（2026-08-22）
+
+- 正常 Mori 32/32、Sinkhorn=8 的同轮稳定基线约 `55.85--56.79 tok/s`，十轮
+  基准以 JSON-packed output token ids 的 SHA256 前 16 位检查正确性；基线 hash
+  为 `f3060e252a69f624`。
+- `WAVE64_FP32_GEMV=1 + WAVE64_GROUPED_GEMV=1` 十轮 hash 全部一致，稳态约
+  `56.79--57.10 tok/s`，净收益不足 1%，可继续作为安全叠加项但不单独提交。
+- packed Triton Top-K router 与 native grouped router 都会偶发改变 token hash；前者
+  最高约 `56.39 tok/s`，后者约 `54--55 tok/s`，两者均保持默认关闭。
+- replicated embedding 十轮 hash 一致，但破坏 scheduler-overlap 的快态稳定性，
+  结果在 `47--57 tok/s` 间抖动；保持默认关闭。
+- Sinkhorn 8→4 的随机输入 microbench 相对 20 次迭代 comb 最大误差约
+  `6.1e-3`，该样本最终 BF16 MHC 输出仍 bitwise exact；端到端 hash 稳定但变为
+  `dfdc22ded64b772d`，最高仅约 `57.68 tok/s`，不足以接受该近似。
+- `SGLANG_DSV4_USE_BF16_RMSNORM_WEIGHT=1` 最高约 `57.18 tok/s`，但十轮出现多个
+  token hash，且慢态明显，不能采用。
+- Mori dispatch/combine 24/24 在本轮最高约 `57.40 tok/s`，但偶发 hash 漂移；
+  旧轮次接近 `59.7 tok/s` 不能作为稳定结果。低 block geometry 需要先验证 Mori
+  barrier/progress 协议，不能作为正式配置。
+- AIter FP4 stage-2 的 64-thread/N32 CK symbol 确实存在并命中；新开关
+  `SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD` 默认关闭。它将 N CTA 数放大四倍，
+  十轮虽 hash 一致但仅 `40--50 tok/s`，明确负收益。
+- 保持 Mori 32 blocks，仅将 dispatch 从 8 waves/block 降为 4，十轮 hash 一致，
+  峰值约 `57.37 tok/s`，未超过 8-wave + wave64 GEMV 的约 `57.10 tok/s` 到足以采用，
+  且仍有 `49.74 tok/s` 慢态；不修改正式默认。
+- 曾在 AIter 依赖中把 A16W4 CKTile 的三处 `ksplit > 1` 条件临时放宽到
+  `ksplit >= 1`，用于测试无 split reduction、无 activation MXFP4 quant 的路径。
+  路径可启动并命中 CKTile，但仅 `22.76--24.98 tok/s`，三轮三个 hash 且输出严重
+  错误；条件已完整恢复。这里的 `>1` 是 layout/kernel 契约，不是可直接放宽的假限制。
+- FP8 Mori dispatch 对 FP4 routed weights 不是直通：当前 pre-permute 会先
+  `FP8→BF16`，AIter 再 `BF16→MXFP4`。短 BS1 下不应只凭 payload 减半就测试；
+  需要先实现直接/融合转换，否则很可能是额外双重量化。
+
+### normal/AsyncLL capacity 接线修复与 60 tok/s（2026-08-22）
+
+- 后续 AsyncLL 实验曾把两个 decode capacity 环境变量接反：normal Mori 误读
+  `SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK`，AsyncLL 反而读取
+  `SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK`。因此脚本设置的 normal
+  `capacity=16` 实际失效并退回通用 capacity=256，解释了同一 checkpoint 从约
+  `58+` 回落到 `56--57 tok/s`。现已恢复各自正确归属，启动日志必须明确显示
+  normal Mori 四 rank 均为 `num_max_dispatch_tokens_per_rank=16`。
+- capacity 接线修复后，第一套全新服务的 10 轮纯 AR 为：
+  `57.950 / 60.306 / 59.701 / 60.097 / 60.358 / 59.518 / 60.323 /
+  60.245 / 60.340 / 53.282 tok/s`，中位约 `60.17 tok/s`；10/10 output-id hash
+  均为基线 `f3060e252a69f624`。8 并发复验第二轮 aggregate 为 `230.42 tok/s`，
+  全部请求输出 256 token 且 `finish=length`。
+- 第二套独立服务的前六轮达到 `60.592 / 60.899 / 58.819 / 59.605 /
+  59.635 / 60.876 tok/s`，后四轮为 `59.763 / 59.495 / 58.616 / 58.397`；其中
+  一轮 hash 漂移，说明 custom AR/Mori graph 的偶发到达顺序仍需继续做严格
+  bitwise 稳定性审计，但 60 tok/s 原生 AR 的性能目标已在独立进程重复越过。
+- wave64 attention geometry 离线扫描保持 bitwise exact：grouped `wo_a` 从约
+  `18.15` 降到 `16.56 us`；FP32 N=512/1024/2048 分别选择 `(rows,unroll,waves)`
+  为 `(1,2,8)/(1,2,4)/(1,2,4)`，相对旧 `(2,2,8)` 约快 20%/持平/7.6%。
+- direct BF16-activation/FP4-weight routed-MoE 原型在生产 shape micro-check 中数值
+  接近参考，但端到端仅约 `18 tok/s` 且输出 hash 不稳定；逐行 FP4 解码的标量
+  wave kernel远慢于 AIter CK，不应作为正式路径。native MHC full/tail、INT8+
+  Mori24、INT8+Sinkhorn4 等堆叠也均未超过最终精确配置，继续保持默认关闭。
