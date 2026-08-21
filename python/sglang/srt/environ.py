@@ -1328,6 +1328,10 @@ class Envs:
     # Triton MHC mix K tile. 2048 is slightly faster standalone on gfx90a but
     # currently changes Mori graph queue timing; 1024 is the validated default.
     SGLANG_DSV4_GFX90A_MHC_BLOCK_K = EnvInt(1024)
+    # Largest global decode graph tier that may use the gfx90a Triton MHC
+    # pre-mix under Mori. Larger tiers use AIter until the cross-stream capture
+    # ordering is fixed; zero disables the tier limit.
+    SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_MAX_BS = EnvInt(4)
     # Opt into AIter's CKTile BF16-activation / FP4-weight split-K MoE path.
     # ksplit>1 bypasses both online MXFP4 activation quantization stages.
     SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT = EnvInt(0)
