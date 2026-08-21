@@ -194,6 +194,8 @@ def _paged_decode_fused_kernel(
     kv_indptr_ptr,  # [N+1] int32
     attn_sink_ptr,  # [H]
     out_ptr,  # [N, H, D]
+    rope_freqs_ptr,  # [max_seq, 64] fp32 real/imag interleaved
+    positions_ptr,  # [N] int64
     q_stride_t,
     q_stride_h,
     q_stride_d,
@@ -213,6 +215,7 @@ def _paged_decode_fused_kernel(
     QUANT_KV: tl.constexpr,  # True → dequant fp8 KV via kv_scales
     GROUP_SIZE: tl.constexpr,  # scale block width along D (e.g. 64)
     NUM_GROUPS: tl.constexpr,  # D // GROUP_SIZE (constexpr; D % GROUP_SIZE == 0)
+    FUSE_INVERSE_ROPE: tl.constexpr,
 ):
     """Single-pass online-softmax with sink folded inline — fast path for
     cases where ``kv_splits = 1`` (base grid already saturates the GPU). Skips
@@ -327,6 +330,34 @@ def _paged_decode_fused_kernel(
     out = tl.where(
         l_final[:, None] > 0.0, (acc * alpha_kv[:, None]) / denom[:, None], 0.0
     )
+
+    if FUSE_INVERSE_ROPE:
+        # Match the standalone implementation exactly: attention first
+        # materializes as BF16, then inverse RoPE rotates the final 64 dims.
+        rounded = out.to(out_ptr.dtype.element_ty).to(tl.float32)
+        rope_start = D - 64
+        rope_mask = d_mask & (d_offs >= rope_start)
+        rope_d = d_offs - rope_start
+        pair_d = (rope_d // 2) * 2
+        position = tl.load(positions_ptr + t)
+        cos = tl.load(
+            rope_freqs_ptr + position * 64 + pair_d,
+            mask=rope_mask,
+            other=1.0,
+        )
+        sin = tl.load(
+            rope_freqs_ptr + position * 64 + pair_d + 1,
+            mask=rope_mask,
+            other=0.0,
+        )
+        x_sin = rounded * sin[None, :]
+        even = rope_d % 2 == 0
+        x_neg = tl.where(even[None, :], -x_sin, x_sin)
+        x_neg = tl.reshape(x_neg, (BLOCK_H, BLOCK_D // 2, 2))
+        x_neg = tl.flip(x_neg, 2)
+        x_rot = tl.reshape(x_neg, (BLOCK_H, BLOCK_D))
+        out = rounded * cos[None, :] + x_rot
+
     tl.store(
         out_ptr
         + t * out_stride_t
@@ -489,6 +520,8 @@ def _paged_decode_reduce_kernel(
     attn_sink_ptr,  # [H]
     kv_indptr_ptr,  # [N+1] int32
     out_ptr,  # [N, H, D]
+    rope_freqs_ptr,  # [max_seq, 64] fp32 real/imag interleaved
+    positions_ptr,  # [N] int64
     mp_stride_t,
     mp_stride_k,
     mp_stride_h,
@@ -509,6 +542,7 @@ def _paged_decode_reduce_kernel(
     BLOCK_D: tl.constexpr,
     D_CHUNK: tl.constexpr,
     BLOCK_K: tl.constexpr,
+    FUSE_INVERSE_ROPE: tl.constexpr,
 ):
     """2D-tile reduce: combine KV_SPLITS partials, fold attn_sink, write
     final output. Grid: ``(T, H, ceil(D / D_CHUNK))`` — one CTA owns one
@@ -615,6 +649,32 @@ def _paged_decode_reduce_kernel(
     acc_final = acc_combined * alpha_kv
     out = tl.where(l_final > 0.0, acc_final / denom, 0.0)
 
+    if FUSE_INVERSE_ROPE:
+        # Preserve the standalone path's BF16 materialization before RoPE.
+        rounded = out.to(out_ptr.dtype.element_ty).to(tl.float32)
+        rope_start = D - 64
+        rope_mask = d_mask & (d_offs >= rope_start)
+        rope_d = d_offs - rope_start
+        pair_d = (rope_d // 2) * 2
+        position = tl.load(positions_ptr + t)
+        cos = tl.load(
+            rope_freqs_ptr + position * 64 + pair_d,
+            mask=rope_mask,
+            other=1.0,
+        )
+        sin = tl.load(
+            rope_freqs_ptr + position * 64 + pair_d + 1,
+            mask=rope_mask,
+            other=0.0,
+        )
+        x_sin = rounded * sin
+        even = rope_d % 2 == 0
+        x_neg = tl.where(even, -x_sin, x_sin)
+        x_neg = tl.reshape(x_neg, (D_CHUNK // 2, 2))
+        x_neg = tl.flip(x_neg, 1)
+        x_rot = tl.reshape(x_neg, (D_CHUNK,))
+        out = rounded * cos + x_rot
+
     tl.store(
         out_ptr + t * out_stride_t + h * out_stride_h + d_offs * out_stride_d,
         out.to(out_ptr.dtype.element_ty),
@@ -638,6 +698,8 @@ def _sparse_attn_v4_paged_decode_triton(
     block_h: int | None = None,
     kv_splits: int | None = None,
     block_k: int | None = None,
+    inverse_rope_freqs: torch.Tensor | None = None,
+    inverse_rope_positions: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """V4 sparse decode Triton implementation: split-K with FUSED fast path,
     exp2 softmax, CG-safe heuristic. ``block_h`` and ``kv_splits`` are
@@ -687,6 +749,25 @@ def _sparse_attn_v4_paged_decode_triton(
 
     T, H, D = q.shape
     out = torch.empty_like(q)
+    fuse_inverse_rope = (
+        inverse_rope_freqs is not None and inverse_rope_positions is not None
+    )
+    if fuse_inverse_rope:
+        if (
+            D != 512
+            or inverse_rope_freqs.dtype != torch.float32
+            or inverse_rope_freqs.ndim != 2
+            or inverse_rope_freqs.shape[1] != 64
+            or not inverse_rope_freqs.is_contiguous()
+            or inverse_rope_positions.shape != (T,)
+            or not inverse_rope_positions.is_contiguous()
+        ):
+            raise ValueError("invalid fused inverse-RoPE inputs for DSV4 decode")
+        rope_freqs_arg = inverse_rope_freqs
+        rope_positions_arg = inverse_rope_positions
+    else:
+        rope_freqs_arg = q.new_empty((1, 64), dtype=torch.float32)
+        rope_positions_arg = q.new_zeros((T,), dtype=torch.int64)
 
     if block_h is None:
         block_h = triton.next_power_of_2(min(H, 64))
@@ -737,6 +818,8 @@ def _sparse_attn_v4_paged_decode_triton(
             kv_indptr,
             attn_sink,
             out,
+            rope_freqs_arg,
+            rope_positions_arg,
             q.stride(0),
             q.stride(1),
             q.stride(2),
@@ -756,6 +839,7 @@ def _sparse_attn_v4_paged_decode_triton(
             QUANT_KV=quant_kv,
             GROUP_SIZE=_FP8_GROUP_SIZE,
             NUM_GROUPS=num_groups_arg,
+            FUSE_INVERSE_ROPE=fuse_inverse_rope,
             num_warps=num_warps,
             num_stages=num_stages,
         )
@@ -839,6 +923,8 @@ def _sparse_attn_v4_paged_decode_triton(
         attn_sink,
         kv_indptr,
         out,
+        rope_freqs_arg,
+        rope_positions_arg,
         m_partial.stride(0),
         m_partial.stride(1),
         m_partial.stride(2),
@@ -859,6 +945,7 @@ def _sparse_attn_v4_paged_decode_triton(
         BLOCK_D=block_d,
         D_CHUNK=d_chunk,
         BLOCK_K=block_k,
+        FUSE_INVERSE_ROPE=fuse_inverse_rope,
         num_warps=4,
     )
     return out
@@ -872,6 +959,8 @@ def sparse_attn_v4_paged_decode(
     attn_sink: torch.Tensor,
     softmax_scale: float,
     kv_scales: torch.Tensor | None = None,
+    inverse_rope_freqs: torch.Tensor | None = None,
+    inverse_rope_positions: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """V4 decode sparse attention over a unified KV pool with paged indices.
 
@@ -886,4 +975,6 @@ def sparse_attn_v4_paged_decode(
         attn_sink,
         softmax_scale,
         kv_scales=kv_scales,
+        inverse_rope_freqs=inverse_rope_freqs,
+        inverse_rope_positions=inverse_rope_positions,
     )

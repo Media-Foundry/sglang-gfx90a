@@ -1647,7 +1647,24 @@ class MQALayer(MqaAttentionBase):
             is_unified_kv_triton,
         )
 
-        if is_unified_kv_triton():
+        unified_kv = is_unified_kv_triton()
+        fuse_inverse_rope = (
+            unified_kv
+            and envs.SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE.get()
+            and forward_batch.forward_mode.is_decode()
+            # The extra epilogue increases VGPR pressure in the attention
+            # reduce kernel.  It wins at the latency-critical one-request
+            # graph tier, but sharply reduces occupancy for larger tiers.
+            and forward_batch.batch_size == 1
+        )
+        inverse_rope_freqs = (
+            torch.view_as_real(self.freqs_cis).flatten(-2)
+            if fuse_inverse_rope
+            else None
+        )
+        inverse_rope_positions = positions if fuse_inverse_rope else None
+
+        if unified_kv:
             o = attn_backend.forward(
                 q=q_out if q_out is not None else q,
                 k=attn_k,
@@ -1657,6 +1674,8 @@ class MQALayer(MqaAttentionBase):
                 compress_ratio=self.compress_ratio,
                 attn_sink=self.attn_sink,
                 save_kv_cache=kv is not None,
+                inverse_rope_freqs=inverse_rope_freqs,
+                inverse_rope_positions=inverse_rope_positions,
             )
         else:
             attn_q = q_padded if q_padded is not None else q
@@ -1697,7 +1716,7 @@ class MQALayer(MqaAttentionBase):
                 sin4,
                 qk_nope_dim=self.qk_nope_head_dim,
             )
-        else:
+        elif not fuse_inverse_rope:
             fused_rope_inplace(
                 o[..., -self.qk_rope_head_dim :],
                 None,
@@ -1844,6 +1863,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         self._post_attention_layernorm_weight_bf16 = None
         self._hc_attn_fn_bf16 = None
         self._hc_ffn_fn_bf16 = None
+        self._hc_attn_fn_fp16 = None
+        self._hc_ffn_fn_fp16 = None
 
     def _build_self_attn(
         self,
@@ -1877,6 +1898,9 @@ class DeepseekV4DecoderLayer(nn.Module):
         if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
             self._hc_attn_fn_bf16 = self.hc_attn_fn.data.bfloat16().contiguous()
             self._hc_ffn_fn_bf16 = self.hc_ffn_fn.data.bfloat16().contiguous()
+        if envs.SGLANG_DSV4_GFX90A_FP16_MHC_DOT.get():
+            self._hc_attn_fn_fp16 = self.hc_attn_fn.data.half().contiguous()
+            self._hc_ffn_fn_fp16 = self.hc_ffn_fn.data.half().contiguous()
 
     def hc_pre(
         self,
@@ -2220,6 +2244,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 norm_eps=self.input_layernorm.variance_epsilon,
                 global_batch_size=forward_batch.batch_size,
                 fn_bf16=getattr(self, "_hc_attn_fn_bf16", None),
+                fn_fp16=getattr(self, "_hc_attn_fn_fp16", None),
             )
             x_quant = None
         else:
@@ -2293,6 +2318,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                     norm_eps=self.post_attention_layernorm.variance_epsilon,
                     global_batch_size=forward_batch.batch_size,
                     fn_bf16=getattr(self, "_hc_ffn_fn_bf16", None),
+                    fn_fp16=getattr(self, "_hc_ffn_fn_fp16", None),
                 )
                 norm_fused = True
         else:

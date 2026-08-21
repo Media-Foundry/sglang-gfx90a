@@ -97,3 +97,18 @@
 3. `MHC_PRE_MIX` 仅在 no-A2A 单独测试；不要用它解释 Mori 结果。
 4. 清理死开关、重复 `SGLANG_OPT_USE_AITER_INDEXER` 和 external-input-buffer 的
    默认值/注释后，再将脚本作为可复现实验入口。
+
+## 2026-08-21 FP16 MHC + inverse-RoPE checkpoint
+
+- `SGLANG_DSV4_GFX90A_FP16_MHC_DOT=1` 只把 bs1 MHC split-K dot 的缓存权重降为
+  FP16，仍以 FP32 累加；相对 FP32 权重的 microbenchmark 最大绝对误差约
+  `1.4e-3`。BF16 权重误差约 `1.4e-2`，因此没有采用。
+- `SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL=1` 将 split-K reduce、8-iteration
+  Sinkhorn、weighted residual 和 RMSNorm 合并为一个 gfx90a Triton tail。
+- `SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE=1` 将 DSV4 decode 的 inverse RoPE
+  放入 unified-KV attention epilogue；`kv_splits=1` 与 split-K、T=1 与 T=8
+  均已和原独立 RoPE 路径逐元素 bitwise 对齐。
+- 同一服务的 256-token 原生 AR probe：干净基线单请求稳态中位数约
+  `49.65 tok/s`，组合候选稳态为 `53.50 / 53.81 / 54.13 / 54.04 / 54.14
+  tok/s`，中位数 `54.04 tok/s`（约 `+8.8%`）。
+- 8 并发回归为 `218.45 / 217.96 tok/s`，保持高于 `180 tok/s` 验收线。
