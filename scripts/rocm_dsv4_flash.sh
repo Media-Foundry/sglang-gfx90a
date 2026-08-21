@@ -136,7 +136,6 @@ server_args=(
   --max-total-tokens "${MAX_TOTAL_TOKENS:-${DEFAULT_MAX_TOTAL_TOKENS}}"
   --swa-full-tokens-ratio "${SWA_FULL_TOKENS_RATIO:-${DEFAULT_SWA_FULL_TOKENS_RATIO}}"
   --mem-fraction-static "${MEM_FRACTION_STATIC:-${DEFAULT_MEM_FRACTION_STATIC}}"
-  --disable-overlap-schedule
   --skip-server-warmup
   --enable-tokenizer-batch-encode
   # Per-token scheduler logging measurably stalls CPU graph replay on the
@@ -147,6 +146,11 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+# Scheduler overlap plus the single-batch fast path keeps graph replay fed on
+# the latency-critical native-AR path. Set this to 1 only for the legacy A/B.
+if [[ "${DISABLE_OVERLAP_SCHEDULE:-0}" == "1" ]]; then
+  server_args+=(--disable-overlap-schedule)
+fi
 if [[ "${DISABLE_CUSTOM_ALL_REDUCE:-0}" == "1" ]]; then
   server_args+=(--disable-custom-all-reduce)
 fi
@@ -156,7 +160,7 @@ fi
 if [[ -n "${DEEPEP_MODE:-}" ]]; then
   server_args+=(--deepep-mode "${DEEPEP_MODE}")
 fi
-if [[ "${ENABLE_SINGLE_BATCH_OVERLAP:-0}" == "1" ]]; then
+if [[ "${ENABLE_SINGLE_BATCH_OVERLAP:-1}" == "1" ]]; then
   server_args+=(--enable-single-batch-overlap)
 fi
 if [[ "${ENABLE_PROFILE_CUDA_GRAPH:-0}" == "1" ]]; then
