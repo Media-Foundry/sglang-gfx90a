@@ -19,6 +19,80 @@ _SCORING_FUNC_MAP = {
     "sqrtsoftplus": 1,
     "softmax": 2,
 }
+_gfx90a_router_diag_logged = False
+
+
+@triton.jit
+def _gfx90a_fp32_ordered_key(value):
+    bits = value.to(tl.uint32, bitcast=True)
+    sign = tl.full(bits.shape, 0x80000000, tl.uint32)
+    full = tl.full(bits.shape, 0xFFFFFFFF, tl.uint32)
+    return bits ^ tl.where((bits & sign) != 0, full, sign)
+
+
+@triton.jit
+def _gfx90a_sqrtsoftplus_topk_kernel(
+    scores,
+    bias,
+    weights,
+    indices,
+    routed_scaling_factor: tl.constexpr,
+    APPLY_SCALE: tl.constexpr,
+):
+    offs = tl.arange(0, 256)
+    logits = tl.load(scores + offs).to(tl.float32)
+    bias_v = tl.load(bias + offs).to(tl.float32)
+    softplus = tl.where(logits > 20.0, logits, tl.log(1.0 + tl.exp(logits)))
+    activated = tl.sqrt(softplus)
+    ranked = activated + bias_v
+    ranked = tl.where(ranked == ranked, ranked, -float("inf"))
+
+    # Pack the monotonic FP32 key and inverse expert id. Larger packed values
+    # win, so equal scores deterministically select the lower expert id.
+    value_key = _gfx90a_fp32_ordered_key(ranked).to(tl.uint64)
+    packed = (value_key << 16) | (256 - offs).to(tl.uint64)
+    winners = tl.topk(packed, 8)
+    winner_ids = (256 - (winners & 0xFFFF).to(tl.int32)).to(tl.int32)
+
+    k = tl.arange(0, 8)
+    selected_weight = tl.sum(
+        tl.where(offs[None, :] == winner_ids[:, None], activated[None, :], 0.0),
+        axis=1,
+    )
+    routed_sum = tl.sum(tl.where(k < 6, selected_weight, 0.0), axis=0)
+    scale = routed_scaling_factor if APPLY_SCALE else 1.0
+    mask = k < 6
+    tl.store(weights + k, selected_weight / routed_sum * scale, mask=mask)
+    tl.store(indices + k, winner_ids, mask=mask)
+
+
+def gfx90a_sqrtsoftplus_topk_triton(
+    scores: torch.Tensor,
+    bias: torch.Tensor,
+    routed_scaling_factor: float,
+    apply_scale: bool,
+) -> tuple[torch.Tensor, torch.Tensor] | None:
+    if (
+        scores.shape != (1, 256)
+        or scores.dtype not in (torch.bfloat16, torch.float32)
+        or bias.shape != (256,)
+        or bias.dtype not in (torch.bfloat16, torch.float32)
+        or not scores.is_contiguous()
+        or not bias.is_contiguous()
+    ):
+        return None
+    weights = torch.empty((1, 6), dtype=torch.float32, device=scores.device)
+    indices = torch.empty((1, 6), dtype=torch.int32, device=scores.device)
+    _gfx90a_sqrtsoftplus_topk_kernel[(1,)](
+        scores,
+        bias,
+        weights,
+        indices,
+        routed_scaling_factor=float(routed_scaling_factor),
+        APPLY_SCALE=bool(apply_scale),
+        num_warps=1,
+    )
+    return weights, indices
 
 
 @cache_once
@@ -297,6 +371,100 @@ def moe_fused_gate(
     if routed_scaling_factor is None:
         routed_scaling_factor = 1.0
 
+    global _gfx90a_router_diag_logged
+    from sglang.srt.environ import envs
+
+    if (
+        envs.SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER.get()
+        and topk == 6
+        and not _gfx90a_router_diag_logged
+    ):
+        logging.getLogger(__name__).warning(
+            "gfx90a router probe: shape=%s scores=%s bias=%s scoring=%s "
+            "fused_shared=%s renorm=%s groups=%s topk_group=%s softcap=%s scale_out=%s",
+            tuple(scores.shape),
+            scores.dtype,
+            bias.dtype,
+            scoring_func,
+            num_fused_shared_experts,
+            renormalize,
+            num_expert_group,
+            topk_group,
+            moe_softcapping,
+            apply_routed_scaling_factor_on_output,
+        )
+        _gfx90a_router_diag_logged = True
+
+    # CDNA2 decode specialization.  Keep the GEMM producing ``scores`` on its
+    # multi-CU path; this kernel replaces only grouped selection/renormalize.
+    if (
+        scores.shape == (1, 256)
+        and bias.shape == (256,)
+        and bias.dtype in (torch.bfloat16, torch.float32)
+        and topk == 6
+        and scoring_func_int == 0
+        and num_fused_shared_experts == 0
+        and renormalize
+        and num_expert_group == 8
+        and topk_group == 4
+        and moe_softcapping == 0.0
+    ):
+        if envs.SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER.get():
+            from sglang.kernels.ops.moe.gfx90a_grouped_router import (
+                gfx90a_grouped_router,
+            )
+
+            native = gfx90a_grouped_router(
+                scores,
+                bias,
+                float(routed_scaling_factor),
+                bool(apply_routed_scaling_factor_on_output),
+            )
+            if native is not None:
+                return native
+
+    if (
+        scores.shape == (1, 256)
+        and bias.shape == (256,)
+        and bias.dtype in (torch.bfloat16, torch.float32)
+        and topk == 6
+        and scoring_func_int == 1
+        and num_fused_shared_experts == 0
+        and renormalize
+        and num_expert_group <= 1
+        and moe_softcapping == 0.0
+    ):
+        if envs.SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER.get():
+            triton_topk = gfx90a_sqrtsoftplus_topk_triton(
+                scores,
+                bias,
+                float(routed_scaling_factor),
+                bool(apply_routed_scaling_factor_on_output),
+            )
+            if triton_topk is not None:
+                return triton_topk
+        if envs.SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER.get():
+            from sglang.kernels.ops.moe.gfx90a_grouped_router import (
+                gfx90a_sqrtsoftplus_router,
+                preload_gfx90a_router,
+            )
+            from sglang.srt.model_executor.runner import get_is_capture_mode
+
+            graph_warmup = (
+                get_is_capture_mode()
+                and not torch.cuda.is_current_stream_capturing()
+            )
+            preload_gfx90a_router()
+            if not graph_warmup:
+                native = gfx90a_sqrtsoftplus_router(
+                    scores,
+                    bias,
+                    float(routed_scaling_factor),
+                    bool(apply_routed_scaling_factor_on_output),
+                )
+                if native is not None:
+                    return native
+
     # K3 radix-select fast path: native-CUDA radix-select replaces the 16
     # dependent argmax rounds (single CTA per token; ids bit-identical to this
     # triton kernel incl. ties).
@@ -344,6 +512,18 @@ def moe_fused_gate(
     # argmax passes dominate and benefit from more warps despite the
     # cross-warp reduction cost.
     num_warps = 1 if BLOCK_N <= 512 else 4
+    if (
+        torch.version.hip
+        and M == 1
+        and N == 256
+        and K == 6
+        and scoring_func_int == 1
+        and getattr(
+            torch.cuda.get_device_properties(scores.device), "gcnArchName", ""
+        ).split(":", 1)[0]
+        == "gfx90a"
+    ):
+        num_warps = envs.SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS.get()
     grid = (triton.cdiv(M, BLOCK_M),)
     use_pdl = is_arch_support_pdl()
     extra = {"launch_pdl": True} if use_pdl else {}

@@ -185,6 +185,21 @@ class MhcOps(NamedTuple):
     npu_hc_pre: Optional[Callable[..., Any]]
 
 
+class AiterMhcOps(NamedTuple):
+    mhc_pre: Callable[..., Any]
+    mhc_post: Callable[..., Any]
+
+
+@functools.cache
+def _get_aiter_mhc_ops() -> Optional[AiterMhcOps]:
+    """Return optional AIter MHC ops without retrying imports per layer."""
+    try:
+        from aiter.ops.mhc import mhc_post, mhc_pre
+    except ImportError:
+        return None
+    return AiterMhcOps(mhc_pre, mhc_post)
+
+
 @functools.cache
 def _get_mhc_ops() -> MhcOps:
     """Load MHC kernels only when a DeepSeek-V4 layer needs them.
@@ -238,10 +253,17 @@ def _is_fused_mhc_post_pre_enabled() -> bool:
     # SM120 disables the standalone TileLang pre path. mhc_fused_post_pre does
     # not read that flag and dispatches independently for both small and large
     # token batches, so the standalone pre flag must not veto the fused opt-in.
-    return (
-        envs.SGLANG_OPT_FUSE_MHC_POST_PRE.get()
-        and envs.SGLANG_OPT_USE_TILELANG_MHC_POST.get()
-        and (envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.get() or is_sm120_supported())
+    if not envs.SGLANG_OPT_FUSE_MHC_POST_PRE.get():
+        return False
+    # gfx90a's small-token fused boundary uses the scalar-FMA TileLang kernel;
+    # it does not depend on the standalone TileLang pre/post kernels.  Keeping
+    # those standalone gates in this predicate forced ROCm to prewarm a
+    # T.gemm->MFMA kernel that does not lower on CDNA2, making the otherwise
+    # independent fused path unreachable.
+    if is_gfx90a_supported():
+        return True
+    return envs.SGLANG_OPT_USE_TILELANG_MHC_POST.get() and (
+        envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.get() or is_sm120_supported()
     )
 
 
@@ -328,6 +350,19 @@ _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 _use_gfx90a_mhc_pre_mix = get_bool_env_var(
     "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX"
 )
+_use_gfx90a_wave64_mhc_pre_mix = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX"
+)
+_allow_gfx90a_mhc_pre_mix_a2a = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A"
+)
+_shadow_gfx90a_mhc_pre_mix_a2a = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A_SHADOW_REFERENCE"
+)
+_compare_gfx90a_mhc_pre_mix = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE"
+)
+_compare_gfx90a_mhc_pre_mix_done = False
 # PoC: compute the (replicated TP1) shared expert on LOCAL hidden before the dp
 # gather instead of on the gathered global buffer. Requires
 # SGLANG_SHARED_EXPERT_TP1=1 (replicated shared expert). Default OFF.
@@ -1807,6 +1842,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         self.use_fused_mhc_post_pre = _is_fused_mhc_post_pre_enabled()
         self._input_layernorm_weight_bf16 = None
         self._post_attention_layernorm_weight_bf16 = None
+        self._hc_attn_fn_bf16 = None
+        self._hc_ffn_fn_bf16 = None
 
     def _build_self_attn(
         self,
@@ -1837,6 +1874,9 @@ class DeepseekV4DecoderLayer(nn.Module):
         self._post_attention_layernorm_weight_bf16 = (
             self.post_attention_layernorm.weight.data.bfloat16().contiguous()
         )
+        if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
+            self._hc_attn_fn_bf16 = self.hc_attn_fn.data.bfloat16().contiguous()
+            self._hc_ffn_fn_bf16 = self.hc_ffn_fn.data.bfloat16().contiguous()
 
     def hc_pre(
         self,
@@ -1849,6 +1889,8 @@ class DeepseekV4DecoderLayer(nn.Module):
     ):
         """If *norm* is given and the TileLang path is active, the returned
         hidden_states are already post-norm (the norm is fused into the kernel)."""
+
+        global _compare_gfx90a_mhc_pre_mix_done
 
         @compile_in_capture_mode
         def hc_pre_torch_impl(x, hc_fn):
@@ -1916,23 +1958,119 @@ class DeepseekV4DecoderLayer(nn.Module):
             )
             return y, post.squeeze(-1), comb, norm is not None
 
-        if _is_hip:
-            from aiter.ops.mhc import mhc_pre
-
-            post, comb, y = mhc_pre(
-                residual=x,
-                fn=hc_fn,
-                hc_scale=hc_scale,
-                hc_base=hc_base,
-                rms_eps=self.rms_norm_eps,
-                hc_pre_eps=self.hc_eps,
-                hc_sinkhorn_eps=self.hc_eps,
-                hc_post_mult_value=_MHC_POST_MULT_VALUE,
-                sinkhorn_repeat=self.hc_sinkhorn_iters,
+        # The gfx90a pre-mix used to live below this unconditional HIP
+        # return, which made it unreachable whenever AIter was enabled (the
+        # only supported ROCm configuration for DSV4). No-A2A uses the Triton
+        # prototype. Under Mori, use the native HIP
+        # wave64 implementation: merely launching the Triton kernel can poison
+        # the HSA queue even when its result is discarded.
+        mhc_a2a_is_none = get_moe_a2a_backend().is_none()
+        graph_warmup = (
+            get_is_capture_mode()
+            and not torch.cuda.is_current_stream_capturing()
+        )
+        use_gfx90a_mhc_pre_mix = (
+            _is_hip
+            and _use_gfx90a_mhc_pre_mix
+            and (
+                mhc_a2a_is_none
+                # Prefill can contain internal one-row subcalls, so shape is
+                # not a reliable phase gate. Restrict the A2A experiment to a
+                # real AR decode forward while the Mori interaction is isolated.
+                or (
+                    _allow_gfx90a_mhc_pre_mix_a2a
+                    and forward_batch is not None
+                    and forward_batch.forward_mode.is_decode()
+                )
             )
-            return y, post.squeeze(-1), comb, False
+        )
+        # The custom kernel is compiled during the load-time prewarm, before
+        # Mori initializes. Do not launch it again in the eager graph warmup:
+        # even when its result is discarded, that launch can leave the gfx90a
+        # queue in a state where the following Mori capture spins. The actual
+        # torch.cuda.graph capture still records the custom fast path.
+        if graph_warmup and not mhc_a2a_is_none:
+            use_gfx90a_mhc_pre_mix = False
+        if _is_hip and not use_gfx90a_mhc_pre_mix:
+            aiter_mhc = _get_aiter_mhc_ops()
+            if aiter_mhc is not None:
+                post, comb, y = aiter_mhc.mhc_pre(
+                    residual=x,
+                    fn=hc_fn,
+                    hc_scale=hc_scale,
+                    hc_base=hc_base,
+                    rms_eps=self.rms_norm_eps,
+                    hc_pre_eps=self.hc_eps,
+                    hc_sinkhorn_eps=self.hc_eps,
+                    hc_post_mult_value=_MHC_POST_MULT_VALUE,
+                    sinkhorn_repeat=self.hc_sinkhorn_iters,
+                )
+                return y, post.squeeze(-1), comb, False
 
-        if envs.SGLANG_OPT_DEEPGEMM_HC_PRENORM.get():
+        if use_gfx90a_mhc_pre_mix:
+            if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
+                from sglang.kernels.ops.layernorm.mhc import (
+                    gfx90a_mhc_pre_mix_bf16_dot_triton,
+                )
+
+                fn_bf16 = (
+                    self._hc_attn_fn_bf16
+                    if hc_fn.data_ptr() == self.hc_attn_fn.data_ptr()
+                    else self._hc_ffn_fn_bf16
+                )
+                mixes = (
+                    gfx90a_mhc_pre_mix_bf16_dot_triton(
+                        x, fn_bf16, self.rms_norm_eps
+                    )
+                    if fn_bf16 is not None
+                    else None
+                )
+            elif _use_gfx90a_wave64_mhc_pre_mix:
+                from sglang.kernels.ops.layernorm.gfx90a_mhc_pre_mix import (
+                    gfx90a_mhc_pre_mix_wave64,
+                )
+
+                mixes = gfx90a_mhc_pre_mix_wave64(x, hc_fn, self.rms_norm_eps)
+            else:
+                from sglang.kernels.ops.layernorm.mhc import (
+                    gfx90a_mhc_pre_mix_triton,
+                )
+
+                mixes = gfx90a_mhc_pre_mix_triton(x, hc_fn, self.rms_norm_eps)
+            if (
+                mixes is not None
+                and _compare_gfx90a_mhc_pre_mix
+                and not _compare_gfx90a_mhc_pre_mix_done
+            ):
+                _, reference_mixes = hc_pre_torch_impl(x, hc_fn)
+                delta = (mixes - reference_mixes).abs()
+                logger.info(
+                    "gfx90a MHC custom/reference: max_abs=%.8g mean_abs=%.8g "
+                    "custom_absmax=%.8g reference_absmax=%.8g",
+                    delta.max().item(),
+                    delta.mean().item(),
+                    mixes.abs().max().item(),
+                    reference_mixes.abs().max().item(),
+                )
+                _compare_gfx90a_mhc_pre_mix_done = True
+            if mixes is None:
+                # The custom kernel is decode-only. Prefill/other shapes use
+                # the graph-compatible reference path when AIter MHC is absent.
+                x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
+            else:
+                x_flat = x.flatten(1)
+                if (
+                    graph_warmup
+                    or (
+                        _allow_gfx90a_mhc_pre_mix_a2a
+                        and _shadow_gfx90a_mhc_pre_mix_a2a
+                    )
+                ):
+                    # Diagnostic: execute the selected custom kernel but feed
+                    # exact reference mixes downstream, separating launch/queue
+                    # effects from numerical routing divergence.
+                    x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
+        elif envs.SGLANG_OPT_DEEPGEMM_HC_PRENORM.get():
             from sglang.srt.layers.deep_gemm_wrapper.entrypoint import (
                 tf32_hc_prenorm_gemm,
             )
@@ -1949,23 +2087,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             rsqrt = torch.rsqrt(s_out / k + self.rms_norm_eps)
             mixes = (d_out * rsqrt.unsqueeze(1)).unsqueeze(1)
         else:
-            mixes = None
-            if (
-                _is_hip
-                and _use_gfx90a_mhc_pre_mix
-                and get_moe_a2a_backend().is_none()
-            ):
-                from sglang.kernels.ops.layernorm.mhc import (
-                    gfx90a_mhc_pre_mix_triton,
-                )
-
-                mixes = gfx90a_mhc_pre_mix_triton(
-                    x, hc_fn, self.rms_norm_eps
-                )
-            if mixes is None:
-                x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
-            else:
-                x_flat = x.flatten(1)
+            x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
 
         pre, post, comb = _get_mhc_ops().hc_split_sinkhorn(
             mixes,
@@ -2021,23 +2143,26 @@ class DeepseekV4DecoderLayer(nn.Module):
 
             return mhc_post(x, residual, post, comb)
 
-        elif _is_hip:
-            from aiter.ops.mhc import mhc_post
-
-            result = torch.empty_like(residual)
-            mhc_post(result, x, residual, post, comb)
-            return result
-
-        assert residual.shape == (x.shape[0], self.hc_mult, x.shape[-1])
-        assert post.shape == (x.shape[0], self.hc_mult)
-        assert comb.shape == (x.shape[0], self.hc_mult, self.hc_mult)
-
+        # Keep the gfx90a Triton combine reachable before the generic HIP/AIter
+        # return.  Some AIter builds do not ship aiter.ops.mhc at all, and the
+        # old ordering also made SGLANG_OPT_USE_TRITON_MHC_COMBINE ineffective.
         if _is_hip and envs.SGLANG_OPT_USE_TRITON_MHC_COMBINE.get():
             from sglang.kernels.ops.layernorm.mhc import mhc_post_combine_triton
 
             result = mhc_post_combine_triton(x, residual, post, comb)
             if result is not None:
                 return result
+
+        if _is_hip:
+            aiter_mhc = _get_aiter_mhc_ops()
+            if aiter_mhc is not None:
+                result = torch.empty_like(residual)
+                aiter_mhc.mhc_post(result, x, residual, post, comb)
+                return result
+
+        assert residual.shape == (x.shape[0], self.hc_mult, x.shape[-1])
+        assert post.shape == (x.shape[0], self.hc_mult)
+        assert comb.shape == (x.shape[0], self.hc_mult, self.hc_mult)
 
         @compile_in_capture_mode
         def hc_post_torch_impl(x, residual, post, comb):
@@ -2086,6 +2211,8 @@ class DeepseekV4DecoderLayer(nn.Module):
                     else self.input_layernorm.weight.data
                 ),
                 norm_eps=self.input_layernorm.variance_epsilon,
+                global_batch_size=forward_batch.batch_size,
+                fn_bf16=getattr(self, "_hc_attn_fn_bf16", None),
             )
             x_quant = None
         else:
@@ -2157,6 +2284,8 @@ class DeepseekV4DecoderLayer(nn.Module):
                         else self.post_attention_layernorm.weight.data
                     ),
                     norm_eps=self.post_attention_layernorm.variance_epsilon,
+                    global_batch_size=forward_batch.batch_size,
+                    fn_bf16=getattr(self, "_hc_ffn_fn_bf16", None),
                 )
                 norm_fused = True
         else:
@@ -3458,7 +3587,14 @@ class DeepseekV4ForCausalLM(nn.Module):
         if self._mhc_prewarmed_at_load:
             return
         self._mhc_prewarmed_at_load = True
-        if _is_npu or not envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.get():
+        if _is_npu or not envs.SGLANG_DSV4_MHC_PREWARM.get():
+            return
+        use_tilelang = envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.get()
+        # Mori constructs its symmetric allocations after model loading. Do not
+        # execute/free temporary A2A kernel buffers before that lifecycle point;
+        # the decode kernel is already JIT-cached and runs on first real decode.
+        use_gfx90a_triton = _is_hip and _use_gfx90a_mhc_pre_mix
+        if not use_tilelang and not use_gfx90a_triton:
             return
         layer = next(
             (m for m in self.model.layers if isinstance(m, DeepseekV4DecoderLayer)),
@@ -3467,44 +3603,90 @@ class DeepseekV4ForCausalLM(nn.Module):
         if layer is None:
             return
 
-        from sglang.kernels.ops.layernorm.mhc import mhc_post, prewarm_mhc_pre
-
         tic = time.perf_counter()
         residual = torch.zeros(
             (1, layer.hc_mult, layer.hidden_size),
             dtype=torch.bfloat16,
             device=layer.hc_attn_fn.device,
         )
-        prewarm_mhc_pre(
-            # Template carrying dtype/device; buckets allocate their own sizes.
-            residual=residual,
-            fn=layer.hc_attn_fn,
-            hc_scale=layer.hc_attn_scale,
-            hc_base=layer.hc_attn_base,
-            rms_eps=layer.rms_norm_eps,
-            hc_pre_eps=layer.hc_eps,
-            hc_sinkhorn_eps=layer.hc_eps,
-            hc_post_mult_value=_MHC_POST_MULT_VALUE,
-            sinkhorn_repeat=layer.hc_sinkhorn_iters,
-            n_splits=1,
-            n_splits_pre=32,
-            norm_weight=layer.input_layernorm.weight.data,
-            norm_eps=layer.input_layernorm.variance_epsilon,
-        )
-        mhc_post(
-            x=residual.new_zeros((1, layer.hidden_size)),
-            residual=residual,
-            post_layer_mix=torch.zeros(
-                (1, layer.hc_mult, 1),
-                dtype=torch.float32,
-                device=residual.device,
-            ),
-            comb_res_mix=torch.zeros(
-                (1, layer.hc_mult, layer.hc_mult),
-                dtype=torch.float32,
-                device=residual.device,
-            ),
-        )
+        if use_tilelang:
+            from sglang.kernels.ops.layernorm.mhc import mhc_post, prewarm_mhc_pre
+
+            prewarm_mhc_pre(
+                # Template carrying dtype/device; buckets allocate their own sizes.
+                residual=residual,
+                fn=layer.hc_attn_fn,
+                hc_scale=layer.hc_attn_scale,
+                hc_base=layer.hc_attn_base,
+                rms_eps=layer.rms_norm_eps,
+                hc_pre_eps=layer.hc_eps,
+                hc_sinkhorn_eps=layer.hc_eps,
+                hc_post_mult_value=_MHC_POST_MULT_VALUE,
+                sinkhorn_repeat=layer.hc_sinkhorn_iters,
+                n_splits=1,
+                n_splits_pre=32,
+                norm_weight=layer.input_layernorm.weight.data,
+                norm_eps=layer.input_layernorm.variance_epsilon,
+            )
+            mhc_post(
+                x=residual.new_zeros((1, layer.hidden_size)),
+                residual=residual,
+                post_layer_mix=torch.zeros(
+                    (1, layer.hc_mult, 1),
+                    dtype=torch.float32,
+                    device=residual.device,
+                ),
+                comb_res_mix=torch.zeros(
+                    (1, layer.hc_mult, layer.hc_mult),
+                    dtype=torch.float32,
+                    device=residual.device,
+                ),
+            )
+        if use_gfx90a_triton:
+            from sglang.kernels.ops.layernorm.mhc import (
+                gfx90a_mhc_pre_mix_bf16_dot_triton,
+                gfx90a_mhc_pre_mix_triton,
+                hc_split_sinkhorn,
+                mhc_post_combine_triton,
+                mhc_weighted_sum_triton,
+            )
+
+            if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
+                mixes = gfx90a_mhc_pre_mix_bf16_dot_triton(
+                    residual, layer._hc_attn_fn_bf16, layer.rms_norm_eps
+                )
+            elif _use_gfx90a_wave64_mhc_pre_mix:
+                from sglang.kernels.ops.layernorm.gfx90a_mhc_pre_mix import (
+                    preload_gfx90a_mhc_pre_mix_wave64,
+                    gfx90a_mhc_pre_mix_wave64,
+                )
+
+                preload_gfx90a_mhc_pre_mix_wave64()
+                mixes = gfx90a_mhc_pre_mix_wave64(
+                    residual, layer.hc_attn_fn, layer.rms_norm_eps
+                )
+            else:
+                mixes = gfx90a_mhc_pre_mix_triton(
+                    residual, layer.hc_attn_fn, layer.rms_norm_eps
+                )
+            if mixes is None:
+                raise RuntimeError("gfx90a MHC prewarm rejected the DSV4 decode shape")
+            pre, post, comb = hc_split_sinkhorn(
+                mixes,
+                layer.hc_attn_scale,
+                layer.hc_attn_base,
+                layer.hc_mult,
+                layer.hc_sinkhorn_iters,
+                layer.hc_eps,
+            )
+            layer_input = mhc_weighted_sum_triton(residual, pre.squeeze(1))
+            if layer_input is None:
+                raise RuntimeError("gfx90a MHC weighted-sum prewarm rejected its shape")
+            post_out = mhc_post_combine_triton(
+                layer_input, residual, post.squeeze(1), comb.squeeze(1)
+            )
+            if post_out is None:
+                raise RuntimeError("gfx90a MHC post-combine prewarm rejected its shape")
         torch.cuda.synchronize()
         compile_secs = time.perf_counter() - tic
         # Runs before init_memory_pool(); don't let transients skew pool sizing.

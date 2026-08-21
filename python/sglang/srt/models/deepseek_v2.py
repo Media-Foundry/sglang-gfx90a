@@ -268,13 +268,13 @@ _DSV4_GFX90A_GATED_GEMM_CONFIG = {
 }
 
 _DSV4_GFX90A_TP4_GATED_GEMM_CONFIG = {
-    "BLOCK_SIZE_M": 32,
-    "BLOCK_SIZE_N": 64,
-    "BLOCK_SIZE_K": 128,
+    "BLOCK_SIZE_M": 1,
+    "BLOCK_SIZE_N": 32,
+    "BLOCK_SIZE_K": 256,
     "GROUP_SIZE_M": 1,
     "num_warps": 4,
     "num_stages": 2,
-    "waves_per_eu": 0,
+    "waves_per_eu": 1,
     "matrix_instr_nonkdim": 16,
     "cache_modifier": ".cg",
     "kpack": 2,
@@ -364,6 +364,31 @@ class DeepseekV2MLP(nn.Module):
             and tuple(self.gate_up_proj.weight.shape)
             in ((4096, 4096), (1024, 4096))
         ):
+            # As with the gfx90a MHC pre-mix, do not enqueue a native JIT
+            # kernel on the shared-expert side stream during eager graph
+            # warmup immediately before Mori collectives. The real HIP graph
+            # capture still records this path; only the two discarded eager
+            # warmups use the already-stable Triton implementation.
+            graph_warmup = (
+                get_is_capture_mode()
+                and not torch.cuda.is_current_stream_capturing()
+                and get_moe_a2a_backend().is_mori()
+            )
+            if (
+                envs.SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP.get()
+                and not graph_warmup
+            ):
+                from sglang.kernels.ops.quantization.gfx90a_bf16_gated_gemv import (
+                    gfx90a_wave64_bf16_gated_gemv,
+                )
+
+                gated = gfx90a_wave64_bf16_gated_gemv(
+                    x, self.gate_up_proj.weight, float(self.swiglu_limit)
+                )
+                if gated is not None:
+                    gated, _ = self.down_proj(gated)
+                    return gated
+
             from aiter.ops.triton.gemm.basic.gemm_a16w16_gated import (
                 gemm_a16w16_gated,
             )

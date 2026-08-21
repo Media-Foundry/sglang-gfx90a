@@ -987,9 +987,16 @@ class Fp8LinearMethod(LinearMethodBase):
             if isinstance(x, tuple):
                 raise TypeError("Cached BF16 block-FP8 weight requires BF16 activation")
             if bias is None:
-                from sglang.kernels.ops.quantization.bf16_gemv import (
-                    gfx90a_bf16_gemv,
-                )
+                if envs.SGLANG_DSV4_GFX90A_WAVE64_GEMV.get():
+                    from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                        gfx90a_wave64_bf16_gemv,
+                    )
+
+                    output = gfx90a_wave64_bf16_gemv(x, layer.weight)
+                    if output is not None:
+                        return output
+
+                from sglang.kernels.ops.quantization.bf16_gemv import gfx90a_bf16_gemv
 
                 output = gfx90a_bf16_gemv(x, layer.weight)
                 if output is not None:

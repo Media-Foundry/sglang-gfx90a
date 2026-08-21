@@ -49,6 +49,9 @@ export SGLANG_OPT_USE_AITER_MHC_PRE="${SGLANG_OPT_USE_AITER_MHC_PRE:-0}"
 export SGLANG_OPT_USE_AITER_MHC_POST="${SGLANG_OPT_USE_AITER_MHC_POST:-0}"
 export SGLANG_OPT_USE_TRITON_MHC_COMBINE="${SGLANG_OPT_USE_TRITON_MHC_COMBINE:-1}"
 export SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX="${SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX:-1}"
+export SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A="${SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A:-0}"
+export SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A_SHADOW_REFERENCE="${SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A_SHADOW_REFERENCE:-0}"
+export SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE="${SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE:-0}"
 export SGLANG_OPT_USE_TRITON_INDEXER_POST="${SGLANG_OPT_USE_TRITON_INDEXER_POST:-1}"
 export SGLANG_OPT_USE_TRITON_INDEXER_FULL="${SGLANG_OPT_USE_TRITON_INDEXER_FULL:-1}"
 export SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT="${SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT:-0}"
@@ -56,6 +59,16 @@ export SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR="${SGLANG_DSV4_GFX90A_BF16_ATTN_LINEA
 export SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP:-1}"
 export SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN="${SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN:-1}"
 export SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP:-1}"
+export SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP:-1}"
+export SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN="${SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN:-1}"
+export SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE="${SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE:-0}"
+export SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL="${SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL:-0}"
+export SGLANG_DSV4_GFX90A_MHC_FAST_MATH="${SGLANG_DSV4_GFX90A_MHC_FAST_MATH:-0}"
+export SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS="${SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS:-1}"
+export SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER="${SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER:-0}"
+export SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER="${SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER:-0}"
+export SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS="${SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS:-1}"
+export SGLANG_MORI_NO_PAD_MASK="${SGLANG_MORI_NO_PAD_MASK:-1}"
 export SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP="${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP:-1}"
 if [[ "${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP}" == "1" ]]; then
   export SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER="${SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER:-0}"
@@ -71,6 +84,27 @@ export SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_NUM_MAX_DISPA
 export SGLANG_MORI_USE_EXTERNAL_INP_BUF="${SGLANG_MORI_USE_EXTERNAL_INP_BUF:-0}"
 export SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM="${SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM:-32}"
 export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK:-4}"
+
+# AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
+# routes six experts per token, so the static grid must cover every row that a
+# captured decode tier can make live.  Zero keeps AIter's fully general grid.
+if [[ "${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-0}" -gt 0 ]]; then
+  required_quant_rows=$(( ${CUDA_GRAPH_MAX_BS_DECODE:-${DEFAULT_CUDA_GRAPH_MAX_BS_DECODE}} * 6 ))
+  if [[ "${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS}" -lt "${required_quant_rows}" ]]; then
+    echo "error: AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS} is below graph_bs*topk=${required_quant_rows}" >&2
+    exit 2
+  fi
+fi
+required_dispatch_rows=$(( ${CUDA_GRAPH_MAX_BS_DECODE:-${DEFAULT_CUDA_GRAPH_MAX_BS_DECODE}} * 6 ))
+if [[ "${SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK}" -lt "${required_dispatch_rows}" ]]; then
+  echo "error: SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK=${SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK} is below graph_bs*topk=${required_dispatch_rows}" >&2
+  exit 2
+fi
+if [[ "${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK:-0}" -gt 0 ]] && \
+   [[ "${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK}" -lt "$(( ${CUDA_GRAPH_MAX_BS_DECODE:-${DEFAULT_CUDA_GRAPH_MAX_BS_DECODE}} * 2 ))" ]]; then
+  echo "error: SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK=${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK} is below the validated 2*graph_bs floor=$(( ${CUDA_GRAPH_MAX_BS_DECODE:-${DEFAULT_CUDA_GRAPH_MAX_BS_DECODE}} * 2 ))" >&2
+  exit 2
+fi
 
 server_args=(
   --model-path "${MODEL_PATH}"
@@ -88,7 +122,10 @@ server_args=(
   --disable-overlap-schedule
   --skip-server-warmup
   --enable-tokenizer-batch-encode
-  --decode-log-interval "${DECODE_LOG_INTERVAL:-1}"
+  # Per-token scheduler logging measurably stalls CPU graph replay on the
+  # single-request latency path. Keep periodic observability without putting
+  # formatted I/O on every generated token.
+  --decode-log-interval "${DECODE_LOG_INTERVAL:-10000}"
   --trust-remote-code
   --host "${HOST}"
   --port "${PORT}"
@@ -143,6 +180,9 @@ Commands:
   logs [n]              Tail the last n log lines, default 120.
   bench [tokens] [reps] Run official-prompt single-request AR probe.
                         Defaults: tokens=256, reps=1.
+  bench-concurrent [tokens] [requests] [reps]
+                        Run independent native-AR requests concurrently.
+                        Defaults: tokens=256, requests=4, reps=1.
   profile [tokens] [steps]
                         Start SGLang stage profiler, then send one request.
                         Defaults: tokens=32, steps=1.
@@ -165,9 +205,19 @@ Optional env:
   SGLANG_MORI_USE_EXTERNAL_INP_BUF=0
                               # Direct AIter stage-2 output into Mori's registered
                               # peer-read buffer. Enabled by default; set 1 for push.
+  AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=0
+                              # Optional fixed Mori quant-grid bound. Must be at
+                              # least CUDA_GRAPH_MAX_BS_DECODE*6; zero is general.
   SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT=1
                               # Opt in to the experimental shared-expert BF16
                               # weight cache. It is not graph-capture stable yet.
+  SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A=1
+                              # Use the gfx90a Triton MHC pre-mix with Mori/A2A.
+                              # Graph warmups consume the reference result;
+                              # the captured/replayed graph uses the fast kernel.
+  SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE=1
+                              # One-shot eager diagnostic: log custom-vs-FP32
+                              # MHC pre-mix error. Default off.
   SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR=1
                               # Cache the three decode attention projections as
                               # BF16 on gfx90a. Enabled by default; costs ~1 GiB/GPU.
@@ -222,7 +272,23 @@ with socket.create_connection((host, port), timeout=2):
     pass
 PY
     then
-      echo "ready: ${BASE_URL}"
+      # The HTTP process can accept TCP before the tokenizer manager has
+      # installed its scheduler RPC state.  Freeze only after the server's own
+      # ready marker, and retry here rather than during application startup.
+      local freeze_ok=0
+      for _ in {1..10}; do
+        if curl --noproxy '*' -sS --fail --max-time 15 -X POST \
+          "${BASE_URL}/freeze_gc" >/dev/null 2>&1; then
+          freeze_ok=1
+          break
+        fi
+        sleep 1
+      done
+      if [[ "${freeze_ok}" == "1" ]]; then
+        echo "ready: ${BASE_URL} (GC frozen)"
+      else
+        echo "ready: ${BASE_URL} (warning: freeze_gc did not succeed)" >&2
+      fi
       return 0
     fi
     if ! is_running; then
@@ -331,6 +397,73 @@ for rep in range(reps):
         f"ar_ms/token={(dt / max(output_tokens, 1)) * 1000:.1f} "
         f"finish={reason} "
         f"text0={first_text!r}",
+        flush=True,
+    )
+PY
+}
+
+bench_concurrent() {
+  local tokens="${1:-256}"
+  local requests="${2:-4}"
+  local reps="${3:-1}"
+  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" <<'PY'
+import concurrent.futures
+import json
+import sys
+import threading
+import time
+import urllib.request
+
+base_url = sys.argv[1]
+tokens, requests, reps = map(int, sys.argv[2:])
+url = base_url + "/generate"
+prompt = "<｜begin▁of▁sentence｜><｜User｜>Explain why 2+2=4 in one sentence.<｜Assistant｜><think>"
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+def send(payload, start_barrier):
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    start_barrier.wait()
+    begin = time.perf_counter()
+    with opener.open(req, timeout=max(1200, tokens * 2)) as response:
+        body = response.read()
+    return time.perf_counter() - begin, json.loads(body)
+
+for rep in range(reps):
+    barrier = threading.Barrier(requests + 1)
+    salt_ns = time.time_ns()
+    payloads = [
+        {
+            "text": prompt,
+            "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+            "cache_salt": f"ar-concurrent-{tokens}-{requests}-{rep}-{index}-{salt_ns}",
+        }
+        for index in range(requests)
+    ]
+    print(
+        f"BEGIN rep={rep} tokens={tokens} requests={requests} "
+        "mode=concurrent-independent-AR",
+        flush=True,
+    )
+    with concurrent.futures.ThreadPoolExecutor(max_workers=requests) as pool:
+        futures = [pool.submit(send, payload, barrier) for payload in payloads]
+        barrier.wait()
+        group_begin = time.perf_counter()
+        results = [future.result() for future in futures]
+        group_wall = time.perf_counter() - group_begin
+
+    output_tokens = [len(out.get("output_ids") or []) for _, out in results]
+    reasons = [out.get("meta_info", {}).get("finish_reason") for _, out in results]
+    request_walls = [wall for wall, _ in results]
+    total_tokens = sum(output_tokens)
+    print(
+        "END "
+        f"rep={rep} group_wall={group_wall:.3f}s total_tokens={total_tokens} "
+        f"aggregate_ar_tok/s={total_tokens / group_wall:.3f} "
+        f"per_request_ar_tok/s={[round(n / wall, 3) for n, wall in zip(output_tokens, request_walls)]} "
+        f"output_tokens={output_tokens} finish={reasons}",
         flush=True,
     )
 PY
@@ -633,6 +766,10 @@ case "${1:-}" in
   bench)
     shift
     bench "$@"
+    ;;
+  bench-concurrent)
+    shift
+    bench_concurrent "$@"
     ;;
   profile)
     shift

@@ -23,8 +23,18 @@ constexpr uint32_t kMaxTopK = 1024;
 // Fixed, and deliberately not tied to `topk`: run_cumsum() and the histogram
 // init below index up to RADIX + 1 == 257 threads, so a block sized after a
 // small topk would silently skip part of the histogram.
+#ifdef USE_ROCM
+// A 1024-thread block plus the 64KB radix workspace is not launchable on
+// gfx90a.  Eight native wave64s still cover the 257-bin histogram in one pass.
+constexpr uint32_t kTopKBlockSize = 512;
+#else
 constexpr uint32_t kTopKBlockSize = kMaxTopK;
+#endif
+#ifdef USE_ROCM
+constexpr uint32_t kSMEM = 48 * 1024;  // Leave room for static LDS on gfx9xx.
+#else
 constexpr uint32_t kSMEM = 16 * 1024 * sizeof(uint32_t);  // 64KB (bytes)
+#endif
 
 struct TopKParams {
   const float* __restrict__ scores;
@@ -275,7 +285,11 @@ void setup_kernel_smem_once(host::DebugInfo where = {}) {
   [[maybe_unused]]
   static const auto result = [] {
     const auto fptr = std::bit_cast<const void*>(f);
+#ifdef USE_ROCM
+    return ::hipFuncSetAttribute(fptr, ::hipFuncAttributeMaxDynamicSharedMemorySize, kMaxDynamicSMEM);
+#else
     return ::cudaFuncSetAttribute(fptr, ::cudaFuncAttributeMaxDynamicSharedMemorySize, kMaxDynamicSMEM);
+#endif
   }();
   host::RuntimeDeviceCheck(result, where);
 }

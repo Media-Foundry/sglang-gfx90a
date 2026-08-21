@@ -1286,6 +1286,51 @@ class Envs:
     # Cache DSV4 attention's block-FP8 projection weights as BF16 on gfx90a.
     # This targets decode GEMV and trades roughly 1 GiB/GPU for lower latency.
     SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR = EnvBool(False)
+    # Experimental M=1-as-M=16 MFMA GEMV.  Device traces on MI250 show that
+    # the duplicated arithmetic can lose to the scalar wave reduction, so it
+    # remains opt-in while fusion-oriented kernels are developed.
+    SGLANG_DSV4_GFX90A_MFMA_GEMV = EnvBool(False)
+    # Native CDNA2 wave64 BF16 GEMV. Unlike the Triton MFMA experiment this
+    # assigns output rows to waves and performs a single wave shuffle reduce.
+    SGLANG_DSV4_GFX90A_WAVE64_GEMV = EnvBool(False)
+    # Native wave64 fused BF16 gate/up GEMV for the TP4 shared-expert decode
+    # shape (M=1, N=1024, K=4096). Experimental and opt-in until graph A/B.
+    SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP = EnvBool(False)
+    # Fuse the gfx90a MHC RMS reduction into its 24-output pre-mix GEMV. The
+    # split implementation remains available for graph/correctness A/B tests.
+    SGLANG_DSV4_GFX90A_FUSED_RMS_MHC_PRE_MIX = EnvBool(False)
+    # Accumulate 64 post-combine RMS partials while writing the next residual;
+    # the distributed pre-mix consumes them and avoids a standalone RMS launch.
+    SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS = EnvBool(False)
+    # Native HIP wave64 MHC pre-mix. It shares the RMS reduction within each
+    # three-output wave CTA instead of relying on Triton reductions.
+    SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX = EnvBool(False)
+    # Cache MHC mixing weights as bf16 and use a gfx90a MFMA-backed Triton
+    # GEMV. Accumulation/sinkhorn remain fp32; opt-in pending top-k validation.
+    SGLANG_DSV4_GFX90A_BF16_MHC_DOT = EnvBool(False)
+    SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN = EnvBool(False)
+    # Fuse the launch-bound MHC tail (Sinkhorn + weighted sum + RMSNorm) after
+    # the bandwidth-heavy multi-CTA pre-mix. This is the production candidate.
+    SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE = EnvBool(False)
+    # Diagnostic full-boundary single-CTA variant. It is graph-correct but its
+    # one-CU pre-mix underuses CDNA2 memory bandwidth, so keep it A/B-only.
+    SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL = EnvBool(False)
+    # Compile the native MHC boundary with HIP fast-math. Microbenchmarks on
+    # gfx90a currently regress and loosen BF16 output error, so default off.
+    SGLANG_DSV4_GFX90A_MHC_FAST_MATH = EnvBool(False)
+    # Wave64 grouped sigmoid router for the DSV4 M=1, E=256, G=8, topG=4,
+    # topK=6 decode shape. The multi-row Triton path remains the fallback.
+    SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER = EnvBool(False)
+    # Triton wave count for the native DSV4 M=1/E=256 sqrtsoftplus router.
+    SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS = EnvInt(1)
+    # One-pass packed-key Triton top-k for DSV4's M=1/E=256 sqrtsoftplus gate.
+    SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER = EnvBool(False)
+    # Triton MHC mix K tile. 2048 is slightly faster standalone on gfx90a but
+    # currently changes Mori graph queue timing; 1024 is the validated default.
+    SGLANG_DSV4_GFX90A_MHC_BLOCK_K = EnvInt(1024)
+    # Opt into AIter's CKTile BF16-activation / FP4-weight split-K MoE path.
+    # ksplit>1 bypasses both online MXFP4 activation quantization stages.
+    SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT = EnvInt(0)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
@@ -1301,6 +1346,12 @@ class Envs:
     SGLANG_OPT_USE_AITER_INDEXER = EnvBool(False)
     SGLANG_OPT_USE_TRITON_INDEXER_POST = EnvBool(True)
     SGLANG_OPT_USE_TRITON_INDEXER_FULL = EnvBool(True)
+    # Sequence rows computed by one gfx90a FP8 paged-indexer Triton program.
+    # Kept tunable because the original 16-row tile underutilizes CDNA2 MFMA.
+    SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S = EnvInt(16)
+    # Decode FP8 indexer operands to fp16 before the gfx90a MFMA dot. The
+    # accumulator and logits remain fp32; opt-in until top-k parity is proven.
+    SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT = EnvBool(False)
     SGLANG_OPT_DSV4_NONPAGED_INDEXER = EnvBool(True)
     # Per-rank local query rows (after DP-attention sharding when enabled),
     # not request ISL.
