@@ -1317,6 +1317,7 @@ class Envs:
     # Cache DSV4 attention's block-FP8 projection weights as BF16 on gfx90a.
     # This targets decode GEMV and trades roughly 1 GiB/GPU for lower latency.
     SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR = EnvBool(False)
+    SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE = EnvBool(False)
     # Experimental M=1-as-M=16 MFMA GEMV.  Device traces on MI250 show that
     # the duplicated arithmetic can lose to the scalar wave reduction, so it
     # remains opt-in while fusion-oriented kernels are developed.
@@ -1340,9 +1341,11 @@ class Envs:
     # Cache MHC mixing weights as bf16 and use a gfx90a MFMA-backed Triton
     # GEMV. Accumulation/sinkhorn remain fp32; opt-in pending top-k validation.
     SGLANG_DSV4_GFX90A_BF16_MHC_DOT = EnvBool(False)
+    SGLANG_DSV4_GFX90A_FP16_MHC_DOT = EnvBool(False)
     SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN = EnvBool(False)
     SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS = EnvInt(20)
     SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS = EnvBool(False)
+    SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL = EnvBool(False)
     # Fuse the launch-bound MHC tail (Sinkhorn + weighted sum + RMSNorm) after
     # the bandwidth-heavy multi-CTA pre-mix. This is the production candidate.
     SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE = EnvBool(False)

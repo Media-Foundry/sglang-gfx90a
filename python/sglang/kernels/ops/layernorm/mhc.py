@@ -274,6 +274,90 @@ def _gfx90a_mhc_mix_splitk_stage1_kernel(
 
 
 @triton.jit
+def _gfx90a_mhc_splitk_fused_tail_kernel(
+    dot_partials,
+    rms_partials,
+    residual,
+    hc_scale,
+    hc_base,
+    norm_weight,
+    post,
+    comb,
+    out,
+    eps: tl.constexpr,
+    norm_eps: tl.constexpr,
+    SINKHORN_ITERS: tl.constexpr,
+):
+    token_id = tl.program_id(0)
+    splits = tl.arange(0, 8)
+    rms_offsets = tl.arange(0, 64)
+    sq_sum = tl.sum(tl.load(rms_partials + token_id * 64 + rms_offsets))
+    pre_scale = tl.rsqrt(sq_sum / 16384.0 + eps)
+
+    offs4 = tl.arange(0, 4)
+    pre_dot = tl.sum(
+        tl.load(
+            dot_partials
+            + (token_id * 24 + offs4[:, None]) * 8
+            + splits[None, :]
+        ),
+        axis=1,
+    )
+    post_dot = tl.sum(
+        tl.load(
+            dot_partials
+            + (token_id * 24 + 4 + offs4[:, None]) * 8
+            + splits[None, :]
+        ),
+        axis=1,
+    )
+    pre_v = tl.sigmoid(
+        pre_dot * pre_scale * tl.load(hc_scale) + tl.load(hc_base + offs4)
+    ) + eps
+    post_v = 2.0 * tl.sigmoid(
+        post_dot * pre_scale * tl.load(hc_scale + 1)
+        + tl.load(hc_base + 4 + offs4)
+    )
+    tl.store(post + token_id * 4 + offs4, post_v)
+
+    offs16 = tl.arange(0, 16)
+    comb_dot = tl.sum(
+        tl.load(
+            dot_partials
+            + (token_id * 24 + 8 + offs16[:, None]) * 8
+            + splits[None, :]
+        ),
+        axis=1,
+    )
+    matrix = tl.reshape(
+        comb_dot * pre_scale * tl.load(hc_scale + 2)
+        + tl.load(hc_base + 8 + offs16),
+        (4, 4),
+    )
+    matrix = tl.exp(matrix - tl.max(matrix, axis=1)[:, None])
+    matrix = matrix / tl.sum(matrix, axis=1)[:, None] + eps
+    matrix = matrix / (tl.sum(matrix, axis=0)[None, :] + eps)
+    for _ in tl.static_range(0, SINKHORN_ITERS - 1):
+        matrix = matrix / (tl.sum(matrix, axis=1)[:, None] + eps)
+        matrix = matrix / (tl.sum(matrix, axis=0)[None, :] + eps)
+    tl.store(comb + token_id * 16 + offs16, tl.reshape(matrix, (16,)))
+
+    hidden = tl.arange(0, 4096)
+    channels = tl.arange(0, 4)
+    residual_v = tl.load(
+        residual
+        + token_id * 16384
+        + channels[:, None] * 4096
+        + hidden[None, :]
+    ).to(tl.float32)
+    weighted = tl.sum(pre_v[:, None] * residual_v, axis=0)
+    rounded = weighted.to(tl.bfloat16).to(tl.float32)
+    inv_rms = tl.rsqrt(tl.sum(rounded * rounded) / 4096.0 + norm_eps)
+    weight = tl.load(norm_weight + hidden).to(tl.float32)
+    tl.store(out + token_id * 4096 + hidden, rounded * inv_rms * weight)
+
+
+@triton.jit
 def _gfx90a_mhc_mix_bf16_dot_kernel(
     residual,
     fn_bf16,
@@ -508,6 +592,104 @@ def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
         num_warps=1,
     )
     return mixes
+
+
+def gfx90a_mhc_splitk_fused_tail_triton(
+    residual: torch.Tensor,
+    fn: torch.Tensor,
+    fn_fp16: torch.Tensor | None,
+    rms_partials: torch.Tensor,
+    hc_scale: torch.Tensor,
+    hc_base: torch.Tensor,
+    norm_weight: torch.Tensor,
+    sinkhorn_eps: float,
+    norm_eps: float,
+    global_batch_size: int | None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
+    num_tokens = residual.shape[0]
+    if (
+        global_batch_size != 1
+        or residual.shape != (num_tokens, 4, 4096)
+        or residual.dtype != torch.bfloat16
+        or fn.shape != (24, 16384)
+        or fn.dtype != torch.float32
+        or rms_partials.shape != (num_tokens, 64)
+        or rms_partials.dtype != torch.float32
+        or hc_scale.shape != (3,)
+        or hc_scale.dtype != torch.float32
+        or hc_base.shape != (24,)
+        or hc_base.dtype != torch.float32
+        or norm_weight.shape != (4096,)
+        or norm_weight.dtype != torch.bfloat16
+        or not all(
+            tensor.is_contiguous()
+            for tensor in (
+                residual,
+                fn,
+                rms_partials,
+                hc_scale,
+                hc_base,
+                norm_weight,
+            )
+        )
+        or getattr(
+            torch.cuda.get_device_properties(residual.device), "gcnArchName", ""
+        ).split(":", 1)[0]
+        != "gfx90a"
+    ):
+        return None
+
+    mix_weight = fn
+    if envs.SGLANG_DSV4_GFX90A_FP16_MHC_DOT.get():
+        if (
+            fn_fp16 is None
+            or fn_fp16.shape != (24, 16384)
+            or fn_fp16.dtype != torch.float16
+            or not fn_fp16.is_contiguous()
+        ):
+            return None
+        mix_weight = fn_fp16
+
+    splits, block_n = 8, 4
+    dot_partials = torch.empty(
+        (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
+    )
+    post = torch.empty((num_tokens, 4), dtype=torch.float32, device=residual.device)
+    comb = torch.empty(
+        (num_tokens, 4, 4), dtype=torch.float32, device=residual.device
+    )
+    out = torch.empty(
+        (num_tokens, 4096), dtype=torch.bfloat16, device=residual.device
+    )
+    _gfx90a_mhc_mix_splitk_stage0_kernel[
+        (triton.cdiv(24, block_n), splits, num_tokens)
+    ](
+        residual.flatten(1),
+        mix_weight,
+        dot_partials,
+        k=16384,
+        SPLITS=splits,
+        CHUNK_K=2048,
+        BLOCK_N=block_n,
+        BLOCK_K=1024,
+        num_warps=1,
+    )
+    _gfx90a_mhc_splitk_fused_tail_kernel[(num_tokens,)](
+        dot_partials,
+        rms_partials,
+        residual,
+        hc_scale,
+        hc_base,
+        norm_weight,
+        post,
+        comb,
+        out,
+        eps=sinkhorn_eps,
+        norm_eps=norm_eps,
+        SINKHORN_ITERS=envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get(),
+        num_warps=8,
+    )
+    return post, comb, out
 
 
 def gfx90a_mhc_pre_mix_bf16_dot_triton(
@@ -2491,6 +2673,7 @@ def mhc_fused_post_pre(
     norm_eps: float | None = None,
     global_batch_size: int | None = None,
     fn_bf16: torch.Tensor | None = None,
+    fn_fp16: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Fuse the boundary between one mHC post step and the next mHC pre step.
 
@@ -2645,6 +2828,38 @@ def mhc_fused_post_pre(
             )
         if residual_cur is None:
             raise RuntimeError("gfx90a fused MHC post-combine rejected its shape")
+        if (
+            envs.SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL.get()
+            and rms_partials is not None
+            and norm_weight is not None
+            and norm_eps is not None
+            and global_batch_size == 1
+        ):
+            norm_weight_bf = (
+                norm_weight.bfloat16()
+                if norm_weight.dtype != torch.bfloat16
+                else norm_weight
+            ).contiguous()
+            fused_tail = gfx90a_mhc_splitk_fused_tail_triton(
+                residual_cur,
+                fn,
+                fn_fp16,
+                rms_partials,
+                hc_scale,
+                hc_base,
+                norm_weight_bf,
+                hc_sinkhorn_eps,
+                norm_eps,
+                global_batch_size,
+            )
+            if fused_tail is not None:
+                post_cur, comb_cur, layer_input = fused_tail
+                return (
+                    residual_cur.view(*outer_shape, hc_mult, hidden_size),
+                    post_cur.view(*outer_shape, hc_mult),
+                    comb_cur.view(*outer_shape, hc_mult, hc_mult),
+                    layer_input.view(*outer_shape, hidden_size),
+                )
         use_bf16_mix = (
             envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get()
             and fn_bf16 is not None

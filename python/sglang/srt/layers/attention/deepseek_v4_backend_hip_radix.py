@@ -1223,6 +1223,8 @@ class DeepseekV4HipRadixBackend(
         attn_sink: torch.Tensor,
         core_attn_metadata: DSV4AttnMetadata,
         save_kv_cache: bool = True,
+        inverse_rope_freqs: Optional[torch.Tensor] = None,
+        inverse_rope_positions: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """unified_kv paged-attention path over the bf16 unified_kv"""
         from sglang.kernels.ops.attention.dsv4.unified_kv_kernels import runtime
@@ -1294,6 +1296,8 @@ class DeepseekV4HipRadixBackend(
                 kv_indptr=kv_indptr,
                 attn_sink=attn_sink,
                 softmax_scale=self.softmax_scale,
+                inverse_rope_freqs=inverse_rope_freqs,
+                inverse_rope_positions=inverse_rope_positions,
             )
 
         # prefill / extend
@@ -1481,6 +1485,8 @@ class DeepseekV4HipRadixBackend(
         compress_ratio: Literal[0, 4, 128],
         save_kv_cache: bool = True,
         attn_sink: Optional[torch.Tensor] = None,
+        inverse_rope_freqs: Optional[torch.Tensor] = None,
+        inverse_rope_positions: Optional[torch.Tensor] = None,
         **_,
     ) -> torch.Tensor:
         if self.mtp_enabled and forward_batch.forward_mode.is_idle():
@@ -1509,6 +1515,8 @@ class DeepseekV4HipRadixBackend(
                 attn_sink=attn_sink,
                 core_attn_metadata=core_attn_metadata,
                 save_kv_cache=save_kv_cache,
+                inverse_rope_freqs=inverse_rope_freqs,
+                inverse_rope_positions=inverse_rope_positions,
             )
 
         if isinstance(core_attn_metadata, DSV4AttnMetadata):
