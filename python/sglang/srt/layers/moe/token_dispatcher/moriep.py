@@ -27,6 +27,7 @@ from sglang.srt.runtime_context import get_parallel
 from sglang.srt.utils import (
     get_bool_env_var,
     get_int_env_var,
+    is_gfx95_supported,
     is_hip,
 )
 
@@ -50,8 +51,35 @@ _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 
 if _use_aiter:
     from aiter import QuantType, get_hip_quant
+    from aiter.ops.quant import get_triton_quant
 
 logger = logging.getLogger(__name__)
+
+# Mori's CDNA2/CDNA3 JIT instantiates the FNUZ transport wrappers. Keep this
+# local to Mori: other SGLang FP8 operators may intentionally use OCP software
+# conversion for checkpoint compatibility, while dispatch is only a wire codec.
+_mori_fp8_dtype = (
+    torch.float8_e4m3fnuz
+    if _is_hip and not is_gfx95_supported()
+    else fp8_dtype
+)
+
+
+def _get_mori_fp8_quant():
+    """Select an FP8 quantizer whose conversion instructions match the GPU."""
+    # AIter's HIP per-1x128 implementation instantiates v_cvt_pk_fp8_f32, which
+    # is unavailable on CDNA2/gfx90a.  Its Triton implementation emits the
+    # software FNUZ conversion already used by the rest of the gfx90a path.
+    factory = get_hip_quant if is_gfx95_supported() else get_triton_quant
+    return factory(QuantType.per_1x128)
+
+
+def _get_mori_fp4_quant():
+    """Select an MXFP4 quantizer that is executable on the current GPU."""
+    # The HIP implementation uses gfx950 FP4 conversion intrinsics. CDNA2
+    # needs AIter's Triton software conversion, just like the FP8 wire path.
+    factory = get_hip_quant if is_gfx95_supported() else get_triton_quant
+    return factory(QuantType.per_1x32)
 
 
 def _should_record_expert_distribution() -> bool:
@@ -210,7 +238,7 @@ def get_ep_dispatch_configs(num_max_dispatch_tokens_per_rank: int = 4096):
 
 # init_mori_op only needs do once in model initial stage
 # use lru_cache to reuse the same mori_op instance to avoid the init overhead for mori
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=16)
 def init_mori_op(
     group,
     router_topk,
@@ -275,10 +303,29 @@ def init_mori_op(
                 "SGLANG_MORI_INTRANODE_BLOCK_NUM and "
                 "SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK must be positive"
             )
+    elif mode == EpMode.LOW_LATENCY:
+        # AsyncLL's upstream 64-block geometry is aimed at larger batches and
+        # newer GPUs.  On gfx90a BS1 decode it can reserve far more CUs than the
+        # payload needs and starve the overlapped expert stream.  Keep the
+        # upstream values as defaults, but make the geometry independently
+        # tunable from the normal IntraNode kernel.
+        block_num = get_int_env_var("SGLANG_MORI_ASYNCLL_BLOCK_NUM", block_num)
+        warp_num_per_block = get_int_env_var(
+            "SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK", warp_num_per_block
+        )
+        rdma_block_num = get_int_env_var(
+            "SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM", rdma_block_num
+        )
+        if block_num < 1 or warp_num_per_block < 1 or rdma_block_num < 0:
+            raise ValueError(
+                "SGLANG_MORI_ASYNCLL_BLOCK_NUM and "
+                "SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK must be positive; "
+                "SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM must be non-negative"
+            )
 
     hidden_dim = hidden_size
     scale_dim = 1
-    data_type = fp8_dtype
+    data_type = _mori_fp8_dtype
     scale_type_size = torch.float32.itemsize
 
     if dispatch_dtype == DispatchDtype.bf16:
@@ -296,7 +343,10 @@ def init_mori_op(
         data_type = torch.float4_e2m1fn_x2
         scale_type_size = torch.float8_e8m0fnu.itemsize
 
-        if mode == EpMode.INTRA_NODE:
+        if mode == EpMode.INTRA_NODE and not (
+            "SGLANG_MORI_INTRANODE_BLOCK_NUM" in os.environ
+            or "SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK" in os.environ
+        ):
             if num_max_dispatch_tokens_per_rank < 128:
                 block_num = 225
                 warp_num_per_block = 5
@@ -589,28 +639,35 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
 
         self.async_finish = async_finish
         self.quant_config = {}
-        self.fp8_quant_func = get_hip_quant(QuantType.per_1x128)
-        self.fp4_quant_func = get_hip_quant(QuantType.per_1x32)
+        self.fp8_quant_func = _get_mori_fp8_quant()
+        self.fp4_quant_func = _get_mori_fp4_quant()
         self.enable_dual_stream = is_tbo_enabled()
         self._comm_stream = None
         if self.enable_dual_stream:
             self._comm_stream = CommStreamPool.get_stream_from_pool(self.group)
+        # Keep normal Mori's decode plan independent from the AsyncLL transport
+        # experiment.  The launch harness uses a bounded capacity here to avoid
+        # paying the general prefill geometry on every one-token decode.
         self.decode_num_max_dispatch_tokens_per_rank = get_int_env_var(
             "SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK", 0
         )
-        self._decode_mori_op = None
+        self.tiered_decode_capacity = get_bool_env_var(
+            "SGLANG_MORI_DECODE_TIERED_CAPACITY", "false"
+        )
+        self._decode_mori_ops = {}
+        self._active_decode_capacity = self.decode_num_max_dispatch_tokens_per_rank
         self._use_general_mori_op = False
 
     @property
     def mori_op(self):
         """Use a smaller independent Mori plan for decode when requested."""
-        decode_capacity = self.decode_num_max_dispatch_tokens_per_rank
+        decode_capacity = self._active_decode_capacity
         if decode_capacity <= 0 or self._use_general_mori_op:
             return super().mori_op
-        if self._decode_mori_op is None:
+        if decode_capacity not in self._decode_mori_ops:
             if self.quant_config is None:
                 self._apply_dispatch_dtype_override()
-            self._decode_mori_op = init_mori_op(
+            self._decode_mori_ops[decode_capacity] = init_mori_op(
                 self.group,
                 self.router_topk,
                 self.num_experts,
@@ -619,13 +676,13 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
                 self.params_dtype,
                 decode_capacity,
                 self.deepep_mode,
-                self.instance_id + 1,
+                self.instance_id + 1 + decode_capacity,
                 self.dispatch_dtype,
                 self.combine_dtype,
                 self.enable_sdma,
                 self.use_external_inp_buf,
             )
-        return self._decode_mori_op
+        return self._decode_mori_ops[decode_capacity]
 
     def _capture_event_if_async(self) -> Optional[torch.cuda.Event]:
         assert self.enable_dual_stream, "dual stream must be enabled"
@@ -648,6 +705,19 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
             and hidden_states.shape[0]
             > self.decode_num_max_dispatch_tokens_per_rank
         )
+        if self.tiered_decode_capacity and not self._use_general_mori_op:
+            # Single-batch overlap materializes 2*graph_bs rows. Select the
+            # smallest power-of-two Mori plan that holds this captured tier;
+            # bs1/2/4/8 therefore use capacity 2/4/8/16 respectively.
+            rows = max(2, int(hidden_states.shape[0]))
+            tier_capacity = 1 << (rows - 1).bit_length()
+            self._active_decode_capacity = min(
+                self.decode_num_max_dispatch_tokens_per_rank, tier_capacity
+            )
+        else:
+            self._active_decode_capacity = (
+                self.decode_num_max_dispatch_tokens_per_rank
+            )
         topk_weights, topk_ids = topk_output.topk_weights, topk_output.topk_ids
 
         num_token = hidden_states.shape[0]
@@ -660,11 +730,13 @@ class _MoriEPDispatcherImplNormal(_MoriEPDispatcherImplBase):
                 # NOTE: aiter is able to handle token=0 case in UT. But for some
                 # reason it failed at e2e case. Root cause TBD.
                 hidden_states, scale = self.fp8_quant_func(
-                    hidden_states, quant_dtype=fp8_dtype
+                    hidden_states, quant_dtype=_mori_fp8_dtype
                 )
             else:
                 hidden_states = torch.empty(
-                    hidden_states.shape, dtype=fp8_dtype, device=hidden_states.device
+                    hidden_states.shape,
+                    dtype=_mori_fp8_dtype,
+                    device=hidden_states.device,
                 )
                 scale = torch.empty(
                     (0, self.hidden_size // FP8_BLOCK_SIZE),
@@ -919,8 +991,43 @@ class _MoriEPDispatcherImplLowLatency(_MoriEPDispatcherImplBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.quant_config = {}
-        self.fp8_quant_func = get_hip_quant(QuantType.per_1x128)
-        self.fp4_quant_func = get_hip_quant(QuantType.per_1x32)
+        self.fp8_quant_func = _get_mori_fp8_quant()
+        self.fp4_quant_func = _get_mori_fp4_quant()
+        self.decode_num_max_dispatch_tokens_per_rank = get_int_env_var(
+            "SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK", 0
+        )
+        self._decode_mori_ops = {}
+        self._use_general_mori_op = False
+
+    @property
+    def mori_op(self):
+        """Optionally use a bounded decode plan for AsyncLL.
+
+        This remains opt-in because capacities 16 and 64 both failed to retire
+        gfx90a graph capture even though the general capacity-256 plan is stable.
+        """
+        decode_capacity = self.decode_num_max_dispatch_tokens_per_rank
+        if decode_capacity <= 0 or self._use_general_mori_op:
+            return super().mori_op
+        if decode_capacity not in self._decode_mori_ops:
+            if self.quant_config is None:
+                self._apply_dispatch_dtype_override()
+            self._decode_mori_ops[decode_capacity] = init_mori_op(
+                self.group,
+                self.router_topk,
+                self.num_experts,
+                self.num_local_experts,
+                self.hidden_size,
+                self.params_dtype,
+                decode_capacity,
+                self.deepep_mode,
+                self.instance_id + 1 + decode_capacity,
+                self.dispatch_dtype,
+                self.combine_dtype,
+                self.enable_sdma,
+                self.use_external_inp_buf,
+            )
+        return self._decode_mori_ops[decode_capacity]
 
     def dispatch_a(
         self,
@@ -934,6 +1041,12 @@ class _MoriEPDispatcherImplLowLatency(_MoriEPDispatcherImplBase):
             is mori.ops.EpDispatchCombineKernelType.AsyncLL
         ), "mori asyncll mismatch"
 
+        self._use_general_mori_op = (
+            self.decode_num_max_dispatch_tokens_per_rank > 0
+            and hidden_states.shape[0]
+            > self.decode_num_max_dispatch_tokens_per_rank
+        )
+
         num_tokens = hidden_states.shape[0]
         output_dtype = hidden_states.dtype
         scale = None
@@ -944,11 +1057,13 @@ class _MoriEPDispatcherImplLowLatency(_MoriEPDispatcherImplBase):
                 # NOTE: aiter is able to handle token=0 case in UT. But for some
                 # reason it failed at e2e case. Root cause TBD.
                 hidden_states, scale = self.fp8_quant_func(
-                    hidden_states, quant_dtype=fp8_dtype
+                    hidden_states, quant_dtype=_mori_fp8_dtype
                 )
             else:
                 hidden_states = torch.empty(
-                    hidden_states.shape, dtype=fp8_dtype, device=hidden_states.device
+                    hidden_states.shape,
+                    dtype=_mori_fp8_dtype,
+                    device=hidden_states.device,
                 )
                 scale = torch.empty(
                     (0, self.hidden_size // FP8_BLOCK_SIZE),
@@ -1076,6 +1191,8 @@ class _MoriEPDispatcherImplLowLatency(_MoriEPDispatcherImplBase):
     def combine_b(self, hidden_states, topk_ids, topk_weights, previous_event):
 
         self.mori_op.combine_recv()
+
+        self._use_general_mori_op = False
 
         return hidden_states[0]
 

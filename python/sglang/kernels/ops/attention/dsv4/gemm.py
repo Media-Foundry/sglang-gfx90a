@@ -147,6 +147,18 @@ def linear_bf16_fp32(
     *,
     hpc_kernel_min_m: Optional[int] = None,
 ) -> torch.Tensor:
+    if (
+        _is_hip
+        and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get()
+        and envs.SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV.get()
+    ):
+        from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+            gfx90a_wave64_bf16_fp32_gemv,
+        )
+
+        output = gfx90a_wave64_bf16_fp32_gemv(x, y)
+        if output is not None:
+            return output
     if _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
         from sglang.kernels.ops.quantization.bf16_gemv import (
             gfx90a_bf16_fp32_gemv,

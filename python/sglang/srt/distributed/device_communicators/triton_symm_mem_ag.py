@@ -517,6 +517,13 @@ class MultimemAllGatherer:
     def _build(self, x: torch.Tensor):
         if x.dim() != 2 or x.dtype != torch.bfloat16:
             return None
+        # CDNA2 has no usable multimem multicast path. Probing a large
+        # symmetric logits buffer on gfx90a can raise hipErrorOutOfMemory during
+        # graph warmup and leave the following four-rank collective spinning.
+        # Select the normal TP gather before allocating or entering capture.
+        arch = getattr(torch.cuda.get_device_properties(x.device), "gcnArchName", "")
+        if arch.split(":", 1)[0] == "gfx90a":
+            return None
         if torch.cuda.is_available() and torch.cuda.is_current_stream_capturing():
             # Can't allocate under capture; retry later.
             return self._UNINIT

@@ -1286,6 +1286,10 @@ class Envs:
     # Cache DSV4 attention's block-FP8 projection weights as BF16 on gfx90a.
     # This targets decode GEMV and trades roughly 1 GiB/GPU for lower latency.
     SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR = EnvBool(False)
+    # Replicate the input embedding on every TP rank. This trades roughly
+    # 0.75 GiB/GPU for removing the first per-token TP all-reduce, allowing
+    # scheduler overlap to hide rank launch skew behind early layer compute.
+    SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING = EnvBool(False)
     SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE = EnvBool(False)
     # Experimental M=1-as-M=16 MFMA GEMV.  Device traces on MI250 show that
     # the duplicated arithmetic can lose to the scalar wave reduction, so it
@@ -1294,6 +1298,14 @@ class Envs:
     # Native CDNA2 wave64 BF16 GEMV. Unlike the Triton MFMA experiment this
     # assigns output rows to waves and performs a single wave shuffle reduce.
     SGLANG_DSV4_GFX90A_WAVE64_GEMV = EnvBool(False)
+    # Keep a per-row INT8 copy beside selected BF16 block-FP8 caches and use
+    # CDNA2 V_DOT4 for M=1. Larger batches retain the BF16 path.
+    SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV = EnvBool(False)
+    # Native wave64 variants for DSV4's BF16->FP32 attention projections and
+    # two-group wo_a projection. Kept separate while validating Mori graph
+    # arrival order on gfx90a.
+    SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV = EnvBool(False)
+    SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV = EnvBool(False)
     # Native wave64 fused BF16 gate/up GEMV for the TP4 shared-expert decode
     # shape (M=1, N=1024, K=4096). Experimental and opt-in until graph A/B.
     SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP = EnvBool(False)
@@ -1341,6 +1353,12 @@ class Envs:
     # Opt into AIter's CKTile BF16-activation / FP4-weight split-K MoE path.
     # ksplit>1 bypasses both online MXFP4 activation quantization stages.
     SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT = EnvInt(0)
+    # Use AIter's 64-thread/N32 CK kernel for the FP4 routed-MoE stage-2
+    # projection. Stage-1 has no matching small-CTA instance in this build.
+    SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD = EnvBool(False)
+    # Direct BF16-activation/FP4-weight routed-MoE for Mori's fixed-capacity
+    # decode buffers. It bypasses activation quantization and expert sorting.
+    SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================

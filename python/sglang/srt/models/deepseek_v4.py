@@ -1579,22 +1579,34 @@ class MQALayer(MqaAttentionBase):
             and not forward_batch.forward_mode.is_extend_or_draft_extend_or_mixed()
         )
 
+        from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
+            is_unified_kv_triton,
+        )
+
+        unified_kv = is_unified_kv_triton()
         tp_slice, q_padded, q_out = slice(None), None, None
         if self.attn_tp_size > 1:
-            # FlashMLA's fp8 sparse decode kernel only specializes h_q for {64, 128}.
-            # Pad the per-rank heads to 64 (not the full n_heads) when they fit, to
-            # dispatch the cheaper decode::head64 variant; attn_sink is sliced to
-            # this rank and padded to match.
-            padded_num_heads = 64 if self.n_local_heads <= 64 else self.n_heads
-            # Only [0:n_local_heads] is written below, but ROCm DSV4 attention
-            # consumes the full padded tensor. Uninitialized tail heads can
-            # therefore inject NaNs (observed on gfx90a and gfx942).
-            if _is_hip:
-                q_padded = x.new_zeros(x.shape[0], padded_num_heads, self.head_dim)
+            if unified_kv:
+                # unified-KV consumes only this rank's local heads. Avoid the
+                # legacy FlashMLA 64-head padding allocation and full zero-fill
+                # on every layer/token.
+                q_out = x.new_empty(x.shape[0], self.n_local_heads, self.head_dim)
             else:
-                q_padded = x.new_empty(x.shape[0], padded_num_heads, self.head_dim)
-            tp_slice = slice(0, self.n_local_heads)
-            q_out = q_padded[:, tp_slice, :]
+                # FlashMLA's fp8 sparse decode kernel only specializes h_q for
+                # {64, 128}. Pad local heads only for that legacy backend.
+                padded_num_heads = 64 if self.n_local_heads <= 64 else self.n_heads
+                # Only [0:n_local_heads] is written below, but ROCm DSV4
+                # attention consumes the full padded tensor.
+                if _is_hip:
+                    q_padded = x.new_zeros(
+                        x.shape[0], padded_num_heads, self.head_dim
+                    )
+                else:
+                    q_padded = x.new_empty(
+                        x.shape[0], padded_num_heads, self.head_dim
+                    )
+                tp_slice = slice(0, self.n_local_heads)
+                q_out = q_padded[:, tp_slice, :]
         attn_sink = self._local_attn_sink()
 
         if enable_multi_stream:
@@ -1643,11 +1655,6 @@ class MQALayer(MqaAttentionBase):
         # (no DSA-CP), pass `q` as a sentinel for the `k is v` assert; the
         # attention path doesn't read it once `save_kv_cache=False`.
         attn_k = kv if kv is not None else q
-        from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
-            is_unified_kv_triton,
-        )
-
-        unified_kv = is_unified_kv_triton()
         fuse_inverse_rope = (
             unified_kv
             and envs.SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE.get()
@@ -1760,7 +1767,17 @@ class MQALayer(MqaAttentionBase):
         else:
             wo_a = self.wo_a.weight.view(self.n_local_groups, self.o_lora_rank, -1)
             grouped_output = None
-            if _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
+            if (
+                _is_hip
+                and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get()
+                and envs.SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV.get()
+            ):
+                from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                    gfx90a_wave64_bf16_grouped_gemv,
+                )
+
+                grouped_output = gfx90a_wave64_bf16_grouped_gemv(o, wo_a)
+            elif _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
                 from sglang.kernels.ops.quantization.bf16_gemv import (
                     gfx90a_bf16_grouped_gemv,
                 )
@@ -2853,10 +2870,16 @@ class DeepseekV4Model(nn.Module):
         self.pp_group = get_pp_group()
         self.hidden_size = config.hidden_size
         if self.pp_group.is_first_rank:
+            replicate_embedding = (
+                _is_hip
+                and envs.SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING.get()
+            )
             self.embed_tokens = VocabParallelEmbedding(
                 config.vocab_size,
                 config.hidden_size,
-                enable_tp=not is_dp_attention_enabled(),
+                enable_tp=(
+                    not is_dp_attention_enabled() and not replicate_embedding
+                ),
             )
         else:
             self.embed_tokens = PPMissingLayer()

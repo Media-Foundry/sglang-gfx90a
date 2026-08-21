@@ -59,7 +59,7 @@ __global__ void __launch_bounds__(kMhcFusedThreads, 1)
         const bf16_t* __restrict__ residual,
         const float* __restrict__ previous_post,
         const float* __restrict__ previous_comb,
-        const float* __restrict__ fn,
+        const half* __restrict__ fn,
         const float* __restrict__ hc_scale,
         const float* __restrict__ hc_base,
         const bf16_t* __restrict__ norm_weight,
@@ -125,9 +125,9 @@ __global__ void __launch_bounds__(kMhcFusedThreads, 1)
   float acc0 = 0.0f, acc1 = 0.0f, acc2 = 0.0f;
   for (uint32_t k = lane; k < kMhcFusedK; k += kMhcFusedWave) {
     const float v = cast<float>(current[k]);
-    acc0 = fmaf(fn[static_cast<size_t>(row0 + 0) * kMhcFusedK + k], v, acc0);
-    acc1 = fmaf(fn[static_cast<size_t>(row0 + 1) * kMhcFusedK + k], v, acc1);
-    acc2 = fmaf(fn[static_cast<size_t>(row0 + 2) * kMhcFusedK + k], v, acc2);
+    acc0 = fmaf(cast<float>(fn[static_cast<size_t>(row0 + 0) * kMhcFusedK + k]), v, acc0);
+    acc1 = fmaf(cast<float>(fn[static_cast<size_t>(row0 + 1) * kMhcFusedK + k]), v, acc1);
+    acc2 = fmaf(cast<float>(fn[static_cast<size_t>(row0 + 2) * kMhcFusedK + k]), v, acc2);
   }
   acc0 = mhc_fused_wave_sum(acc0);
   acc1 = mhc_fused_wave_sum(acc1);
@@ -322,7 +322,7 @@ struct Gfx90aMhcPostPreKernel {
     TensorMatcher({T, 4, 4096}).with_dtype<bf16_t>().with_device(device).verify(residual);
     TensorMatcher({T, 4}).with_dtype<float>().with_device(device).verify(previous_post);
     TensorMatcher({T, 4, 4}).with_dtype<float>().with_device(device).verify(previous_comb);
-    TensorMatcher({24, 16384}).with_dtype<float>().with_device(device).verify(fn);
+    TensorMatcher({24, 16384}).with_dtype<half>().with_device(device).verify(fn);
     TensorMatcher({3}).with_dtype<float>().with_device(device).verify(hc_scale);
     TensorMatcher({24}).with_dtype<float>().with_device(device).verify(hc_base);
     TensorMatcher({4096}).with_dtype<bf16_t>().with_device(device).verify(norm_weight);
@@ -337,7 +337,7 @@ struct Gfx90aMhcPostPreKernel {
         static_cast<const bf16_t*>(residual.data_ptr()),
         static_cast<const float*>(previous_post.data_ptr()),
         static_cast<const float*>(previous_comb.data_ptr()),
-        static_cast<const float*>(fn.data_ptr()),
+        static_cast<const half*>(fn.data_ptr()),
         static_cast<const float*>(hc_scale.data_ptr()),
         static_cast<const float*>(hc_base.data_ptr()),
         static_cast<const bf16_t*>(norm_weight.data_ptr()),

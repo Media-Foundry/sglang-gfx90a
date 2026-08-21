@@ -33,6 +33,9 @@ if [[ -d "${ROCM_ROOT}/lib" ]]; then
 fi
 export DEEPEP_MODE="${DEEPEP_MODE:-normal}"
 export MORI_ENABLE_SDMA="${MORI_ENABLE_SDMA:-0}"
+export SGLANG_MORI_ASYNCLL_BLOCK_NUM="${SGLANG_MORI_ASYNCLL_BLOCK_NUM:-64}"
+export SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK="${SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK:-8}"
+export SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM="${SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM:-32}"
 if [[ "${MORI_ENABLE_SDMA}" == "1" ]]; then
   MORI_APPLICATION_LIB="${MORI_APPLICATION_LIB:-/tmp/mori/python/mori/libmori_application.so}"
   if [[ ! -f "${MORI_APPLICATION_LIB}" ]]; then
@@ -59,12 +62,16 @@ export SGLANG_OPT_USE_TRITON_INDEXER_POST="${SGLANG_OPT_USE_TRITON_INDEXER_POST:
 export SGLANG_OPT_USE_TRITON_INDEXER_FULL="${SGLANG_OPT_USE_TRITON_INDEXER_FULL:-1}"
 export SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT="${SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT:-0}"
 export SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR="${SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR:-1}"
+export SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING="${SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING:-0}"
 export SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE="${SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE:-1}"
 export SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP:-1}"
 export SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN="${SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN:-1}"
 export SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP:-1}"
 export SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP="${SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP:-1}"
 export SGLANG_DSV4_GFX90A_WAVE64_GEMV="${SGLANG_DSV4_GFX90A_WAVE64_GEMV:-1}"
+export SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV="${SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV:-1}"
+export SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV="${SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV:-1}"
+export SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV="${SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV:-0}"
 export SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX="${SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX:-1}"
 export SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN="${SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN:-1}"
 export SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS="${SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS:-8}"
@@ -82,6 +89,7 @@ export SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS="${SGLANG_DSV4_GFX90A_ROUTER_NUM_WARP
 export SGLANG_MORI_NO_PAD_MASK="${SGLANG_MORI_NO_PAD_MASK:-1}"
 export SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP="${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP:-1}"
 export SGLANG_GFX90A_AITER_MORI_SKIP_PREQUANT="${SGLANG_GFX90A_AITER_MORI_SKIP_PREQUANT:-1}"
+export SGLANG_USE_AITER_MOE_GU_ITLV="${SGLANG_USE_AITER_MOE_GU_ITLV:-1}"
 if [[ "${SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP}" == "1" ]]; then
   export SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER="${SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER:-0}"
 else
@@ -95,12 +103,18 @@ export SGLANG_MORI_COMBINE_DTYPE="${SGLANG_MORI_COMBINE_DTYPE:-bf16}"
 export SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK:-${DEFAULT_MORI_MAX_DISPATCH_TOKENS_PER_RANK}}"
 export SGLANG_MORI_USE_EXTERNAL_INP_BUF="${SGLANG_MORI_USE_EXTERNAL_INP_BUF:-0}"
 export SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK:-16}"
+export SGLANG_MORI_DECODE_TIERED_CAPACITY="${SGLANG_MORI_DECODE_TIERED_CAPACITY:-0}"
+export SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK:-0}"
+export SGLANG_MORI_MOE_MAX_INPUT_TOKENS="${SGLANG_MORI_MOE_MAX_INPUT_TOKENS:-0}"
+export SGLANG_ROCM_CUDA_GRAPH_UPLOAD="${SGLANG_ROCM_CUDA_GRAPH_UPLOAD:-0}"
 export SGLANG_MORI_INTRANODE_BLOCK_NUM="${SGLANG_MORI_INTRANODE_BLOCK_NUM:-32}"
 export SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK:-8}"
 export SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM="${SGLANG_MORI_INTRANODE_COMBINE_BLOCK_NUM:-32}"
 export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK:-4}"
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
+export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD:-0}"
+export SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE="${SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE:-0}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
 # routes six experts per token, so the static grid must cover every row that a
@@ -229,6 +243,9 @@ Optional env:
   SGLANG_MORI_USE_EXTERNAL_INP_BUF=0
                               # Direct AIter stage-2 output into Mori's registered
                               # peer-read buffer. Enabled by default; set 1 for push.
+  SGLANG_USE_AITER_MOE_GU_ITLV=1
+                              # AIter clamped-SwiGLU interleave. Set 0 only with
+                              # experimental FP4 Mori dispatch passthrough.
   AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=0
                               # Optional fixed Mori quant-grid bound. Must be at
                               # least CUDA_GRAPH_MAX_BS_DECODE*6; zero is general.
@@ -245,6 +262,9 @@ Optional env:
   SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR=1
                               # Cache the three decode attention projections as
                               # BF16 on gfx90a. Enabled by default; costs ~1 GiB/GPU.
+  SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING=0
+                              # Replicate input embeddings and remove the first
+                              # TP all-reduce. Experimental; costs ~0.75 GiB/GPU.
   SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP=1
   SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN=1
                               # Cache both shared-expert projections as BF16 on
@@ -266,6 +286,11 @@ Optional env:
   DISABLE_CUSTOM_ALL_REDUCE=0 # Use the fixed AIter peer-read custom AR.
   DEEPEP_MODE=low_latency     # Experimental Mori AsyncLL split-phase transport.
   MORI_ENABLE_SDMA=1          # Move AsyncLL transport to copy engines.
+  SGLANG_MORI_ASYNCLL_BLOCK_NUM=64
+  SGLANG_MORI_ASYNCLL_WARP_NUM_PER_BLOCK=8
+  SGLANG_MORI_ASYNCLL_RDMA_BLOCK_NUM=32
+                              # AsyncLL geometry; gfx90a BS1 experiments may
+                              # override block count without changing normal Mori.
   MORI_APPLICATION_LIB=/tmp/mori/python/mori/libmori_application.so
                               # Preloaded before PyTorch so Anvil and HSA share
                               # one KFD thunk state. For the old path set both
@@ -274,6 +299,9 @@ Optional env:
                               # Overlap communication inside one request; this
                               # does not create a multi-request batch.
   ENABLE_PROFILE_CUDA_GRAPH=1 # Record kernels while the decode graph is captured.
+  SGLANG_ROCM_CUDA_GRAPH_UPLOAD=0
+                              # Explicitly hipGraphUpload each captured graph.
+                              # Experimental; ROCm ignores instantiate upload flags.
   DISABLE_DECODE_CUDA_GRAPH=1 # Eager-only operator probe; not an AR benchmark mode.
 EOF
 }
@@ -382,6 +410,7 @@ bench() {
   local reps="${2:-1}"
   "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${reps}" <<'PY'
 import json
+import hashlib
 import sys
 import time
 import urllib.request
@@ -412,6 +441,9 @@ for rep in range(reps):
     print(f"BEGIN rep={rep} tokens={tokens} mode=single-request-AR", flush=True)
     dt, out = send(payload, timeout=max(1200, tokens * 2))
     output_tokens = len(out.get("output_ids") or [])
+    output_hash = hashlib.sha256(
+        json.dumps(out.get("output_ids") or [], separators=(",", ":")).encode()
+    ).hexdigest()[:16]
     first_text = (out.get("text") or "")[:96]
     reason = out.get("meta_info", {}).get("finish_reason")
     print(
@@ -420,6 +452,7 @@ for rep in range(reps):
         f"ar_tok/s={output_tokens / dt:.3f} "
         f"ar_ms/token={(dt / max(output_tokens, 1)) * 1000:.1f} "
         f"finish={reason} "
+        f"output_sha256={output_hash} "
         f"text0={first_text!r}",
         flush=True,
     )
