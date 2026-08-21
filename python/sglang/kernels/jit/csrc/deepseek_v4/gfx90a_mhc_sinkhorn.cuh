@@ -11,7 +11,10 @@ namespace sglang {
 constexpr uint32_t kMhcWaveSize = 64;
 constexpr uint32_t kMhcSize = 4;
 constexpr uint32_t kMhcMixSize = 24;
-constexpr uint32_t kMhcSinkhornIters = 20;
+#ifndef SGLANG_MHC_SINKHORN_ITERS
+#define SGLANG_MHC_SINKHORN_ITERS 20
+#endif
+constexpr uint32_t kMhcSinkhornIters = SGLANG_MHC_SINKHORN_ITERS;
 
 __device__ __forceinline__ float mhc_row_sum(float value) {
   value += __shfl_xor(value, 1, kMhcWaveSize);

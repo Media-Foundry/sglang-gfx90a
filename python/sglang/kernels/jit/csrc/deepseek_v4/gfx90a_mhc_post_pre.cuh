@@ -11,6 +11,10 @@
 
 namespace sglang {
 
+#ifndef SGLANG_MHC_SINKHORN_ITERS
+#define SGLANG_MHC_SINKHORN_ITERS 20
+#endif
+
 using namespace device;
 
 constexpr uint32_t kMhcFusedHc = 4;
@@ -152,7 +156,7 @@ __global__ void __launch_bounds__(kMhcFusedThreads, 1)
     value = value / mhc_fused_row_sum(value) + sinkhorn_eps;
     value = value / (mhc_fused_col_sum(value) + sinkhorn_eps);
 #pragma unroll
-    for (uint32_t iter = 1; iter < 20; ++iter) {
+    for (uint32_t iter = 1; iter < SGLANG_MHC_SINKHORN_ITERS; ++iter) {
       value = value / (mhc_fused_row_sum(value) + sinkhorn_eps);
       value = value / (mhc_fused_col_sum(value) + sinkhorn_eps);
     }
@@ -250,7 +254,7 @@ __global__ void __launch_bounds__(kMhcFinishThreads, 2)
     value = value / mhc_fused_row_sum(value) + sinkhorn_eps;
     value = value / (mhc_fused_col_sum(value) + sinkhorn_eps);
 #pragma unroll
-    for (uint32_t iter = 1; iter < 20; ++iter) {
+    for (uint32_t iter = 1; iter < SGLANG_MHC_SINKHORN_ITERS; ++iter) {
       value = value / (mhc_fused_row_sum(value) + sinkhorn_eps);
       value = value / (mhc_fused_col_sum(value) + sinkhorn_eps);
     }

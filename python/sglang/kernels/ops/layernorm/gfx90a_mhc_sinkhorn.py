@@ -5,19 +5,26 @@ from typing import TYPE_CHECKING
 import torch
 
 from sglang.kernels.jit.utils import cache_once, load_jit
+from sglang.srt.environ import envs
 
 if TYPE_CHECKING:
     from tvm_ffi.module import Module
 
 
 @cache_once
-def _jit_gfx90a_mhc_sinkhorn_module() -> Module:
+def _jit_gfx90a_mhc_sinkhorn_module(iters: int) -> Module:
     return load_jit(
-        "gfx90a_mhc_sinkhorn_wave64",
+        f"gfx90a_mhc_sinkhorn_wave64_i{iters}",
         cuda_files=["deepseek_v4/gfx90a_mhc_sinkhorn.cuh"],
         cuda_wrappers=[("run", "sglang::Gfx90aMhcSinkhornKernel::run")],
-        extra_cuda_cflags=["-O3"],
+        extra_cuda_cflags=["-O3", f"-DSGLANG_MHC_SINKHORN_ITERS={iters}"],
     )
+
+
+def preload_gfx90a_mhc_sinkhorn(iters: int) -> None:
+    if iters not in (4, 8, 12, 20):
+        raise ValueError(f"unsupported gfx90a MHC Sinkhorn iterations: {iters}")
+    _jit_gfx90a_mhc_sinkhorn_module(iters)
 
 
 def gfx90a_mhc_sinkhorn_wave64(
@@ -25,6 +32,7 @@ def gfx90a_mhc_sinkhorn_wave64(
     hc_scale: torch.Tensor,
     hc_base: torch.Tensor,
     eps: float,
+    iters: int | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
     if (
         not torch.version.hip
@@ -52,7 +60,13 @@ def gfx90a_mhc_sinkhorn_wave64(
     comb = torch.empty(
         (tokens, 1, 4, 4), dtype=torch.float32, device=mixes.device
     )
-    _jit_gfx90a_mhc_sinkhorn_module().run(
+    if iters is None:
+        iters = envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
+    if iters not in (4, 8, 12, 20):
+        raise ValueError(
+            f"unsupported gfx90a MHC Sinkhorn iterations: {iters}"
+        )
+    _jit_gfx90a_mhc_sinkhorn_module(iters).run(
         mixes, hc_scale, hc_base, pre, post, comb, eps
     )
     return pre, post, comb

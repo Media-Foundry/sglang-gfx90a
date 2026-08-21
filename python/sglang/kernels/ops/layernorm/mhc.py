@@ -214,6 +214,66 @@ def _gfx90a_mhc_mix_partials_kernel(
 
 
 @triton.jit
+def _gfx90a_mhc_mix_splitk_stage0_kernel(
+    residual,
+    fn,
+    dot_partials,
+    k: tl.constexpr,
+    SPLITS: tl.constexpr,
+    CHUNK_K: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    rows = tl.program_id(0) * BLOCK_N + tl.arange(0, BLOCK_N)
+    split = tl.program_id(1)
+    token_id = tl.program_id(2)
+    acc = tl.zeros((BLOCK_N,), tl.float32)
+    for local_k in tl.static_range(0, CHUNK_K, BLOCK_K):
+        offs_k = split * CHUNK_K + local_k + tl.arange(0, BLOCK_K)
+        x = tl.load(residual + token_id * k + offs_k).to(tl.float32)
+        w = tl.load(
+            fn + rows[:, None] * k + offs_k[None, :],
+            mask=rows[:, None] < 24,
+            other=0.0,
+        )
+        acc += tl.sum(w * x[None, :], axis=1)
+    tl.store(
+        dot_partials + (token_id * 24 + rows) * SPLITS + split,
+        acc,
+        mask=rows < 24,
+    )
+
+
+@triton.jit
+def _gfx90a_mhc_mix_splitk_stage1_kernel(
+    dot_partials,
+    rms_partials,
+    mixes,
+    k: tl.constexpr,
+    SPLITS: tl.constexpr,
+    NUM_RMS_PARTIALS: tl.constexpr,
+    rms_eps: tl.constexpr,
+):
+    token_id = tl.program_id(0)
+    rows = tl.arange(0, 32)
+    splits = tl.arange(0, SPLITS)
+    values = tl.load(
+        dot_partials
+        + (token_id * 24 + rows[:, None]) * SPLITS
+        + splits[None, :],
+        mask=rows[:, None] < 24,
+        other=0.0,
+    )
+    dot = tl.sum(values, axis=1)
+    rms_offsets = tl.arange(0, NUM_RMS_PARTIALS)
+    sq_sum = tl.sum(
+        tl.load(rms_partials + token_id * NUM_RMS_PARTIALS + rms_offsets), axis=0
+    )
+    scale = tl.rsqrt(sq_sum / k + rms_eps)
+    tl.store(mixes + token_id * 24 + rows, dot * scale, mask=rows < 24)
+
+
+@triton.jit
 def _gfx90a_mhc_mix_bf16_dot_kernel(
     residual,
     fn_bf16,
@@ -378,6 +438,73 @@ def gfx90a_mhc_pre_mix_from_partials_triton(
         NUM_PARTIALS=64,
         BLOCK_N=1,
         BLOCK_K=block_k,
+        num_warps=1,
+    )
+    return mixes
+
+
+def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
+    residual: torch.Tensor,
+    fn: torch.Tensor,
+    rms_partials: torch.Tensor,
+    rms_eps: float,
+    global_batch_size: int | None,
+) -> torch.Tensor | None:
+    if (
+        not torch.version.hip
+        or residual.ndim != 3
+        or residual.shape[0] < 1
+        or residual.shape[1:] != (4, 4096)
+        or residual.dtype != torch.bfloat16
+        or not residual.is_contiguous()
+        or fn.shape != (24, 16384)
+        or fn.dtype != torch.float32
+        or not fn.is_contiguous()
+        or rms_partials.shape != (residual.shape[0], 64)
+        or rms_partials.dtype != torch.float32
+        or not rms_partials.is_contiguous()
+        or getattr(
+            torch.cuda.get_device_properties(residual.device), "gcnArchName", ""
+        ).split(":", 1)[0]
+        != "gfx90a"
+    ):
+        return None
+
+    # Keep at most 48 stage-0 CTAs resident around Mori's graph collectives.
+    # A 192-CTA scalar-row variant wins in isolation but can starve the
+    # device-side communication progress kernel during graph capture.
+    if global_batch_size != 1:
+        return None
+    num_tokens = residual.shape[0]
+    splits = 8
+    block_n = 4
+    dot_partials = torch.empty(
+        (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
+    )
+    mixes = torch.empty(
+        (num_tokens, 1, 24), dtype=torch.float32, device=residual.device
+    )
+    _gfx90a_mhc_mix_splitk_stage0_kernel[
+        (triton.cdiv(24, block_n), splits, num_tokens)
+    ](
+        residual.flatten(1),
+        fn,
+        dot_partials,
+        k=16384,
+        SPLITS=splits,
+        CHUNK_K=16384 // splits,
+        BLOCK_N=block_n,
+        BLOCK_K=1024,
+        num_warps=1,
+    )
+    _gfx90a_mhc_mix_splitk_stage1_kernel[(num_tokens,)](
+        dot_partials,
+        rms_partials,
+        mixes,
+        k=16384,
+        SPLITS=splits,
+        NUM_RMS_PARTIALS=64,
+        rms_eps=rms_eps,
         num_warps=1,
     )
     return mixes
@@ -556,6 +683,34 @@ def _gfx90a_mhc_rmsnorm_kernel(
     )
 
 
+@triton.jit
+def _gfx90a_mhc_weighted_rmsnorm_kernel(
+    residual,
+    pre,
+    norm_weight,
+    out,
+    hidden_size: tl.constexpr,
+    norm_eps: tl.constexpr,
+    BLOCK_H: tl.constexpr,
+):
+    token_id = tl.program_id(0)
+    h = tl.arange(0, BLOCK_H)
+    mask = h < hidden_size
+    base = residual + token_id * 4 * hidden_size + h
+    acc = tl.zeros((BLOCK_H,), tl.float32)
+    for channel in tl.static_range(0, 4):
+        rv = tl.load(base + channel * hidden_size, mask=mask, other=0.0).to(
+            tl.float32
+        )
+        pv = tl.load(pre + token_id * 4 + channel)
+        acc += pv * rv
+    y = acc.to(tl.bfloat16).to(tl.float32)
+    sq = tl.sum(tl.where(mask, y * y, 0.0), axis=0)
+    inv = tl.rsqrt(sq / hidden_size + norm_eps)
+    w = tl.load(norm_weight + h, mask=mask, other=0.0).to(tl.float32)
+    tl.store(out + token_id * hidden_size + h, y * inv * w, mask=mask)
+
+
 def mhc_weighted_sum_triton(
     x: torch.Tensor,
     pre: torch.Tensor,
@@ -591,6 +746,37 @@ def mhc_weighted_sum_triton(
         num_warps=4,
     )
     return y
+
+
+def gfx90a_mhc_weighted_rmsnorm_triton(
+    residual: torch.Tensor,
+    pre: torch.Tensor,
+    norm_weight: torch.Tensor,
+    norm_eps: float,
+) -> torch.Tensor | None:
+    tokens = residual.shape[0]
+    if (
+        residual.shape != (tokens, 4, 4096)
+        or pre.shape != (tokens, 4)
+        or norm_weight.shape != (4096,)
+        or residual.dtype != torch.bfloat16
+        or pre.dtype != torch.float32
+        or norm_weight.dtype != torch.bfloat16
+        or not all(t.is_contiguous() for t in (residual, pre, norm_weight))
+    ):
+        return None
+    out = torch.empty((tokens, 4096), dtype=torch.bfloat16, device=residual.device)
+    _gfx90a_mhc_weighted_rmsnorm_kernel[(tokens,)](
+        residual,
+        pre,
+        norm_weight,
+        out,
+        hidden_size=4096,
+        norm_eps=norm_eps,
+        BLOCK_H=4096,
+        num_warps=8,
+    )
+    return out
 
 
 def mhc_post_combine_triton(
@@ -1101,6 +1287,7 @@ def hc_split_sinkhorn(
     hc_mult: int = 4,
     sinkhorn_iters: int = 20,
     eps: float = 1e-6,
+    gfx90a_global_batch_size: int | None = None,
 ):
     b, s, _ = mixes.size()
 
@@ -1122,17 +1309,27 @@ def hc_split_sinkhorn(
         if (
             envs.SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN.get()
             and sinkhorn_iters == 20
-            and not graph_warmup
         ):
             from sglang.kernels.ops.layernorm.gfx90a_mhc_sinkhorn import (
                 gfx90a_mhc_sinkhorn_wave64,
+                preload_gfx90a_mhc_sinkhorn,
             )
 
-            native_result = gfx90a_mhc_sinkhorn_wave64(
-                mixes, hc_scale, hc_base, eps
+            # This decision must be rank invariant inside a Mori graph. Local
+            # token shards can differ, while ForwardBatch.batch_size cannot.
+            native_iters = (
+                envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
+                if gfx90a_global_batch_size == 1
+                else 20
             )
-            if native_result is not None:
-                return native_result
+            if graph_warmup:
+                preload_gfx90a_mhc_sinkhorn(native_iters)
+            else:
+                native_result = gfx90a_mhc_sinkhorn_wave64(
+                    mixes, hc_scale, hc_base, eps, native_iters
+                )
+                if native_result is not None:
+                    return native_result
         triton_result = hc_split_sinkhorn4_triton(
             mixes, hc_scale, hc_base, hc_mult, sinkhorn_iters, eps
         )
@@ -2464,9 +2661,18 @@ def mhc_fused_post_pre(
                 residual_cur, fn_bf16, rms_eps
             )
         elif rms_partials is not None:
-            mixes = gfx90a_mhc_pre_mix_from_partials_triton(
-                residual_cur, fn, rms_partials, rms_eps
-            )
+            if envs.SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX.get():
+                mixes = gfx90a_mhc_pre_mix_splitk_from_partials_triton(
+                    residual_cur,
+                    fn,
+                    rms_partials,
+                    rms_eps,
+                    global_batch_size,
+                )
+            if mixes is None:
+                mixes = gfx90a_mhc_pre_mix_from_partials_triton(
+                    residual_cur, fn, rms_partials, rms_eps
+                )
         else:
             mixes = gfx90a_mhc_pre_mix_triton(residual_cur, fn, rms_eps)
         if mixes is None:
@@ -2522,33 +2728,55 @@ def mhc_fused_post_pre(
             hc_mult,
             sinkhorn_repeat,
             hc_sinkhorn_eps,
+            global_batch_size,
         )
         with use_symmetric_memory(
             get_tp_group(), disabled=not is_allocation_symmetric()
         ):
-            layer_input = mhc_weighted_sum_triton(
-                residual_cur, pre_cur.squeeze(1)
-            )
-            if layer_input is None:
-                raise RuntimeError("gfx90a fused MHC weighted-sum rejected its shape")
-            if norm_weight is not None:
+            layer_input = None
+            if (
+                envs.SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS.get()
+                and global_batch_size == 1
+                and norm_weight is not None
+            ):
                 assert norm_eps is not None
                 norm_weight_bf = (
                     norm_weight.bfloat16()
                     if norm_weight.dtype != torch.bfloat16
                     else norm_weight
                 ).contiguous()
-                normalized = torch.empty_like(layer_input)
-                _gfx90a_mhc_rmsnorm_kernel[(num_tokens,)](
-                    layer_input,
+                layer_input = gfx90a_mhc_weighted_rmsnorm_triton(
+                    residual_cur,
+                    pre_cur.squeeze(1),
                     norm_weight_bf,
-                    normalized,
-                    hidden_size=hidden_size,
-                    eps=norm_eps,
-                    BLOCK_H=4096,
-                    num_warps=8,
+                    norm_eps,
                 )
-                layer_input = normalized
+            if layer_input is None:
+                layer_input = mhc_weighted_sum_triton(
+                    residual_cur, pre_cur.squeeze(1)
+                )
+                if layer_input is None:
+                    raise RuntimeError(
+                        "gfx90a fused MHC weighted-sum rejected its shape"
+                    )
+                if norm_weight is not None:
+                    assert norm_eps is not None
+                    norm_weight_bf = (
+                        norm_weight.bfloat16()
+                        if norm_weight.dtype != torch.bfloat16
+                        else norm_weight
+                    ).contiguous()
+                    normalized = torch.empty_like(layer_input)
+                    _gfx90a_mhc_rmsnorm_kernel[(num_tokens,)](
+                        layer_input,
+                        norm_weight_bf,
+                        normalized,
+                        hidden_size=hidden_size,
+                        eps=norm_eps,
+                        BLOCK_H=4096,
+                        num_warps=8,
+                    )
+                    layer_input = normalized
         return (
             residual_cur.view(*outer_shape, hc_mult, hidden_size),
             # Decoder-layer chaining accepts either shape, while the trailing

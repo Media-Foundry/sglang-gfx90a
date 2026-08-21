@@ -1333,6 +1333,7 @@ class Envs:
     # Accumulate 64 post-combine RMS partials while writing the next residual;
     # the distributed pre-mix consumes them and avoids a standalone RMS launch.
     SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS = EnvBool(False)
+    SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX = EnvBool(False)
     # Native HIP wave64 MHC pre-mix. It shares the RMS reduction within each
     # three-output wave CTA instead of relying on Triton reductions.
     SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX = EnvBool(False)
@@ -1340,6 +1341,8 @@ class Envs:
     # GEMV. Accumulation/sinkhorn remain fp32; opt-in pending top-k validation.
     SGLANG_DSV4_GFX90A_BF16_MHC_DOT = EnvBool(False)
     SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN = EnvBool(False)
+    SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS = EnvInt(20)
+    SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS = EnvBool(False)
     # Fuse the launch-bound MHC tail (Sinkhorn + weighted sum + RMSNorm) after
     # the bandwidth-heavy multi-CTA pre-mix. This is the production candidate.
     SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE = EnvBool(False)
