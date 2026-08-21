@@ -2043,6 +2043,9 @@ class DeepseekV4DecoderLayer(nn.Module):
         # wave64 implementation: merely launching the Triton kernel can poison
         # the HSA queue even when its result is discarded.
         mhc_a2a_is_none = get_moe_a2a_backend().is_none()
+        mhc_a2a_max_bs = (
+            envs.SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_MAX_BS.get()
+        )
         graph_warmup = (
             get_is_capture_mode()
             and not torch.cuda.is_current_stream_capturing()
@@ -2059,6 +2062,10 @@ class DeepseekV4DecoderLayer(nn.Module):
                     _allow_gfx90a_mhc_pre_mix_a2a
                     and forward_batch is not None
                     and forward_batch.forward_mode.is_decode()
+                    and (
+                        mhc_a2a_max_bs <= 0
+                        or forward_batch.batch_size <= mhc_a2a_max_bs
+                    )
                 )
             )
         )

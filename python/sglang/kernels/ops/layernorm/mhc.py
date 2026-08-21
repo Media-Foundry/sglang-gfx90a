@@ -2359,16 +2359,14 @@ def mhc_fused_post_pre(
         )
     x_flat = x.view(num_tokens, hidden_size)
 
-    # TileLang's small-token fused FMA kernel leaves gfx90a in an invalid
-    # device state under the Mori graph (the following CK MoE reports an
-    # unrelated unsupported GEMM, or one rank spins with CKTile split-K).
-    # Keep the cross-layer state machine enabled on CDNA2 using the graph-safe
-    # Triton/native primitives first. This is also the correctness reference
-    # for the single-launch HIP boundary being developed below.
+    # TileLang's fused MFMA path is not a valid gfx90a fallback: its small-token
+    # kernel can poison a following Mori graph, while the large-token GEMM does
+    # not lower on CDNA2 (notably for a 256-token prefill arriving beside a
+    # decode batch).  The Triton/native decomposition below is shape-general,
+    # so use it for both decode and prefill on gfx90a.
     props = torch.cuda.get_device_properties(residual.device)
     if (
         getattr(props, "gcnArchName", "").split(":", 1)[0] == "gfx90a"
-        and num_tokens <= 32
         and hc_mult == 4
         and hidden_size == 4096
         and sinkhorn_repeat == 20
