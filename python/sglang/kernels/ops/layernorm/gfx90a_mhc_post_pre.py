@@ -12,21 +12,29 @@ if TYPE_CHECKING:
 
 
 @cache_once
-def _jit_gfx90a_mhc_post_pre_module() -> Module:
+def _jit_gfx90a_mhc_post_pre_module(iters: int) -> Module:
     fast_math = envs.SGLANG_DSV4_GFX90A_MHC_FAST_MATH.get()
     return load_jit(
-        f"gfx90a_mhc_post_pre_wave64_v3_{'fast' if fast_math else 'precise'}",
+        f"gfx90a_mhc_post_pre_wave64_v3_i{iters}_{'fast' if fast_math else 'precise'}",
         cuda_files=["deepseek_v4/gfx90a_mhc_post_pre.cuh"],
         cuda_wrappers=[
             ("run", "sglang::Gfx90aMhcPostPreKernel::run"),
             ("finish", "sglang::Gfx90aMhcFinishKernel::run"),
         ],
-        extra_cuda_cflags=["-O3"] + (["-ffast-math"] if fast_math else []),
+        extra_cuda_cflags=["-O3", f"-DSGLANG_MHC_SINKHORN_ITERS={iters}"]
+        + (["-ffast-math"] if fast_math else []),
     )
 
 
+def _get_sinkhorn_iters() -> int:
+    iters = envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
+    if iters not in (4, 8, 12, 20):
+        raise ValueError(f"unsupported gfx90a MHC Sinkhorn iterations: {iters}")
+    return iters
+
+
 def preload_gfx90a_mhc_post_pre() -> None:
-    _jit_gfx90a_mhc_post_pre_module()
+    _jit_gfx90a_mhc_post_pre_module(_get_sinkhorn_iters())
 
 
 def gfx90a_mhc_post_pre(
@@ -85,7 +93,7 @@ def gfx90a_mhc_post_pre(
     post_out = torch.empty_like(previous_post)
     comb_out = torch.empty_like(previous_comb)
     layer_input_out = torch.empty_like(x)
-    _jit_gfx90a_mhc_post_pre_module().run(
+    _jit_gfx90a_mhc_post_pre_module(_get_sinkhorn_iters()).run(
         x,
         residual,
         previous_post,
@@ -146,7 +154,7 @@ def gfx90a_mhc_finish(
     layer_input_out = torch.empty(
         (num_tokens, 4096), dtype=torch.bfloat16, device=residual.device
     )
-    _jit_gfx90a_mhc_post_pre_module().finish(
+    _jit_gfx90a_mhc_post_pre_module(_get_sinkhorn_iters()).finish(
         residual,
         mixes,
         hc_scale,
