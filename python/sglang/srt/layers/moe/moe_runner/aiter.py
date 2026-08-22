@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, Union
@@ -19,6 +20,8 @@ from sglang.srt.layers.moe.moe_runner.base import (
 )
 from sglang.srt.layers.moe.utils import MoeRunnerBackend
 from sglang.srt.utils import get_bool_env_var, get_int_env_var, is_gfx95_supported
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sglang.srt.layers.moe.token_dispatcher.base import CombineInput
@@ -123,6 +126,10 @@ _GFX90A_DSV4_FP4_KERNEL2 = (
     "moe_ck2stages_gemm2_256x32x128x128_1x4_MulABScaleExpertWeight_v3_"
     "Nswizzle0_Quant3_MulRoutedWeight1_FP4X2_FP4X2_B16"
 )
+_GFX90A_DSV4_FP4_KERNEL2_64THREAD = (
+    "moe_ck2stages_gemm2_64x32x32x128_1x1_MulABScaleExpertWeight_v1_"
+    "Nswizzle0_Quant3_MulRoutedWeight1_FP4X2_FP4X2_B16"
+)
 
 
 def _install_gfx90a_dsv4_fp4_tune(
@@ -160,12 +167,18 @@ def _install_gfx90a_dsv4_fp4_tune(
             aiter_fused_moe.fused_moe_1stage_dict["gfx942"]
         )
 
-    # This is intentionally limited to the rank shape validated on MI250X.
+    # Limit the local override to the two DSV4 rank layouts used on MI250X:
+    # EP4/TP1 owns 64 full-width experts, while EP1/TP4 owns all 256 experts
+    # with the intermediate dimension sharded four ways.  Both retain K=4096
+    # and use the same generic CK tiles; only E and N differ.
     if w13_weight.dtype != getattr(torch, "float4_e2m1fn_x2", None):
         return
-    if w13_weight.ndim != 3 or w13_weight.shape[1] != 4096:
+    if w13_weight.ndim != 3:
         return
-    if w13_weight.shape[0] != 64 or w13_weight.shape[2] != 2048:
+    if tuple(w13_weight.shape) not in (
+        (64, 4096, 2048),
+        (256, 1024, 2048),
+    ):
         return
     if topk != 6:
         return
@@ -191,17 +204,22 @@ def _install_gfx90a_dsv4_fp4_tune(
         from sglang.srt.environ import envs
 
         gfx90a_ksplit = envs.SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT.get()
+        stage2_kernel = (
+            _GFX90A_DSV4_FP4_KERNEL2_64THREAD
+            if envs.SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD.get()
+            else _GFX90A_DSV4_FP4_KERNEL2
+        )
         aiter_fused_moe.cfg_2stages[key] = {
             "block_m": 32,
             "ksplit": gfx90a_ksplit,
             # With split-K, leave the names empty so AIter selects its CKTile
-            # BF16-activation/FP4-weight implementation.  The validated legacy
+            # BF16-activation/FP4-weight implementation. The validated legacy
             # CK pair remains the ksplit=0 baseline.
             "kernelName1": (
                 "" if gfx90a_ksplit > 1 else _GFX90A_DSV4_FP4_KERNEL1
             ),
             "kernelName2": (
-                "" if gfx90a_ksplit > 1 else _GFX90A_DSV4_FP4_KERNEL2
+                "" if gfx90a_ksplit > 1 else stage2_kernel
             ),
             "run_1stage": 0,
         }
@@ -283,6 +301,99 @@ class AiterRunnerCore(MoeRunnerCore):
                 )
             return AiterRunnerOutput(hidden_states=runner_input.hidden_states)
 
+        from sglang.srt.environ import envs
+
+        if (
+            envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get()
+            and runner_input.quant_type is AiterQuantType.PER_1X32
+            and runner_input.hidden_states.dtype == torch.bfloat16
+            and runner_input.hidden_states.ndim == 2
+            and runner_input.hidden_states.shape[1] == 4096
+            and runner_input.hidden_states.is_contiguous()
+            and runner_input.topk_ids.ndim == 2
+            and runner_input.topk_ids.shape[1] == 6
+            and runner_input.topk_ids.dtype == torch.int32
+            and runner_input.topk_ids.is_contiguous()
+            and runner_input.topk_weights.shape == runner_input.topk_ids.shape
+            and runner_input.topk_weights.dtype == torch.float32
+            and runner_input.topk_weights.is_contiguous()
+            and runner_input.num_local_tokens is not None
+            and runner_input.num_local_tokens.shape == (1,)
+            and runner_input.num_local_tokens.dtype == torch.int32
+            and quant_info.w13_weight.shape == (64, 4096, 2048)
+            and quant_info.w2_weight.shape == (64, 4096, 1024)
+            and quant_info.w13_scale is not None
+            and quant_info.w13_scale.numel() == 64 * 4096 * 128
+            and quant_info.w13_scale.is_contiguous()
+            and quant_info.w2_scale is not None
+            and quant_info.w2_scale.numel() == 64 * 4096 * 64
+            and quant_info.w2_scale.is_contiguous()
+            and quant_info.expert_mask is not None
+            and quant_info.expert_mask.shape == (256,)
+            and quant_info.expert_mask.dtype == torch.int32
+            and not getattr(quant_info.w13_weight, "is_shuffled", False)
+            and not quant_info.doweight_stage1
+            and quant_info.hidden_pad == 0
+            and quant_info.intermediate_pad == 0
+            and quant_info.b13 is None
+            and quant_info.b2 is None
+            and not self.config.no_combine
+            and quant_info.swiglu_limit > 0
+        ):
+            from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                gfx90a_fp4_expert_down,
+                gfx90a_fp4_expert_gate_up,
+            )
+
+            intermediate = gfx90a_fp4_expert_gate_up(
+                runner_input.hidden_states,
+                quant_info.w13_weight,
+                quant_info.w13_scale,
+                runner_input.topk_ids,
+                quant_info.expert_mask,
+                runner_input.num_local_tokens,
+                quant_info.swiglu_limit,
+            )
+            direct_out = (
+                runner_input.output_tensor[
+                    : runner_input.hidden_states.shape[0], :4096
+                ]
+                if runner_input.output_tensor is not None
+                else None
+            )
+            output = gfx90a_fp4_expert_down(
+                intermediate,
+                quant_info.w2_weight,
+                quant_info.w2_scale,
+                runner_input.topk_ids,
+                quant_info.expert_mask,
+                runner_input.topk_weights,
+                runner_input.num_local_tokens,
+                out=direct_out,
+            )
+            return AiterRunnerOutput(hidden_states=output)
+        elif envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get():
+            logger.warning_once(
+                "gfx90a direct FP4 MoE eligibility miss: "
+                "hidden=%s/%s topk=%s/%s weights=%s,%s scales=%s,%s "
+                "mask=%s/%s live=%s/%s pads=%s,%s shuffled=%s",
+                tuple(runner_input.hidden_states.shape),
+                runner_input.hidden_states.dtype,
+                tuple(runner_input.topk_ids.shape),
+                runner_input.topk_ids.dtype,
+                tuple(quant_info.w13_weight.shape),
+                tuple(quant_info.w2_weight.shape),
+                None if quant_info.w13_scale is None else tuple(quant_info.w13_scale.shape),
+                None if quant_info.w2_scale is None else tuple(quant_info.w2_scale.shape),
+                None if quant_info.expert_mask is None else tuple(quant_info.expert_mask.shape),
+                None if quant_info.expert_mask is None else quant_info.expert_mask.dtype,
+                None if runner_input.num_local_tokens is None else tuple(runner_input.num_local_tokens.shape),
+                None if runner_input.num_local_tokens is None else runner_input.num_local_tokens.dtype,
+                quant_info.hidden_pad,
+                quant_info.intermediate_pad,
+                getattr(quant_info.w13_weight, "is_shuffled", False),
+            )
+
         from aiter.fused_moe import fused_moe
 
         _install_gfx90a_aiter_quant_fallback()
@@ -294,8 +405,6 @@ class AiterRunnerCore(MoeRunnerCore):
             output_dtype=runner_input.output_dtype,
             quant_info=quant_info,
         )
-
-        from sglang.srt.environ import envs
 
         a1_scale = (
             runner_input.a1_scale
@@ -311,6 +420,10 @@ class AiterRunnerCore(MoeRunnerCore):
         if runner_input.output_dtype is not None:
             extra["dtype"] = runner_input.output_dtype
         fused_moe_parameters = _aiter_fused_moe_parameters()
+        if "preshuffle" in fused_moe_parameters:
+            extra["preshuffle"] = bool(
+                getattr(quant_info.w13_weight, "is_shuffled", False)
+            )
         if (
             runner_input.output_tensor is not None
             and "moe_out" in fused_moe_parameters

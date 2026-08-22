@@ -1,0 +1,38 @@
+diff --git a/csrc/include/custom_all_reduce.cuh b/csrc/include/custom_all_reduce.cuh
+--- a/csrc/include/custom_all_reduce.cuh
++++ b/csrc/include/custom_all_reduce.cuh
+@@ -196,12 +196,12 @@ DINLINE void start_sync(const RankSignals& sg,
+         // Latency = 1 p2p write
+         __scoped_atomic_store_n(&sg.signals[threadIdx.x]->start[blockIdx.x][rank],
+                                 flag,
+-                                __ATOMIC_RELAXED,
++                                __ATOMIC_RELEASE,
+                                 __MEMORY_SCOPE_SYSTEM);
+         // wait until we got true from all ranks
+         while(__scoped_atomic_load_n(&self_sg->start[blockIdx.x][threadIdx.x],
+-                                     __ATOMIC_RELAXED,
+-                                     __MEMORY_SCOPE_DEVICE) < flag)
++                                     __ATOMIC_ACQUIRE,
++                                     __MEMORY_SCOPE_SYSTEM) < flag)
+             ;
+     }
+     __syncthreads();
+@@ -253,7 +253,7 @@ DINLINE void end_sync(const RankSignals& sg,
+         // wait until we got true from all ranks
+         while(__scoped_atomic_load_n(&self_sg->end[blockIdx.x][threadIdx.x],
+                                      final_sync ? __ATOMIC_RELAXED : __ATOMIC_ACQUIRE,
+-                                     __MEMORY_SCOPE_DEVICE) < flag)
++                                     __MEMORY_SCOPE_SYSTEM) < flag)
+             ;
+     }
+     __syncthreads();
+@@ -451,6 +451,7 @@ __global__ void __launch_bounds__(512, 1) cross_device_reduce_1stage(RankData* _
+         }
+         __syncthreads();
+     }
+-    // maybe do not need device sync
+-    // end_sync<ngpus, true>(sg, self_sg, rank);
++    // Do not let a fast rank reuse its local input buffer for the next layer
++    // while a slower peer is still reading that buffer through its P2P map.
++    end_sync<ngpus, true>(sg, self_sg, rank);
+ }

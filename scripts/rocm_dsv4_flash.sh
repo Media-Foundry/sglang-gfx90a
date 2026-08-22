@@ -208,8 +208,8 @@ and port 30001, and never sends a batched payload. CUDA graph capture may keep
 larger prepared tiers; that does not change the request batch size.
 
 Commands:
-  start                 Start the TP4/EP4 ROCm DSV4 service in background.
-  serve                 Run the TP4/EP4 ROCm DSV4 service in foreground.
+  start                 Start the configured ROCm DSV4 service in background.
+  serve                 Run the configured ROCm DSV4 service in foreground.
   stop                  Stop the background service from the pid file.
   status                Show service process and ROCm VRAM/PID state.
   logs [n]              Tail the last n log lines, default 120.
@@ -232,6 +232,12 @@ AR-only contract:
   always measures one model forward per generated token.
 
 Optional env:
+  TP_SIZE=4 EP_SIZE=4 MOE_A2A_BACKEND=mori
+                              # Default EP4 service. For the validated BS1
+                              # no-A2A oracle use EP_SIZE=1 and
+                              # MOE_A2A_BACKEND=none. That profile requires the
+                              # AIter system-barrier patch under
+                              # scripts/rocm/patches/.
   DISABLE_ATTN_TP_GATHER=1   # single lane default; set 0 to restore padded graph capture.
   SGLANG_MORI_INTRANODE_BLOCK_NUM=<n>
   SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK=<n>
@@ -531,6 +537,7 @@ bench_concurrent() {
   local reps="${3:-1}"
   "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" <<'PY'
 import concurrent.futures
+import hashlib
 import json
 import sys
 import threading
@@ -578,6 +585,12 @@ for rep in range(reps):
         group_wall = time.perf_counter() - group_begin
 
     output_tokens = [len(out.get("output_ids") or []) for _, out in results]
+    output_hashes = [
+        hashlib.sha256(
+            json.dumps(out.get("output_ids") or [], separators=(",", ":")).encode()
+        ).hexdigest()[:16]
+        for _, out in results
+    ]
     reasons = [out.get("meta_info", {}).get("finish_reason") for _, out in results]
     request_walls = [wall for wall, _ in results]
     total_tokens = sum(output_tokens)
@@ -586,7 +599,8 @@ for rep in range(reps):
         f"rep={rep} group_wall={group_wall:.3f}s total_tokens={total_tokens} "
         f"aggregate_ar_tok/s={total_tokens / group_wall:.3f} "
         f"per_request_ar_tok/s={[round(n / wall, 3) for n, wall in zip(output_tokens, request_walls)]} "
-        f"output_tokens={output_tokens} finish={reasons}",
+        f"output_tokens={output_tokens} output_sha256={output_hashes} "
+        f"hashes_match={len(set(output_hashes)) == 1} finish={reasons}",
         flush=True,
     )
 PY

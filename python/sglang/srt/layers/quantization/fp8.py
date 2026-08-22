@@ -868,6 +868,29 @@ class Fp8LinearMethod(LinearMethodBase):
                     requires_grad=False,
                 )
                 layer._use_cached_block_fp8_bf16_weight = True
+                if (
+                    envs.SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV.get()
+                    and tuple(layer.weight.shape)
+                    in ((8192, 1024), (4096, 2048), (1536, 4096))
+                ):
+                    weight_fp32 = layer.weight.data.float()
+                    weight_scale = (
+                        weight_fp32.abs().amax(dim=1).clamp_min(1.0e-12) / 127.0
+                    )
+                    int8_weight = (
+                        torch.round(weight_fp32 / weight_scale[:, None])
+                        .clamp_(-127, 127)
+                        .to(torch.int8)
+                        .contiguous()
+                    )
+                    layer.register_parameter(
+                        "gfx90a_int8_weight",
+                        Parameter(int8_weight, requires_grad=False),
+                    )
+                    layer.register_parameter(
+                        "gfx90a_int8_weight_scale",
+                        Parameter(weight_scale.contiguous(), requires_grad=False),
+                    )
         else:
             layer.weight = Parameter(layer.weight.data, requires_grad=False)
 
@@ -987,6 +1010,20 @@ class Fp8LinearMethod(LinearMethodBase):
             if isinstance(x, tuple):
                 raise TypeError("Cached BF16 block-FP8 weight requires BF16 activation")
             if bias is None:
+                if envs.SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV.get() and hasattr(
+                    layer, "gfx90a_int8_weight"
+                ):
+                    from sglang.kernels.ops.quantization.gfx90a_int8_weight_gemv import (
+                        gfx90a_wave64_int8_weight_gemv,
+                    )
+
+                    output = gfx90a_wave64_int8_weight_gemv(
+                        x,
+                        layer.gfx90a_int8_weight,
+                        layer.gfx90a_int8_weight_scale,
+                    )
+                    if output is not None:
+                        return output
                 if envs.SGLANG_DSV4_GFX90A_WAVE64_GEMV.get():
                     from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
                         gfx90a_wave64_bf16_gemv,
