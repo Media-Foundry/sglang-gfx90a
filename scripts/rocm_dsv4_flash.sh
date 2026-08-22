@@ -17,8 +17,20 @@ DEFAULT_MEM_FRACTION_STATIC="0.80"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-${DEFAULT_PORT}}"
 BASE_URL="http://${HOST}:${PORT}"
-LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_ar.log}"
-PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_ar.pid}"
+COMMAND="${1:-}"
+DSPARK_MODE=0
+case "${COMMAND}" in
+  start-dspark|serve-dspark|bench-dspark|bench-dspark-concurrent)
+    DSPARK_MODE=1
+    ;;
+esac
+if [[ "${DSPARK_MODE}" == "1" ]]; then
+  LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"
+  PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_dspark.pid}"
+else
+  LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_ar.log}"
+  PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_ar.pid}"
+fi
 PROFILE_DIR="${PROFILE_DIR:-/tmp/sglang_speed_profile_dsv4_ar}"
 PROFILE_ID="${PROFILE_ID:-dsv4_ar_probe}"
 
@@ -160,6 +172,13 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ -n "${CUDA_GRAPH_BS_DECODE:-}" ]]; then
+  read -r -a cuda_graph_bs_decode <<<"${CUDA_GRAPH_BS_DECODE}"
+  server_args+=(--cuda-graph-bs-decode "${cuda_graph_bs_decode[@]}")
+fi
+if [[ "${PRE_WARM_NCCL:-${DSPARK_MODE}}" == "1" ]]; then
+  server_args+=(--pre-warm-nccl)
+fi
 # Scheduler overlap plus the single-batch fast path keeps graph replay fed on
 # the latency-critical native-AR path. Set this to 1 only for the legacy A/B.
 if [[ "${DISABLE_OVERLAP_SCHEDULE:-0}" == "1" ]]; then
@@ -192,12 +211,24 @@ speculative_env_vars=(
   SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER
 )
-for var_name in "${speculative_env_vars[@]}"; do
-  if [[ -n "${!var_name:-}" && "${!var_name}" != "0" ]]; then
-    echo "error: ${var_name} is set; this harness only permits native AR decode" >&2
-    exit 2
-  fi
-done
+if [[ "${DSPARK_MODE}" == "1" ]]; then
+  export SGLANG_RAGGED_VERIFY_MODE="${SGLANG_RAGGED_VERIFY_MODE:-static}"
+  # The fixed short benchmark never crosses index_topk=512. Avoid retaining a
+  # second full-indexer graph for every 6-token verify tier; BS16 otherwise
+  # exceeds MI250X memory before the service starts.
+  export SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH="${SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH:-1}"
+  server_args+=(
+    --speculative-algorithm DSPARK
+    --speculative-dspark-block-size "${SPECULATIVE_DSPARK_BLOCK_SIZE:-5}"
+  )
+else
+  for var_name in "${speculative_env_vars[@]}"; do
+    if [[ -n "${!var_name:-}" && "${!var_name}" != "0" ]]; then
+      echo "error: ${var_name} is set; this harness only permits native AR decode" >&2
+      exit 2
+    fi
+  done
+fi
 
 usage() {
   cat <<'EOF'
@@ -221,6 +252,13 @@ Commands:
   bench-concurrent [tokens] [requests] [reps]
                         Run independent native-AR requests concurrently.
                         Defaults: tokens=256, requests=4, reps=1.
+  start-dspark          Start a separately labelled DSpark service.
+  serve-dspark          Run the separately labelled DSpark service in foreground.
+  bench-dspark [tokens] [reps]
+                        Run one DSpark request and report emitted-token throughput.
+  bench-dspark-concurrent [tokens] [requests] [reps]
+                        Run concurrent DSpark requests and report emitted-token
+                        throughput plus per-response acceptance statistics.
   profile [tokens] [steps]
                         Start SGLang stage profiler, then send one request.
                         Defaults: tokens=32, steps=1.
@@ -230,6 +268,11 @@ Commands:
 AR-only contract:
   Any SPECULATIVE_* setting is rejected before the command runs. This harness
   always measures one model forward per generated token.
+
+DSpark contract:
+  Only the explicitly named *-dspark commands enable speculative decoding.
+  Their throughput is based on tokens actually returned to clients; it is not
+  comparable to the native-AR forward-per-token contract above.
 
 Optional env:
   TP_SIZE=4 EP_SIZE=4 MOE_A2A_BACKEND=mori
@@ -616,6 +659,116 @@ for rep in range(reps):
 PY
 }
 
+bench_dspark_concurrent() {
+  local tokens="${1:-256}"
+  local requests="${2:-4}"
+  local reps="${3:-1}"
+  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" <<'PY'
+import concurrent.futures
+import hashlib
+import json
+import sys
+import threading
+import time
+import urllib.request
+
+base_url = sys.argv[1]
+tokens, requests, reps = map(int, sys.argv[2:5])
+generate_url = base_url + "/generate"
+server_info_url = base_url + "/server_info"
+prompt = "<｜begin▁of▁sentence｜><｜User｜>Explain why 2+2=4 in one sentence.<｜Assistant｜><think>"
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+def server_accept_length():
+    try:
+        with opener.open(server_info_url, timeout=30) as response:
+            info = json.loads(response.read())
+        states = info.get("internal_states") or []
+        values = [
+            state.get("avg_spec_accept_length")
+            for state in states
+            if state.get("avg_spec_accept_length") is not None
+        ]
+        return values
+    except Exception as exc:
+        return [f"unavailable:{exc}"]
+
+def send(payload, start_barrier):
+    req = urllib.request.Request(
+        generate_url,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    start_barrier.wait()
+    begin = time.perf_counter()
+    with opener.open(req, timeout=max(1200, tokens * 2)) as response:
+        body = response.read()
+    return time.perf_counter() - begin, json.loads(body)
+
+for rep in range(reps):
+    barrier = threading.Barrier(requests + 1)
+    salt_ns = time.time_ns()
+    payloads = [
+        {
+            "text": prompt,
+            "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+            "cache_salt": f"dspark-{tokens}-{requests}-{rep}-{index}-{salt_ns}",
+        }
+        for index in range(requests)
+    ]
+    accept_before = server_accept_length()
+    print(
+        f"BEGIN rep={rep} tokens={tokens} requests={requests} "
+        f"mode=DSpark-gamma5 accept_before={accept_before}",
+        flush=True,
+    )
+    with concurrent.futures.ThreadPoolExecutor(max_workers=requests) as pool:
+        futures = [pool.submit(send, payload, barrier) for payload in payloads]
+        barrier.wait()
+        group_begin = time.perf_counter()
+        results = [future.result() for future in futures]
+        group_wall = time.perf_counter() - group_begin
+
+    output_tokens = [len(out.get("output_ids") or []) for _, out in results]
+    output_hashes = [
+        hashlib.sha256(
+            json.dumps(out.get("output_ids") or [], separators=(",", ":")).encode()
+        ).hexdigest()[:16]
+        for _, out in results
+    ]
+    request_walls = [wall for wall, _ in results]
+    reasons = [out.get("meta_info", {}).get("finish_reason") for _, out in results]
+    spec_stats = [
+        {
+            key: out.get("meta_info", {}).get(key)
+            for key in (
+                "spec_accept_length",
+                "spec_accept_rate",
+                "spec_accepted_drafts",
+                "spec_verify_ct",
+            )
+            if out.get("meta_info", {}).get(key) is not None
+        }
+        for _, out in results
+    ]
+    total_tokens = sum(output_tokens)
+    accept_after = server_accept_length()
+    print(
+        "END "
+        f"rep={rep} group_wall={group_wall:.3f}s total_emitted_tokens={total_tokens} "
+        f"aggregate_dspark_tok/s={total_tokens / group_wall:.3f} "
+        f"per_request_dspark_tok/s="
+        f"{[round(n / wall, 3) for n, wall in zip(output_tokens, request_walls)]} "
+        f"output_tokens={output_tokens} output_sha256={output_hashes} "
+        f"hashes_match={len(set(output_hashes)) == 1} "
+        f"finish={reasons} spec_stats={spec_stats} "
+        f"avg_spec_accept_length={accept_after}",
+        flush=True,
+    )
+PY
+}
+
 profile() {
   local tokens="${1:-32}"
   local steps="${2:-1}"
@@ -921,6 +1074,20 @@ case "${1:-}" in
   bench-context)
     shift
     bench_context "$@"
+    ;;
+  start-dspark)
+    start_server
+    ;;
+  serve-dspark)
+    serve_server
+    ;;
+  bench-dspark)
+    shift
+    bench_dspark_concurrent "${1:-256}" 1 "${2:-1}"
+    ;;
+  bench-dspark-concurrent)
+    shift
+    bench_dspark_concurrent "$@"
     ;;
   profile)
     shift

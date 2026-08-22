@@ -1383,6 +1383,13 @@ class Envs:
     # Decode FP8 indexer operands to fp16 before the gfx90a MFMA dot. The
     # accumulator and logits remain fp32; opt-in until top-k parity is proven.
     SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT = EnvBool(False)
+    # HIP DSV4 normally captures both short-context (k-only) and long-context
+    # (full indexer) decode graphs. Large speculative verify tiers may keep only
+    # the short-context graph when the benchmark cannot enter the indexer path.
+    SGLANG_DSV4_DSA_DUAL_GRAPH = EnvBool(True)
+    # Short-context latency/throughput harnesses may omit the full-indexer
+    # graph. Such a service must not be used once KV length exceeds index_topk.
+    SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH = EnvBool(False)
     SGLANG_OPT_DSV4_NONPAGED_INDEXER = EnvBool(True)
     # Per-rank local query rows (after DP-attention sharding when enabled),
     # not request ISL.
