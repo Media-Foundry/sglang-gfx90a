@@ -359,3 +359,45 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   server log显示 running requests 从0/1逐渐爬升到15。因此上述是严格HTTP group
   wall-time aggregate，不是所有16请求从第一个decode step起就同时驻留的纯kernel
   BS16上限。不同请求出现约22.6与25.9 tok/s两组完成时间，也来自该入场先后。
+
+### TP4/EP2 + DSpark 并发常驻与显存边界（2026-08-22）
+
+- DSpark 使用 checkpoint 自带 draft，`gamma=5`、每次 target verify 最多6 token；
+  服务固定为 TP4/EP2、两组 Mori world-size2、dispatch/combine 16 blocks，GPU 4--7。
+  DSpark 测速必须使用独立 `start-dspark` / `bench-dspark-concurrent` 命令，不能移除
+  原生 AR harness 对 `SPECULATIVE_*` 的硬拒绝。
+- DSV4 indexer 原先只允许 decode/idle 读取 CUDA graph 的 dense/sparse capture variant；
+  DSpark 的 `TARGET_VERIFY` 会在此前提前返回，导致所谓 dense graph 仍分配完整
+  FP32 indexer logits，96-token tier 单次尝试额外分配578 MiB并 OOM。修复后
+  `TARGET_VERIFY` 也按 capture variant 选择；新增默认关闭的 dense-only graph 模式，
+  仅适用于 `max_kv_len <= index_topk=512` 的短上下文服务。
+- DSpark target verify 的 graph key 是展平 verify token 数，而不是请求数：BS16需要
+  96-token target graph。96 tier 可绕过 indexer但在 `M=576` Mori/FP4 capture 中
+  无法稳定完成；48 tier 的 target graph可以完成，但约占7 GiB，随后 draft graph
+  没有余量。因此最终常驻使用 graph max16：完整 graph覆盖BS1/BS2，BS4/8/16的
+  target verify为 eager。
+- `pre_warm_nccl` 的说明称 AMD 默认开启，但当前 dataclass/default 实际为 false。
+  未预热时 graph 后只剩约0.11 GiB，首请求 RCCL all-gather 的2--6 MiB动态分配即
+  OOM。DSpark命令现显式添加 `--pre-warm-nccl`，使持久通信分配进入内存预算。
+- 为同时容纳 target graph、draft graph和预热RCCL，最终关闭约1.1 GiB/rank的
+  `SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR` cache；这是先前端到端约1%的小优化，
+  shared expert和routed MoE关键路径仍保留。最终 target graph约6.825 GiB、draft
+  graph约0.322 GiB，startup可用显存约0.59--0.70 GiB，token capacity仍为8192。
+- 最终常驻参数要点：`mem_fraction_static=0.85`、graph tiers
+  `[1,2,4,6,8,12,16]`、Mori capacity=256、decode capacity=64、MXFP4 quant rows=128、
+  attention BF16 cache off、RCCL prewarm on。服务PID为1093654，日志为
+  `/tmp/sglang_dsv4_flash_dspark_ep2_resident.log`。
+- 256-token、独立HTTP请求、每档3轮的aggregate DSpark吞吐如下；数字按客户端实际
+  收到的token/group wall time计算，不是原生AR forward-per-token口径：
+  - BS1：`58.245 / 61.555 / 61.808`，中位 `61.555 tok/s`；
+  - BS2：`108.398 / 115.751 / 97.218`，中位 `108.398 tok/s`；
+  - BS4：`167.794 / 194.503 / 195.059`，中位 `194.503 tok/s`；
+  - BS8：`275.183 / 257.585 / 270.077`，中位 `270.077 tok/s`；
+  - BS16：`288.454 / 296.673 / 311.179`，中位 `296.673 tok/s`。
+- 同prompt接受统计：BS1平均接受长度约4.339、接受率约0.678；BS2/4约4.414、
+  约0.693；BS8约4.339--4.414；BS16约4.197--4.414、约0.646--0.693。
+  所有正式请求均生成256 token、finish=length，且各BS的output-id hash均为
+  原生AR参考 `f3060e252a69f624`。
+- 与同机native EP2中位数相比，DSpark约为：BS1持平，BS2 +39%，BS4 +34%，
+  BS8 +6.5%，BS16 -15%。BS16 native graph仍更强，说明高并发下固定6-token verify、
+  draft开销及target eager抵消接受收益；当前DSpark甜点区在BS2--BS8。

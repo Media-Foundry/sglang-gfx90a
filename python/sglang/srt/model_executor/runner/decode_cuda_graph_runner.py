@@ -268,6 +268,7 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         # avoid silently changing the CUDA decode path for DSA models (e.g.
         # DeepSeek-V3.2). CUDA can opt in later once validated there.
         self.dsa_dual_graph = False
+        self.dsa_dense_only_graph = False
         self.dsa_index_topk: Optional[int] = None
         from sglang.srt.configs.model_config import (
             get_dsa_index_topk,
@@ -276,7 +277,14 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         )
 
         hf_config = model_runner.model_config.hf_config
-        if is_hip() and (is_deepseek_dsa(hf_config) or is_deepseek_v4(hf_config)):
+        if (
+            is_hip()
+            and (
+                envs.SGLANG_DSV4_DSA_DUAL_GRAPH.get()
+                or envs.SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH.get()
+            )
+            and (is_deepseek_dsa(hf_config) or is_deepseek_v4(hf_config))
+        ):
             self.dsa_index_topk = (
                 get_dsa_index_topk(hf_config)
                 if is_deepseek_dsa(hf_config)
@@ -284,12 +292,22 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             )
             assert self.dsa_index_topk is not None
             self.dsa_dual_graph = True
-            logger.info(
-                "[dense-decode] DSA dual-graph enabled: capturing "
-                "dense (k-only) + sparse (full indexer) decode graphs; "
-                "dispatch on max_kv_len vs index_topk=%d.",
-                self.dsa_index_topk,
+            self.dsa_dense_only_graph = (
+                envs.SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH.get()
             )
+            if self.dsa_dense_only_graph:
+                logger.warning(
+                    "[dense-decode] DSA dense-only graph enabled: the service "
+                    "is valid only while max_kv_len <= index_topk=%d.",
+                    self.dsa_index_topk,
+                )
+            else:
+                logger.info(
+                    "[dense-decode] DSA dual-graph enabled: capturing "
+                    "dense (k-only) + sparse (full indexer) decode graphs; "
+                    "dispatch on max_kv_len vs index_topk=%d.",
+                    self.dsa_index_topk,
+                )
 
         self.attn_tp_size = get_parallel().attn_tp_size
         self.attn_tp_rank = get_parallel().attn_tp_rank
@@ -1115,7 +1133,13 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         # has no dsa_variant. Default to no dual-graph and, for the None variant,
         # call capture_one_shape without the extra arg so those overrides work.
         dsa_variants = (
-            ["dense", "sparse"] if getattr(self, "dsa_dual_graph", False) else [None]
+            ["dense"]
+            if getattr(self, "dsa_dense_only_graph", False)
+            else (
+                ["dense", "sparse"]
+                if getattr(self, "dsa_dual_graph", False)
+                else [None]
+            )
         )
         for bs in capture_range:
             if get_parallel().tp_rank == 0:

@@ -770,7 +770,10 @@ class C4IndexerBackendMixin:
                 return False
             return int(fb.seq_lens_cpu.max().item()) <= c4_indexer.index_topk
 
-        if not fb.forward_mode.is_decode_or_idle():
+        if not (
+            fb.forward_mode.is_decode_or_idle()
+            or fb.forward_mode.is_target_verify()
+        ):
             return False
         if not is_hip():
             return False

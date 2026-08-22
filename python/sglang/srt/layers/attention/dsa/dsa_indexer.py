@@ -408,7 +408,7 @@ class Indexer(DSANPUIndexerMixin, BaseFusedOp):
             return int(fb.seq_lens_cpu.max().item()) <= self.index_topk
 
         # Decode/idle.
-        if fb.forward_mode.is_decode_or_idle():
+        if fb.forward_mode.is_decode_or_idle() or fb.forward_mode.is_target_verify():
             # Decode k-only skip (both the captured dual-graph "dense" variant
             # and the eager per-step skip below) is currently HIP-only. On CUDA
             # this common code keeps the original behavior (decode never skips
