@@ -535,7 +535,8 @@ bench_concurrent() {
   local tokens="${1:-256}"
   local requests="${2:-4}"
   local reps="${3:-1}"
-  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" <<'PY'
+  local expected_hash="${EXPECTED_OUTPUT_SHA256:-f3060e252a69f624}"
+  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" "${expected_hash}" <<'PY'
 import concurrent.futures
 import hashlib
 import json
@@ -545,7 +546,8 @@ import time
 import urllib.request
 
 base_url = sys.argv[1]
-tokens, requests, reps = map(int, sys.argv[2:])
+tokens, requests, reps = map(int, sys.argv[2:5])
+expected_hash = sys.argv[5]
 url = base_url + "/generate"
 prompt = "<｜begin▁of▁sentence｜><｜User｜>Explain why 2+2=4 in one sentence.<｜Assistant｜><think>"
 opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -600,7 +602,9 @@ for rep in range(reps):
         f"aggregate_ar_tok/s={total_tokens / group_wall:.3f} "
         f"per_request_ar_tok/s={[round(n / wall, 3) for n, wall in zip(output_tokens, request_walls)]} "
         f"output_tokens={output_tokens} output_sha256={output_hashes} "
-        f"hashes_match={len(set(output_hashes)) == 1} finish={reasons}",
+        f"hashes_match={len(set(output_hashes)) == 1} "
+        f"reference_match={all(h == expected_hash for h in output_hashes)} "
+        f"finish={reasons}",
         flush=True,
     )
 PY

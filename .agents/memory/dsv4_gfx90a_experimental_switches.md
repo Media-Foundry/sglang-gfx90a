@@ -301,7 +301,16 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 同一服务并发 native AR：BS2 约 `72.62--73.07 tok/s`，BS4 约
   `138.20--138.82 tok/s`，BS8 约 `245.34--249.58 tok/s`。所有 54 个并发
   请求均生成 256 token、finish=length，且 hash 均为 `f3060e252a69f624`。
-  当前 TP-only 的 BS8 也高于 EP4 checkpoint 的 `230.42 tok/s`；仍应在修复后的
-  同一进程版本上补 EP4 的 BS2/4/8 A/B，不能预设 hybrid crossover。
+  当前 TP-only 的 BS8 也高于 EP4 checkpoint 的 `230.42 tok/s`。
+- 修复后同版本 EP4/Mori 的 A/B 已补齐。BS1 十轮 hash 均为基线，但稳态中位约
+  `58.1 tok/s`；BS2 约 `67.87--68.70`，BS4 约 `126.53--128.52`，BS8 约
+  `229.26--230.61 tok/s`，所有 tier 都低于 TP-only。final barrier 约损失旧 EP4
+  峰值的 2 tok/s，但消除了独立服务的偶发漂移，说明旧 60 tok/s 中包含不安全的
+  buffer overlap。
+- EP4 的 BS4/BS8 虽然同批请求彼此一致，hash 却稳定变为 `1d765b3ef2548259`，
+  不等于 BS1/TP-only 的 `f3060e252a69f624`；TP-only 在 BS1/2/4/8 始终保持参考
+  hash。因此当前没有证据支持 decode hybrid，反而应先审计 Mori batch-tier 的
+  row ordering/quant/combine 数值路径。并发 harness 现在同时报告批内一致性和
+  `reference_match`，避免把“全都一致地偏离参考”误判为通过。
 - 每次 GPU 实验前继续强制运行：
   `amd-smi process --general --sort-by-pid -g 4 5 6 7`。
