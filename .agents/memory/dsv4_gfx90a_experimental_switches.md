@@ -314,3 +314,29 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `reference_match`，避免把“全都一致地偏离参考”误判为通过。
 - 每次 GPU 实验前继续强制运行：
   `amd-smi process --general --sort-by-pid -g 4 5 6 7`。
+
+### TP4/EP2 hybrid routed MoE（2026-08-22）
+
+- `--ep-size 2` 原先是假配置：通用 A2A post-process 会把 Mori EP 强制扩为
+  TP size，实际仍启动 EP4。新增默认关闭的 `SGLANG_MORI_ALLOW_PARTIAL_EP=1`
+  后，TP4/EP2 才真正形成两个 expert-TP2 groups 和两组 Mori world-size 2。
+- DSV4 A2A source token 必须按 `moe_ep_rank` 切成两块，并在同一 expert-TP
+  group 内复制；shared TP4 的最终 global all-reduce 同时完成 shared partial、
+  routed TP2 partial 和两个 EP token chunks 的汇合。
+- Mori 固定使用全局 rank 0 bootstrap subgroup，导致第二组 `[1,3]` 永久等待；
+  修复为将 subgroup rank 0 映射至其 global rank。Mori group registration 也必须
+  按 expert-TP lane 使用不同名称，否则两个 subgroup 冲突。
+- 实际加载/捕获确认：每 rank `128` local experts、AIter 两阶段 FP4 key 为
+  `N=1024, E=128`，四 rank 模型显存均约 `45.34 GB`；Mori 两组都为
+  `world_size=2`，graph BS1/2/4/8 全部捕获成功。
+- 32-block、SBO off 的 BS1 稳态中位约 `59.93 tok/s`；SBO+多流后约
+  `60.77 tok/s`。将 world-size-2 dispatch/combine 都降为16 blocks 后，后六轮
+  稳定在 `62.22--62.31 tok/s`，10/10 hash 为 `f3060e252a69f624`。仍低于
+  TP4/EP1 的 `67.35 tok/s`，不应作为 BS1 默认。
+- 16-block EP2 并发结果：BS2 `77.17--78.11 tok/s`（hash 为 BS1 reference），
+  BS4 快态 `143.74--145.68`、一轮慢态 `123.60`，BS8 `249.37--256.51`、
+  中位约 `253.5 tok/s`。相对 TP-only，BS2 约提升7.4%，BS4/BS8小幅领先；
+  相对 EP4 BS8 的约230提升约10%。因此 EP2是并发候选而非单请求候选。
+- BS4/BS8 稳定得到 tier hash `1d765b3ef2548259`；其中混有既有的 batch-tier
+  MHC/Sinkhorn和归约顺序差异。批内所有请求一致，但在建立同-tier reference
+  oracle 前不能宣称与 BS1 bitwise parity。

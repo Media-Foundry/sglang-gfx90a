@@ -2709,6 +2709,25 @@ class TestGoldenModelOverrides(_IsolatedPublish):
             ),
             {},
         )
+        with patch.dict(os.environ, {"SGLANG_MORI_ALLOW_PARTIAL_EP": "1"}):
+            self.assertEqual(
+                _a2a_ep_size(
+                    ResolvedView(
+                        SimpleNamespace(
+                            moe_a2a_backend="mori", ep_size=2, tp_size=4
+                        )
+                    )
+                ),
+                {},
+            )
+            with self.assertRaisesRegex(ValueError, "must be divisible"):
+                _a2a_ep_size(
+                    ResolvedView(
+                        SimpleNamespace(
+                            moe_a2a_backend="mori", ep_size=3, tp_size=4
+                        )
+                    )
+                )
 
     def test_deepseek_family_order_safe_declarations(self):
         from sglang.srt.arg_groups.overrides import _deepseek_family_overrides

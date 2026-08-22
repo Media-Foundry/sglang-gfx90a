@@ -2608,7 +2608,10 @@ class DeepseekV4DecoderLayer(nn.Module):
                 )
             if input_ids_global is None:
                 input_ids_global = input_ids
-            s, r = get_parallel().attn_tp_size, get_parallel().attn_tp_rank
+            # A2A source chunks are distributed over EP ranks and replicated
+            # over expert-TP lanes. For TP4/EP2 ranks [0,1] select chunk 0 and
+            # ranks [2,3] select chunk 1, so both TP2 shards see identical rows.
+            s, r = get_parallel().moe_ep_size, get_parallel().moe_ep_rank
             _a2a_scatter_chunks = list(hidden_states.tensor_split(s))
             _do_mori_shared_tp = getattr(
                 self.mlp, "_mori_shared_expert_tp", False
@@ -2633,6 +2636,12 @@ class DeepseekV4DecoderLayer(nn.Module):
                     _shared_tp_output = self.mlp._forward_shared_experts(
                         hidden_states, replicated_input=True
                     )
+            elif get_parallel().moe_ep_size != get_parallel().attn_tp_size:
+                raise RuntimeError(
+                    "DSV4 partial-EP Mori currently requires shared-expert TP; "
+                    "its global all-reduce also finalizes routed expert-TP "
+                    "partials and gathers the EP token chunks."
+                )
             _rotate_a2a_owner = (
                 envs.SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER.get()
                 and get_moe_a2a_backend().is_mori()
