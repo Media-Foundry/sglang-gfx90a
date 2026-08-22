@@ -340,3 +340,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - BS4/BS8 稳定得到 tier hash `1d765b3ef2548259`；其中混有既有的 batch-tier
   MHC/Sinkhorn和归约顺序差异。批内所有请求一致，但在建立同-tier reference
   oracle 前不能宣称与 BS1 bitwise parity。
+
+### TP4/EP2 graph BS16 大并发（2026-08-22）
+
+- 为捕获真实 tier 16，而不是让16请求退回 eager，使用：
+  `CUDA_GRAPH_MAX_BS_DECODE=16`、
+  `AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=128`、
+  `SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK=32`；其余保持 EP2、
+  Mori dispatch/combine 16 blocks、SBO+多流。最终 graph tiers 为
+  `[1,2,4,8,12,16]`，注册1044个graph地址，capture后每 rank仍有约5.6 GB余量。
+- 同一新服务 BS8 五轮 aggregate 为 `227.04 / 235.32 / 246.35 / 253.07 /
+  253.62 tok/s`；前几轮有明显升温，后两轮稳定约253.3，与 graph-max-8 的
+  EP2结果一致。
+- BS16 五轮 aggregate 为 `350.52 / 356.63 / 340.12 / 335.27 /
+  360.93 tok/s`，中位约 `350.52 tok/s`。每轮16/16请求都输出256 token、
+  finish=length，批内hash全部一致为 `1d765b3ef2548259`。
+- 并发 harness 使用独立 cache salt；page-size=256 的prefill按请求逐步 admission，
+  server log显示 running requests 从0/1逐渐爬升到15。因此上述是严格HTTP group
+  wall-time aggregate，不是所有16请求从第一个decode step起就同时驻留的纯kernel
+  BS16上限。不同请求出现约22.6与25.9 tok/s两组完成时间，也来自该入场先后。
