@@ -2595,6 +2595,17 @@ def _a2a_backend_overrides(view: Any) -> dict:
 @register_post_process
 def _a2a_ep_size(view: Any) -> dict:
     if view.moe_a2a_backend in _A2A_EP_SPANNING_BACKENDS:
+        if (
+            view.moe_a2a_backend == "mori"
+            and envs.SGLANG_MORI_ALLOW_PARTIAL_EP.get()
+        ):
+            if view.tp_size % view.ep_size != 0:
+                raise ValueError(
+                    "Mori partial EP requires tp_size; tp_size must be divisible "
+                    "by ep_size, "
+                    f"got tp_size={view.tp_size}, ep_size={view.ep_size}."
+                )
+            return {}
         if view.ep_size != view.tp_size:
             logger.info(
                 f"{view.moe_a2a_backend} MoE is enabled. The expert parallel size "

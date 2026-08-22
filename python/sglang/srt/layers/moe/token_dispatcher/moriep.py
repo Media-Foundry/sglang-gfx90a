@@ -262,7 +262,12 @@ def init_mori_op(
 
     gpu_per_node = 8 if world_size >= 8 else world_size
 
-    group_name = f"mori"
+    # A hybrid EP/TP layout has one Mori EP process group per expert-TP lane.
+    # Register each lane under a stable distinct name; all layers and decode
+    # capacities within the lane must continue sharing the same SHMEM setup.
+    group_name = "mori"
+    if get_parallel().moe_tp_size > 1:
+        group_name = f"mori_tp_lane_{get_parallel().moe_tp_rank}"
     cpu_group = group.cpu_group
     try:
         torch._C._distributed_c10d._register_process_group(group_name, cpu_group)

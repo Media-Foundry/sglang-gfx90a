@@ -126,7 +126,9 @@ def _get_deepep_comm_group(a2a_backend):
     group = get_tp_group().device_group
 
     if a2a_backend.is_mori():
-        group = get_tp_group()
+        # Full EP aliases the TP group. Partial EP rendezvouses only ranks at
+        # the same expert-TP lane (TP4/EP2: [0,2] and [1,3]).
+        group = get_moe_ep_group()
 
     elif _is_npu:
         group = get_moe_ep_group().device_group

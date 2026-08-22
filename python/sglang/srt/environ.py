@@ -747,6 +747,9 @@ class Envs:
     # and relies on the RDMA retry-exceeded timeout only.
     SGLANG_MORI_TRANSFER_TIMEOUT_MS = EnvInt(0)
     SGLANG_MORI_NUM_MAX_DISPATCH_TOKENS_PER_RANK = EnvInt(4096)
+    # Experimental hybrid EP/TP: keep a requested Mori EP subgroup instead of
+    # expanding it to the full tensor-parallel world size.
+    SGLANG_MORI_ALLOW_PARTIAL_EP = EnvBool(False)
 
     # ===================================================================
     # AMD, ROCm, and AITER

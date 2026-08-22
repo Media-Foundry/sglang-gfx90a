@@ -238,6 +238,12 @@ Optional env:
                               # MOE_A2A_BACKEND=none. That profile requires the
                               # AIter system-barrier patch under
                               # scripts/rocm/patches/.
+  SGLANG_MORI_ALLOW_PARTIAL_EP=0
+                              # Honor EP_SIZE smaller than TP_SIZE for the
+                              # experimental hybrid expert EP/TP layout. The
+                              # validated TP4/EP2 profile uses Mori dispatch
+                              # and combine blocks=16 plus the Mori subgroup
+                              # bootstrap patch under scripts/rocm/patches/.
   DISABLE_ATTN_TP_GATHER=1   # single lane default; set 0 to restore padded graph capture.
   SGLANG_MORI_INTRANODE_BLOCK_NUM=<n>
   SGLANG_MORI_INTRANODE_WARP_NUM_PER_BLOCK=<n>
