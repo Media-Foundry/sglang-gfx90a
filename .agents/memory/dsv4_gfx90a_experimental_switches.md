@@ -281,3 +281,27 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   接近参考，但端到端仅约 `18 tok/s` 且输出 hash 不稳定；逐行 FP4 解码的标量
   wave kernel远慢于 AIter CK，不应作为正式路径。native MHC full/tail、INT8+
   Mori24、INT8+Sinkhorn4 等堆叠也均未超过最终精确配置，继续保持默认关闭。
+
+### TP4/EP1、无 Mori oracle 与 custom AR 正确性修复（2026-08-22）
+
+- SGLang 已有真正的 expert tensor-parallel 权重布局；`TP_SIZE=4 EP_SIZE=1
+  MOE_A2A_BACKEND=none` 会让每 rank 持有 256 experts 的 1/4 projection shard，
+  实测 FP4 `w13=[256,1024,2048]`、`w2=[256,4096,256]`，显存可容纳。
+- gfx90a AIter 本地 tune 原先只接受 EP4/TP1 的 `[64,4096,2048]`。加入
+  EP1/TP4 shape 后，现有两阶段 CK FP4 kernel 可以直接运行，无需 Mori。
+- 初次 TP-only 结果达到约 `65--70 tok/s`，但偶发 output hash 漂移。关闭 SBO
+  和 ROCm multi-stream 后仍复现；切到 RCCL 后 hash 稳定但只有约 `28 tok/s`，
+  因而定位为 AIter custom all-reduce 协议问题，而不是 TP 权重/数学错误。
+- AIter `cross_device_reduce_1stage` 原先没有 final barrier，快 rank 可以在慢 rank
+  仍通过 P2P 读取时复用下一层输入缓冲区；同时 peer signal poll 还是 device scope。
+  恢复 final system-scope barrier，并将 signal load 改为 system-scope acquire 后，
+  20/20 单请求均得到基线 hash `f3060e252a69f624`。首轮含暖机 `55.82 tok/s`，
+  后 19 轮为 `66.11--67.65 tok/s`，稳态中位约 `67.35 tok/s`，相对 60.17
+  checkpoint 约提升 12%。配置为纯 AR、TP4/EP1、A2A=none、SBO=off。
+- 同一服务并发 native AR：BS2 约 `72.62--73.07 tok/s`，BS4 约
+  `138.20--138.82 tok/s`，BS8 约 `245.34--249.58 tok/s`。所有 54 个并发
+  请求均生成 256 token、finish=length，且 hash 均为 `f3060e252a69f624`。
+  当前 TP-only 的 BS8 也高于 EP4 checkpoint 的 `230.42 tok/s`；仍应在修复后的
+  同一进程版本上补 EP4 的 BS2/4/8 A/B，不能预设 hybrid crossover。
+- 每次 GPU 实验前继续强制运行：
+  `amd-smi process --general --sort-by-pid -g 4 5 6 7`。

@@ -17,6 +17,7 @@ torch.cuda.CUDAGraph per shape.
 
 from __future__ import annotations
 
+import ctypes
 from contextlib import AbstractContextManager, contextmanager
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
@@ -68,6 +69,31 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
             enable=enable_memory_saver
             and get_bool_env_var("SGLANG_MEMORY_SAVER_CUDA_GRAPH")
         )
+
+    @staticmethod
+    def _maybe_upload_rocm_graph(graph: torch.cuda.CUDAGraph) -> None:
+        """Pre-upload a HIP graph exec once, outside latency-critical replay."""
+        if not torch.version.hip or not get_bool_env_var(
+            "SGLANG_ROCM_CUDA_GRAPH_UPLOAD"
+        ):
+            return
+
+        # ROCm 7.14 documents hipGraphInstantiateWithFlags as ignoring all
+        # flags, including hipGraphInstantiateFlagUpload. PyTorch therefore
+        # cannot request upload while it instantiates the graph; invoke the
+        # explicit runtime API after capture instead.
+        hip = ctypes.CDLL("libamdhip64.so")
+        upload = hip.hipGraphUpload
+        upload.argtypes = (ctypes.c_void_p, ctypes.c_void_p)
+        upload.restype = ctypes.c_int
+        stream = torch.cuda.current_stream()
+        status = upload(
+            ctypes.c_void_p(graph.raw_cuda_graph_exec()),
+            ctypes.c_void_p(stream.cuda_stream),
+        )
+        if status != 0:
+            raise RuntimeError(f"hipGraphUpload failed with HIP status {status}")
+        stream.synchronize()
 
     @contextmanager
     def capture_session(self, stream: torch.cuda.Stream):
@@ -146,6 +172,7 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
 
         self._graphs[shape_key] = graph
         self._outputs[shape_key] = out
+        self._maybe_upload_rocm_graph(graph)
 
     def can_run(self, forward_batch: ForwardBatch, shape_key: ShapeKey) -> bool:
         return shape_key in self._graphs
