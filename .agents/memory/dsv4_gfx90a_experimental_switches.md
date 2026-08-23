@@ -532,3 +532,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   客户端继承HTTP代理；禁用ProxyHandler后10/10正常，服务health始终200。
 - EP4使用同一subgroup direct路径只有约`9.2--10.7 tok/s`，所以脚本仅在
   `EP_SIZE=1`时默认开启direct INT8-dot；EP2/EP4继续使用correct CKTile。
+- 新direct基线上重新加回shared/routed multi-stream+SBO，中位约`25.21 tok/s`；
+  仅开SBO中位约`25.06 tok/s`，都低于SBO-off的约25.54。TP4/EP1默认因此明确
+  关闭SBO；EP2/EP4保留原默认。
+- 重新启用现有gfx90a peer-read custom all-reduce后，TP4/EP1通信固定延迟大幅
+  消失：256-token六轮为`59.873 / 60.197 / 60.199 / 60.209 / 60.204 /
+  60.199 tok/s`，中位约`60.20 tok/s`，相对RCCL基线约25.54提升约136%。六轮
+  output hash均为`4690817e29438b74`；France固定输入另测10/10均为
+  `6f41fe2f01d52507`。这是当前首次同时满足correct routed MoE与60 tok/s目标的
+  native AR checkpoint。
+- 最终TP4/EP1默认组合：direct packed-FP4×INT8-dot开启、custom all-reduce开启、
+  scheduler overlap开启、SBO关闭、multi-stream关闭、graph BS1。若要做RCCL
+  correctness A/B，显式设置`DISABLE_CUSTOM_ALL_REDUCE=1`。

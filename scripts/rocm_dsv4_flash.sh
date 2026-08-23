@@ -207,7 +207,12 @@ fi
 if [[ -n "${DEEPEP_MODE:-}" ]]; then
   server_args+=(--deepep-mode "${DEEPEP_MODE}")
 fi
-if [[ "${ENABLE_SINGLE_BATCH_OVERLAP:-1}" == "1" ]]; then
+if [[ "${EP_SIZE:-4}" == "1" ]]; then
+  DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=0
+else
+  DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=1
+fi
+if [[ "${ENABLE_SINGLE_BATCH_OVERLAP:-${DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP}}" == "1" ]]; then
   server_args+=(--enable-single-batch-overlap)
 fi
 if [[ "${ENABLE_PROFILE_CUDA_GRAPH:-0}" == "1" ]]; then
