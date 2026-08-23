@@ -702,3 +702,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   4604-token为`3.591 / 3.561 / 3.561 s`，相对chunk512 B2中位约3.815秒提升
   约6.7%。France 3/3精确，256-token hash不变且decode约74.2--74.6 tok/s；
   因此脚本默认chunk从512更新为1024。
+- 实测CDNA2 `v_mfma_i32_16x16x16_i8`的lane布局：输入按
+  `matrix_index=lane&15, k_lane=(lane>>4)*4`装载时精确计算`A @ B.T`；输出
+  每lane的4个VGPR对应`row=(lane>>4)*4+[0..3], col=lane&15`。12组随机输入的
+  256个输出寄存器均与CPU int32 reference一一匹配。
+- 基于该布局实现过group16、K-split 1/2/4/8的FP4×INT8 MFMA探针。公平
+  `M=16,N=2048,K=4096`下，split4/8约`0.326 ms`，只比正式group8风格sdot
+  基线`0.336 ms`快约3%；split1反而约`0.405 ms`。接入真实swizzled scale后，
+  gate/up约`0.305 -> 0.293 ms`（+4%），但down约`0.169 -> 0.187 ms`
+  （-11%）；旧sdot down改group16更退化到约`0.223 ms`。MFMA与旧输出相对L2
+  误差分别约`2.4e-5 / 8.7e-6`，布局正确但预计整模型净倒退。所有接线和探针均
+  已撤回；结论是不能只替换dot指令，下一代版本需同时重做scale布局或融合更大
+  expert阶段，才能摊薄每32元素一次的scale转换与LDS归约。
+- MI250X的`N=8192,K=1024` block-FP8配置此前只覆盖`M<=128`，chunk1024
+  会错误沿用`BM16/BN64/group1/4 waves`小M配置。补测M512/1024后采用
+  `BM64/BN64/BK128/group8/4 waves`：对应micro分别从约
+  `1.53 -> 0.946 ms`和`2.94 -> 1.72 ms`（+38%/+41%），四种候选输出均与
+  旧配置逐元素bitwise exact。
+- 完整TP4/EP1 no-A2A ABBA（每服务去掉首轮JIT）：1028-token A合并稳态中位
+  约`0.942 s`，B合并约`0.889 s`，TTFT提升约5.6%；4604-token约
+  `3.598 -> 3.559 s`，仅约1.1%，说明长上下文的剩余时间主要不在该shape。
+  B路径256-token hash仍为`51e2ac132057ead3`。服务日志同时暴露每层
+  `M=1024,N=256,K=4096` BF16 GEMM未命中AIter tuned config并退回torch，
+  是下一项prefill配置/融合目标。
