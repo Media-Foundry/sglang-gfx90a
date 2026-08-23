@@ -468,6 +468,9 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.topk_ids.shape[1],
                     quant_info.swiglu_limit,
                     assignments=grouped_assignments,
+                    blocks=(
+                        416 if runner_input.hidden_states.shape[0] >= 128 else 208
+                    ),
                 )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
@@ -504,6 +507,9 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.topk_weights,
                     out=direct_out,
                     assignments=grouped_assignments,
+                    blocks=(
+                        312 if runner_input.hidden_states.shape[0] >= 128 else 208
+                    ),
                 )
             else:
                 output = gfx90a_fp4_expert_down(
