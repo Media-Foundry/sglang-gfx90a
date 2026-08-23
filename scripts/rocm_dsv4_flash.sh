@@ -134,7 +134,13 @@ if [[ "${EP_SIZE:-4}" == "1" ]]; then
 else
   DEFAULT_GFX90A_FP4_DIRECT_MOE=0
 fi
+if [[ "${EP_SIZE:-4}" == "1" && "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
+  DEFAULT_GFX90A_MHC_TP_ONLY_GEOMETRY=1
+else
+  DEFAULT_GFX90A_MHC_TP_ONLY_GEOMETRY=0
+fi
 export SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE="${SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE:-${DEFAULT_GFX90A_FP4_DIRECT_MOE}}"
+export SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY="${SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY:-${DEFAULT_GFX90A_MHC_TP_ONLY_GEOMETRY}}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
 # routes six experts per token, so the static grid must cover every row that a
