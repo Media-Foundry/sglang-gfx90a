@@ -649,3 +649,12 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   比gate-only再快约18.7%，相对原始约5.2倍。France固定IDs再次5/5精确；
   256-token长生成4轮hash一致，稳态`63.93--64.70 tok/s`。该长轨迹hash因
   prefill INT8及极小down归约差异改变，不能与旧FP16 prefill hash直接等同。
+- 进一步发现首版grouped kernel只复用了weight地址/L1，但每个assignment仍重复
+  8次FP4 nibble到INT8的codebook解包。现在每个32-weight group先解包成8个
+  packed INT8 word，再复用于两个activation的`v_dot4_i32_i8`。真实shape micro：
+  gate/up `8.63 -> 4.65 ms`（约46%），down `6.95 -> 2.83 ms`（约59%）；gate
+  输出bitwise exact，down约12/1048576个BF16元素有极小归约边界差异。
+- 完整服务1028-token稳态TTFT为`1.845 / 1.776 s`，相对上个checkpoint再提升
+  约29.4%、相对最初约7.1倍；4604-token为`7.741 / 8.142 s`，中位`7.942 s`，
+  相对上个checkpoint再提升约28.5%、相对最初约7.3倍。France固定IDs 5/5精确；
+  256-token hash稳定为`51e2ac132057ead3`，稳态约`64.24--65.90 tok/s`。

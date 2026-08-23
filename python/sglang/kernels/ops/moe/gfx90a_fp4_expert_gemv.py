@@ -46,9 +46,16 @@ def _jit_gate_up(e: int, m: int, t: int, ge: int, i: int, k: int) -> Module:
 
 @cache_once
 def _jit_gate_up_grouped(
-    e: int, m: int, t: int, i: int, k: int, assignments: int
+    e: int,
+    m: int,
+    t: int,
+    i: int,
+    k: int,
+    assignments: int,
+    rows: int,
+    waves: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, i, k, assignments, 2, 8)
+    args = make_cpp_args(e, m, t, i, k, assignments, rows, waves)
     return load_jit(
         "gfx90a_fp4_expert_gate_up_grouped",
         *args,
@@ -182,6 +189,8 @@ def gfx90a_fp4_expert_gate_up_grouped(
     topk: int,
     limit: float,
     assignments: int = 4,
+    rows: int = 2,
+    waves: int = 8,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -193,7 +202,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assert sorted_expert_ids.dtype == torch.int32
     assert num_valid_ids.shape == (2,) and num_valid_ids.dtype == torch.int32
     out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
-    _jit_gate_up_grouped(e, m, topk, i, k, assignments).run(
+    _jit_gate_up_grouped(e, m, topk, i, k, assignments, rows, waves).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
