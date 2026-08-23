@@ -62,14 +62,23 @@ __device__ __forceinline__ int8_t gfx90a_fp4_i8_code(uint8_t bits) {
 }
 
 __device__ __forceinline__ int32_t gfx90a_fp4_pack4_i8(uint16_t packed) {
-  uint32_t result = 0;
-#pragma unroll
-  for (uint32_t j = 0; j < 4; ++j) {
-    const uint8_t code = static_cast<uint8_t>(
-        gfx90a_fp4_i8_code((packed >> (4 * j)) & 15));
-    result |= static_cast<uint32_t>(code) << (8 * j);
-  }
-  return static_cast<int32_t>(result);
+  constexpr uint32_t kPositiveLo = 0x03020100u;
+  constexpr uint32_t kPositiveHi = 0x0c080604u;
+  constexpr uint32_t kNegativeLo = 0xfdfeff00u;
+  constexpr uint32_t kNegativeHi = 0xf4f8fafcu;
+  const uint32_t value = packed;
+  const uint32_t magnitude_selector =
+      (value & 0x0007u) | ((value & 0x0070u) << 4) |
+      ((value & 0x0700u) << 8) | ((value & 0x7000u) << 12);
+  const uint32_t positive = __builtin_amdgcn_perm(
+      kPositiveHi, kPositiveLo, magnitude_selector);
+  const uint32_t negative = __builtin_amdgcn_perm(
+      kNegativeHi, kNegativeLo, magnitude_selector);
+  const uint32_t sign_selector =
+      ((value & 0x0008u) >> 1) | ((value & 0x0080u) << 3) |
+      ((value & 0x0800u) << 7) | ((value & 0x8000u) << 11);
+  return static_cast<int32_t>(__builtin_amdgcn_perm(
+      negative, positive, sign_selector | 0x03020100u));
 }
 
 __device__ __forceinline__ float gfx90a_fp4_dot32_i8(

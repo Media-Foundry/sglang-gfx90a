@@ -673,3 +673,14 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `1.068 s`，较group2再快约37%；4604-token为`4.243 / 4.194 s`，中位
   `4.219 s`，再快约41%，相对最初58.16秒约13.8倍。France固定IDs 5/5精确；
   256-token hash 5/5稳定为`51e2ac132057ead3`，稳态`66.16--66.28 tok/s`。
+- M512下group16的micro合计比group8约快10.7%，但完整服务仅约2--3%，不足
+  checkpoint，仍统一保留group8。新profile中M512的43层gate/down约162/107 ms，
+  合计仍占GPU时间约67%。
+- 参考CDNA2 ISA及CK的寄存器LUT做法，将每4个E2M1 nibble的switch解包改成三次
+  `v_perm_b32`：正/负8-entry byte LUT各一次，最后按sign selector合并。全部65536种
+  uint16组合与原codebook穷举完全一致。group8 M256 micro中gate约
+  `2.54 -> 1.91 ms`、down约`1.61 -> 1.44 ms`。
+- 完整服务4604-token TTFT从`4.219 -> 3.838 s`（约+9.0%）；France固定IDs
+  5/5精确。256-token native AR除首轮JIT外为`74.50 / 72.07 / 74.39 /
+  68.63 / 74.08 / 74.53 / 73.88 tok/s`，中位约74.08，较66.2约+11.9%；
+  7/7 hash保持`51e2ac132057ead3`，证明新的unpack位映射没有改变数学结果。
