@@ -988,7 +988,13 @@ class DeepseekV2MoE(nn.Module):
             or get_moe_a2a_backend().is_flashinfer()
             or get_moe_a2a_backend().is_deepep_v2()
         )
-        self._fuse_shared_experts_inside_sbo = SboFlags.fuse_shared_experts_inside_sbo()
+        # The SBO shared-expert hook is implemented with an auxiliary stream.
+        # ROCm may intentionally leave alt_stream unset unless multi-stream is
+        # enabled; in that case keep the ordinary sequential shared-expert path
+        # instead of registering hooks that dereference None during graph capture.
+        self._fuse_shared_experts_inside_sbo = (
+            SboFlags.fuse_shared_experts_inside_sbo() and self.alt_stream is not None
+        )
         # SGLANG_OPT_MOE_QUANT_ONCE eligibility, resolved lazily on first
         # forward (weights and runner are final by then). None = undecided.
         self._moe_quant_once: Optional[bool] = None

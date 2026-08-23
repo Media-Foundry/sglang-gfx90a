@@ -461,3 +461,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   约7秒，9-token问答稳态约0.69秒。
 - 每次GPU实验前使用：
   `/opt/rocm/core-7.14/bin/amd-smi process --general --sort-by-pid -g 0 1 2 3`。
+
+### W2 修复后的真实 TP/EP 基线与 shared-expert overlap（2026-08-23）
+
+- W2 行置换修复后，旧的约 `60 tok/s` 不再是有效正确性基线：旧 legacy CK
+  FP4 stage-1 实际输出全零，等价于大部分 routed expert 计算缺失。正确的
+  TP4/EP4+Mori、graph BS1、scheduler overlap+SBO 基线仅约
+  `14.2--15.0 tok/s`。
+- `SGLANG_MORI_DECODE_TIERED_CAPACITY=1` 确实把 AIter 输入 padding 从64行降至
+  16/8行，但 CKTile kernel 的最小 `block_m=32` 没有变化，端到端仅约
+  `14.5--15.3 tok/s`，随后短请求还出现一次挂起；不应作为默认开关。
+- 真正的 TP4/EP1/no-A2A 对照已运行成功：graph BS1、scheduler overlap on、
+  SBO off、custom all-reduce off，France 固定 token oracle 正确；256-token五轮为
+  `20.169 / 20.142 / 19.759 / 20.145 / 20.000 tok/s`。相对正确 EP4 基线约
+  提升34%，证明 BS1 的 EP4/Mori 固定税显著，但 routed CKTile 小 M 仍是主瓶颈。
+- TP4/EP1 开启 SBO、但 ROCm 未创建 `alt_stream` 时，shared-expert pre-combine
+  hook 会对 `None` 调用 `wait_stream`，在 graph capture 崩溃。构造时现在只有在
+  `alt_stream is not None` 时才注册这组 SBO hook；否则保留普通顺序路径。
+- 显式启用 `SGLANG_ROCM_USE_MULTI_STREAM=1` 后，TP4/EP1 + SBO + graph BS1 的
+  France token IDs 仍与 oracle 完全一致，但256-token五轮仅为
+  `19.328 / 19.870 / 19.895 / 19.753 / 19.789 tok/s`，中位约19.79，较SBO-off
+  基线约慢1.7%。因此 multi-stream shared/routed overlap 不作为默认性能配置；
+  应直接优化 `M<=8` 的 BF16-activation/FP4-weight routed expert kernel。
