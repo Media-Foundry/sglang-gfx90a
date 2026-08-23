@@ -575,3 +575,35 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `58.2 tok/s`，正确性和性能均未通过；SGLang接线与依赖实验改动均撤回。
 - AIter JIT必须显式使用`/opt/rocm/core-7.14/bin/hipcc`并设置ROCm include/lib；
   conda的`/home/pc/anaconda3/bin/hipcc`会落到缺少hipsparse/thrust头的host工具链。
+- 继续扫描MHC split-K：TP-only `block_n=1`下，tail microbench的9轮trimmed
+  median为split4 `101.89 us`、split8 `95.54 us`、split16 `102.17 us`；8-way
+  是清晰局部最优。direct MoE top-6真实shape下，208 blocks的gate/down为
+  `135.25/93.25 us`，192为`135.49/93.17 us`，224退化到
+  `158.80/96.28 us`，因此保持208。
+- 尝试让direct row-major FP4权重同时使用row-major E8M0 scale，省去CK scale
+  swizzle地址计算；microbench gate/down合计约快`1.75%`，数值oracle cosine为
+  `0.999974/0.999967`。但完整服务B的8轮trimmed median约`62.63 tok/s`，返回
+  committed A约`62.88 tok/s`，长hash均为`4690817e29438b74`，端到端无收益，
+  因此代码已撤回。
+
+### TP-only native router GEMV（2026-08-23）
+
+- dense-only graph trace确认短上下文已正确跳过full indexer；此前capture trace里
+  每token约`2.27 ms`的indexer logits来自dual-graph最后捕获的sparse variant，
+  不是短请求实际replay瓶颈。dense trace中router projection为每层一次
+  `[1,4096] x [4096,256]` Tensile GEMM，约`19.4 us`，后接约`14.1 us` router
+  Triton。
+- 将已有gfx90a wave64 BF16 GEMV扩展到N=256。micro中
+  `rows=1, unroll=2, waves=4`的11轮trimmed median约`12.92 us`，但完整graph
+  仅约`64.84 tok/s`；8-wave虽standalone约`13.50 us`，端到端却稳定更快，说明
+  router workgroup数量会与同graph的其它kernel/collective发生资源竞争，最终保留
+  `rows=1, unroll=2, waves=8`。随机权重及真实checkpoint router权重上与
+  AIter/tgemm均为BF16等价数学；真实权重的20组输入中每5120个logits仅1--4个
+  元素因归约顺序相差约1 ULP。
+- 完整TP4/EP1/no-A2A/graph-BS1两套独立B服务的8轮trimmed median分别约
+  `66.17 / 66.08 tok/s`，返回A约`62.88 tok/s`，提升约`5.1%`。France固定IDs
+  仍精确输出`The capital of France is **Paris**.`；256-token hash在所有B轮稳定为
+  `0569e30b92219d8c`。它与旧hash不同，原因是合法BF16 reduction-order差异而非
+  随机竞态：两次2048-token生成均完整结束且hash同为`8845939925bbe186`，速度
+  `49.07 / 47.75 tok/s`。前三个hash-router层单独回退AIter不改变该新hash且略慢，
+  因此最终对全部M=1 DSV4 router使用native路径；prefill及其它shape保持AIter。
