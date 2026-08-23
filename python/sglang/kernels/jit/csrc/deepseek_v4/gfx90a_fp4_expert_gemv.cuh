@@ -391,7 +391,8 @@ struct Gfx90aFp4ExpertGateUpKernel {
                      const int32_t* expert_mask,
                      const int32_t* live_count) {
     using namespace host;
-    constexpr uint32_t kBlocks = 256;
+    // Two blocks per MI250X GCD CU avoid oversubscribing the 104-CU device.
+    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
         gfx90a_fp4_expert_gate_up_kernel<E, M, T, GE, I, K, kRows, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),
@@ -473,7 +474,7 @@ struct Gfx90aFp4ExpertDownKernel {
                      const int32_t* expert_mask,
                      const int32_t* live_count) {
     using namespace host;
-    constexpr uint32_t kBlocks = 256;
+    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
         gfx90a_fp4_expert_down_kernel<E, M, T, GE, N, K, kRows, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),

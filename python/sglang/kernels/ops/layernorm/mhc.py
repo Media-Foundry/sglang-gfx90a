@@ -554,14 +554,15 @@ def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
     ):
         return None
 
-    # Keep at most 48 stage-0 CTAs resident around Mori's graph collectives.
-    # A 192-CTA scalar-row variant wins in isolation but can starve the
-    # device-side communication progress kernel during graph capture.
+    # TP-only decode has no Mori progress kernel to protect, so it may use the
+    # 192-CTA scalar-row geometry that wins in isolation on a 104-CU GCD.
     if global_batch_size != 1:
         return None
     num_tokens = residual.shape[0]
     splits = 8
-    block_n = 4
+    block_n = (
+        1 if envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get() else 4
+    )
     dot_partials = torch.empty(
         (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
     )
@@ -650,7 +651,10 @@ def gfx90a_mhc_splitk_fused_tail_triton(
             return None
         mix_weight = fn_fp16
 
-    splits, block_n = 8, 4
+    splits = 8
+    block_n = (
+        1 if envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get() else 4
+    )
     dot_partials = torch.empty(
         (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
     )

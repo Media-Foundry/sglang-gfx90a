@@ -1350,6 +1350,9 @@ class Envs:
     # the distributed pre-mix consumes them and avoids a standalone RMS launch.
     SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS = EnvBool(False)
     SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX = EnvBool(False)
+    # The 192-CTA scalar-row split-K geometry is faster without an A2A
+    # progress kernel. Mori paths keep the 48-CTA coexistence geometry.
+    SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY = EnvBool(False)
     # Native HIP wave64 MHC pre-mix. It shares the RMS reduction within each
     # three-output wave CTA instead of relying on Triton reductions.
     SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX = EnvBool(False)

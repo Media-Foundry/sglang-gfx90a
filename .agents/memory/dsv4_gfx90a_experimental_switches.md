@@ -544,3 +544,34 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 最终TP4/EP1默认组合：direct packed-FP4×INT8-dot开启、custom all-reduce开启、
   scheduler overlap开启、SBO关闭、multi-stream关闭、graph BS1。若要做RCCL
   correctness A/B，显式设置`DISABLE_CUSTOM_ALL_REDUCE=1`。
+
+### TP-only direct-MoE / MHC geometry ABBA（2026-08-23）
+
+- 固定前四个GCD、TP4/EP1、no-A2A、graph BS1、native AR及
+  `4690817e29438b74`正确性hash。原direct kernel为`256 blocks x 4 waves`；
+  `128 blocks x 8 waves`明显退化，而`208 blocks x 8 waves`对应MI250X每个
+  104-CU GCD恰好两block/CU。真实shape microbench中gate/up约从147.2降至
+  136.9 us、down从102.3降至97.7 us。
+- 仅direct几何的两套独立服务trimmed median约`61.31 / 61.09 tok/s`；返回A2
+  为`59.44 tok/s`，端到端单变量约`+2.8--3.1%`，不足单独checkpoint。
+- MHC原`block_n=4`的48-CTA split-K几何是为Mori progress让CU；TP-only没有
+  Mori，因此使用`block_n=1`的192-CTA scalar-row。单变量trimmed median
+  `60.44 tok/s`，相对A2约`+1.7%`，hash不变。新开关
+  `SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY`只在脚本`EP_SIZE=1`时默认开启，
+  EP2/EP4继续保留48 CTA。
+- 两项叠加后B1六轮trimmed median约`62.70 tok/s`；B2独立重启六轮为
+  `62.427 / 63.208 / 63.383 / 62.822 / 63.428 / 63.465 tok/s`，trimmed
+  median约`63.30 tok/s`。返回A3六轮trimmed median约`57.53 tok/s`；即使以
+  较高A2比较，B2仍约`+6.5%`。所有B轮长输出hash一致，France固定IDs也保持
+  精确输出`The capital of France is **Paris**.`。
+- 最终代码第三次独立启动的六轮为`58.408 / 62.475 / 62.867 / 63.274 /
+  61.955 / 63.461 tok/s`；首轮冷态后trimmed median约`62.67 tok/s`，hash仍
+  6/6一致。脚本只在`EP_SIZE=1 && MOE_A2A_BACKEND=none`时默认启用192-CTA
+  MHC几何。
+- `AITER_GFX90A_AR_SMALL_BLOCKS=2`单变量trimmed median仅`58.50 tok/s`，低于
+  默认4 CTA的A2，证伪；不改默认。
+- 尝试接线AIter中尚未使用的`fused_allreduce_mhc_post`。修正实验kernel的comb
+  转置后France仍正确，但256-token hash改变且首轮漂移，trimmed median约
+  `58.2 tok/s`，正确性和性能均未通过；SGLang接线与依赖实验改动均撤回。
+- AIter JIT必须显式使用`/opt/rocm/core-7.14/bin/hipcc`并设置ROCm include/lib；
+  conda的`/home/pc/anaconda3/bin/hipcc`会落到缺少hipsparse/thrust头的host工具链。

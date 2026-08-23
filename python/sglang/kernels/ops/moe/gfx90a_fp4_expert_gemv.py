@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @cache_once
 def _jit_gate_up(e: int, m: int, t: int, ge: int, i: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, ge, i, k, 2, 4)
+    args = make_cpp_args(e, m, t, ge, i, k, 2, 8)
     return load_jit(
         "gfx90a_fp4_expert_gate_up",
         *args,
@@ -34,7 +34,7 @@ def _jit_gate_up(e: int, m: int, t: int, ge: int, i: int, k: int) -> Module:
 
 @cache_once
 def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, ge, n, k, 2, 4)
+    args = make_cpp_args(e, m, t, ge, n, k, 2, 8)
     return load_jit(
         "gfx90a_fp4_expert_down",
         *args,
