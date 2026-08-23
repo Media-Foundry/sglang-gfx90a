@@ -54,8 +54,9 @@ def _jit_gate_up_grouped(
     assignments: int,
     rows: int,
     waves: int,
+    blocks: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, i, k, assignments, rows, waves)
+    args = make_cpp_args(e, m, t, i, k, assignments, rows, waves, blocks)
     return load_jit(
         "gfx90a_fp4_expert_gate_up_grouped",
         *args,
@@ -106,9 +107,15 @@ def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
 
 @cache_once
 def _jit_down_grouped(
-    e: int, m: int, t: int, n: int, k: int, assignments: int
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    assignments: int,
+    blocks: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, assignments, 2, 8)
+    args = make_cpp_args(e, m, t, n, k, assignments, 2, 8, blocks)
     return load_jit(
         "gfx90a_fp4_expert_down_grouped",
         *args,
@@ -191,6 +198,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assignments: int = 4,
     rows: int = 2,
     waves: int = 8,
+    blocks: int = 208,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -202,7 +210,9 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assert sorted_expert_ids.dtype == torch.int32
     assert num_valid_ids.shape == (2,) and num_valid_ids.dtype == torch.int32
     out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
-    _jit_gate_up_grouped(e, m, topk, i, k, assignments, rows, waves).run(
+    _jit_gate_up_grouped(
+        e, m, topk, i, k, assignments, rows, waves, blocks
+    ).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
@@ -227,6 +237,7 @@ def gfx90a_fp4_expert_down_grouped(
     topk_weights: torch.Tensor,
     out: torch.Tensor | None = None,
     assignments: int = 2,
+    blocks: int = 208,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -241,7 +252,7 @@ def gfx90a_fp4_expert_down_grouped(
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
     partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
-    _jit_down_grouped(e, m, topk, n, k, assignments).run(
+    _jit_down_grouped(e, m, topk, n, k, assignments, blocks).run(
         xq,
         x_scale,
         weight.view(torch.uint8),

@@ -684,3 +684,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   5/5精确。256-token native AR除首轮JIT外为`74.50 / 72.07 / 74.39 /
   68.63 / 74.08 / 74.53 / 73.88 tok/s`，中位约74.08，较66.2约+11.9%；
   7/7 hash保持`51e2ac132057ead3`，证明新的unpack位映射没有改变数学结果。
+- group8 launch几何按M512/M256扫描：gate在416 blocks×8 waves最优，down在
+  312 blocks×8 waves最优；小于128行仍保留208 blocks。ABBA中A(208/208)的
+  1028-token稳态中位约1.018秒，B1约0.918秒，返回A约1.018秒，B2约0.931秒，
+  中等prefill稳定提升约8.5--9.8%；4604-token收益随其它瓶颈占比上升而缩到
+  约0.5--3%。B2 France 3/3精确，短decode `74.52 / 74.63 tok/s`且hash不变。
+- BF16 down partial把每层临时流量减半，但相对FP32 grouped down仅约0.8% micro
+  收益，同时约79万/209万元素发生BF16级变化；已回退，继续使用FP32 partial。
+- 实验性full prefill CUDA Graph只捕获512 tier：补齐EXTEND bucket及graph state后
+  capture可在约3.6秒完成且无OOM，但replay先因累计seq_len导致page-table shape
+  `2 -> 4`失败；固定为最大page-table shape后，`_prefill_lengths_kernel`读取失效
+  metadata地址并触发GPU memory fault。该路径已完整撤回；要继续必须先让所有
+  prefill length/page/compressor metadata使用runner-owned capture-stable buffer。

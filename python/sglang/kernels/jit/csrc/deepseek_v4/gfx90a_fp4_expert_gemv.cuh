@@ -549,7 +549,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
-          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kBlocks>
 struct Gfx90aFp4ExpertGateUpGroupedKernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -568,7 +569,6 @@ struct Gfx90aFp4ExpertGateUpGroupedKernel {
     TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
     TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
-    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_gate_up_grouped_kernel<
             E, M, T, I, K, kAssignments, kRows, kNumWaves>,
@@ -708,7 +708,8 @@ __global__ void gfx90a_fp4_expert_down_reduce_kernel(
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kBlocks>
 struct Gfx90aFp4ExpertDownGroupedKernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -731,7 +732,6 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
     TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
-    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_grouped_kernel<
             E, M, T, N, K, kAssignments, kRows, kNumWaves>,
