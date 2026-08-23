@@ -616,3 +616,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   但完整graph trimmed median约`64.99 tok/s`；最终保持`rows=1,waves=8`。这再次
   说明gfx90a graph需要按全局workgroup供给与collective交错选择geometry，不能只按
   standalone kernel时间定默认值。
+
+### TP-only routed-MoE prefill INT8 与 expert 分组（2026-08-24）
+
+- 原raw-FP4 direct kernel把M=256 prefill走入逐assignment的FP16 dot分支；
+  1028-token prompt稳态TTFT约`12.85 / 12.95 s`，4604-token约
+  `58.01 / 58.32 s`。不能直接回退AIter CKTile，因为direct decode保留的是raw
+  packed权重，而CKTile要求preshuffle；将raw权重静默传入会得到错误结果，完整复制
+  两套expert权重又超出可接受VRAM。
+- 对M>1先用group-32 INT8量化activation，再由CDNA2 `v_dot4_i32_i8`消费raw FP4
+  codebook；gate/up单层约`43.51 -> 8.65 ms`，down约`27.85 -> 6.87 ms`。
+  1028-token稳态TTFT降到`3.15 / 3.41 s`，4604-token降到
+  `14.00 / 14.10 s`，均约4倍；M=1 decode保持原共享量化路径。
+- `CHUNKED_PREFILL_SIZE=512`对1028-token无稳定收益，对4604-token仅从约
+  `14.05`降到`13.56 s`（约3.6%），说明主要成本不是scheduler chunk次数。
+- 新开关`SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL`使用AIter sorter的编码
+  （低24位token、高8位top-k slot），每wave让同expert的2个assignment复用一次
+  raw FP4 weight/scale读取。真实TP4/EP1 shape micro中gate/up为
+  `8.63 -> 7.71 ms`且BF16输出逐元素一致；group4约7.78 ms，group8退化到9.34 ms。
+- chunk=256端到端：1028-token稳态TTFT`3.049 / 3.014 s`，相对未分组中位
+  `3.283 s`提升约8.3%；4604-token为`13.200 / 13.174 s`，相对`14.045 s`
+  提升约6.5%。固定France输入5/5精确输出
+  `The capital of France is **Paris**.`并EOS。256-token decode稳态
+  `65.40--65.55 tok/s`且6轮hash一致；grouped路径仅作用于M>1。

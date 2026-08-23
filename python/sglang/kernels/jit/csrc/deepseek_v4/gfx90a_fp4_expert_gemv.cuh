@@ -126,6 +126,8 @@ template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_up_kernel(
         bf16_t* __restrict__ out, const bf16_t* __restrict__ x,
+        const int8_t* __restrict__ xq,
+        const float* __restrict__ x_scale,
         const uint8_t* __restrict__ weight,
         const uint8_t* __restrict__ weight_scale,
         const int32_t* __restrict__ expert_ids,
@@ -134,25 +136,27 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   __shared__ int8_t sxq[M == 1 ? K : 1];
   __shared__ float sx_scale[M == 1 ? K / 32 : 1];
   if constexpr (M == 1) {
-    for (uint32_t group = threadIdx.x; group < K / 32;
-         group += blockDim.x) {
-      const uint32_t k0 = group * 32;
-      float local_max = 0.0f;
+    if (xq == nullptr) {
+      for (uint32_t group = threadIdx.x; group < K / 32;
+           group += blockDim.x) {
+        const uint32_t k0 = group * 32;
+        float local_max = 0.0f;
 #pragma unroll
-      for (uint32_t j = 0; j < 32; ++j) {
-        local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
-      }
-      const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
-      const float inv_scale = 1.0f / scale;
-      sx_scale[group] = scale;
+        for (uint32_t j = 0; j < 32; ++j) {
+          local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
+        }
+        const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
+        const float inv_scale = 1.0f / scale;
+        sx_scale[group] = scale;
 #pragma unroll
-      for (uint32_t j = 0; j < 32; ++j) {
-        const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
-        sxq[k0 + j] =
-            static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+        for (uint32_t j = 0; j < 32; ++j) {
+          const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
+          sxq[k0 + j] =
+              static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+        }
       }
+      __syncthreads();
     }
-    __syncthreads();
   }
   constexpr uint32_t kTilesPerAssignment = (I + kRows - 1) / kRows;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
@@ -209,7 +213,18 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
           const float up_scale = gfx90a_e8m0_value(
               weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
                   expert, up_row, group)]);
-          if constexpr (M == 1) {
+          if (xq != nullptr) {
+            const size_t xq_group =
+                static_cast<size_t>(token) * (K / 32) + group;
+            gate_acc[r] += gfx90a_fp4_dot32_i8(
+                xq + static_cast<size_t>(token) * K + k0,
+                weight + gate_base,
+                x_scale[xq_group] * gate_scale * 0.5f);
+            up_acc[r] += gfx90a_fp4_dot32_i8(
+                xq + static_cast<size_t>(token) * K + k0,
+                weight + up_base,
+                x_scale[xq_group] * up_scale * 0.5f);
+          } else if constexpr (M == 1) {
             gate_acc[r] += gfx90a_fp4_dot32_i8(
                 sxq + k0, weight + gate_base,
                 sx_scale[group] * gate_scale * 0.5f);
@@ -255,6 +270,8 @@ template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_down_kernel(
         bf16_t* __restrict__ out, const bf16_t* __restrict__ x,
+        const int8_t* __restrict__ xq,
+        const float* __restrict__ x_scale,
         const uint8_t* __restrict__ weight,
         const uint8_t* __restrict__ weight_scale,
         const int32_t* __restrict__ expert_ids,
@@ -264,25 +281,27 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   __shared__ int8_t sxq[M == 1 ? T * K : 1];
   __shared__ float sx_scale[M == 1 ? T * K / 32 : 1];
   if constexpr (M == 1) {
-    for (uint32_t group = threadIdx.x; group < T * K / 32;
-         group += blockDim.x) {
-      const uint32_t k0 = group * 32;
-      float local_max = 0.0f;
+    if (xq == nullptr) {
+      for (uint32_t group = threadIdx.x; group < T * K / 32;
+           group += blockDim.x) {
+        const uint32_t k0 = group * 32;
+        float local_max = 0.0f;
 #pragma unroll
-      for (uint32_t j = 0; j < 32; ++j) {
-        local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
-      }
-      const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
-      const float inv_scale = 1.0f / scale;
-      sx_scale[group] = scale;
+        for (uint32_t j = 0; j < 32; ++j) {
+          local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
+        }
+        const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
+        const float inv_scale = 1.0f / scale;
+        sx_scale[group] = scale;
 #pragma unroll
-      for (uint32_t j = 0; j < 32; ++j) {
-        const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
-        sxq[k0 + j] =
-            static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+        for (uint32_t j = 0; j < 32; ++j) {
+          const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
+          sxq[k0 + j] =
+              static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+        }
       }
+      __syncthreads();
     }
-    __syncthreads();
   }
   constexpr uint32_t kTilesPerRow = (N + kRows - 1) / kRows;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
@@ -337,7 +356,14 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
             const float scale = gfx90a_e8m0_value(
                 weight_scale[gfx90a_down_scale_offset<E, N, K>(
                     expert, row, group)]);
-            if constexpr (M == 1) {
+            if (xq != nullptr) {
+              const size_t xq_group =
+                  (static_cast<size_t>(token) * T + slot) * (K / 32) + group;
+              slot_acc[r] += gfx90a_fp4_dot32_i8(
+                  xq + (static_cast<size_t>(token) * T + slot) * K + k0,
+                  weight + weight_base,
+                  x_scale[xq_group] * scale * 0.5f);
+            } else if constexpr (M == 1) {
               const uint32_t scale_group = slot * (K / 32) + group;
               slot_acc[r] += gfx90a_fp4_dot32_i8(
                   sxq + static_cast<size_t>(slot) * K + k0,
@@ -379,6 +405,156 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   }
 }
 
+// Prefill routes several tokens to each expert.  Grouping four assignments per
+// wave lets all four dot products reuse the same packed FP4 weight and scale
+// loads.  AIter's sorter encodes the token in the low 24 bits and the top-k
+// slot in the high 8 bits of sorted_ids.
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
+__global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
+    gfx90a_fp4_expert_gate_up_grouped_kernel(
+        bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
+        const float* __restrict__ x_scale,
+        const uint8_t* __restrict__ weight,
+        const uint8_t* __restrict__ weight_scale,
+        const int32_t* __restrict__ sorted_ids,
+        const int32_t* __restrict__ sorted_expert_ids,
+        const int32_t* __restrict__ num_valid_ids, float limit) {
+  constexpr uint32_t kTilesPerExpertBlock = (I + kRows - 1) / kRows;
+  const uint32_t wave = threadIdx.x / kFp4ExpertWave;
+  const uint32_t lane = threadIdx.x % kFp4ExpertWave;
+  const uint32_t global_wave = blockIdx.x * kNumWaves + wave;
+  const uint32_t total_waves = gridDim.x * kNumWaves;
+  const uint32_t valid = max(num_valid_ids[0], 0);
+  const uint32_t valid_blocks =
+      (valid + kAssignments - 1) / kAssignments;
+
+  for (uint32_t task = global_wave;
+       task < valid_blocks * kTilesPerExpertBlock;
+       task += total_waves) {
+    const uint32_t expert_block = task / kTilesPerExpertBlock;
+    const uint32_t row0 = (task % kTilesPerExpertBlock) * kRows;
+    const int32_t expert_id = sorted_expert_ids[expert_block];
+    if (expert_id < 0 || expert_id >= static_cast<int32_t>(E)) continue;
+    const uint32_t expert = static_cast<uint32_t>(expert_id);
+
+    uint32_t tokens[kAssignments];
+    uint32_t slots[kAssignments];
+    bool assignment_valid[kAssignments];
+    float gate_acc[kAssignments][kRows] = {};
+    float up_acc[kAssignments][kRows] = {};
+#pragma unroll
+    for (uint32_t assignment = 0; assignment < kAssignments; ++assignment) {
+      const uint32_t encoded = static_cast<uint32_t>(
+          sorted_ids[expert_block * kAssignments + assignment]);
+      tokens[assignment] = encoded & 0x00ffffffu;
+      slots[assignment] = encoded >> 24;
+      assignment_valid[assignment] =
+          tokens[assignment] < M && slots[assignment] < T;
+    }
+
+    for (uint32_t group = lane; group < K / 32; group += kFp4ExpertWave) {
+      const uint32_t k0 = group * 32;
+#pragma unroll
+      for (uint32_t r = 0; r < kRows; ++r) {
+        const uint32_t local_row = row0 + r;
+        if (local_row >= I) continue;
+        const uint32_t gate_row = local_row;
+        const uint32_t up_row = I + local_row;
+        const size_t gate_base =
+            (static_cast<size_t>(expert) * (2 * I) + gate_row) * (K / 2) +
+            group * 16;
+        const size_t up_base =
+            (static_cast<size_t>(expert) * (2 * I) + up_row) * (K / 2) +
+            group * 16;
+        const float gate_scale = gfx90a_e8m0_value(
+            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                expert, gate_row, group)]);
+        const float up_scale = gfx90a_e8m0_value(
+            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                expert, up_row, group)]);
+#pragma unroll
+        for (uint32_t assignment = 0; assignment < kAssignments;
+             ++assignment) {
+          if (!assignment_valid[assignment]) continue;
+          const uint32_t token = tokens[assignment];
+          const size_t xq_group =
+              static_cast<size_t>(token) * (K / 32) + group;
+          gate_acc[assignment][r] += gfx90a_fp4_dot32_i8(
+              xq + static_cast<size_t>(token) * K + k0,
+              weight + gate_base,
+              x_scale[xq_group] * gate_scale * 0.5f);
+          up_acc[assignment][r] += gfx90a_fp4_dot32_i8(
+              xq + static_cast<size_t>(token) * K + k0,
+              weight + up_base,
+              x_scale[xq_group] * up_scale * 0.5f);
+        }
+      }
+    }
+
+#pragma unroll
+    for (uint32_t assignment = 0; assignment < kAssignments; ++assignment) {
+      if (!assignment_valid[assignment]) continue;
+#pragma unroll
+      for (uint32_t r = 0; r < kRows; ++r) {
+#pragma unroll
+        for (uint32_t offset = 32; offset > 0; offset >>= 1) {
+          gate_acc[assignment][r] +=
+              __shfl_down(gate_acc[assignment][r], offset, kFp4ExpertWave);
+          up_acc[assignment][r] +=
+              __shfl_down(up_acc[assignment][r], offset, kFp4ExpertWave);
+        }
+        if (lane == 0 && row0 + r < I) {
+          const float gate = fminf(gate_acc[assignment][r], limit);
+          const float up =
+              fmaxf(-limit, fminf(up_acc[assignment][r], limit));
+          const float activated = gate / (1.0f + expf(-gate));
+          const size_t output_assignment =
+              static_cast<size_t>(tokens[assignment]) * T + slots[assignment];
+          out[output_assignment * I + row0 + r] =
+              cast<bf16_t>(activated * up);
+        }
+      }
+    }
+  }
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
+struct Gfx90aFp4ExpertGateUpGroupedKernel {
+  static void run(const tvm::ffi::TensorView xq,
+                  const tvm::ffi::TensorView x_scale,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView weight_scale,
+                  const tvm::ffi::TensorView sorted_ids,
+                  const tvm::ffi::TensorView sorted_expert_ids,
+                  const tvm::ffi::TensorView num_valid_ids,
+                  const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    constexpr uint32_t kBlocks = 208;
+    LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
+        gfx90a_fp4_expert_gate_up_grouped_kernel<
+            E, M, T, I, K, kAssignments, kRows, kNumWaves>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const int8_t*>(xq.data_ptr()),
+        static_cast<const float*>(x_scale.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const uint8_t*>(weight_scale.data_ptr()),
+        static_cast<const int32_t*>(sorted_ids.data_ptr()),
+        static_cast<const int32_t*>(sorted_expert_ids.data_ptr()),
+        static_cast<const int32_t*>(num_valid_ids.data_ptr()),
+        static_cast<float>(limit));
+  }
+};
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t I, uint32_t K,
           uint32_t kRows, uint32_t kNumWaves>
@@ -389,7 +565,9 @@ struct Gfx90aFp4ExpertGateUpKernel {
                      const tvm::ffi::TensorView expert_ids,
                      const tvm::ffi::TensorView out, double limit,
                      const int32_t* expert_mask,
-                     const int32_t* live_count) {
+                     const int32_t* live_count,
+                     const int8_t* xq = nullptr,
+                     const float* x_scale = nullptr) {
     using namespace host;
     // Two blocks per MI250X GCD CU avoid oversubscribing the 104-CU device.
     constexpr uint32_t kBlocks = 208;
@@ -397,6 +575,7 @@ struct Gfx90aFp4ExpertGateUpKernel {
         gfx90a_fp4_expert_gate_up_kernel<E, M, T, GE, I, K, kRows, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
+        xq, x_scale,
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const uint8_t*>(weight_scale.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()), expert_mask, live_count,
@@ -425,6 +604,34 @@ struct Gfx90aFp4ExpertGateUpKernel {
            static_cast<const int32_t*>(live_count.data_ptr()));
   }
 
+  static void run_prequant(const tvm::ffi::TensorView x,
+                           const tvm::ffi::TensorView xq,
+                           const tvm::ffi::TensorView x_scale,
+                           const tvm::ffi::TensorView weight,
+                           const tvm::ffi::TensorView weight_scale,
+                           const tvm::ffi::TensorView expert_ids,
+                           const tvm::ffi::TensorView expert_mask,
+                           const tvm::ffi::TensorView live_count,
+                           const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(live_count);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, out, limit,
+           static_cast<const int32_t*>(expert_mask.data_ptr()),
+           static_cast<const int32_t*>(live_count.data_ptr()),
+           static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
+  }
+
   static void run_static(const tvm::ffi::TensorView x,
                          const tvm::ffi::TensorView weight,
                          const tvm::ffi::TensorView weight_scale,
@@ -444,6 +651,31 @@ struct Gfx90aFp4ExpertGateUpKernel {
            static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr);
   }
 
+  static void run_prequant_static(
+      const tvm::ffi::TensorView x, const tvm::ffi::TensorView xq,
+      const tvm::ffi::TensorView x_scale,
+      const tvm::ffi::TensorView weight,
+      const tvm::ffi::TensorView weight_scale,
+      const tvm::ffi::TensorView expert_ids,
+      const tvm::ffi::TensorView expert_mask,
+      const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, out, limit,
+           static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr,
+           static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
+  }
+
   static void run_static_nomask(const tvm::ffi::TensorView x,
                                 const tvm::ffi::TensorView weight,
                                 const tvm::ffi::TensorView weight_scale,
@@ -459,6 +691,28 @@ struct Gfx90aFp4ExpertGateUpKernel {
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
     launch(x, weight, weight_scale, expert_ids, out, limit, nullptr, nullptr);
   }
+
+  static void run_prequant_static_nomask(
+      const tvm::ffi::TensorView x, const tvm::ffi::TensorView xq,
+      const tvm::ffi::TensorView x_scale,
+      const tvm::ffi::TensorView weight,
+      const tvm::ffi::TensorView weight_scale,
+      const tvm::ffi::TensorView expert_ids,
+      const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, out, limit, nullptr, nullptr,
+           static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
+  }
 };
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
@@ -472,13 +726,16 @@ struct Gfx90aFp4ExpertDownKernel {
                      const tvm::ffi::TensorView topk_weights,
                      const tvm::ffi::TensorView out,
                      const int32_t* expert_mask,
-                     const int32_t* live_count) {
+                     const int32_t* live_count,
+                     const int8_t* xq = nullptr,
+                     const float* x_scale = nullptr) {
     using namespace host;
     constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
         gfx90a_fp4_expert_down_kernel<E, M, T, GE, N, K, kRows, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
+        xq, x_scale,
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const uint8_t*>(weight_scale.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()), expert_mask,
@@ -509,6 +766,36 @@ struct Gfx90aFp4ExpertDownKernel {
            static_cast<const int32_t*>(live_count.data_ptr()));
   }
 
+  static void run_prequant(const tvm::ffi::TensorView x,
+                           const tvm::ffi::TensorView xq,
+                           const tvm::ffi::TensorView x_scale,
+                           const tvm::ffi::TensorView weight,
+                           const tvm::ffi::TensorView weight_scale,
+                           const tvm::ffi::TensorView expert_ids,
+                           const tvm::ffi::TensorView expert_mask,
+                           const tvm::ffi::TensorView topk_weights,
+                           const tvm::ffi::TensorView live_count,
+                           const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, T, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, T, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(live_count);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out,
+           static_cast<const int32_t*>(expert_mask.data_ptr()),
+           static_cast<const int32_t*>(live_count.data_ptr()),
+           static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
+  }
+
   static void run_static(const tvm::ffi::TensorView x,
                          const tvm::ffi::TensorView weight,
                          const tvm::ffi::TensorView weight_scale,
@@ -530,6 +817,33 @@ struct Gfx90aFp4ExpertDownKernel {
            static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr);
   }
 
+  static void run_prequant_static(
+      const tvm::ffi::TensorView x, const tvm::ffi::TensorView xq,
+      const tvm::ffi::TensorView x_scale,
+      const tvm::ffi::TensorView weight,
+      const tvm::ffi::TensorView weight_scale,
+      const tvm::ffi::TensorView expert_ids,
+      const tvm::ffi::TensorView expert_mask,
+      const tvm::ffi::TensorView topk_weights,
+      const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, T, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, T, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out,
+           static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr,
+           static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
+  }
+
   static void run_static_nomask(const tvm::ffi::TensorView x,
                                 const tvm::ffi::TensorView weight,
                                 const tvm::ffi::TensorView weight_scale,
@@ -547,6 +861,30 @@ struct Gfx90aFp4ExpertDownKernel {
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     launch(x, weight, weight_scale, expert_ids, topk_weights, out, nullptr,
            nullptr);
+  }
+
+  static void run_prequant_static_nomask(
+      const tvm::ffi::TensorView x, const tvm::ffi::TensorView xq,
+      const tvm::ffi::TensorView x_scale,
+      const tvm::ffi::TensorView weight,
+      const tvm::ffi::TensorView weight_scale,
+      const tvm::ffi::TensorView expert_ids,
+      const tvm::ffi::TensorView topk_weights,
+      const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, T, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, T, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out, nullptr,
+           nullptr, static_cast<const int8_t*>(xq.data_ptr()),
+           static_cast<const float*>(x_scale.data_ptr()));
   }
 };
 

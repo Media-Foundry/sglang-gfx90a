@@ -419,14 +419,70 @@ class AiterRunnerCore(MoeRunnerCore):
                 gfx90a_fp4_expert_gate_up,
             )
 
-            intermediate = gfx90a_fp4_expert_gate_up(
-                runner_input.hidden_states,
-                quant_info.w13_weight,
-                quant_info.w13_scale,
-                runner_input.topk_ids,
-                quant_info.expert_mask,
-                runner_input.num_local_tokens,
-                quant_info.swiglu_limit,
+            gate_prequant = None
+            if runner_input.hidden_states.shape[0] > 1:
+                from sglang.kernels.ops.quantization.int8_kernel import (
+                    per_token_group_quant_int8,
+                )
+
+                gate_prequant = per_token_group_quant_int8(
+                    runner_input.hidden_states, 32
+                )
+            use_grouped_prefill = (
+                gate_prequant is not None
+                and envs.SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL.get()
+                and quant_info.expert_mask is None
+                and runner_input.num_local_tokens is None
+            )
+            if use_grouped_prefill:
+                from aiter.fused_moe import moe_sorting
+
+                from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                    gfx90a_fp4_expert_gate_up_grouped,
+                )
+
+                grouped_assignments = 2
+                (
+                    sorted_ids,
+                    _sorted_weights,
+                    sorted_expert_ids,
+                    num_valid_ids,
+                    _moe_buf,
+                ) = moe_sorting(
+                    runner_input.topk_ids,
+                    runner_input.topk_weights,
+                    quant_info.w13_weight.shape[0],
+                    runner_input.hidden_states.shape[1],
+                    runner_input.hidden_states.dtype,
+                    block_size=grouped_assignments,
+                )
+                intermediate = gfx90a_fp4_expert_gate_up_grouped(
+                    gate_prequant[0],
+                    gate_prequant[1],
+                    quant_info.w13_weight,
+                    quant_info.w13_scale,
+                    sorted_ids,
+                    sorted_expert_ids,
+                    num_valid_ids,
+                    runner_input.topk_ids.shape[1],
+                    quant_info.swiglu_limit,
+                    assignments=grouped_assignments,
+                )
+            else:
+                intermediate = gfx90a_fp4_expert_gate_up(
+                    runner_input.hidden_states,
+                    quant_info.w13_weight,
+                    quant_info.w13_scale,
+                    runner_input.topk_ids,
+                    quant_info.expert_mask,
+                    runner_input.num_local_tokens,
+                    quant_info.swiglu_limit,
+                    prequant=gate_prequant,
+                )
+            down_prequant = (
+                per_token_group_quant_int8(intermediate, 32)
+                if gate_prequant is not None
+                else None
             )
             direct_out = (
                 runner_input.output_tensor[
@@ -444,6 +500,7 @@ class AiterRunnerCore(MoeRunnerCore):
                 runner_input.topk_weights,
                 runner_input.num_local_tokens,
                 out=direct_out,
+                prequant=down_prequant,
             )
             return AiterRunnerOutput(hidden_states=output)
         elif envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get():
