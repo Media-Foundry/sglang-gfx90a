@@ -22,6 +22,28 @@ from sglang.srt.layers.moe.utils import MoeRunnerBackend
 from sglang.srt.utils import get_bool_env_var, get_int_env_var, is_gfx95_supported
 
 logger = logging.getLogger(__name__)
+_logged_gfx90a_fast_direct_compare = False
+
+
+def _unshuffle_a16w4_weight(weight: torch.Tensor, *, gate_up: bool) -> torch.Tensor:
+    """Invert AIter's legacy shuffle_weight_a16w4 for debug oracle checks."""
+    weight_dtype = weight.dtype
+    x = weight.view(torch.uint8)
+    experts, rows, packed_k = x.shape
+    n_lane = 16
+    k_lane = 4
+    k_pack = 16
+    k0 = packed_k // (k_lane * k_pack)
+    if gate_up:
+        rows_per_projection = rows // 2
+        n0 = rows_per_projection // n_lane
+        x = x.view(experts, n0, 2, k0, k_lane, n_lane, k_pack)
+        x = x.permute(0, 2, 1, 5, 3, 4, 6).contiguous()
+    else:
+        n0 = rows // n_lane
+        x = x.view(experts, n0, k0, k_lane, n_lane, k_pack)
+        x = x.permute(0, 1, 4, 2, 3, 5).contiguous()
+    return x.view(experts, rows, packed_k).view(weight_dtype)
 
 if TYPE_CHECKING:
     from sglang.srt.layers.moe.token_dispatcher.base import CombineInput
@@ -120,6 +142,10 @@ def _aiter_quant_type(quant_type: AiterQuantType):
 # CK FP4/BF16 kernels, while the assembly table is not valid on gfx90a.
 _GFX90A_DSV4_FP4_KERNEL1 = (
     "moe_ck2stages_gemm1_256x32x128x128_1x4_MulABScale_v3_"
+    "Nswizzle0_Quant3_MulRoutedWeight0_dsv4silu_FP4X2_FP4X2_B16"
+)
+_GFX90A_DSV4_FP4_KERNEL1_UNBOUNDED = (
+    "moe_ck2stages_gemm1_256x32x128x128_1x4_MulABScale_v3_"
     "Nswizzle0_Quant3_MulRoutedWeight0_silu_FP4X2_FP4X2_B16"
 )
 _GFX90A_DSV4_FP4_KERNEL2 = (
@@ -139,16 +165,16 @@ def _install_gfx90a_dsv4_fp4_tune(
     topk: int,
     output_dtype: Optional[torch.dtype],
     quant_info: AiterMoeQuantInfo,
-) -> None:
+) -> bool:
     """Register the validated CDNA2 DeepSeek-V4 FP4 CK fallback in AIter."""
     if quant_info.quant_type is not AiterQuantType.PER_1X32:
-        return
+        return False
     if hidden_states.device.type != "cuda" or w13_weight.device.type != "cuda":
-        return
+        return False
     if output_dtype not in (None, torch.bfloat16):
-        return
+        return False
     if quant_info.doweight_stage1:
-        return
+        return False
 
     try:
         import importlib
@@ -156,10 +182,10 @@ def _install_gfx90a_dsv4_fp4_tune(
 
         aiter_fused_moe = importlib.import_module("aiter.fused_moe")
     except (ImportError, RuntimeError):
-        return
+        return False
 
     if get_gfx() != "gfx90a":
-        return
+        return False
 
     # Avoid AIter's table lookup KeyError for non-tuned gfx90a shapes.
     if "gfx90a" not in aiter_fused_moe.fused_moe_1stage_dict:
@@ -172,17 +198,17 @@ def _install_gfx90a_dsv4_fp4_tune(
     # EP1/TP4 owns all 256 experts with quarter-width intermediate shards. All
     # retain K=4096 and use the same generic CK tiles; only E and N differ.
     if w13_weight.dtype != getattr(torch, "float4_e2m1fn_x2", None):
-        return
+        return False
     if w13_weight.ndim != 3:
-        return
+        return False
     if tuple(w13_weight.shape) not in (
         (64, 4096, 2048),
         (128, 2048, 2048),
         (256, 1024, 2048),
     ):
-        return
+        return False
     if topk != 6:
-        return
+        return False
 
     # gfx90a has no upstream per_1x32 entries. Avoid loading AIter's merged CSV
     # here: this function first runs during CUDA graph capture, and four ranks
@@ -195,15 +221,23 @@ def _install_gfx90a_dsv4_fp4_tune(
     padded_token = aiter_fused_moe.get_padded_M(int(hidden_states.shape[0]))
     model_dim = int(w13_weight.shape[2] * 2)
     inter_dim = int(w13_weight.shape[1] // 2)
+    from sglang.srt.environ import envs
+
+    force_unbounded = get_bool_env_var(
+        "SGLANG_DSV4_DEBUG_FORCE_AITER_SILU", "false"
+    )
+    activation_key = (
+        "ActivationType.Silu"
+        if force_unbounded
+        else "ActivationType.Dsv4Silu"
+    )
     key = (
         int(get_cu_num()), padded_token, model_dim, inter_dim,
-        int(w13_weight.shape[0]), int(topk), "ActivationType.Silu",
+        int(w13_weight.shape[0]), int(topk), activation_key,
         str(output_dtype or torch.bfloat16), str(w13_weight.dtype),
         str(w13_weight.dtype), "QuantType.per_1x32", 1, 0,
     )
     if key not in aiter_fused_moe.cfg_2stages:
-        from sglang.srt.environ import envs
-
         gfx90a_ksplit = envs.SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT.get()
         stage2_kernel = (
             _GFX90A_DSV4_FP4_KERNEL2_64THREAD
@@ -217,7 +251,13 @@ def _install_gfx90a_dsv4_fp4_tune(
             # BF16-activation/FP4-weight implementation. The validated legacy
             # CK pair remains the ksplit=0 baseline.
             "kernelName1": (
-                "" if gfx90a_ksplit > 1 else _GFX90A_DSV4_FP4_KERNEL1
+                ""
+                if gfx90a_ksplit > 1
+                else (
+                    _GFX90A_DSV4_FP4_KERNEL1_UNBOUNDED
+                    if force_unbounded
+                    else _GFX90A_DSV4_FP4_KERNEL1
+                )
             ),
             "kernelName2": (
                 "" if gfx90a_ksplit > 1 else stage2_kernel
@@ -225,6 +265,8 @@ def _install_gfx90a_dsv4_fp4_tune(
             "run_1stage": 0,
         }
         aiter_fused_moe.get_2stage_cfgs.cache_clear()
+
+    return True
 
 
 @functools.cache
@@ -399,7 +441,7 @@ class AiterRunnerCore(MoeRunnerCore):
 
         _install_gfx90a_aiter_quant_fallback()
 
-        _install_gfx90a_dsv4_fp4_tune(
+        use_dsv4_bounded_silu = _install_gfx90a_dsv4_fp4_tune(
             hidden_states=runner_input.hidden_states,
             w13_weight=quant_info.w13_weight,
             topk=int(runner_input.topk_ids.shape[-1]),
@@ -428,6 +470,9 @@ class AiterRunnerCore(MoeRunnerCore):
         if (
             runner_input.output_tensor is not None
             and "moe_out" in fused_moe_parameters
+            and not get_bool_env_var(
+                "SGLANG_DSV4_DEBUG_DISABLE_AITER_MOE_OUT", "false"
+            )
         ):
             extra["moe_out"] = runner_input.output_tensor
         if self.config.activation == "situ" and "gate_mode" in fused_moe_parameters:
@@ -459,22 +504,58 @@ class AiterRunnerCore(MoeRunnerCore):
         if self.config.no_combine:
             extra["no_combine"] = True
 
+        activation = _aiter_activation(self.config.activation)
+        if use_dsv4_bounded_silu and not get_bool_env_var(
+            "SGLANG_DSV4_DEBUG_FORCE_AITER_SILU", "false"
+        ):
+            from aiter import ActivationType
+
+            activation = ActivationType.Dsv4Silu
+
+        aiter_topk_ids = runner_input.topk_ids
+        aiter_topk_weights = runner_input.topk_weights
+        aiter_expert_mask = quant_info.expert_mask
+        if (
+            get_bool_env_var(
+                "SGLANG_DSV4_DEBUG_LOCALIZE_AITER_EXPERT_IDS", "false"
+            )
+            and aiter_expert_mask is not None
+            and aiter_expert_mask.numel() > quant_info.w13_weight.shape[0]
+        ):
+            # Bypass AIter's global-expert masking ABI: map every local expert
+            # to [0, E_local), and turn non-local routes into zero-weight rows.
+            # This is graph-safe and leaves Mori's original combine metadata
+            # untouched.
+            local_hash = torch.cumsum(aiter_expert_mask, dim=0) - 1
+            is_local = aiter_expert_mask[aiter_topk_ids] != 0
+            aiter_topk_ids = torch.where(
+                is_local,
+                local_hash[aiter_topk_ids],
+                torch.zeros_like(aiter_topk_ids),
+            ).to(torch.int32)
+            aiter_topk_weights = torch.where(
+                is_local,
+                aiter_topk_weights,
+                torch.zeros_like(aiter_topk_weights),
+            )
+            aiter_expert_mask = None
+
         try:
             output = fused_moe(
                 hidden_states=runner_input.hidden_states,
                 w1=quant_info.w13_weight,
                 w2=quant_info.w2_weight,
-                topk_weight=runner_input.topk_weights,
-                topk_ids=runner_input.topk_ids,
+                topk_weight=aiter_topk_weights,
+                topk_ids=aiter_topk_ids,
                 quant_type=_aiter_quant_type(runner_input.quant_type),
-                activation=_aiter_activation(self.config.activation),
+                activation=activation,
                 w1_scale=quant_info.w13_scale,
                 w2_scale=quant_info.w2_scale,
                 a1_scale=a1_scale,
                 a2_scale=quant_info.a2_scale,
                 bias1=quant_info.b13,
                 bias2=quant_info.b2,
-                expert_mask=quant_info.expert_mask,
+                expert_mask=aiter_expert_mask,
                 doweight_stage1=quant_info.doweight_stage1,
                 hidden_pad=quant_info.hidden_pad,
                 intermediate_pad=quant_info.intermediate_pad,
@@ -499,6 +580,177 @@ class AiterRunnerCore(MoeRunnerCore):
                 f"w2={tuple(quant_info.w2_weight.shape)}; "
                 f"quant_type={runner_input.quant_type}. Original error: {exc}"
             ) from exc
+
+        global _logged_gfx90a_fast_direct_compare
+        if (
+            get_bool_env_var("SGLANG_DSV4_DEBUG_COMPARE_AITER_DIRECT_MOE")
+            and not _logged_gfx90a_fast_direct_compare
+            and runner_input.hidden_states.dtype == torch.bfloat16
+            and runner_input.hidden_states.ndim == 2
+            and runner_input.hidden_states.shape[1] == 4096
+            and runner_input.topk_ids.ndim == 2
+            and runner_input.topk_ids.shape[1] == 6
+            and runner_input.num_local_tokens is not None
+            and quant_info.w13_weight.shape == (64, 4096, 2048)
+            and quant_info.w2_weight.shape == (64, 4096, 1024)
+            and quant_info.w13_scale is not None
+            and quant_info.w2_scale is not None
+            and quant_info.expert_mask is not None
+        ):
+            from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                gfx90a_fp4_expert_down,
+                gfx90a_fp4_expert_gate_up,
+            )
+
+            weights_are_shuffled = getattr(
+                quant_info.w13_weight, "is_shuffled", False
+            )
+            direct_w13 = (
+                _unshuffle_a16w4_weight(quant_info.w13_weight, gate_up=True)
+                if weights_are_shuffled
+                else quant_info.w13_weight
+            )
+            direct_w2 = (
+                _unshuffle_a16w4_weight(quant_info.w2_weight, gate_up=False)
+                if weights_are_shuffled
+                else quant_info.w2_weight
+            )
+            direct_intermediate = gfx90a_fp4_expert_gate_up(
+                runner_input.hidden_states,
+                direct_w13,
+                quant_info.w13_scale,
+                runner_input.topk_ids,
+                quant_info.expert_mask,
+                runner_input.num_local_tokens,
+                quant_info.swiglu_limit,
+            )
+            direct_output = gfx90a_fp4_expert_down(
+                direct_intermediate,
+                direct_w2,
+                quant_info.w2_scale,
+                runner_input.topk_ids,
+                quant_info.expert_mask,
+                runner_input.topk_weights,
+                runner_input.num_local_tokens,
+            )
+            live = int(runner_input.num_local_tokens.item())
+            slot_cosines = []
+            slot_rel_l2 = []
+            debug_extra = {key: value for key, value in extra.items() if key != "moe_out"}
+            for slot in range(runner_input.topk_ids.shape[1]):
+                slot_weights = torch.zeros_like(aiter_topk_weights)
+                slot_weights[:, slot] = aiter_topk_weights[:, slot]
+                slot_fast = fused_moe(
+                    hidden_states=runner_input.hidden_states,
+                    w1=quant_info.w13_weight,
+                    w2=quant_info.w2_weight,
+                    topk_weight=slot_weights,
+                    topk_ids=aiter_topk_ids,
+                    quant_type=_aiter_quant_type(runner_input.quant_type),
+                    activation=activation,
+                    w1_scale=quant_info.w13_scale,
+                    w2_scale=quant_info.w2_scale,
+                    a1_scale=a1_scale,
+                    a2_scale=quant_info.a2_scale,
+                    bias1=quant_info.b13,
+                    bias2=quant_info.b2,
+                    expert_mask=aiter_expert_mask,
+                    doweight_stage1=quant_info.doweight_stage1,
+                    hidden_pad=quant_info.hidden_pad,
+                    intermediate_pad=quant_info.intermediate_pad,
+                    **debug_extra,
+                )[:live].float()
+                slot_direct = gfx90a_fp4_expert_down(
+                    direct_intermediate,
+                    direct_w2,
+                    quant_info.w2_scale,
+                    runner_input.topk_ids,
+                    quant_info.expert_mask,
+                    slot_weights,
+                    runner_input.num_local_tokens,
+                )[:live].float()
+                direct_norm = torch.linalg.vector_norm(slot_direct)
+                if direct_norm.item() == 0:
+                    slot_cosines.append(None)
+                    slot_rel_l2.append(None)
+                else:
+                    slot_cosines.append(
+                        torch.nn.functional.cosine_similarity(
+                            slot_fast.flatten(), slot_direct.flatten(), dim=0
+                        ).item()
+                    )
+                    slot_rel_l2.append(
+                        (
+                            torch.linalg.vector_norm(slot_fast - slot_direct)
+                            / direct_norm
+                        ).item()
+                    )
+            logger.warning(
+                "gfx90a AIter/direct MoE single-slot stage2: live=%d "
+                "cosines=%s rel_l2=%s",
+                live,
+                [None if x is None else round(x, 6) for x in slot_cosines],
+                [None if x is None else round(x, 6) for x in slot_rel_l2],
+            )
+            import importlib
+
+            aiter_fused_moe_module = importlib.import_module("aiter.fused_moe")
+            fast_intermediate = getattr(
+                aiter_fused_moe_module, "_dsv4_debug_last_stage1", None
+            )
+            if fast_intermediate is not None:
+                fast_stage1 = fast_intermediate[:live].float()
+                direct_stage1 = direct_intermediate[:live].float()
+                stage1_diff = (fast_stage1 - direct_stage1).abs()
+                stage1_rel_l2 = (
+                    torch.linalg.vector_norm(fast_stage1 - direct_stage1)
+                    / torch.linalg.vector_norm(direct_stage1).clamp_min(1e-12)
+                )
+                stage1_cosine = torch.nn.functional.cosine_similarity(
+                    fast_stage1.flatten(), direct_stage1.flatten(), dim=0
+                )
+                logger.warning(
+                    "gfx90a AIter/direct MoE stage1 compare: live=%d "
+                    "max_abs=%.6g mean_abs=%.6g rel_l2=%.6g cosine=%.9f",
+                    live,
+                    stage1_diff.max().item(),
+                    stage1_diff.mean().item(),
+                    stage1_rel_l2.item(),
+                    stage1_cosine.item(),
+                )
+            fast = output[:live].float()
+            direct = direct_output[:live].float()
+            all_fast_normalized = torch.nn.functional.normalize(
+                output.float(), dim=1
+            )
+            direct_normalized = torch.nn.functional.normalize(direct, dim=1)
+            row_cosine = all_fast_normalized @ direct_normalized.T
+            best_fast_cosine, best_fast_row = row_cosine.max(dim=0)
+            logger.warning(
+                "gfx90a AIter/direct MoE row map: live=%d best_fast_rows=%s "
+                "best_cosines=%s",
+                live,
+                best_fast_row.detach().cpu().tolist(),
+                [round(x, 6) for x in best_fast_cosine.detach().cpu().tolist()],
+            )
+            diff = (fast - direct).abs()
+            rel_l2 = (
+                torch.linalg.vector_norm(fast - direct)
+                / torch.linalg.vector_norm(direct).clamp_min(1e-12)
+            )
+            cosine = torch.nn.functional.cosine_similarity(
+                fast.flatten(), direct.flatten(), dim=0
+            )
+            logger.warning(
+                "gfx90a AIter/direct MoE compare: live=%d max_abs=%.6g "
+                "mean_abs=%.6g rel_l2=%.6g cosine=%.9f",
+                live,
+                diff.max().item(),
+                diff.mean().item(),
+                rel_l2.item(),
+                cosine.item(),
+            )
+            _logged_gfx90a_fast_direct_compare = True
         return AiterRunnerOutput(hidden_states=output)
 
     @property
