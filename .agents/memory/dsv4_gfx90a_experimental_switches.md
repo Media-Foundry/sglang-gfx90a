@@ -696,3 +696,9 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `2 -> 4`失败；固定为最大page-table shape后，`_prefill_lengths_kernel`读取失效
   metadata地址并触发GPU memory fault。该路径已完整撤回；要继续必须先让所有
   prefill length/page/compressor metadata使用runner-owned capture-stable buffer。
+- 在group8+`v_perm`+大网格后重新测试chunk1024。真实M1024 micro中group8仍优于
+  group16/32，gate/down约`6.27 / 4.49 ms`，比两个M512 chunk合计约省6%。完整
+  1028-token稳态TTFT为`0.900 / 0.897 / 0.924 / 0.928 s`，与chunk512接近；
+  4604-token为`3.591 / 3.561 / 3.561 s`，相对chunk512 B2中位约3.815秒提升
+  约6.7%。France 3/3精确，256-token hash不变且decode约74.2--74.6 tok/s；
+  因此脚本默认chunk从512更新为1024。
