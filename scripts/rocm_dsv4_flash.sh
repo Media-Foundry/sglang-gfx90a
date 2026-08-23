@@ -131,7 +131,7 @@ export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_
 # layout (64 local experts).  Make the correctness-preserving path the EP4
 # default while keeping EP1/EP2 on their existing runners and allowing A/B
 # overrides in either direction.
-if [[ "${EP_SIZE}" == "4" ]]; then
+if [[ "${EP_SIZE:-4}" == "4" ]]; then
   DEFAULT_GFX90A_FP4_DIRECT_MOE=1
 else
   DEFAULT_GFX90A_FP4_DIRECT_MOE=0
@@ -503,7 +503,11 @@ def send(payload, timeout):
 
 for rep in range(reps):
     salt_ns = time.time_ns()
-    sampling_params = {"temperature": 0, "max_new_tokens": tokens}
+    sampling_params = {
+        "temperature": 0,
+        "max_new_tokens": tokens,
+        "ignore_eos": True,
+    }
     payload = {
         "text": prompt,
         "sampling_params": sampling_params,
@@ -551,7 +555,11 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 for rep in range(reps):
     payload = {
         "text": prompt,
-        "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+        "sampling_params": {
+            "temperature": 0,
+            "max_new_tokens": tokens,
+            "ignore_eos": True,
+        },
         "cache_salt": f"ar-context-{words}-{tokens}-{rep}-{time.time_ns()}",
         "stream": True,
     }
@@ -634,7 +642,11 @@ for rep in range(reps):
     payloads = [
         {
             "text": prompt,
-            "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+            "sampling_params": {
+                "temperature": 0,
+                "max_new_tokens": tokens,
+                "ignore_eos": True,
+            },
             "cache_salt": f"ar-concurrent-{tokens}-{requests}-{rep}-{index}-{salt_ns}",
         }
         for index in range(requests)
@@ -728,7 +740,11 @@ for rep in range(reps):
     payloads = [
         {
             "text": prompt,
-            "sampling_params": {"temperature": 0, "max_new_tokens": tokens},
+            "sampling_params": {
+                "temperature": 0,
+                "max_new_tokens": tokens,
+                "ignore_eos": True,
+            },
             "cache_salt": f"dspark-{tokens}-{requests}-{rep}-{index}-{salt_ns}",
         }
         for index in range(requests)
