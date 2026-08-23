@@ -607,3 +607,12 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   随机竞态：两次2048-token生成均完整结束且hash同为`8845939925bbe186`，速度
   `49.07 / 47.75 tok/s`。前三个hash-router层单独回退AIter不改变该新hash且略慢，
   因此最终对全部M=1 DSV4 router使用native路径；prefill及其它shape保持AIter。
+- 在native router checkpoint上重新测试旧的packed-key
+  `SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER=1`：standalone wrapper从约
+  `68.24 us`降到`37.45 us`且随机输入IDs/weights逐元素一致，但完整graph的8轮
+  trimmed median只有约`65.40 tok/s`，低于generic Top-K的约`66.1`，并产生稳定的
+  另一条hash `35780d61502a7170`，因此继续默认关闭。
+- router GEMV每wave多行复用也只在micro胜出：`rows=4,waves=8`约`13.02 us`，
+  但完整graph trimmed median约`64.99 tok/s`；最终保持`rows=1,waves=8`。这再次
+  说明gfx90a graph需要按全局workgroup供给与collective交错选择geometry，不能只按
+  standalone kernel时间定默认值。
