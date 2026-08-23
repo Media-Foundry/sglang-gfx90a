@@ -16,6 +16,7 @@ def _config(n: int) -> tuple[int, int, int]:
     # vector unroll, waves per workgroup), tuned against the graph's three DSV4
     # projection shapes. Keep the conservative geometry for unknown shapes.
     return {
+        256: (1, 2, 8),
         8192: (2, 1, 4),
         4096: (1, 2, 4),
         1536: (1, 2, 8),

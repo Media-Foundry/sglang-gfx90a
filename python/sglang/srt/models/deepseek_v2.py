@@ -634,6 +634,26 @@ class MoEGate(nn.Module):
                     hidden_states, self.weight, out_dtype=torch.float32
                 )
 
+            elif (
+                self.is_deepseek_v4
+                and is_gfx90a_supported()
+                and envs.SGLANG_DSV4_GFX90A_WAVE64_GEMV.get()
+                and hidden_states.shape == (1, 4096)
+                and self.weight.shape == (256, 4096)
+                and hidden_states.dtype == torch.bfloat16
+                and self.weight.dtype == torch.bfloat16
+            ):
+                from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                    gfx90a_wave64_bf16_gemv,
+                )
+
+                logits = gfx90a_wave64_bf16_gemv(hidden_states, self.weight)
+                if logits is None:
+                    logits = (
+                        aiter_dsv3_router_gemm(hidden_states, self.weight)
+                        if _use_aiter
+                        else F.linear(hidden_states, self.weight, None)
+                    )
             elif _use_aiter:
                 logits = aiter_dsv3_router_gemm(hidden_states, self.weight)
             elif not _is_cuda:
