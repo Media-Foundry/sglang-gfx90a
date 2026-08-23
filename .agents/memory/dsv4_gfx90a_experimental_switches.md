@@ -218,6 +218,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `torch.cuda.synchronize()` 永久等待；faulthandler 已确认不是 CPU 编译。该实验
   改用独立、默认关闭的
   `SGLANG_MORI_ASYNCLL_DECODE_MAX_DISPATCH_TOKENS_PER_RANK`，不要复用 normal
+
+### Correctness first-divergence 与 direct FP4 MoE（2026-08-23）
+
+- 官方 France 文件实际包含尾部换行，精确 chat token IDs 为
+  `[0,128803,3085,344,270,6102,294,8760,2755,128804,128822]`；无换行版本
+  的第 9 个 token 是 `33`，不能拿两者做逐层 oracle。以后必须同时保存 prompt
+  `repr` 和完整 input IDs。
+- 同输入逐层对比：embedding 完全一致；layer-0 attention 的 Q/core/wo_b 相对误差
+  约 `2.63% / 2.15% / 4.67%`，而 MoE 输出跃升到 `14.72%`，整层为 `13.43%`。
+- 根因是通用 AIter FP4 fused-MoE ABI 没有传递 DSV4 的
+  `swiglu_limit=10.0`。`SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE` 的 gfx90a kernel
+  实现 bounded SwiGLU；真实变量名包含 `FP4_`，旧的
+  `SGLANG_DSV4_GFX90A_DIRECT_MOE` 是无效假开关。
+- EP1 有 256 local experts，不满足当前 direct kernel 的 64-expert layout；EP4/Mori
+  正好满足。TP4/EP4、eager、direct-MoE=1 对精确官方 prompt 输出
+  `The capital of France is **Paris**.`，9 tokens 后 EOS；generic AIter 路径则从
+  首 token 开始进入 `to the capital ...` 循环。
+- `scripts/rocm_dsv4_flash.sh` 因此仅在 `EP_SIZE=4` 时默认开启 direct FP4 MoE；
+  EP1/EP2 仍默认关闭，并保留显式 0/1 A/B。
   Mori 的默认 capacity=16。
 - 保持稳定 capacity=256，仅设 `SGLANG_MORI_MOE_MAX_INPUT_TOKENS=64` 可把 AIter
   padded-token key 从 1024 降到 64；七轮为 `43.12 / 48.42 / 49.71 / 50.74 /
