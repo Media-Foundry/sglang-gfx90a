@@ -49,7 +49,7 @@ MXFP4_BLOCK_SIZE = 32
 _is_hip = is_hip()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
 
-if _use_aiter:
+if _is_hip:
     from aiter import QuantType, get_hip_quant
     from aiter.ops.quant import get_triton_quant
 
