@@ -126,10 +126,14 @@ export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD:-0}"
-# The direct FP4 GEMV is a correctness/debug oracle and small-M research path.
-# Even after its wave64/FP16 improvements it remains slower than the corrected
-# CKTile A16W4 implementation, so never select it implicitly.
-DEFAULT_GFX90A_FP4_DIRECT_MOE=0
+# The direct FP4 decode kernel is beneficial only for TP4/EP1's K=512 down
+# shard. EP2/EP4 keep CKTile: their wider K already fills wave64 and the
+# subgroup protocol adds overhead.
+if [[ "${EP_SIZE:-4}" == "1" ]]; then
+  DEFAULT_GFX90A_FP4_DIRECT_MOE=1
+else
+  DEFAULT_GFX90A_FP4_DIRECT_MOE=0
+fi
 export SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE="${SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE:-${DEFAULT_GFX90A_FP4_DIRECT_MOE}}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4

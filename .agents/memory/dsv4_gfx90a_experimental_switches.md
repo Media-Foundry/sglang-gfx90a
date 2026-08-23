@@ -511,3 +511,24 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 当前A16W4 CKTile实际decode tile是M16，不是SGLang tune字典中误导性的32；
   真正M4方案需扩展CK mixed-FP4 policy至gfx90a已有的BF16
   `M4N64K16` MFMA，并同步实现NLane64 weight/scale shuffle及新的W2列序oracle。
+
+### TP4/EP1 packed-FP4 × INT8-dot decode（2026-08-23）
+
+- direct kernel的剩余热点不是HBM：BS1把activation协作搬到LDS后，gate/up仅从
+  约190.2降到187.8 us，down从114.5降到111.2 us。核心限制是FP4解包后仍做
+  FP16/scalar dot。
+- gfx90a/CDNA2没有原生FP4 MFMA，但有`v_dot4_i32_i8`。每个32元素group现在由
+  一个block线程只量化一次BF16 activation为INT8；E2M1 FP4 nibble精确映射为
+  `0, +/-1, +/-2, +/-3, +/-4, +/-6, +/-8, +/-12`，INT32 dot结果再乘
+  `activation_scale * E8M0_scale * 0.5`并FP32累加。没有离线展开权重，也不增加
+  常驻VRAM。
+- TP4/EP1真实shape单卡microbenchmark：gate/up约`45.90 us`，down约
+  `32.11 us`，两段约`78.69 us`；相对LDS+FP16-dot的约299 us提升约3.8倍。
+- 完整TP4/EP1、no-A2A、graph BS1、scheduler overlap on、SBO off、custom AR off
+  的256-token native AR稳态为：`25.649 / 24.563 / 25.550 / 25.540 /
+  25.050 tok/s`，中位约`25.54 tok/s`。相对correct CKTile约20.14提升约26.8%。
+- 6轮256-token输出hash全部为`9db479653c78d5fc`；France固定输入10/10均为
+  completion hash`6f41fe2f01d52507`及完全相同的9个token。urllib出现的502来自
+  客户端继承HTTP代理；禁用ProxyHandler后10/10正常，服务health始终200。
+- EP4使用同一subgroup direct路径只有约`9.2--10.7 tok/s`，所以脚本仅在
+  `EP_SIZE=1`时默认开启direct INT8-dot；EP2/EP4继续使用correct CKTile。
