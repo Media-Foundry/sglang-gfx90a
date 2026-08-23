@@ -662,3 +662,14 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   （中位1.694，较256约+6.5%），4604-token为`7.052 / 7.294 s`
   （中位7.173，较256约+9.7%）。1024反而为1.731/7.281秒，均略慢于512；
   因此gfx90a DSV4脚本默认chunk由256改为512，不继续放大。
+- 1024-token单chunk profiler显示43层group2 gate/down分别约0.72/0.42秒，
+  routed MoE仍占GPU时间约73%；attention约66 ms、dense FP8约60 ms、peer
+  collective约39 ms，暂不应优先。
+- shared-unpack后重新扫expert group，曲线与旧实现不同：真实M256 gate的
+  group2/4/8约`4.61 / 3.11 / 2.54 ms`，down约`2.80 / 2.03 / 1.61 ms`；
+  group16的gate因padding/寄存器压力回退到2.69 ms，故统一采用group8并复用一份
+  sorter metadata。
+- group8+chunk512完整服务：1028-token稳态TTFT`1.105 / 1.030 s`，中位
+  `1.068 s`，较group2再快约37%；4604-token为`4.243 / 4.194 s`，中位
+  `4.219 s`，再快约41%，相对最初58.16秒约13.8倍。France固定IDs 5/5精确；
+  256-token hash 5/5稳定为`51e2ac132057ead3`，稳态`66.16--66.28 tok/s`。

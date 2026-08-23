@@ -442,7 +442,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     gfx90a_fp4_expert_gate_up_grouped,
                 )
 
-                grouped_assignments = 2
+                grouped_assignments = 8
                 (
                     sorted_ids,
                     _sorted_weights,
