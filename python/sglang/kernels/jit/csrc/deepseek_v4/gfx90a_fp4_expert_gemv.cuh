@@ -86,6 +86,17 @@ __device__ __forceinline__ float gfx90a_fp4_dot32_i8(
   return static_cast<float>(acc) * combined_scale;
 }
 
+__device__ __forceinline__ float gfx90a_fp4_dot32_i8_prepacked(
+    const int8_t* x, const int32_t* packed_weight, float combined_scale) {
+  int32_t acc = 0;
+#pragma unroll
+  for (uint32_t j = 0; j < 8; ++j) {
+    const int32_t xv = *reinterpret_cast<const int32_t*>(x + j * 4);
+    acc = __builtin_amdgcn_sdot4(xv, packed_weight[j], acc, false);
+  }
+  return static_cast<float>(acc) * combined_scale;
+}
+
 template <uint32_t E, uint32_t I, uint32_t K>
 __device__ __forceinline__ size_t gfx90a_gate_up_scale_offset(
     uint32_t expert, uint32_t row, uint32_t group) {
@@ -473,6 +484,15 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const float up_scale = gfx90a_e8m0_value(
             weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
                 expert, up_row, group)]);
+        int32_t gate_i8[8];
+        int32_t up_i8[8];
+#pragma unroll
+        for (uint32_t j = 0; j < 8; ++j) {
+          gate_i8[j] = gfx90a_fp4_pack4_i8(
+              *reinterpret_cast<const uint16_t*>(weight + gate_base + j * 2));
+          up_i8[j] = gfx90a_fp4_pack4_i8(
+              *reinterpret_cast<const uint16_t*>(weight + up_base + j * 2));
+        }
 #pragma unroll
         for (uint32_t assignment = 0; assignment < kAssignments;
              ++assignment) {
@@ -480,13 +500,13 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
           const uint32_t token = tokens[assignment];
           const size_t xq_group =
               static_cast<size_t>(token) * (K / 32) + group;
-          gate_acc[assignment][r] += gfx90a_fp4_dot32_i8(
+          gate_acc[assignment][r] += gfx90a_fp4_dot32_i8_prepacked(
               xq + static_cast<size_t>(token) * K + k0,
-              weight + gate_base,
+              gate_i8,
               x_scale[xq_group] * gate_scale * 0.5f);
-          up_acc[assignment][r] += gfx90a_fp4_dot32_i8(
+          up_acc[assignment][r] += gfx90a_fp4_dot32_i8_prepacked(
               xq + static_cast<size_t>(token) * K + k0,
-              weight + up_base,
+              up_i8,
               x_scale[xq_group] * up_scale * 0.5f);
         }
       }
@@ -618,6 +638,12 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const float scale = gfx90a_e8m0_value(
             weight_scale[gfx90a_down_scale_offset<E, N, K>(
                 expert, row, group)]);
+        int32_t weight_i8[8];
+#pragma unroll
+        for (uint32_t j = 0; j < 8; ++j) {
+          weight_i8[j] = gfx90a_fp4_pack4_i8(
+              *reinterpret_cast<const uint16_t*>(weight + weight_base + j * 2));
+        }
 #pragma unroll
         for (uint32_t assignment = 0; assignment < kAssignments;
              ++assignment) {
@@ -625,8 +651,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
           const size_t input_assignment =
               static_cast<size_t>(tokens[assignment]) * T + slots[assignment];
           const size_t xq_group = input_assignment * (K / 32) + group;
-          acc[assignment][r] += gfx90a_fp4_dot32_i8(
-              xq + input_assignment * K + k0, weight + weight_base,
+          acc[assignment][r] += gfx90a_fp4_dot32_i8_prepacked(
+              xq + input_assignment * K + k0, weight_i8,
               x_scale[xq_group] * scale * 0.5f);
         }
       }
