@@ -483,3 +483,31 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `19.328 / 19.870 / 19.895 / 19.753 / 19.789 tok/s`，中位约19.79，较SBO-off
   基线约慢1.7%。因此 multi-stream shared/routed overlap 不作为默认性能配置；
   应直接优化 `M<=8` 的 BF16-activation/FP4-weight routed expert kernel。
+
+### direct FP4 wave64 的 TP4/EP1 探针（2026-08-23）
+
+- W2 CKTile加载期补偿原先会作用于所有gfx90a AIter FP4 MoE，现已严格限制到
+  DSV4三组raw packed layout：EP4
+  `w13=(64,4096,2048), w2=(64,4096,1024)`；EP2
+  `(128,2048,2048),(128,4096,512)`；EP1
+  `(256,1024,2048),(256,4096,256)`。TP4/EP1 graph BS1再次得到France固定
+  token oracle，输出IDs仍为
+  `[671,6102,294,8760,344,2619,51119,42499,1]`。
+- no-A2A standard dispatcher的`expert_mask`和`num_local_tokens`都为None。direct
+  开关此前在这种情况下会eligibility miss，却继续把raw权重静默交给要求preshuffle
+  的CKTile，产生乱码。direct kernel现有static-live/no-mask入口；raw权重contract
+  miss时直接报错，不再静默回落。
+- 将direct FP4 GEMV放开至EP1后，原标量实现64-token稳态约
+  `13.64--13.86 tok/s`。改用CDNA2 FP16 `amd_mixed_dot`/FP32 accumulation后为
+  `14.19--14.79 tok/s`，约提升7.8%，France oracle不变。
+- TP4/EP1 down projection的K=512只有16个scale groups；把wave64拆为四个
+  16-lane subgroup并行处理Top-6 slots，router weight在子组归约后以FP32施加。
+  64-token稳态进一步到`17.42--17.53 tok/s`，相对原标量direct约+28%，France
+  oracle仍精确一致，但仍低于correct CKTile约20 tok/s。
+- `kRows=4`降至约`16.1 tok/s`，down blocks 256→512没有实质收益，均撤回。
+  EP4/K=2048使用subgroup direct只有约`9.2--10.7 tok/s`，虽然France正确但明显
+  慢于CKTile。故`SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE`统一默认关闭，只作为小M
+  kernel研究路径；正式路径继续使用W2顺序已修复的CKTile A16W4。
+- 当前A16W4 CKTile实际decode tile是M16，不是SGLang tune字典中误导性的32；
+  真正M4方案需扩展CK mixed-FP4 policy至gfx90a已有的BF16
+  `M4N64K16` MFMA，并同步实现NLane64 weight/scale shuffle及新的W2列序oracle。

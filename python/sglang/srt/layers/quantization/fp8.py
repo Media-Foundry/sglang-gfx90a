@@ -172,6 +172,20 @@ def _gfx90a_cktile_reorder_w2_rows(tensor: torch.Tensor) -> torch.Tensor:
     )
 
 
+def _is_gfx90a_dsv4_cktile_fp4_shape(layer: Module) -> bool:
+    """Limit the CDNA2 W2 workaround to validated DSV4 TP/EP layouts.
+
+    Shapes are packed uint8 tensors before the last dimension is viewed as
+    ``float4_e2m1fn_x2``. Other FP4 MoE models may select a different AIter
+    kernel/layout and must not inherit a DSV4-specific row permutation.
+    """
+    return (tuple(layer.w13_weight.shape), tuple(layer.w2_weight.shape)) in {
+        ((64, 4096, 2048), (64, 4096, 1024)),
+        ((128, 2048, 2048), (128, 4096, 512)),
+        ((256, 1024, 2048), (256, 4096, 256)),
+    }
+
+
 if _use_aiter or _use_hip_int4:
     try:
         from aiter.ops.shuffle import shuffle_scale, shuffle_weight
@@ -1639,7 +1653,11 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                     new_s2, requires_grad=False
                 )
 
-            if is_gfx90a_supported() and _is_shuffle_moe_mxfp4:
+            if (
+                is_gfx90a_supported()
+                and _is_shuffle_moe_mxfp4
+                and _is_gfx90a_dsv4_cktile_fp4_shape(layer)
+            ):
                 layer.w2_weight.data = _gfx90a_cktile_reorder_w2_rows(
                     layer.w2_weight.data
                 )
