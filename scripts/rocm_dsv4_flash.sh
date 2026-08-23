@@ -172,6 +172,12 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ -n "${KV_CACHE_DTYPE:-}" ]]; then
+  server_args+=(--kv-cache-dtype "${KV_CACHE_DTYPE}")
+fi
+if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
+  server_args+=(--cpu-offload-gb "${CPU_OFFLOAD_GB}")
+fi
 if [[ -n "${CUDA_GRAPH_BS_DECODE:-}" ]]; then
   read -r -a cuda_graph_bs_decode <<<"${CUDA_GRAPH_BS_DECODE}"
   server_args+=(--cuda-graph-bs-decode "${cuda_graph_bs_decode[@]}")
