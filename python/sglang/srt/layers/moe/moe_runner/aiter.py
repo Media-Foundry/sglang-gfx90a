@@ -438,6 +438,7 @@ class AiterRunnerCore(MoeRunnerCore):
                 from aiter.fused_moe import moe_sorting
 
                 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                    gfx90a_fp4_expert_down_grouped,
                     gfx90a_fp4_expert_gate_up_grouped,
                 )
 
@@ -491,17 +492,31 @@ class AiterRunnerCore(MoeRunnerCore):
                 if runner_input.output_tensor is not None
                 else None
             )
-            output = gfx90a_fp4_expert_down(
-                intermediate,
-                quant_info.w2_weight,
-                quant_info.w2_scale,
-                runner_input.topk_ids,
-                quant_info.expert_mask,
-                runner_input.topk_weights,
-                runner_input.num_local_tokens,
-                out=direct_out,
-                prequant=down_prequant,
-            )
+            if use_grouped_prefill:
+                output = gfx90a_fp4_expert_down_grouped(
+                    down_prequant[0],
+                    down_prequant[1],
+                    quant_info.w2_weight,
+                    quant_info.w2_scale,
+                    sorted_ids,
+                    sorted_expert_ids,
+                    num_valid_ids,
+                    runner_input.topk_weights,
+                    out=direct_out,
+                    assignments=grouped_assignments,
+                )
+            else:
+                output = gfx90a_fp4_expert_down(
+                    intermediate,
+                    quant_info.w2_weight,
+                    quant_info.w2_scale,
+                    runner_input.topk_ids,
+                    quant_info.expert_mask,
+                    runner_input.topk_weights,
+                    runner_input.num_local_tokens,
+                    out=direct_out,
+                    prequant=down_prequant,
+                )
             return AiterRunnerOutput(hidden_states=output)
         elif envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get():
             logger.warning_once(

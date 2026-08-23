@@ -97,6 +97,25 @@ def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
     )
 
 
+@cache_once
+def _jit_down_grouped(
+    e: int, m: int, t: int, n: int, k: int, assignments: int
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, assignments, 2, 8)
+    return load_jit(
+        "gfx90a_fp4_expert_down_grouped",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
 def gfx90a_fp4_expert_gate_up(
     x: torch.Tensor,
     weight: torch.Tensor,
@@ -184,6 +203,46 @@ def gfx90a_fp4_expert_gate_up_grouped(
         num_valid_ids,
         out,
         float(limit),
+    )
+    return out
+
+
+def gfx90a_fp4_expert_down_grouped(
+    xq: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+    sorted_ids: torch.Tensor,
+    sorted_expert_ids: torch.Tensor,
+    num_valid_ids: torch.Tensor,
+    topk_weights: torch.Tensor,
+    out: torch.Tensor | None = None,
+    assignments: int = 2,
+) -> torch.Tensor:
+    e, n, packed_k = weight.shape
+    m, topk, k = xq.shape
+    assert packed_k * 2 == k
+    assert xq.dtype == torch.int8 and xq.is_contiguous()
+    assert x_scale.shape == (m, topk, k // 32)
+    assert x_scale.dtype == torch.float32 and x_scale.is_contiguous()
+    assert sorted_ids.dtype == torch.int32 and sorted_ids.is_contiguous()
+    assert sorted_expert_ids.dtype == torch.int32
+    assert num_valid_ids.shape == (2,) and num_valid_ids.dtype == torch.int32
+    assert topk_weights.shape == (m, topk)
+    if out is None:
+        out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
+    partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
+    _jit_down_grouped(e, m, topk, n, k, assignments).run(
+        xq,
+        x_scale,
+        weight.view(torch.uint8),
+        weight_scale.view(torch.uint8).reshape(e, n, k // 32),
+        sorted_ids,
+        sorted_expert_ids,
+        num_valid_ids,
+        topk_weights,
+        partial,
+        out,
     )
     return out
 

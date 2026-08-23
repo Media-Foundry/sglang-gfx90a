@@ -639,3 +639,13 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   提升约6.5%。固定France输入5/5精确输出
   `The capital of France is **Paris**.`并EOS。256-token decode稳态
   `65.40--65.55 tok/s`且6轮hash一致；grouped路径仅作用于M>1。
+- 同一sort metadata继续用于grouped down：16-lane subgroup保持旧kernel的K归约
+  形状，FP32 per-slot partial再按固定top-k顺序归约，避免atomic非确定性。真实shape
+  micro为`6.95 -> 4.24--4.31 ms`（约39%）；group4/group8约4.42 ms，均慢于
+  group2。相对旧kernel仅约14--22/1048576个BF16元素因最后加法/存取边界相差，
+  最大差异0.0078125--0.0625。
+- grouped gate+down完整服务的1028-token稳态TTFT为`2.597 / 2.530 s`，比
+  gate-only再快约15.4%，相对原始约5.0倍；4604-token为`11.181 / 11.042 s`，
+  比gate-only再快约18.7%，相对原始约5.2倍。France固定IDs再次5/5精确；
+  256-token长生成4轮hash一致，稳态`63.93--64.70 tok/s`。该长轨迹hash因
+  prefill INT8及极小down归约差异改变，不能与旧FP16 prefill hash直接等同。
