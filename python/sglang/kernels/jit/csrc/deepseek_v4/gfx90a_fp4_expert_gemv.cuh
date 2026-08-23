@@ -45,6 +45,47 @@ __device__ __forceinline__ float gfx90a_fp4_dot2_fp16(
   return amd_mixed_dot(wh, xh, acc, false);
 }
 
+__device__ __forceinline__ int8_t gfx90a_fp4_i8_code(uint8_t bits) {
+  const uint8_t mag = bits & 7;
+  int8_t value;
+  switch (mag) {
+    case 0: value = 0; break;
+    case 1: value = 1; break;
+    case 2: value = 2; break;
+    case 3: value = 3; break;
+    case 4: value = 4; break;
+    case 5: value = 6; break;
+    case 6: value = 8; break;
+    default: value = 12; break;
+  }
+  return (bits & 8) ? -value : value;
+}
+
+__device__ __forceinline__ int32_t gfx90a_fp4_pack4_i8(uint16_t packed) {
+  uint32_t result = 0;
+#pragma unroll
+  for (uint32_t j = 0; j < 4; ++j) {
+    const uint8_t code = static_cast<uint8_t>(
+        gfx90a_fp4_i8_code((packed >> (4 * j)) & 15));
+    result |= static_cast<uint32_t>(code) << (8 * j);
+  }
+  return static_cast<int32_t>(result);
+}
+
+__device__ __forceinline__ float gfx90a_fp4_dot32_i8(
+    const int8_t* x, const uint8_t* weight, float combined_scale) {
+  int32_t acc = 0;
+#pragma unroll
+  for (uint32_t j = 0; j < 32; j += 4) {
+    const int32_t xv = *reinterpret_cast<const int32_t*>(x + j);
+    const uint16_t packed =
+        *reinterpret_cast<const uint16_t*>(weight + j / 2);
+    acc = __builtin_amdgcn_sdot4(
+        xv, gfx90a_fp4_pack4_i8(packed), acc, false);
+  }
+  return static_cast<float>(acc) * combined_scale;
+}
+
 template <uint32_t E, uint32_t I, uint32_t K>
 __device__ __forceinline__ size_t gfx90a_gate_up_scale_offset(
     uint32_t expert, uint32_t row, uint32_t group) {
@@ -90,6 +131,29 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const int32_t* __restrict__ expert_ids,
         const int32_t* __restrict__ expert_mask,
         const int32_t* __restrict__ live_count, float limit) {
+  __shared__ int8_t sxq[M == 1 ? K : 1];
+  __shared__ float sx_scale[M == 1 ? K / 32 : 1];
+  if constexpr (M == 1) {
+    for (uint32_t group = threadIdx.x; group < K / 32;
+         group += blockDim.x) {
+      const uint32_t k0 = group * 32;
+      float local_max = 0.0f;
+#pragma unroll
+      for (uint32_t j = 0; j < 32; ++j) {
+        local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
+      }
+      const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
+      const float inv_scale = 1.0f / scale;
+      sx_scale[group] = scale;
+#pragma unroll
+      for (uint32_t j = 0; j < 32; ++j) {
+        const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
+        sxq[k0 + j] =
+            static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+      }
+    }
+    __syncthreads();
+  }
   constexpr uint32_t kTilesPerAssignment = (I + kRows - 1) / kRows;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
@@ -120,9 +184,12 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     for (uint32_t group = lane; group < K / 32; group += kFp4ExpertWave) {
       const uint32_t k0 = group * 32;
       float xv[32];
+      const bf16_t* x_row = x + static_cast<size_t>(token) * K;
+      if constexpr (M != 1) {
 #pragma unroll
-      for (uint32_t j = 0; j < 32; ++j) {
-        xv[j] = cast<float>(x[static_cast<size_t>(token) * K + k0 + j]);
+        for (uint32_t j = 0; j < 32; ++j) {
+          xv[j] = cast<float>(x_row[k0 + j]);
+        }
       }
 #pragma unroll
       for (uint32_t r = 0; r < kRows; ++r) {
@@ -142,14 +209,23 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
           const float up_scale = gfx90a_e8m0_value(
               weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
                   expert, up_row, group)]);
+          if constexpr (M == 1) {
+            gate_acc[r] += gfx90a_fp4_dot32_i8(
+                sxq + k0, weight + gate_base,
+                sx_scale[group] * gate_scale * 0.5f);
+            up_acc[r] += gfx90a_fp4_dot32_i8(
+                sxq + k0, weight + up_base,
+                sx_scale[group] * up_scale * 0.5f);
+          } else {
 #pragma unroll
-          for (uint32_t j = 0; j < 32; j += 2) {
+            for (uint32_t j = 0; j < 32; j += 2) {
             gate_acc[r] = gfx90a_fp4_dot2_fp16(
                 xv[j], xv[j + 1], weight[gate_base + j / 2], gate_scale,
                 gate_acc[r]);
             up_acc[r] = gfx90a_fp4_dot2_fp16(
                 xv[j], xv[j + 1], weight[up_base + j / 2], up_scale,
                 up_acc[r]);
+            }
           }
         }
       }
@@ -185,6 +261,29 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const int32_t* __restrict__ expert_mask,
         const float* __restrict__ topk_weights,
         const int32_t* __restrict__ live_count) {
+  __shared__ int8_t sxq[M == 1 ? T * K : 1];
+  __shared__ float sx_scale[M == 1 ? T * K / 32 : 1];
+  if constexpr (M == 1) {
+    for (uint32_t group = threadIdx.x; group < T * K / 32;
+         group += blockDim.x) {
+      const uint32_t k0 = group * 32;
+      float local_max = 0.0f;
+#pragma unroll
+      for (uint32_t j = 0; j < 32; ++j) {
+        local_max = fmaxf(local_max, fabsf(cast<float>(x[k0 + j])));
+      }
+      const float scale = fmaxf(local_max / 127.0f, 1.0e-12f);
+      const float inv_scale = 1.0f / scale;
+      sx_scale[group] = scale;
+#pragma unroll
+      for (uint32_t j = 0; j < 32; ++j) {
+        const float q = nearbyintf(cast<float>(x[k0 + j]) * inv_scale);
+        sxq[k0 + j] =
+            static_cast<int8_t>(fmaxf(-127.0f, fminf(127.0f, q)));
+      }
+    }
+    __syncthreads();
+  }
   constexpr uint32_t kTilesPerRow = (N + kRows - 1) / kRows;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
@@ -220,10 +319,13 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
            group += kSubgroupWidth) {
         const uint32_t k0 = group * 32;
         float xv[32];
+        const bf16_t* x_row =
+            x + (static_cast<size_t>(token) * T + slot) * K;
+        if constexpr (M != 1) {
 #pragma unroll
-        for (uint32_t j = 0; j < 32; ++j) {
-          xv[j] = cast<float>(
-              x[(static_cast<size_t>(token) * T + slot) * K + k0 + j]);
+          for (uint32_t j = 0; j < 32; ++j) {
+            xv[j] = cast<float>(x_row[k0 + j]);
+          }
         }
 #pragma unroll
         for (uint32_t r = 0; r < kRows; ++r) {
@@ -235,11 +337,19 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
             const float scale = gfx90a_e8m0_value(
                 weight_scale[gfx90a_down_scale_offset<E, N, K>(
                     expert, row, group)]);
+            if constexpr (M == 1) {
+              const uint32_t scale_group = slot * (K / 32) + group;
+              slot_acc[r] += gfx90a_fp4_dot32_i8(
+                  sxq + static_cast<size_t>(slot) * K + k0,
+                  weight + weight_base,
+                  sx_scale[scale_group] * scale * 0.5f);
+            } else {
 #pragma unroll
-            for (uint32_t j = 0; j < 32; j += 2) {
-              slot_acc[r] = gfx90a_fp4_dot2_fp16(
-                  xv[j], xv[j + 1], weight[weight_base + j / 2],
-                  scale, slot_acc[r]);
+              for (uint32_t j = 0; j < 32; j += 2) {
+                slot_acc[r] = gfx90a_fp4_dot2_fp16(
+                    xv[j], xv[j + 1], weight[weight_base + j / 2],
+                    scale, slot_acc[r]);
+              }
             }
           }
         }
