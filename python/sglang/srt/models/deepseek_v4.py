@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import concurrent.futures
 import functools
+import hashlib
 import logging
+import os
 import time
 from contextlib import contextmanager, nullcontext
 from typing import (
@@ -1054,6 +1056,26 @@ class MQALayer(MqaAttentionBase):
             # kernel quantizes from fp32 registers; the bf16 rounding moves
             # values across fp8 bins relative to bf16-sourced consumers).
             kv = self._compute_kv_bf16(x, positions, qkv_a=qkv_a)
+            if os.getenv("SGLANG_DSV4_DEBUG_OFFICIAL_KV_QAT"):
+                # Match the reference checkpoint's QAT contract: only the
+                # non-RoPE payload is quantized, in 64-value blocks with an
+                # E8M0 (power-of-two) scale, then dequantized back to BF16.
+                nope = kv[..., : -self.qk_rope_head_dim]
+                grouped = nope.float().view(*nope.shape[:-1], -1, 64)
+                amax = grouped.abs().amax(dim=-1, keepdim=True).clamp_min(1e-4)
+                scale = torch.pow(2.0, torch.ceil(torch.log2(amax / 448.0)))
+                rounded = (grouped / scale).clamp(-448, 448).to(torch.float8_e4m3fn)
+                nope.copy_((rounded.float() * scale).reshape_as(nope).to(nope.dtype))
+            debug_attn_dir = os.getenv("SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR")
+            debug_attn_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
+            if (
+                debug_attn_dir
+                and self.layer_id == 0
+                and get_tp_group().rank_in_group == 0
+                and (debug_attn_pos < 0 or bool((positions == debug_attn_pos).any().item()))
+            ):
+                os.makedirs(debug_attn_dir, exist_ok=True)
+                torch.save(kv.detach().cpu(), os.path.join(debug_attn_dir, "layer_0_kv.pt"))
             attn_backend.store_cache(
                 layer_id=self.layer_id, swa_k=kv, forward_batch=forward_batch
             )
@@ -1554,6 +1576,37 @@ class MQALayer(MqaAttentionBase):
                 # unified_kv prefill: keep bf16 kv; the backend writes
                 # the ring AFTER attention (2-source path).
                 kv = self._compute_kv_bf16(x_linear, positions, qkv_a=qkv_a)
+                if os.getenv("SGLANG_DSV4_DEBUG_OFFICIAL_KV_QAT"):
+                    nope = kv[..., : -self.qk_rope_head_dim]
+                    grouped = nope.float().view(*nope.shape[:-1], -1, 64)
+                    amax = grouped.abs().amax(dim=-1, keepdim=True).clamp_min(1e-4)
+                    scale = torch.pow(2.0, torch.ceil(torch.log2(amax / 448.0)))
+                    rounded = (
+                        (grouped / scale)
+                        .clamp(-448, 448)
+                        .to(torch.float8_e4m3fn)
+                    )
+                    nope.copy_(
+                        (rounded.float() * scale).reshape_as(nope).to(nope.dtype)
+                    )
+                debug_attn_dir = os.getenv("SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR")
+                debug_attn_pos = int(
+                    os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1")
+                )
+                if (
+                    debug_attn_dir
+                    and self.layer_id == 0
+                    and get_tp_group().rank_in_group == 0
+                    and (
+                        debug_attn_pos < 0
+                        or bool((positions == debug_attn_pos).any().item())
+                    )
+                ):
+                    os.makedirs(debug_attn_dir, exist_ok=True)
+                    torch.save(
+                        kv.detach().cpu(),
+                        os.path.join(debug_attn_dir, "layer_0_kv.pt"),
+                    )
                 # HIP/ROCm-only: the unified_kv 2-source prefill path is exclusive
                 # to DeepseekV4HipRadixBackend. Guard with _is_hip so this CP
                 # all-gather never enters the NVIDIA (DeepseekV4AttnBackend) path.
@@ -1626,6 +1679,20 @@ class MQALayer(MqaAttentionBase):
         forward_batch: ForwardBatch,
         x_quant=None,
     ) -> torch.Tensor:
+        debug_attn_dir = os.getenv("SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR")
+        debug_attn_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
+        debug_attn = (
+            debug_attn_dir
+            and self.layer_id == 0
+            and get_tp_group().rank_in_group == 0
+            and (debug_attn_pos < 0 or bool((positions == debug_attn_pos).any().item()))
+        )
+
+        def dump_attn(name: str, value: torch.Tensor) -> None:
+            if debug_attn:
+                os.makedirs(debug_attn_dir, exist_ok=True)
+                torch.save(value.detach().cpu(), os.path.join(debug_attn_dir, f"layer_0_{name}.pt"))
+
         if not get_attn_tp_context().input_scattered and x.shape[0] == 0:
             return x
 
@@ -1724,6 +1791,7 @@ class MQALayer(MqaAttentionBase):
                 q_out,
                 x_quant=x_quant,
             )
+        dump_attn("q", q_out if q_out is not None else q)
 
         # save_kv_cache = kv is not None selects who writes the ring. When kv is
         # None the store was already fused into _forward_prepare* (decode) or
@@ -1790,6 +1858,7 @@ class MQALayer(MqaAttentionBase):
                     save_kv_cache=save_kv_cache,
                 )
             o = o[:, tp_slice, :]
+        dump_attn("attn_core", o)
         if _is_npu:
             cos4, sin4 = self._get_npu_rope_position_cache(
                 positions, o.dtype, inverse=True
@@ -1809,6 +1878,7 @@ class MQALayer(MqaAttentionBase):
                 positions=positions,
                 inverse=True,
             )
+        dump_attn("attn_inverse_rope", o)
 
         o = o.view(o.shape[0], self.n_local_groups, -1)
 
@@ -1866,8 +1936,10 @@ class MQALayer(MqaAttentionBase):
                 if grouped_output is not None
                 else torch.einsum("tgd,grd->tgr", o, wo_a)
             )
+        dump_attn("wo_a", o)
 
         o, _ = self.wo_b(o.flatten(1))
+        dump_attn("wo_b", o)
         if self.attn_tp_size > 1 and self.attn_tp_size < get_parallel().tp_size:
             o = attn_tp_all_reduce(o)
 
@@ -2117,7 +2189,11 @@ class DeepseekV4DecoderLayer(nn.Module):
         # torch.cuda.graph capture still records the custom fast path.
         if graph_warmup and not mhc_a2a_is_none:
             use_gfx90a_mhc_pre_mix = False
-        if _is_hip and not use_gfx90a_mhc_pre_mix:
+        if (
+            _is_hip
+            and not use_gfx90a_mhc_pre_mix
+            and not os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC")
+        ):
             aiter_mhc = _get_aiter_mhc_ops()
             if aiter_mhc is not None:
                 post, comb, y = aiter_mhc.mhc_pre(
@@ -2215,14 +2291,43 @@ class DeepseekV4DecoderLayer(nn.Module):
         else:
             x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
 
-        pre, post, comb = _get_mhc_ops().hc_split_sinkhorn(
-            mixes,
-            hc_scale,
-            hc_base,
-            self.hc_mult,
-            self.hc_sinkhorn_iters,
-            self.hc_eps,
-        )
+        if os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"):
+            pre_logits, post_logits, comb_logits = torch.split(
+                mixes,
+                [self.hc_mult, self.hc_mult, self.hc_mult * self.hc_mult],
+                dim=-1,
+            )
+            pre = (
+                torch.sigmoid(
+                    pre_logits * hc_scale[0] + hc_base[: self.hc_mult]
+                )
+                + self.hc_eps
+            )
+            post = 2 * torch.sigmoid(
+                post_logits * hc_scale[1]
+                + hc_base[self.hc_mult : 2 * self.hc_mult]
+            )
+            comb = comb_logits.view(
+                *mixes.shape[:-1], self.hc_mult, self.hc_mult
+            )
+            comb = (
+                comb * hc_scale[2]
+                + hc_base[2 * self.hc_mult :].view(self.hc_mult, self.hc_mult)
+            )
+            comb = torch.softmax(comb, dim=-1) + self.hc_eps
+            comb = comb / (comb.sum(dim=-2, keepdim=True) + self.hc_eps)
+            for _ in range(self.hc_sinkhorn_iters - 1):
+                comb = comb / (comb.sum(dim=-1, keepdim=True) + self.hc_eps)
+                comb = comb / (comb.sum(dim=-2, keepdim=True) + self.hc_eps)
+        else:
+            pre, post, comb = _get_mhc_ops().hc_split_sinkhorn(
+                mixes,
+                hc_scale,
+                hc_base,
+                self.hc_mult,
+                self.hc_sinkhorn_iters,
+                self.hc_eps,
+            )
         # y is the post-norm activation fed into the MoE. Allocate it in the
         # symmetric memory pool so the downstream all-reduce uses the low-latency
         # NCCL symmetric path: the Triton inplace MoE runner writes the expert
@@ -2230,7 +2335,11 @@ class DeepseekV4DecoderLayer(nn.Module):
         # all-reduce input. Gated by is_allocation_symmetric() (mirrors the
         # TileLang path in _mhc_pre_impl / mhc_fused_post_pre).
         with use_symmetric_memory(
-            get_tp_group(), disabled=not is_allocation_symmetric()
+            get_tp_group(),
+            disabled=(
+                not is_allocation_symmetric()
+                or bool(os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"))
+            ),
         ):
             y = None
             if _is_hip and envs.SGLANG_OPT_USE_TRITON_MHC_COMBINE.get():
@@ -2279,7 +2388,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             if result is not None:
                 return result
 
-        if _is_hip:
+        if _is_hip and not os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"):
             aiter_mhc = _get_aiter_mhc_ops()
             if aiter_mhc is not None:
                 result = torch.empty_like(residual)
@@ -2316,6 +2425,27 @@ class DeepseekV4DecoderLayer(nn.Module):
         Optional[torch.Tensor],
     ]:
         use_fused = self.use_fused_mhc_post_pre
+        debug_stage_dir = os.getenv("SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR")
+        debug_target_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
+        debug_stages = (
+            debug_stage_dir
+            and self.layer_id == 0
+            and get_tp_group().rank_in_group == 0
+            and (debug_target_pos < 0 or bool((positions == debug_target_pos).any().item()))
+        )
+
+        def dump_stage(name: str, value: torch.Tensor) -> None:
+            if debug_stages:
+                os.makedirs(debug_stage_dir, exist_ok=True)
+                torch.save(value.detach().cpu(), os.path.join(debug_stage_dir, f"layer_0_{name}.pt"))
+
+        dump_stage("hc_attn_fn", self.hc_attn_fn)
+        dump_stage("hc_attn_scale", self.hc_attn_scale)
+        dump_stage("hc_attn_base", self.hc_attn_base)
+        dump_stage("attn_norm_weight", self.input_layernorm.weight)
+        dump_stage("attn_residual", hidden_states)
+        dump_stage("input_ids", input_ids)
+        dump_stage("positions", positions)
 
         if prev_residual is not None and use_fused:
             input_norm_weight = (
@@ -2404,6 +2534,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 norm=self.input_layernorm,
                 forward_batch=forward_batch,
             )
+            dump_stage("attn_pre_norm", hidden_states)
             if not norm_fused:
                 if _use_aiter and _is_gfx95_supported:
                     x_quant, hidden_states = _fused_rmsnorm_fp8_quant(
@@ -2412,10 +2543,22 @@ class DeepseekV4DecoderLayer(nn.Module):
                         self.rms_norm_eps,
                     )
                 else:
-                    hidden_states = self.input_layernorm(hidden_states)
+                    if os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"):
+                        norm_input = hidden_states.float()
+                        hidden_states = (
+                            norm_input
+                            * torch.rsqrt(
+                                norm_input.square().mean(-1, keepdim=True)
+                                + self.input_layernorm.variance_epsilon
+                            )
+                            * self.input_layernorm.weight.float()
+                        ).to(hidden_states.dtype)
+                    else:
+                        hidden_states = self.input_layernorm(hidden_states)
                     x_quant = None
             else:
                 x_quant = None
+        dump_stage("attn_norm", hidden_states)
 
         with self.self_attn.maybe_use_decode_attn_tp(forward_batch):
             hidden_states = self.self_attn(
@@ -2424,6 +2567,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 forward_batch=forward_batch,
                 x_quant=x_quant,
             )
+        dump_stage("attn_out", hidden_states)
 
         if use_fused:
             post_attn_norm_weight = (
@@ -2482,6 +2626,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                     hidden_states = self.post_attention_layernorm(hidden_states)
         else:
             hidden_states = self.hc_post(hidden_states, residual, post, comb)
+            dump_stage("attn_hc_post", hidden_states)
             residual = hidden_states
             hidden_states, post, comb, norm_fused = self.hc_pre(
                 hidden_states,
@@ -2492,7 +2637,19 @@ class DeepseekV4DecoderLayer(nn.Module):
                 forward_batch=forward_batch,
             )
             if not norm_fused:
-                hidden_states = self.post_attention_layernorm(hidden_states)
+                if os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"):
+                    norm_input = hidden_states.float()
+                    hidden_states = (
+                        norm_input
+                        * torch.rsqrt(
+                            norm_input.square().mean(-1, keepdim=True)
+                            + self.post_attention_layernorm.variance_epsilon
+                        )
+                        * self.post_attention_layernorm.weight.float()
+                    ).to(hidden_states.dtype)
+                else:
+                    hidden_states = self.post_attention_layernorm(hidden_states)
+            dump_stage("ffn_norm", hidden_states)
 
         hidden_states = self._run_moe_ffn_dp_sync(
             hidden_states,
@@ -2500,9 +2657,11 @@ class DeepseekV4DecoderLayer(nn.Module):
             input_ids=input_ids,
             input_ids_global=input_ids_global,
         )
+        dump_stage("ffn_out", hidden_states)
 
         if not use_fused:
             hidden_states = self.hc_post(hidden_states, residual, post, comb)
+            dump_stage("ffn_hc_post", hidden_states)
             return hidden_states, None, None, None
 
         # Return the deferred FFN hc_post state; the next layer consumes it with
@@ -3482,6 +3641,24 @@ class DeepseekV4Model(nn.Module):
             use_fused = self.use_fused_mhc_post_pre
             prev_residual, prev_post, prev_comb = None, None, None
             last_layer = None
+            debug_dump_dir = os.getenv("SGLANG_DSV4_DEBUG_LAYER_DUMP_DIR")
+            debug_dump_pos = int(
+                os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1")
+            )
+            debug_dump = (
+                bool(debug_dump_dir)
+                and get_tp_group().rank_in_group == 0
+                and (
+                    debug_dump_pos < 0
+                    or bool((positions == debug_dump_pos).any().item())
+                )
+            )
+            if debug_dump:
+                os.makedirs(debug_dump_dir, exist_ok=True)
+                torch.save(
+                    hidden_states[-1].detach().cpu(),
+                    os.path.join(debug_dump_dir, "layer_-1.pt"),
+                )
             for i in range(self.start_layer, self.end_layer):
                 layer = self.layers[i]
                 last_layer = layer
@@ -3509,6 +3686,16 @@ class DeepseekV4Model(nn.Module):
                     else:
                         completed = hidden_states
                     dspark_aux_hidden_states.append(completed.mean(dim=1))
+                if debug_dump:
+                    completed = (
+                        layer.hc_post(hidden_states, prev_residual, prev_post, prev_comb)
+                        if use_fused
+                        else hidden_states
+                    )
+                    torch.save(
+                        completed[-1].detach().cpu(),
+                        os.path.join(debug_dump_dir, f"layer_{i}.pt"),
+                    )
             if use_fused and last_layer is not None:
                 hidden_states = last_layer.hc_post(
                     hidden_states, prev_residual, prev_post, prev_comb
@@ -3967,6 +4154,7 @@ class DeepseekV4ForCausalLM(nn.Module):
     def load_weights(self, weights: Iterable[Tuple[str, torch.Tensor]], is_nextn=False):
         params_dict = dict(self.named_parameters())
         loaded_params: Set[str] = set()
+        expected_tid2eid: dict[str, torch.Tensor] = {}
 
         if is_nextn:
             if hasattr(self.config, "num_nextn_predict_layers"):
@@ -4049,6 +4237,12 @@ class DeepseekV4ForCausalLM(nn.Module):
                         is_nextn=is_nextn,
                         num_hidden_layers=self.config.num_hidden_layers,
                     )
+                    if name.endswith(".topk.tid2eid"):
+                        expected_tid2eid[name] = (
+                            loaded_weight.detach().to(device="cpu", dtype=torch.int32)
+                            .contiguous()
+                            .clone()
+                        )
 
                     layer_id = get_layer_id(name)
                     if (
@@ -4309,6 +4503,56 @@ class DeepseekV4ForCausalLM(nn.Module):
             logger.warning(
                 f"Some weights are not initialized from checkpoints: {unloaded_params}"
             )
+
+        if not is_nextn:
+            num_hash_layers = int(getattr(self.config, "num_hash_layers", 0))
+            for layer_id in range(num_hash_layers):
+                if not (self.model.start_layer <= layer_id < self.model.end_layer):
+                    continue
+                name = f"model.layers.{layer_id}.mlp.topk.tid2eid"
+                if name not in loaded_params or name not in expected_tid2eid:
+                    raise RuntimeError(
+                        f"DeepSeek V4 critical hash-router weight was not loaded: {name}"
+                    )
+                actual = params_dict[name].detach().to(device="cpu", dtype=torch.int32)
+                actual = actual.contiguous()
+                expected = expected_tid2eid[name]
+                expected_shape = (
+                    self.config.vocab_size,
+                    self.config.num_experts_per_tok,
+                )
+                if actual.shape != expected_shape:
+                    raise RuntimeError(
+                        f"DeepSeek V4 invalid {name} shape: {tuple(actual.shape)}"
+                    )
+                if not torch.equal(actual, expected):
+                    mismatch = int((actual != expected).sum().item())
+                    raise RuntimeError(
+                        f"DeepSeek V4 {name} differs from checkpoint at {mismatch} entries"
+                    )
+                token_ids = torch.arange(actual.shape[0], dtype=torch.int32).unsqueeze(1)
+                offsets = torch.arange(actual.shape[1], dtype=torch.int32).unsqueeze(0)
+                dummy = (token_ids + offsets) % self.config.n_routed_experts
+                if torch.equal(actual, dummy):
+                    raise RuntimeError(
+                        f"DeepSeek V4 {name} is still the dummy hash-router fallback"
+                    )
+                min_expert, max_expert = int(actual.min()), int(actual.max())
+                if min_expert < 0 or max_expert >= self.config.n_routed_experts:
+                    raise RuntimeError(
+                        f"DeepSeek V4 {name} has invalid expert range "
+                        f"[{min_expert}, {max_expert}]"
+                    )
+                digest = hashlib.sha256(actual.numpy().tobytes()).hexdigest()
+                logger.info(
+                    "DeepSeek V4 hash-router verified: layer=%d sha256=%s "
+                    "range=[%d,%d] sample=%s",
+                    layer_id,
+                    digest,
+                    min_expert,
+                    max_expert,
+                    actual[:4].tolist(),
+                )
 
         self.post_load_weights(is_nextn=is_nextn, weight_names=weight_names)
 
