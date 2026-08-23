@@ -18,7 +18,15 @@ def _jit_gate_up(e: int, m: int, t: int, ge: int, i: int, k: int) -> Module:
         *args,
         cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
         cuda_wrappers=[
-            ("run", f"sglang::Gfx90aFp4ExpertGateUpKernel<{args}>::run")
+            ("run", f"sglang::Gfx90aFp4ExpertGateUpKernel<{args}>::run"),
+            (
+                "run_static",
+                f"sglang::Gfx90aFp4ExpertGateUpKernel<{args}>::run_static",
+            ),
+            (
+                "run_static_nomask",
+                f"sglang::Gfx90aFp4ExpertGateUpKernel<{args}>::run_static_nomask",
+            ),
         ],
         extra_cuda_cflags=["-O3"],
     )
@@ -31,7 +39,17 @@ def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
         "gfx90a_fp4_expert_down",
         *args,
         cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
-        cuda_wrappers=[("run", f"sglang::Gfx90aFp4ExpertDownKernel<{args}>::run")],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aFp4ExpertDownKernel<{args}>::run"),
+            (
+                "run_static",
+                f"sglang::Gfx90aFp4ExpertDownKernel<{args}>::run_static",
+            ),
+            (
+                "run_static_nomask",
+                f"sglang::Gfx90aFp4ExpertDownKernel<{args}>::run_static_nomask",
+            ),
+        ],
         extra_cuda_cflags=["-O3"],
     )
 
@@ -41,25 +59,33 @@ def gfx90a_fp4_expert_gate_up(
     weight: torch.Tensor,
     weight_scale: torch.Tensor,
     expert_ids: torch.Tensor,
-    expert_mask: torch.Tensor,
-    live_count: torch.Tensor,
+    expert_mask: torch.Tensor | None,
+    live_count: torch.Tensor | None,
     limit: float,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = x.shape
-    i, t, ge = two_i // 2, expert_ids.shape[1], expert_mask.numel()
+    i, t = two_i // 2, expert_ids.shape[1]
+    ge = e if expert_mask is None else expert_mask.numel()
     assert packed_k * 2 == k
     out = torch.empty((m, t, i), dtype=torch.bfloat16, device=x.device)
-    _jit_gate_up(e, m, t, ge, i, k).run(
+    kernel = _jit_gate_up(e, m, t, ge, i, k)
+    args = [
         x,
         weight.view(torch.uint8),
         weight_scale.view(torch.uint8).reshape(e, two_i, k // 32),
         expert_ids,
-        expert_mask,
-        live_count,
-        out,
-        float(limit),
-    )
+    ]
+    if expert_mask is not None:
+        args.append(expert_mask)
+    if live_count is None:
+        if expert_mask is None:
+            kernel.run_static_nomask(*args, out, float(limit))
+        else:
+            kernel.run_static(*args, out, float(limit))
+    else:
+        assert expert_mask is not None, "dynamic live count requires an expert mask"
+        kernel.run(*args, live_count, out, float(limit))
     return out
 
 
@@ -68,25 +94,33 @@ def gfx90a_fp4_expert_down(
     weight: torch.Tensor,
     weight_scale: torch.Tensor,
     expert_ids: torch.Tensor,
-    expert_mask: torch.Tensor,
+    expert_mask: torch.Tensor | None,
     topk_weights: torch.Tensor,
-    live_count: torch.Tensor,
+    live_count: torch.Tensor | None,
     out: torch.Tensor | None = None,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, t, k = x.shape
-    ge = expert_mask.numel()
+    ge = e if expert_mask is None else expert_mask.numel()
     assert packed_k * 2 == k
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
-    _jit_down(e, m, t, ge, n, k).run(
+    kernel = _jit_down(e, m, t, ge, n, k)
+    args = [
         x,
         weight.view(torch.uint8),
         weight_scale.view(torch.uint8).reshape(e, n, k // 32),
         expert_ids,
-        expert_mask,
         topk_weights,
-        live_count,
-        out,
-    )
+    ]
+    if expert_mask is not None:
+        args.insert(4, expert_mask)
+    if live_count is None:
+        if expert_mask is None:
+            kernel.run_static_nomask(*args, out)
+        else:
+            kernel.run_static(*args, out)
+    else:
+        assert expert_mask is not None, "dynamic live count requires an expert mask"
+        kernel.run(*args, live_count, out)
     return out

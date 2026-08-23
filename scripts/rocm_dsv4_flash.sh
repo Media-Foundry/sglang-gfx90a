@@ -126,16 +126,10 @@ export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD:-0}"
-# The generic AIter FP4 MoE ABI does not carry DSV4's bounded-SwiGLU limit.
-# The gfx90a direct kernel does, and its current weight layout is the EP4
-# layout (64 local experts).  Make the correctness-preserving path the EP4
-# default while keeping EP1/EP2 on their existing runners and allowing A/B
-# overrides in either direction.
-if [[ "${EP_SIZE:-4}" == "4" ]]; then
-  DEFAULT_GFX90A_FP4_DIRECT_MOE=1
-else
-  DEFAULT_GFX90A_FP4_DIRECT_MOE=0
-fi
+# The direct FP4 GEMV is a correctness/debug oracle and small-M research path.
+# Even after its wave64/FP16 improvements it remains slower than the corrected
+# CKTile A16W4 implementation, so never select it implicitly.
+DEFAULT_GFX90A_FP4_DIRECT_MOE=0
 export SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE="${SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE:-${DEFAULT_GFX90A_FP4_DIRECT_MOE}}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4

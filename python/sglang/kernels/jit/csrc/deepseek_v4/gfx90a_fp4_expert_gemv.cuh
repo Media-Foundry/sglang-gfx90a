@@ -36,6 +36,15 @@ __device__ __forceinline__ float gfx90a_e8m0_value(uint8_t exponent) {
   return __builtin_bit_cast(float, bits);
 }
 
+__device__ __forceinline__ float gfx90a_fp4_dot2_fp16(
+    float x0, float x1, uint8_t packed_weight, float scale, float acc) {
+  const fp16x2_t xh = cast<fp16x2_t>(fp32x2_t{x0, x1});
+  const fp16x2_t wh = cast<fp16x2_t>(fp32x2_t{
+      gfx90a_fp4_value(packed_weight & 15) * scale,
+      gfx90a_fp4_value((packed_weight >> 4) & 15) * scale});
+  return amd_mixed_dot(wh, xh, acc, false);
+}
+
 template <uint32_t E, uint32_t I, uint32_t K>
 __device__ __forceinline__ size_t gfx90a_gate_up_scale_offset(
     uint32_t expert, uint32_t row, uint32_t group) {
@@ -86,7 +95,10 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
   const uint32_t global_wave = blockIdx.x * kNumWaves + wave;
   const uint32_t total_waves = gridDim.x * kNumWaves;
-  const uint32_t live = min(static_cast<uint32_t>(max(live_count[0], 0)), M);
+  const uint32_t live =
+      live_count == nullptr
+          ? M
+          : min(static_cast<uint32_t>(max(live_count[0], 0)), M);
 
   for (uint32_t task = global_wave;
        task < live * T * kTilesPerAssignment;
@@ -97,7 +109,7 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     const uint32_t row0 = (task % kTilesPerAssignment) * kRows;
     const int32_t expert_id = expert_ids[static_cast<size_t>(token) * T + slot];
     if (expert_id < 0 || expert_id >= static_cast<int32_t>(GE) ||
-        expert_mask[expert_id] == 0) {
+        (expert_mask != nullptr && expert_mask[expert_id] == 0)) {
       continue;
     }
     const uint32_t global_expert = static_cast<uint32_t>(expert_id);
@@ -131,16 +143,13 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
               weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
                   expert, up_row, group)]);
 #pragma unroll
-          for (uint32_t j = 0; j < 32; ++j) {
-            const uint8_t gw = weight[gate_base + j / 2];
-            const uint8_t uw = weight[up_base + j / 2];
-            const uint32_t shift = (j & 1) * 4;
-            gate_acc[r] = fmaf(xv[j],
-                               gfx90a_fp4_value((gw >> shift) & 15) * gate_scale,
-                               gate_acc[r]);
-            up_acc[r] = fmaf(xv[j],
-                             gfx90a_fp4_value((uw >> shift) & 15) * up_scale,
-                             up_acc[r]);
+          for (uint32_t j = 0; j < 32; j += 2) {
+            gate_acc[r] = gfx90a_fp4_dot2_fp16(
+                xv[j], xv[j + 1], weight[gate_base + j / 2], gate_scale,
+                gate_acc[r]);
+            up_acc[r] = gfx90a_fp4_dot2_fp16(
+                xv[j], xv[j + 1], weight[up_base + j / 2], up_scale,
+                up_acc[r]);
           }
         }
       }
@@ -179,9 +188,16 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   constexpr uint32_t kTilesPerRow = (N + kRows - 1) / kRows;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
+  constexpr uint32_t kSubgroupWidth = 16;
+  constexpr uint32_t kSubgroups = kFp4ExpertWave / kSubgroupWidth;
+  const uint32_t subgroup = lane / kSubgroupWidth;
+  const uint32_t subgroup_lane = lane % kSubgroupWidth;
   const uint32_t global_wave = blockIdx.x * kNumWaves + wave;
   const uint32_t total_waves = gridDim.x * kNumWaves;
-  const uint32_t live = min(static_cast<uint32_t>(max(live_count[0], 0)), M);
+  const uint32_t live =
+      live_count == nullptr
+          ? M
+          : min(static_cast<uint32_t>(max(live_count[0], 0)), M);
 
   for (uint32_t task = global_wave; task < live * kTilesPerRow;
        task += total_waves) {
@@ -189,18 +205,19 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     const uint32_t row0 = (task % kTilesPerRow) * kRows;
     float acc[kRows] = {};
 
-    for (uint32_t slot = 0; slot < T; ++slot) {
+    for (uint32_t slot = subgroup; slot < T; slot += kSubgroups) {
       const int32_t expert_id =
           expert_ids[static_cast<size_t>(token) * T + slot];
       if (expert_id < 0 || expert_id >= static_cast<int32_t>(GE) ||
-          expert_mask[expert_id] == 0) {
+          (expert_mask != nullptr && expert_mask[expert_id] == 0)) {
         continue;
       }
       const uint32_t expert = static_cast<uint32_t>(expert_id) % E;
       const float routed_weight =
           topk_weights[static_cast<size_t>(token) * T + slot];
-      for (uint32_t group = lane; group < K / 32;
-           group += kFp4ExpertWave) {
+      float slot_acc[kRows] = {};
+      for (uint32_t group = subgroup_lane; group < K / 32;
+           group += kSubgroupWidth) {
         const uint32_t k0 = group * 32;
         float xv[32];
 #pragma unroll
@@ -219,29 +236,34 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
                 weight_scale[gfx90a_down_scale_offset<E, N, K>(
                     expert, row, group)]);
 #pragma unroll
-            for (uint32_t j = 0; j < 32; ++j) {
-              const uint8_t packed = weight[weight_base + j / 2];
-              const uint32_t shift = (j & 1) * 4;
-              acc[r] = fmaf(
-                  xv[j],
-                  gfx90a_fp4_value((packed >> shift) & 15) * scale *
-                      routed_weight,
-                  acc[r]);
+            for (uint32_t j = 0; j < 32; j += 2) {
+              slot_acc[r] = gfx90a_fp4_dot2_fp16(
+                  xv[j], xv[j + 1], weight[weight_base + j / 2],
+                  scale, slot_acc[r]);
             }
           }
+        }
+      }
+#pragma unroll
+      for (uint32_t r = 0; r < kRows; ++r) {
+#pragma unroll
+        for (uint32_t offset = kSubgroupWidth / 2; offset > 0; offset >>= 1) {
+          slot_acc[r] += __shfl_down(slot_acc[r], offset, kSubgroupWidth);
+        }
+        if (subgroup_lane == 0) {
+          acc[r] += slot_acc[r] * routed_weight;
         }
       }
     }
 
 #pragma unroll
     for (uint32_t r = 0; r < kRows; ++r) {
-#pragma unroll
-      for (uint32_t offset = 32; offset > 0; offset >>= 1) {
-        acc[r] += __shfl_down(acc[r], offset, kFp4ExpertWave);
-      }
+      const float total = __shfl(acc[r], 0, kFp4ExpertWave) +
+                          __shfl(acc[r], 16, kFp4ExpertWave) +
+                          __shfl(acc[r], 32, kFp4ExpertWave) +
+                          __shfl(acc[r], 48, kFp4ExpertWave);
       if (lane == 0 && row0 + r < N) {
-        out[static_cast<size_t>(token) * N + row0 + r] =
-            cast<bf16_t>(acc[r]);
+        out[static_cast<size_t>(token) * N + row0 + r] = cast<bf16_t>(total);
       }
     }
   }
@@ -251,6 +273,25 @@ template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t I, uint32_t K,
           uint32_t kRows, uint32_t kNumWaves>
 struct Gfx90aFp4ExpertGateUpKernel {
+  static void launch(const tvm::ffi::TensorView x,
+                     const tvm::ffi::TensorView weight,
+                     const tvm::ffi::TensorView weight_scale,
+                     const tvm::ffi::TensorView expert_ids,
+                     const tvm::ffi::TensorView out, double limit,
+                     const int32_t* expert_mask,
+                     const int32_t* live_count) {
+    using namespace host;
+    constexpr uint32_t kBlocks = 256;
+    LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
+        gfx90a_fp4_expert_gate_up_kernel<E, M, T, GE, I, K, kRows, kNumWaves>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const bf16_t*>(x.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const uint8_t*>(weight_scale.data_ptr()),
+        static_cast<const int32_t*>(expert_ids.data_ptr()), expert_mask, live_count,
+        static_cast<float>(limit));
+  }
+
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView weight,
                   const tvm::ffi::TensorView weight_scale,
@@ -268,17 +309,44 @@ struct Gfx90aFp4ExpertGateUpKernel {
     TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
     TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(live_count);
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
-    constexpr uint32_t kBlocks = 256;
-    LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, device.unwrap())(
-        gfx90a_fp4_expert_gate_up_kernel<E, M, T, GE, I, K, kRows, kNumWaves>,
-        static_cast<bf16_t*>(out.data_ptr()),
-        static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const uint8_t*>(weight.data_ptr()),
-        static_cast<const uint8_t*>(weight_scale.data_ptr()),
-        static_cast<const int32_t*>(expert_ids.data_ptr()),
-        static_cast<const int32_t*>(expert_mask.data_ptr()),
-        static_cast<const int32_t*>(live_count.data_ptr()),
-        static_cast<float>(limit));
+    launch(x, weight, weight_scale, expert_ids, out, limit,
+           static_cast<const int32_t*>(expert_mask.data_ptr()),
+           static_cast<const int32_t*>(live_count.data_ptr()));
+  }
+
+  static void run_static(const tvm::ffi::TensorView x,
+                         const tvm::ffi::TensorView weight,
+                         const tvm::ffi::TensorView weight_scale,
+                         const tvm::ffi::TensorView expert_ids,
+                         const tvm::ffi::TensorView expert_mask,
+                         const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, out, limit,
+           static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr);
+  }
+
+  static void run_static_nomask(const tvm::ffi::TensorView x,
+                                const tvm::ffi::TensorView weight,
+                                const tvm::ffi::TensorView weight_scale,
+                                const tvm::ffi::TensorView expert_ids,
+                                const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, out, limit, nullptr, nullptr);
   }
 };
 
@@ -286,6 +354,26 @@ template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t N, uint32_t K,
           uint32_t kRows, uint32_t kNumWaves>
 struct Gfx90aFp4ExpertDownKernel {
+  static void launch(const tvm::ffi::TensorView x,
+                     const tvm::ffi::TensorView weight,
+                     const tvm::ffi::TensorView weight_scale,
+                     const tvm::ffi::TensorView expert_ids,
+                     const tvm::ffi::TensorView topk_weights,
+                     const tvm::ffi::TensorView out,
+                     const int32_t* expert_mask,
+                     const int32_t* live_count) {
+    using namespace host;
+    constexpr uint32_t kBlocks = 256;
+    LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
+        gfx90a_fp4_expert_down_kernel<E, M, T, GE, N, K, kRows, kNumWaves>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const bf16_t*>(x.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const uint8_t*>(weight_scale.data_ptr()),
+        static_cast<const int32_t*>(expert_ids.data_ptr()), expert_mask,
+        static_cast<const float*>(topk_weights.data_ptr()), live_count);
+  }
+
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView weight,
                   const tvm::ffi::TensorView weight_scale,
@@ -305,17 +393,49 @@ struct Gfx90aFp4ExpertDownKernel {
     TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
     TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(live_count);
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
-    constexpr uint32_t kBlocks = 256;
-    LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, device.unwrap())(
-        gfx90a_fp4_expert_down_kernel<E, M, T, GE, N, K, kRows, kNumWaves>,
-        static_cast<bf16_t*>(out.data_ptr()),
-        static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const uint8_t*>(weight.data_ptr()),
-        static_cast<const uint8_t*>(weight_scale.data_ptr()),
-        static_cast<const int32_t*>(expert_ids.data_ptr()),
-        static_cast<const int32_t*>(expert_mask.data_ptr()),
-        static_cast<const float*>(topk_weights.data_ptr()),
-        static_cast<const int32_t*>(live_count.data_ptr()));
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out,
+           static_cast<const int32_t*>(expert_mask.data_ptr()),
+           static_cast<const int32_t*>(live_count.data_ptr()));
+  }
+
+  static void run_static(const tvm::ffi::TensorView x,
+                         const tvm::ffi::TensorView weight,
+                         const tvm::ffi::TensorView weight_scale,
+                         const tvm::ffi::TensorView expert_ids,
+                         const tvm::ffi::TensorView expert_mask,
+                         const tvm::ffi::TensorView topk_weights,
+                         const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({GE}).with_dtype<int32_t>().with_device(device).verify(expert_mask);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out,
+           static_cast<const int32_t*>(expert_mask.data_ptr()), nullptr);
+  }
+
+  static void run_static_nomask(const tvm::ffi::TensorView x,
+                                const tvm::ffi::TensorView weight,
+                                const tvm::ffi::TensorView weight_scale,
+                                const tvm::ffi::TensorView expert_ids,
+                                const tvm::ffi::TensorView topk_weights,
+                                const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    launch(x, weight, weight_scale, expert_ids, topk_weights, out, nullptr,
+           nullptr);
   }
 };
 

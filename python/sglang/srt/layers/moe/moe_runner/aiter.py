@@ -25,6 +25,26 @@ logger = logging.getLogger(__name__)
 _logged_gfx90a_fast_direct_compare = False
 
 
+def _is_gfx90a_dsv4_direct_fp4_shape(
+    w13_weight: torch.Tensor, w2_weight: torch.Tensor
+) -> bool:
+    """Return whether the raw packed weights match a validated DSV4 TP/EP shard."""
+    return (tuple(w13_weight.shape), tuple(w2_weight.shape)) in {
+        ((64, 4096, 2048), (64, 4096, 1024)),
+        ((128, 2048, 2048), (128, 4096, 512)),
+        ((256, 1024, 2048), (256, 4096, 256)),
+    }
+
+
+def _has_gfx90a_dsv4_direct_fp4_scales(
+    weight: torch.Tensor, scale: Optional[torch.Tensor]
+) -> bool:
+    if scale is None:
+        return False
+    experts, rows, packed_k = weight.shape
+    return scale.numel() == experts * rows * packed_k // 16
+
+
 def _unshuffle_a16w4_weight(weight: torch.Tensor, *, gate_up: bool) -> torch.Tensor:
     """Invert AIter's legacy shuffle_weight_a16w4 for debug oracle checks."""
     weight_dtype = weight.dtype
@@ -360,20 +380,31 @@ class AiterRunnerCore(MoeRunnerCore):
             and runner_input.topk_weights.shape == runner_input.topk_ids.shape
             and runner_input.topk_weights.dtype == torch.float32
             and runner_input.topk_weights.is_contiguous()
-            and runner_input.num_local_tokens is not None
-            and runner_input.num_local_tokens.shape == (1,)
-            and runner_input.num_local_tokens.dtype == torch.int32
-            and quant_info.w13_weight.shape == (64, 4096, 2048)
-            and quant_info.w2_weight.shape == (64, 4096, 1024)
-            and quant_info.w13_scale is not None
-            and quant_info.w13_scale.numel() == 64 * 4096 * 128
+            and (
+                runner_input.num_local_tokens is None
+                or (
+                    runner_input.num_local_tokens.shape == (1,)
+                    and runner_input.num_local_tokens.dtype == torch.int32
+                )
+            )
+            and _is_gfx90a_dsv4_direct_fp4_shape(
+                quant_info.w13_weight, quant_info.w2_weight
+            )
+            and _has_gfx90a_dsv4_direct_fp4_scales(
+                quant_info.w13_weight, quant_info.w13_scale
+            )
             and quant_info.w13_scale.is_contiguous()
-            and quant_info.w2_scale is not None
-            and quant_info.w2_scale.numel() == 64 * 4096 * 64
+            and _has_gfx90a_dsv4_direct_fp4_scales(
+                quant_info.w2_weight, quant_info.w2_scale
+            )
             and quant_info.w2_scale.is_contiguous()
-            and quant_info.expert_mask is not None
-            and quant_info.expert_mask.shape == (256,)
-            and quant_info.expert_mask.dtype == torch.int32
+            and (
+                quant_info.expert_mask is None
+                or (
+                    quant_info.expert_mask.shape == (256,)
+                    and quant_info.expert_mask.dtype == torch.int32
+                )
+            )
             and not getattr(quant_info.w13_weight, "is_shuffled", False)
             and not quant_info.doweight_stage1
             and quant_info.hidden_pad == 0
@@ -436,6 +467,12 @@ class AiterRunnerCore(MoeRunnerCore):
                 quant_info.intermediate_pad,
                 getattr(quant_info.w13_weight, "is_shuffled", False),
             )
+            if not getattr(quant_info.w13_weight, "is_shuffled", False):
+                raise RuntimeError(
+                    "gfx90a direct FP4 MoE was requested with raw weights, but "
+                    "the direct-kernel contract was not satisfied. Refusing to "
+                    "silently feed raw weights to AIter's preshuffled CKTile path."
+                )
 
         from aiter.fused_moe import fused_moe
 
