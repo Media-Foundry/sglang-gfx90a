@@ -237,6 +237,20 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   首 token 开始进入 `to the capital ...` 循环。
 - `scripts/rocm_dsv4_flash.sh` 因此仅在 `EP_SIZE=4` 时默认开启 direct FP4 MoE；
   EP1/EP2 仍默认关闭，并保留显式 0/1 A/B。
+
+### Correctness 修复后的优化逐项恢复（2026-08-23）
+
+- 所有轮次先用精确官方 chat IDs 验证 France，预期为
+  `The capital of France is **Paris**.` 并 EOS；性能 harness 使用
+  `ignore_eos=true`，保证实际生成固定 256 tokens、finish=length。正确模型会自然
+  EOS，旧 harness 不带 ignore_eos 时不再是固定长度基准。
+- 正确 EP4/Mori/direct-MoE eager 朴素基线（graph、scheduler/SBO、custom AR、
+  MHC/attention/shared compute优化关闭）为 `5.355 tok/s`。
+- 仅启用 shared-expert TP 为 `4.853 tok/s`，单独退化；再加入配套 BF16/wave64
+  shared compute 后为 `5.560 tok/s`，约 +3.8%，不足单独 checkpoint。
+- 在上述 shared 子系统上仅恢复 decode CUDA graph 后为
+  `8.984 / 9.125 tok/s`，固定长度 hash 均为 `8bc49f114ad72a74`，相对 eager
+  约 +63%，France 正确性保持。CUDA graph 是 correctness 修复后的首个通过优化。
   Mori 的默认 capacity=16。
 - 保持稳定 capacity=256，仅设 `SGLANG_MORI_MOE_MAX_INPUT_TOKENS=64` 可把 AIter
   padded-token key 从 1024 降到 64；七轮为 `43.12 / 48.42 / 49.71 / 50.74 /
