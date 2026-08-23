@@ -89,6 +89,7 @@ from sglang.srt.utils import (
     is_cpu,
     is_cuda,
     is_flashinfer_available,
+    is_gfx90a_supported,
     is_gfx95_supported,
     is_hip,
     is_musa,
@@ -129,7 +130,13 @@ _mxfp8_to_block_fp8_required = mxfp8_block_convert_required() or get_bool_env_va
 )
 _use_hip_int4 = get_bool_env_var("SGLANG_INT4_WEIGHT") and _is_hip
 _use_aiter = envs.SGLANG_USE_AITER.get() and _is_hip
-_is_shuffle_moe_mxfp4 = is_gfx95_supported()
+# CKTile's A16W4 flat-MMA pipeline always consumes preshuffled FP4 weights.
+# gfx90a uses that path for DSV4 because the legacy FP4xFP4 CK kernel produces
+# zero stage-1 output on CDNA2.  Keep raw checkpoint layout only for the
+# correctness-first direct GEMV implementation, which decodes FP4 explicitly.
+_is_shuffle_moe_mxfp4 = is_gfx95_supported() or (
+    is_gfx90a_supported() and not envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get()
+)
 
 
 def _require_fp4_dtype():
@@ -141,15 +148,53 @@ def _require_fp4_dtype():
     return fp4_dtype
 
 
+def _gfx90a_cktile_reorder_w2_rows(tensor: torch.Tensor) -> torch.Tensor:
+    """Compensate CKTile's CDNA2 stage-2 N-lane permutation before shuffle.
+
+    On gfx90a, the A16W4 FlatMM stage-2 kernel maps each eight 16-row blocks
+    within a 128-row N tile as ``[0, 2, 4, 6, 1, 3, 5, 7]``.  Reordering the
+    raw W2 rows (and matching scales) by the inverse permutation restores the
+    logical output order without adding any decode-time work.
+    """
+    if tensor.ndim != 3 or tensor.shape[1] % 128 != 0:
+        raise ValueError(
+            "gfx90a CKTile W2 row fix requires [experts, N, K] with N divisible "
+            f"by 128, got {tuple(tensor.shape)}"
+        )
+    inverse_block_order = torch.tensor(
+        [0, 4, 1, 5, 2, 6, 3, 7], dtype=torch.long, device=tensor.device
+    )
+    shape = tensor.shape
+    return (
+        tensor.view(shape[0], shape[1] // 128, 8, 16, shape[2])
+        .index_select(2, inverse_block_order)
+        .reshape(shape)
+    )
+
+
 if _use_aiter or _use_hip_int4:
     try:
         from aiter.ops.shuffle import shuffle_scale, shuffle_weight
     except ImportError:
-        from aiter.ops.shuffle import shuffle_scale_a16w4, shuffle_weight
+        from aiter.ops.shuffle import (
+            shuffle_scale_a16w4,
+            shuffle_weight as _legacy_shuffle_weight,
+            shuffle_weight_a16w4,
+        )
 
         def shuffle_scale(scale, num_experts, is_gu_interleave=True, is_w13_scale=True):
             del is_gu_interleave
             return shuffle_scale_a16w4(scale, num_experts, is_w13_scale)
+
+        def shuffle_weight(weight, is_guinterleave=True, gate_up=True):
+            # Older AIter exposes the A16W4 layout transform under a dedicated
+            # name rather than the newer unified shuffle_weight signature.
+            del is_guinterleave
+            if not gate_up and get_bool_env_var(
+                "SGLANG_DSV4_DEBUG_AITER_GENERIC_W2_SHUFFLE"
+            ):
+                return _legacy_shuffle_weight(weight)
+            return shuffle_weight_a16w4(weight, NLane=16, gate_up=gate_up)
 
 if _use_aiter:
     from sglang.srt.layers.quantization.fp8_utils import (
@@ -1599,12 +1644,25 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                     new_s2, requires_grad=False
                 )
 
+            if is_gfx90a_supported() and _is_shuffle_moe_mxfp4:
+                layer.w2_weight.data = _gfx90a_cktile_reorder_w2_rows(
+                    layer.w2_weight.data
+                )
+                layer.w2_weight_scale_inv.data = _gfx90a_cktile_reorder_w2_rows(
+                    layer.w2_weight_scale_inv.data
+                )
+
             for scale_name in ("w13_weight_scale_inv", "w2_weight_scale_inv"):
                 scale = getattr(layer, scale_name)
                 num_experts, num_rows, _ = scale.shape
                 is_w13_scale = scale_name == "w13_weight_scale_inv"
-                scale_2d = scale.reshape(-1, scale.shape[-1])
-                scale.data = shuffle_scale(scale_2d, num_experts, gu_intv, is_w13_scale)
+                if not get_bool_env_var(
+                    "SGLANG_DSV4_DEBUG_AITER_RAW_FP4_SCALES"
+                ):
+                    scale_2d = scale.reshape(-1, scale.shape[-1])
+                    scale.data = shuffle_scale(
+                        scale_2d, num_experts, gu_intv, is_w13_scale
+                    )
 
             layer.w13_weight.data = layer.w13_weight.data.view(fp4_weight_dtype)
             layer.w2_weight.data = layer.w2_weight.data.view(fp4_weight_dtype)

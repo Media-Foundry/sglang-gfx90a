@@ -434,3 +434,30 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 与同机native EP2中位数相比，DSpark约为：BS1持平，BS2 +39%，BS4 +34%，
   BS8 +6.5%，BS16 -15%。BS16 native graph仍更强，说明高并发下固定6-token verify、
   draft开销及target eager抵消接受收益；当前DSpark甜点区在BS2--BS8。
+
+### gfx90a CKTile A16W4 stage-2 W2 行置换修复（2026-08-23）
+
+- 旧的约60 tok/s AIter FP4路径并非数值正确：legacy CK FP4xFP4 stage1在gfx90a
+  输出全零；改走CKTile BF16×FP4后，stage1相对direct oracle的cosine约
+  `0.999996`，但stage2只有约`0.24`。因此基础错误不是Mori、attention、MHC或
+  `tid2eid`，而在routed expert的W2阶段。
+- 放开AIter自带的A16W4 reference测试后，单卡、`topk=1`、无padding也稳定复现
+  约80%输出维错误；生产shape `M=1, N=4096, K=2048`同样失败。这排除了top-k
+  atomic combine、padding和SGLang wrapper。
+- 将W2 E8M0 scale全部设为同一值仍失败，排除scale permutation。用16个token给
+  每个输出列生成指纹后，256/256列均可与reference列以`0.99996--1.0` cosine
+  唯一匹配；每个128维N tile内的16-row block映射为：
+  `fast -> reference = [0,2,4,6,1,3,5,7]`。
+- 在现有A16W4 preshuffle前，对raw W2权重和W2 scale应用逆置换
+  `[0,4,1,5,2,6,3,7]`，即可恢复逻辑输出顺序；这是加载期一次性重排，不增加
+  decode kernel或运行时开销。独立测试在`4096x2048`的topk=1/topk=6下不再
+  触发`logits_diff > 1e-3`。
+- 固定France输入IDs：
+  `[0,128803,3085,344,270,6102,294,8760,2755,128804,128822]`。完整
+  TP4/EP4+Mori eager输出10/10为
+  `[671,6102,294,8760,344,2619,51119,42499,1]`，文本为
+  `The capital of France is **Paris**.`，completion hash唯一值
+  `6f41fe2f01d52507`。CUDA graph仅捕获BS1后再次10/10完全一致，graph capture
+  约7秒，9-token问答稳态约0.69秒。
+- 每次GPU实验前使用：
+  `/opt/rocm/core-7.14/bin/amd-smi process --general --sort-by-pid -g 0 1 2 3`。
