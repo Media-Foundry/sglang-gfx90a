@@ -72,7 +72,16 @@ def create_app(upstream: str, system_prompt_file: Path) -> FastAPI:
     )
     async def proxy(path: str, request: Request):
         body = await request.body()
-        if request.method == "POST" and request.url.path == "/v1/chat/completions":
+        upstream_path = request.url.path
+        # Some clients ask for a full chat-completions endpoint as their base URL
+        # and then append the OpenAI path once more. Accept that shape alongside
+        # the standard /v1 base so existing client profiles remain usable.
+        if upstream_path == "/v1/chat/completions/chat/completions":
+            upstream_path = "/v1/chat/completions"
+        elif request.method == "GET" and upstream_path == "/v1/chat/completions/models":
+            upstream_path = "/v1/models"
+
+        if request.method == "POST" and upstream_path == "/v1/chat/completions":
             try:
                 payload = json.loads(body)
                 if not isinstance(payload, dict):
@@ -90,9 +99,6 @@ def create_app(upstream: str, system_prompt_file: Path) -> FastAPI:
             for key, value in request.headers.items()
             if key.lower() not in HOP_BY_HOP_HEADERS
         }
-        upstream_path = request.url.path
-        if request.method == "GET" and upstream_path == "/v1/chat/completions/models":
-            upstream_path = "/v1/models"
         url = f"{upstream.rstrip('/')}{upstream_path}"
         if request.url.query:
             url = f"{url}?{request.url.query}"
