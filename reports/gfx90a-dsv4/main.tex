@@ -1,0 +1,470 @@
+\documentclass[11pt,a4paper,fontset=none]{ctexart}
+
+\usepackage{fontspec}
+\setmainfont{Noto Serif}
+\setsansfont{Noto Sans}
+\setmonofont{Noto Sans Mono}
+\setCJKmainfont{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+
+\usepackage[a4paper,margin=24mm,headheight=15pt]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable,tabularx,array,multirow}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\definecolor{mfblue}{HTML}{2457A7}
+\definecolor{mfgreen}{HTML}{2D7D46}
+\definecolor{mforange}{HTML}{C66A1B}
+\definecolor{mfred}{HTML}{A83832}
+\definecolor{codebg}{HTML}{F5F7FA}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=mfblue,
+  urlcolor=mfblue,
+  citecolor=mfgreen,
+  pdftitle={DeepSeek-V4-Flash on gfx90a: Correctness and Performance Engineering},
+  pdfauthor={Media Foundry / SGLang gfx90a Engineering}
+}
+
+\lstdefinestyle{reportcode}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  upquote=true
+}
+\lstset{style=reportcode}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\metric}[1]{\textbf{\color{mfblue}#1}}
+\newcommand{\warning}[1]{\textbf{\color{mfred}#1}}
+\newcommand{\commit}[1]{\texttt{#1}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{DeepSeek-V4-Flash on gfx90a}
+\fancyhead[R]{技术报告初稿 v0.1}
+\fancyfoot[C]{\thepage}
+
+\title{\bfseries DeepSeek-V4-Flash 在 AMD gfx90a 上的\\正确性修复与推理性能工程}
+\author{Media Foundry / SGLang gfx90a Engineering}
+\date{2026-08-24\\\small 基于提交 \commit{94d630a47c}；性能 checkpoint \commit{6547c5b063}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+本文记录 DeepSeek-V4-Flash 原生 safetensors 模型在 AMD Instinct MI250X（gfx90a/CDNA2）上的 SGLang bring-up、正确性审计和性能优化。工作覆盖 TP/EP 并行、AIter/CKTile FP4 routed MoE、FP8 dense projection、mHC、DSV4 sparse attention、HIP CUDA Graph、Mori 通信以及 OpenAI/DeepSeek Harness 协议接入。最重要的工程转折是：早期约 60 tok/s 路径后来被证明存在 routed expert 数值错误，不能作为有效性能基线；在修复 W2 行置换并建立固定 token oracle 后，正确的 TP4/EP1 原生 AR 路径最终达到约 \metric{74.5 tok/s}，4604-token prompt 的 TTFT 降至 \metric{2.061--2.062 s}。当前服务在四个 MI250X GCD 上提供 560,896-token KV pool、BS 1/2/4 decode graph 和 OpenAI-compatible tool calling。
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+\section{执行摘要}
+
+\begin{table}[htbp]
+  \centering
+  \caption{当前可信结果与部署状态}
+  \label{tab:headline}
+  \begin{tabularx}{\textwidth}{@{}p{0.29\textwidth}Y@{}}
+    \toprule
+    项目 & 结果 \\
+    \midrule
+    模型 & DeepSeek-V4-Flash，284B 总参数、约 13B 激活参数，MoE expert FP4、其余主要权重 FP8 混合精度 \\
+    硬件 & 4 个可见 MI250X GCD（gfx90a），每 GCD 约 64 GiB HBM \\
+    正确性有效的短 decode & 256-token native AR 热态约 74.37--74.69 tok/s；固定轨迹 hash 为 \texttt{51e2ac132057ead3} \\
+    长 prefill & 4604-token TTFT：旧 32-row 约 2.184 s，新 64-row 约 2.061--2.062 s，严格 ABBA 提升约 5.6\% \\
+    Prefill 吞吐 & 4604 / 2.061 $\approx$ 2234 input tok/s（HTTP TTFT 口径） \\
+    KV pool & 560,896 full tokens；模型声明 context length 为 1,048,576 \\
+    服务拓扑 & TP4/EP1、no-A2A、native AR、decode CUDA Graph BS 1/2/4 \\
+    API & \texttt{/v1/models}、\texttt{/v1/chat/completions}、流式 SSE、DSV4 reasoning/tool parser \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+本文坚持三个口径约束：
+
+\begin{enumerate}[leftmargin=2em]
+  \item 所有目标数字均为原生自回归（AR），不把 DSpark/MTP accepted-token throughput 混入；
+  \item 性能结论必须同时满足固定 token oracle、输出 hash 或逐元素数值检查；
+  \item 小于约 5\% 的完整服务收益通常不单独形成 checkpoint，微基准收益不能替代端到端 ABBA。
+\end{enumerate}
+
+\section{系统与模型背景}
+
+\subsection{硬件与软件栈}
+
+实验节点使用 AMD Instinct MI250X/MI250 的 gfx90a GCD。软件环境固定为 PyTorch \texttt{2.12.0a0+git78258b9} 与 HIP/ROCm \texttt{7.14.60850}，SGLang 与 AIter 使用本地源码。模型位于 \texttt{/home/pc/models/modelscope}，由 48 个正式 safetensors 分片组成；index 未引用的 \texttt{.incomplete} 文件不参与加载。
+
+CDNA2 每个 CU 提供 wave64 执行模型、64 KiB LDS 和 INT8/BF16/FP16 矩阵或 dot 指令，但没有 Blackwell 类原生 FP4 matrix core。DeepSeek-V4-Flash 恰好把 routed expert 权重存为 FP4，因此 gfx90a 的关键问题不是单纯 HBM 带宽，而是小 M 条件下的 FP4 解包、scale 处理、量化、排序和同步固定成本。AMD MI200 ISA 文档是本文手写 HIP kernel 的主要硬件依据\cite{amdisa}。
+
+\subsection{模型执行结构}
+
+DeepSeek-V4-Flash 使用 43 个 decoder layer、256 个 routed experts、每 token top-6 routed experts，并包含 mHC、压缩注意力和 shared expert。官方模型卡说明 Flash 版本具有 284B 总参数、13B 激活参数和 1M context，expert 使用 FP4、其他主要参数使用 FP8 混合精度\cite{dsv4card}。
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=5mm and 8mm,
+    box/.style={draw,rounded corners,align=center,minimum height=8mm,fill=blue!4},
+    hot/.style={draw=mfblue,very thick,rounded corners,align=center,minimum height=8mm,fill=blue!8},
+    comm/.style={draw=mforange,rounded corners,align=center,minimum height=8mm,fill=orange!8},
+    arrow/.style={-{Latex[length=2.2mm]},thick}
+  ]
+    \node[box] (embed) {Embedding};
+    \node[hot,right=of embed] (mhcpre) {mHC pre / RMS};
+    \node[hot,right=of mhcpre] (attn) {DSV4 attention\\compressor / indexer};
+    \node[hot,right=of attn] (router) {Router top-k};
+    \node[hot,below=of router] (routed) {FP4 routed MoE\\gate/up $\rightarrow$ down};
+    \node[hot,left=of routed] (shared) {Shared expert};
+    \node[comm,left=of shared] (reduce) {TP all-reduce\\or Mori combine};
+    \node[box,left=of reduce] (head) {mHC head / norm\\LM head};
+    \draw[arrow] (embed) -- (mhcpre);
+    \draw[arrow] (mhcpre) -- (attn);
+    \draw[arrow] (attn) -- (router);
+    \draw[arrow] (router) -- (routed);
+    \draw[arrow] (router.south west) |- (shared.north);
+    \draw[arrow] (routed) -- (shared);
+    \draw[arrow] (shared) -- (reduce);
+    \draw[arrow] (reduce) -- (head);
+  \end{tikzpicture}
+  \caption{DSV4 layer 的主要性能与通信边界。TP4/EP1 路径移除了 routed expert A2A，但仍保留 TP collective。}
+  \label{fig:architecture}
+\end{figure}
+
+\section{Bring-up 与兼容工作}
+
+最初的 ROCm 路径主要面向 gfx942/gfx950。gfx90a bring-up 包括：
+
+\begin{itemize}[leftmargin=2em]
+  \item 将 gfx90a 纳入构建目标并选择 \texttt{HIP\_FP8\_TYPE\_FNUZ}；
+  \item 修复 ROCm 7.14 include/lib/rpath 探测，避免 conda host-side \texttt{hipcc} 误选；
+  \item 构建 AOT HIP kernel，并补齐 AIter FP4 CK MoE 的 gfx90a 实际执行路径；
+  \item 为无 RDMA NIC 节点处理 Mori topology 与 XGMI 初始化；
+  \item 验证 gfx90a 上 HIP CUDA Graph capture/replay，而非把专用 kernel 误选问题归咎于硬件；
+  \item 完成 TP4/EP4/Mori 与 TP4/EP1/no-A2A 两类运行路径。
+\end{itemize}
+
+早期 bring-up checkpoint 为 \commit{505b3373794a}。此后大量性能与 correctness 修改继续演进，因此该提交不是当前完整状态。
+
+\section{正确性：从“能跑”到可信基线}
+
+\subsection{请求 admission 与 sampler}
+
+早期请求一直 waiting 的直接原因是 SWA admission：\texttt{max-total-tokens=4096}、\texttt{swa-full-tokens-ratio=0.1} 和 \texttt{page-size=256} 形成过小 SWA pool。提升 token pool 后请求才能进入 forward。另一个独立问题是 gfx90a AIter greedy sampler 在特殊 logits 行可能返回 \texttt{token\_id == vocab\_size}；gfx90a 因此回退到 \texttt{torch.argmax}。
+
+DeepSeek-V4 没有 Jinja chat template，必须使用专用 encoding。官方模型卡同样明确要求使用提供的 encoding 脚本，并给出 OpenAI-compatible SGLang 调用方式\cite{dsv4card}。
+
+\subsection{W2 行置换：旧 60 tok/s 被判无效}
+
+\warning{旧的约 60 tok/s AIter FP4 路径不是 correctness-valid 结果。} legacy CK FP4$\times$FP4 stage-1 在 gfx90a 上输出全零；切换到 CKTile BF16$\times$FP4 后，stage-1 与 direct oracle 的 cosine 约 0.999996，但 stage-2 W2 仅约 0.24。
+
+通过输出列指纹匹配，定位到每个 128 维 N tile 内的 16-row block 映射：
+
+\begin{equation}
+  \text{fast}\rightarrow\text{reference}=[0,2,4,6,1,3,5,7].
+\end{equation}
+
+在加载期对 raw W2 权重和 scale 应用逆置换
+
+\begin{equation}
+  [0,4,1,5,2,6,3,7]
+\end{equation}
+
+后，top-k=1 和 top-k=6 的独立 reference 检查恢复正确。该修复不增加 decode 热路径开销。
+
+固定 France 输入 token oracle 为：
+
+\begin{lstlisting}
+[0,128803,3085,344,270,6102,294,8760,2755,128804,128822]
+\end{lstlisting}
+
+期望 completion 为：
+
+\begin{lstlisting}
+The capital of France is **Paris**.
+token ids: [671,6102,294,8760,344,2619,51119,42499,1]
+hash: 6f41fe2f01d52507
+\end{lstlisting}
+
+该 oracle 在 eager、decode graph 与多次独立启动中保持一致。长 prefill 的 greedy completion 仍可能从 token 0 分叉，因此下一阶段应引入 teacher-forced logits 与固定 continuation，而不是只比较整段生成 hash。
+
+\section{Decode 优化}
+
+\subsection{并行方式：TP4/EP1 优于 BS1 EP4}
+
+W2 修复后，正确的 TP4/EP4+Mori BS1 仅约 14.2--15.0 tok/s。TP4/EP1/no-A2A 的 correct CKTile 对照约 20.14 tok/s，说明 BS1 下 EP4 的 dispatch/combine、rank imbalance 与 progress 固定延迟十分显著。
+
+TP4/EP1 的最终 decode 路径包括：
+
+\begin{itemize}[leftmargin=2em]
+  \item packed FP4 权重保持 4-bit 存储；
+  \item BF16 activation 每 32 元素在线量化为 INT8；
+  \item E2M1 nibble 映射为 $0,\pm1,\pm2,\pm3,\pm4,\pm6,\pm8,\pm12$；
+  \item 使用 CDNA2 \texttt{v\_dot4\_i32\_i8} / mixed-dot 累加，再乘 activation 与 E8M0 scale；
+  \item down projection 以四个 16-lane subgroup 并行处理 top-6 slots；
+  \item AIter peer-read custom all-reduce 替代高固定延迟 RCCL 路径；
+  \item TP-only mHC 使用不再为 Mori progress 刻意让 CU 的几何。
+\end{itemize}
+
+\begin{table}[htbp]
+  \centering
+  \caption{correctness-valid decode 路径演进。不同 checkpoint 的长输出 hash 可能因数值路径改变而不同，France oracle 均需通过。}
+  \label{tab:decode}
+  \begin{tabularx}{\textwidth}{@{}YrrY@{}}
+    \toprule
+    路径 & native AR (tok/s) & 相对前项 & 主要结论 \\
+    \midrule
+    TP4/EP4 + Mori，correct CKTile & 14.2--15.0 & -- & EP/A2A 固定税显著 \\
+    TP4/EP1 + RCCL，correct CKTile & 约 20.14 & 约 +34\% & no-A2A 明显更适合 BS1 \\
+    TP4/EP1，packed FP4$\times$INT8 dot & 约 25.54 & +26.8\% & 小 M 专核有效 \\
+    加入 peer-read custom AR & 约 60.20 & +136\% & collective 固定延迟是关键 \\
+    direct/MHC/router 几何优化 & 约 66.1 & 约 +9.8\% & 让 CU 几何匹配 TP-only \\
+    unpack、router 与后续优化 & 约 74.08--74.69 & 约 +12\% & 当前可信 decode checkpoint \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar,
+      width=0.92\textwidth,
+      height=7cm,
+      ylabel={native AR (tok/s)},
+      symbolic x coords={EP4,TP1-CK,INT8-dot,Custom-AR,Router,Final},
+      xtick=data,
+      x tick label style={rotate=25,anchor=east},
+      ymin=0,ymax=82,
+      nodes near coords,
+      bar width=11pt,
+      grid=major,
+      grid style={black!10},
+      every axis plot/.append style={fill=mfblue!65,draw=mfblue}
+    ]
+      \addplot coordinates {(EP4,14.6) (TP1-CK,20.14) (INT8-dot,25.54) (Custom-AR,60.20) (Router,66.1) (Final,74.5)};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{修复 routed MoE 后的 BS1 decode 演进；早期错误的 60 tok/s 路径未列入。}
+  \label{fig:decode-progress}
+\end{figure}
+
+\section{Prefill 优化}
+
+\subsection{从逐 assignment 标量路径到 CDNA2 MFMA}
+
+原始 raw-FP4 direct kernel 在 M=256 prefill 进入逐 assignment FP16 dot 分支，1028-token TTFT 约 12.9 s。优化逐步引入：
+
+\begin{enumerate}[leftmargin=2em]
+  \item 多行共享 packed FP4 权重解包，先 group8，再针对 M$\geq$1024 使用 group32；
+  \item 使用 \texttt{v\_perm\_b32} LUT 替代分支式 nibble 解码；
+  \item 为 M512/M1024 补齐 MI250X block-FP8 GEMM tuned config；
+  \item 使用 CDNA2 INT8 MFMA 的 routed gate/down 路径；
+  \item 将 sparse paged-prefill attention 从 8 wave 收缩到 1 wave；
+  \item 将 chunked prefill 从 512/1024 提升到 2048；
+  \item 为 M2048 调整 MFMA grid、INT8 quant HIP 专核、scale/metadata broadcast；
+  \item 将 expert sorter block 从 32 提升到 64，使平均约 48 条 route 的 expert 只扫描一次 packed 权重。
+\end{enumerate}
+
+\begin{table}[htbp]
+  \centering
+  \caption{代表性 prefill 结果}
+  \label{tab:prefill}
+  \begin{tabularx}{\textwidth}{@{}YrrY@{}}
+    \toprule
+    阶段 & 1028-token TTFT & 4604-token TTFT & 说明 \\
+    \midrule
+    原逐 assignment direct FP4 & 12.85--12.95 s & 约 28--30 s & FP16/scalar dot 与重复解包 \\
+    group8 + 解包复用 & 约 1.03--1.11 s & 约 3.8 s & 中等 M 收益最大 \\
+    FP8 tuned config + MFMA & 约 0.76--0.88 s & 约 2.85--3.45 s & dense 与 routed 路径共同优化 \\
+    1-wave sparse attention + chunk 2048 & 约 0.53--0.55 s & 约 2.28--2.42 s & 减少 launch 与 chunk 边界 \\
+    M2048 64-row sorter & 约 0.516 s & 2.061--2.062 s & 最终 ABBA：长 prefill +5.6\% \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+最终 M2048 microbenchmark 中，64-row 相对 32-row：gate/up 约 7.26$\rightarrow$5.55 ms（+23.6\%），down 约 6.01$\rightarrow$5.26 ms（+12.5\%），两阶段合计约 +18.2\%，输出逐元素 bitwise exact。完整服务严格 ABBA 为 A1 2.184 s、B1 2.061 s、B2 2.062 s、返回 A2 2.185 s。
+
+\section{实验方法与证据等级}
+
+\subsection{资源与口径控制}
+
+每次 GPU probe 前执行：
+
+\begin{lstlisting}[language=bash]
+amd-smi process --general --sort-by-pid -g 0 1 2 3
+\end{lstlisting}
+
+发现孤儿 scheduler、JIT worker 或非本轮 PID 时，先清理再建立基线。启动脚本拒绝非零 \texttt{SPECULATIVE\_*}，保证 native AR 口径。服务绑定 NUMA node 1，以绕过 node 0 已观测到的 host DRAM uncorrectable MCE 坏页。
+
+\subsection{ABBA 与 trimmed median}
+
+对可能超过 5\% 的修改使用独立服务 ABBA：
+
+\begin{equation}
+  A_1 \rightarrow B_1 \rightarrow B_2 \rightarrow A_2.
+\end{equation}
+
+每个服务先丢弃 JIT/冷 cache 首轮，再取多轮 trimmed median。微基准用于筛选候选，不能独立形成端到端结论。每轮同时记录 token 数、finish reason、HTTP wall time、server decode window 和输出 hash。
+
+\subsection{正确性层级}
+
+\begin{enumerate}[leftmargin=2em]
+  \item kernel 级：逐元素 bitwise、max-abs、relative L2、cosine；
+  \item 层级：router top-k、stage-1、activation、stage-2、rank-local sum；
+  \item 模型级：France 固定 IDs 与 256-token 固定 hash；
+  \item 待补：teacher-forced cached-vs-recompute logits，覆盖位置 4/128/512 及长 continuation。
+\end{enumerate}
+
+\section{证伪或回退的方向}
+
+\begin{longtable}{@{}p{0.28\textwidth}p{0.22\textwidth}p{0.43\textwidth}@{}}
+  \caption{重要负结果及其含义}\label{tab:negative}\\
+  \toprule
+  方向 & 结果 & 结论 \\
+  \midrule
+  \endfirsthead
+  \toprule
+  方向 & 结果 & 结论 \\
+  \midrule
+  \endhead
+  CKTile KSPLIT=2/4 & 约 25/22 tok/s 或更低 & split-K reduction 与 CTA 占用不适合 BS1 小 M \\
+  AsyncLL / SDMA Mori & 约 20--49 tok/s & 当前低延迟路径未形成更短 critical path \\
+  packed FP4 离线展开为 INT8 & gate 约 7.23$\rightarrow$10.45 ms & 权重流量翻倍，解包减少不足以抵消 HBM 代价 \\
+  CK BF16 router 实例 & 约 86.7--98.6 us & 慢于稳定 torch/rocBLAS，未接 runtime \\
+  自写简单 LDS BF16 MFMA router & 约 0.43--0.52 ms & barrier、bank/layout 成本过高 \\
+  32$\times$32 INT8 MFMA gate & 最好约 7.87 ms & 165 VGPR + 32 KiB LDS 导致 occupancy 崩塌 \\
+  full prefill CUDA Graph & capture 成功、replay memory fault & metadata 地址不是 capture-stable；已撤回 \\
+  单 CTA/token HIP mHC prefill & 约慢 28\% & 标量 FMA 不能仅靠减少 launch 替代当前分解 \\
+  RCCL 替换 peer-read AR & TTFT 约 0.679$\rightarrow$0.711 s & 应减少 collective 边界，而非更换为 RCCL \\
+  BF16 down partial & micro 约 +0.8\%，数值变化大 & 收益不足，保持 FP32 partial \\
+  \bottomrule
+\end{longtable}
+
+\section{服务、显存与客户端接入}
+
+\subsection{当前部署}
+
+当前 native AR 服务监听 \texttt{0.0.0.0:30001}，配置为 TP4/EP1、no-A2A、decode graph BS 1/2/4、\texttt{mem\_fraction\_static=1.0}。实际每 GCD 约使用 61.6/65.5 GB（约 94.1\%），KV pool 为 560,896 full tokens，graph capture 后仍保留约 4.3 GB/GCD 运行空间。
+
+\begin{lstlisting}[language=bash]
+curl http://10.120.16.9:30001/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "deepseek-v4-flash",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 64
+  }'
+\end{lstlisting}
+
+\subsection{强制 persona 与 DeepSeek Harness}
+
+端口 30002 是 OpenAI-compatible reverse proxy，在客户端已有 system message 的末尾强制合并服务端 persona；它支持流式转发、\texttt{/v1/models}、嵌套模型发现兼容路径与重复 chat endpoint 兼容。端口 30001 保持不注入 persona。
+
+为 agent 工具调用启用：
+
+\begin{lstlisting}
+--tool-call-parser deepseekv4
+--reasoning-parser deepseek-v4
+\end{lstlisting}
+
+非流式和流式请求均已验证返回标准 OpenAI \texttt{tool\_calls}，工具结果回送后模型能够生成最终答案。DeepSeek Harness 可配置自定义 \texttt{openai-completions} provider，并以 \texttt{/v1} 为 base URL\cite{dsh}。
+
+\section{剩余风险与下一步}
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{长上下文正确性：}完成 cached decode 与 full recompute 的 teacher-forced first-divergence，重点覆盖 compressor ratio 4、SWA 128 和 indexer top-512 边界。
+  \item \textbf{Indexer：}当前 full-Triton 路径仍写完整 $[B,L]$ FP32 logits，再独立 top-k。目标是 CTA-local top-512 + 二级 merge，避免 O($L$) HBM 往返。
+  \item \textbf{Prefill MoE 融合：}M2048 profile 中 routed gate/up 与 down 仍占最大头部；下一步需要跨 stage 复用 activation/scale 或融合 stage1$\rightarrow$quant$\rightarrow$stage2，而不是单纯放大 MFMA tile。
+  \item \textbf{Collective 边界：}peer-read AR 已优于 RCCL，但仍可尝试减少每层 collective 数量或与 epilogue 融合。
+  \item \textbf{并发 parallelism：}BS1 默认 TP4/EP1；较大并发下 EP2 曾在 BS2--BS16 显示潜在收益，应在 correctness-valid 新 kernel 上重做 crossover。
+  \item \textbf{运维：}将模型服务和 30002 proxy 纳入 systemd/supervisor，并处理 node 0 MCE 对应的 DIMM/EDAC 维护。
+\end{enumerate}
+
+\section{结论}
+
+本项目的核心成果不是单一 kernel，而是建立了“正确性先行、硬件形状驱动、端到端 ABBA 验证”的 gfx90a 推理工程链路。旧 60 tok/s 结果因 routed MoE 错误被主动撤销；修复 W2、重构小 M packed-FP4$\times$INT8 decode、降低 collective 固定延迟并针对大 M prefill 使用 CDNA2 MFMA 后，正确的 native AR 达到约 74.5 tok/s，长 prefill 达到约 2.23k input tok/s。结果说明 MI250X 的主要障碍不是理论 HBM 带宽，而是 stored FP4 与 CDNA2 执行格式之间的转换、低 M 利用率以及每层同步固定成本。
+
+\appendix
+
+\section{关键 checkpoint}
+
+\begin{longtable}{@{}p{0.20\textwidth}p{0.72\textwidth}@{}}
+  \toprule
+  Commit & 内容 \\
+  \midrule
+  \commit{505b3373794a} & gfx90a/ROCm 初始 bring-up \\
+  \commit{caf80718cf} & 修复 CKTile FP4 expert W2 输出顺序 \\
+  \commit{9140c03605} & TP-only correct 60 tok/s 路径 \\
+  \commit{b097d228c2} & native router decode 优化 \\
+  \commit{ea519e2e0f} & routed MoE prefill MFMA \\
+  \commit{6680714cf8} & sparse prefill wave 优化 \\
+  \commit{6547c5b063} & M2048 64-row expert block，长 prefill +5.6\% \\
+  \commit{85ab1a40c5} & DSV4 reasoning/tool parser 接线 \\
+  \commit{94d630a47c} & OpenAI client 完整 endpoint 兼容 \\
+  \bottomrule
+\end{longtable}
+
+\section{TeX 构建}
+
+推荐使用 XeLaTeX：
+
+\begin{lstlisting}[language=bash]
+cd reports/gfx90a-dsv4
+make check
+make
+\end{lstlisting}
+
+本报告不需要 biber 或 shell-escape。引用使用内置 \texttt{thebibliography}；代码块使用 \texttt{listings}。
+
+\begin{thebibliography}{9}
+  \bibitem{dsv4card}
+  DeepSeek-AI.
+  \newblock \emph{DeepSeek-V4-Flash Model Card}.
+  \newblock \url{https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash}, 2026.
+
+  \bibitem{amdisa}
+  Advanced Micro Devices, Inc.
+  \newblock \emph{AMD Instinct MI200 Instruction Set Architecture}.
+  \newblock Local copy: \texttt{/home/pc/Code/instinct-mi200-cdna2-instruction-set-architecture.pdf}.
+
+  \bibitem{cdna2}
+  Advanced Micro Devices, Inc.
+  \newblock \emph{AMD CDNA 2 Architecture White Paper}.
+  \newblock \url{https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf}.
+
+  \bibitem{sglang}
+  SGLang Project.
+  \newblock \emph{SGLang: A High-Performance Serving Framework}.
+  \newblock \url{https://github.com/sgl-project/sglang}.
+
+  \bibitem{ck}
+  AMD ROCm.
+  \newblock \emph{Composable Kernel}.
+  \newblock \url{https://github.com/ROCm/composable_kernel}.
+
+  \bibitem{dsh}
+  DeepSeek-AI.
+  \newblock \emph{DeepSeek Harness}.
+  \newblock \url{https://github.com/deepseek-ai/deepseek-harness}.
+\end{thebibliography}
+
+\end{document}
