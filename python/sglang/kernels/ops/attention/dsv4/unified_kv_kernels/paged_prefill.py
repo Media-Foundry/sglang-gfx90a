@@ -280,7 +280,9 @@ def _sparse_attn_v4_paged_prefill_triton(
         BLOCK_H=block_h,
         BLOCK_D=block_d,
         BLOCK_K=block_k,
-        num_warps=8,
+        # gfx90a has wave64; four waves already cover the H16 x D512 tile.
+        # Eight waves double scheduling/register pressure without adding work.
+        num_warps=4,
     )
     return out
 

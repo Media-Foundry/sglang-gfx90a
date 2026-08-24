@@ -754,3 +754,30 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   向scheduler发送SIGBUS；这不是kernel或权限问题。地址属于NUMA node0，使用
   `numactl --membind=1 --cpunodebind=1`后服务加载及全部A/B稳定。硬件坏页应在
   维护窗口重启并检查DIMM/EDAC，测试前继续用`amd-smi process`确认资源。
+- MFMA32下投影继续扫描K-split/网格：原split4/312约`3.707 ms`，split2在
+  624/832/1040 blocks分别约`3.391/3.296/3.294 ms`，1248又退到3.64ms；采用
+  split2/1040。严格ABBA中旧几何A约`0.750 s / 2.921 s`（1028/4604 tokens），
+  B约`0.727 s / 2.851 s`，返回A约`0.745 s / 2.915 s`，稳定再提升约3.2%/2.4%。
+  最终B的4604+512第二轮TTFT 2.851秒、decode 46.07 tok/s并完整finish=length；
+  短decode去JIT后`72.61--72.70 tok/s`且3/3 hash仍为`51e2ac132057ead3`。
+- M1024 MFMA profile的完整TP0 kernel sum约580ms：gate/up 155.7ms、down136.7ms、
+  sparse prefill attention 66.3ms、AIter peer all-reduce 43.5ms、dense FP8 34.1ms、
+  MHC约49.7ms、INT8 quant 12.4ms、down reduce 3.8ms、sort约2.2ms。目标2k tok/s
+  要求约512ms/chunk，仍需减少约68ms；下一优先级为attention及collective。
+- AIter BF16 `M1024,N256,K4096`探测中，默认JIT误选conda的
+  `/home/pc/anaconda3/bin/hipcc`并缺`thrust/complex.h`；显式使用
+  `/opt/rocm/core-7.14/bin/hipcc`后可编译，但gfx90a没有BF16 ASM heuristic
+  kernel。2226个hipBLASLt solution最快一轮约83.5us，对同轮torch约91.7us仅
+  9%，而独立稳定torch测量约43--44us，因此不接入该不稳定候选；AOCC不适用于
+  HIP device kernel编译。
+- DSV4 sparse paged-prefill attention在gfx90a的`H=16,D=512,BLOCK_K=16`
+  tile原先发射8个wave，但实际4个wave已覆盖整块。代表性T1024、prefix512、
+  extend128 micro从约`4.902 -> 2.478 ms`，输出逐元素bitwise exact；BLOCK_K
+  32/64更慢且引入约1e-3相对误差，未采用。严格ABBA中A(8-wave)的1028/4604
+  token中位约`0.733 / 2.852 s`，B(4-wave)约`0.694 / 2.608 s`，返回A约
+  `0.733 / 2.852 s`，即约5.6%/9.4%收益。B的两轮4604+512均完整
+  `finish=length`，TTFT约2.606--2.608秒、decode约46.34 tok/s；长重复prompt
+  的completion仍不作为bitwise oracle。
+- MFMA down几何与4-wave sparse attention叠加后，4604-token TTFT相对前一已推
+  checkpoint `ea519e2e0f`的约2.924秒降到约2.608秒，累计提升约12.1%，达到
+  checkpoint阈值。最终保留MFMA down split2/1040 blocks与attention 4 waves。

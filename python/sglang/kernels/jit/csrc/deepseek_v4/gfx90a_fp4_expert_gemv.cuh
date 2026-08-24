@@ -745,7 +745,7 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
-          uint32_t kBlocks>
+          uint32_t kBlocks, uint32_t kSplit = 4>
 struct Gfx90aFp4ExpertGateUpMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -763,8 +763,9 @@ struct Gfx90aFp4ExpertGateUpMfma32Kernel {
     TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
     TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
-    LaunchKernel(kBlocks, 256, xq.device())(
-        gfx90a_fp4_expert_gate_up_mfma32_kernel<E, M, T, I, K, kBlocks>,
+    LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
+        gfx90a_fp4_expert_gate_up_mfma32_kernel<
+            E, M, T, I, K, kBlocks, kSplit>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
@@ -1080,7 +1081,7 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
 };
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t kBlocks>
+          uint32_t kBlocks, uint32_t kSplit = 4>
 struct Gfx90aFp4ExpertDownMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -1102,8 +1103,9 @@ struct Gfx90aFp4ExpertDownMfma32Kernel {
     TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
-    LaunchKernel(kBlocks, 256, xq.device())(
-        gfx90a_fp4_expert_down_mfma32_kernel<E, M, T, N, K, kBlocks>,
+    LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
+        gfx90a_fp4_expert_down_mfma32_kernel<
+            E, M, T, N, K, kBlocks, kSplit>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

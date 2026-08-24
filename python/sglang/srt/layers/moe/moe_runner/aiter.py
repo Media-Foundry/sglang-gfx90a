@@ -534,7 +534,11 @@ class AiterRunnerCore(MoeRunnerCore):
                         num_valid_ids,
                         runner_input.topk_weights,
                         out=direct_out,
-                        blocks=down_blocks,
+                        # K=512 needs only eight group-32 iterations per split.
+                        # Two waves with a five-block/CU grid outperform the
+                        # original four-wave geometry for a full M1024 chunk.
+                        blocks=1040,
+                        split=2,
                     )
                 else:
                     output = gfx90a_fp4_expert_down_grouped(

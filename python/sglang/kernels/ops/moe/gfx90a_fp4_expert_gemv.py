@@ -73,9 +73,9 @@ def _jit_gate_up_grouped(
 
 @cache_once
 def _jit_gate_up_mfma32(
-    e: int, m: int, t: int, i: int, k: int, blocks: int
+    e: int, m: int, t: int, i: int, k: int, blocks: int, split: int
 ) -> Module:
-    args = make_cpp_args(e, m, t, i, k, blocks)
+    args = make_cpp_args(e, m, t, i, k, blocks, split)
     return load_jit(
         "gfx90a_fp4_expert_gate_up_mfma32",
         *args,
@@ -148,9 +148,9 @@ def _jit_down_grouped(
 
 @cache_once
 def _jit_down_mfma32(
-    e: int, m: int, t: int, n: int, k: int, blocks: int
+    e: int, m: int, t: int, n: int, k: int, blocks: int, split: int
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, blocks)
+    args = make_cpp_args(e, m, t, n, k, blocks, split)
     return load_jit(
         "gfx90a_fp4_expert_down_mfma32",
         *args,
@@ -269,13 +269,15 @@ def gfx90a_fp4_expert_gate_up_mfma32(
     topk: int,
     limit: float,
     blocks: int = 416,
+    split: int = 4,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
     i = two_i // 2
     assert packed_k * 2 == k and i % 16 == 0
     out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
-    _jit_gate_up_mfma32(e, m, topk, i, k, blocks).run(
+    assert split in (2, 4, 8)
+    _jit_gate_up_mfma32(e, m, topk, i, k, blocks, split).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
@@ -341,6 +343,7 @@ def gfx90a_fp4_expert_down_mfma32(
     topk_weights: torch.Tensor,
     out: torch.Tensor | None = None,
     blocks: int = 312,
+    split: int = 4,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -348,7 +351,8 @@ def gfx90a_fp4_expert_down_mfma32(
     partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
-    _jit_down_mfma32(e, m, topk, n, k, blocks).run(
+    assert split in (2, 4, 8)
+    _jit_down_mfma32(e, m, topk, n, k, blocks, split).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
