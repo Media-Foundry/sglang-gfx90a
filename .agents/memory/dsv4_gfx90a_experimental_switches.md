@@ -820,3 +820,66 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   长prefill吞吐约2020 input tok/s，提升约3.6%/6.2%。B的短decode hash 3/3
   保持`51e2ac132057ead3`；4604+512两轮均finish=length，TTFT `2.269/2.278 s`、
   decode约46.10 tok/s。最终采用1 wave。
+- `6680714cf8`之后增加纯HIP group32 INT8 quant专核：一个wave64用四个
+  16-lane subgroup同时处理四组，每lane量化两个BF16元素。M2048真实shape
+  micro中`[2048,4096]`约`0.380 -> 0.071 ms`，`[2048,6,512]`约
+  `0.299 -> 0.062 ms`，量化值和scale均与原Triton逐元素bitwise exact；selector
+  仅在gfx90a MFMA prefill且M>=1024时启用，decode不变。
+- MFMA gate/down的E8M0 weight scale、activation scale和sort metadata广播改为
+  wave shuffle后，M2048 micro约有gate 2--5%、down 2--3%局部收益。code-object
+  审计发现共享assignment metadata使gate LDS从精确`16384 B`升到`16512 B`，
+  跨过64KiB/CU的4-block residency边界；改成每wave寄存器加载再shuffle后，
+  gate保持`104 VGPR/0 spill`并恢复`16384 B LDS`。单独端到端A/B约
+  `2.224 vs 2.225 s`，没有可交付收益，但它改变了最佳grid档位。
+- 真正的CDNA2 `mfma_i32_32x32x8i8` gate原型已用真实E256/M2048/topk6 shape
+  验证：split4输出与16x16路径bitwise exact，但code object为`165 VGPR +
+  32896 B LDS`，最好约`7.87 ms`，比当前16x16约`6.10 ms`慢29%；split2约
+  `8.88--12.15 ms`。原因是16个C寄存器同时保留gate/up及scaled FP32累加后
+  occupancy崩塌，原型已完全撤回。后续不应仅以减少MFMA指令数放大wave tile。
+- 新16KiB LDS档位重新扫描M2048 MFMA grid：gate split4从624改1040 blocks，
+  down split2从1040改624 blocks。平衡routing micro分别约`6.13 -> 6.05 ms`
+  和`5.64 -> 5.28 ms`。实际TP4/EP1 no-A2A严格返回A：B为
+  `2.182--2.190 s`，返回A为`2.225--2.230 s`（4604-token），稳定提升约1.8%；
+  1028-token仍约0.516秒，因为不走完整M2048 tier。B的短decode三轮hash保持
+  `51e2ac132057ead3`；4604+512两轮均`finish=length`、TTFT 2.188/2.189秒、
+  decode 46.446/46.443 tok/s。长prompt completion hash仍会漂移，沿用既有
+  teacher-forced要求，不把它当bitwise oracle。
+- 针对DSV4 router的`M x 4096 @ 256 x 4096^T`正式扫描了本地CK BF16
+  XDL/CShuffle实例。为ROCm 7.14/gfx90a只构建`gemm` profiler时，CK存在一个
+  `DTYPES=bf16`下无条件声明F16别名并被`-Werror`拒绝的host-side小bug；将别名
+  按`CK_ENABLE_FP16`条件化后可正常构建。120个实例的最佳时间（M=512/1024/
+  1028/2048）约`86.7/90.0/90.1/98.6 us`，均慢于稳定torch/rocBLAS的约
+  `34.6/43.7/43.4/62.5 us`，因此不引入CK runtime/实例扫描。
+- 另写过固定N256/K4096、LDS协作搬运、wave64 BF16 MFMA的CK-style HIP专核，
+  扫描64x64、128x64、128x128 block及K32/K64。输出相对torch约`2.4e-5--
+  4.9e-5`，但最好仍仅约`0.43--0.52 ms`；简单同步LDS管线的K-tile barrier与
+  bank/layout成本远高于rocBLAS，专核已撤回。后续若再做必须采用真正的异步
+  双缓冲/CK blockwise copy，不能接入这个已证伪原型。
+- AIter对上述gfx90a BF16 router shape没有tuned config，实际也是torch solution，
+  但每次dispatcher fallback约`67--69 us`；直接`F.linear`约`35--63 us`。
+  完整TP4/EP1 no-A2A服务严格ABBA（4604-token、每服务预热后7轮）为：A1
+  中位`2.183 s`、B1 `2.186 s`、B2 `2.184 s`、返回A2 `2.184 s`。micro差异在
+  完整prefill中完全不可见，故正式selector/env/script接线已撤回；不能把该
+  fallback日志当成新的E2E瓶颈。
+- 新增可复现的`scripts/bench_gfx90a_fp4_moe.py`，用真实TP4/EP1形状
+  `E256/topk6/H4096/I512`和balanced expert排序元数据分别测gate/down；所有
+  GPU实验前继续用`amd-smi process`确认无占用。rocprof硬件计数显示M2048旧
+  32-assignment gate为`104 VGPR/16 KiB LDS/0 scratch`，每次约3.63亿VALU、
+  1678万MFMA、1904万VMEM和2228万LDS指令，说明在线FP4解包/scale/地址计算
+  明显重于MFMA本身。
+- 尝试把packed FP4 routed权重离线展开并缓存为INT8，删除热循环内的`v_perm`
+  解包；但gate从约`7.23 -> 10.45 ms`，因权重流量翻倍而退化44%，原型已撤回。
+  这证明不能单独以显存换解包，后续若使用INT8缓存必须同时减少权重扫描次数。
+- 将MFMA gate/down的expert sorter block从32参数化到64。M2048/topk6下每个
+  expert平均约48条route，64-row CTA只扫描一次packed权重；gate的MFMA数保持
+  1678万不变，VALU约`3.63亿 -> 2.56亿`、VMEM约`1904万 -> 1271万`，无scratch。
+  资源变为`52 VGPR + 132 AGPR / 32 KiB LDS`。独立micro中gate约
+  `7.26 -> 5.55 ms`（+23.6%），down约`6.01 -> 5.26 ms`（+12.5%），两阶段
+  合计约+18.2%；32/64输出均逐元素bitwise exact。gate最佳使用split4/416
+  blocks（416--1248基本同档），down使用split2/624 blocks；仅M>=2048启用，
+  M1024及decode维持32-row路径。
+- 完整TP4/EP1 no-A2A严格ABBA（4604-token，每服务预热后5轮）：A1旧32-row
+  中位`2.184 s`，B1新64-row `2.061 s`，B2 `2.062 s`，返回A2 `2.185 s`，
+  长prefill吞吐稳定提升约5.6%。两轮B短256-token native AR约
+  `74.37/74.69 tok/s`且hash均为`51e2ac132057ead3`；新selector不触及decode。
+  正式脚本通过`SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL`默认启用该路径。
