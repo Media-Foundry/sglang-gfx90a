@@ -141,6 +141,13 @@ else
 fi
 export SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE="${SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE:-${DEFAULT_GFX90A_FP4_DIRECT_MOE}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL="${SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL:-${DEFAULT_GFX90A_FP4_DIRECT_MOE}}"
+if [[ "${TP_SIZE:-4}" == "4" && "${EP_SIZE:-4}" == "1" && \
+      "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
+  DEFAULT_GFX90A_FP4_MFMA32_PREFILL=1
+else
+  DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
+fi
+export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
 export SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY="${SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY:-${DEFAULT_GFX90A_MHC_TP_ONLY_GEOMETRY}}"
 
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
@@ -490,8 +497,8 @@ bench() {
   local tokens="${1:-256}"
   local reps="${2:-1}"
   "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${reps}" <<'PY'
-import json
 import hashlib
+import json
 import sys
 import time
 import urllib.request
@@ -549,6 +556,7 @@ bench_context() {
   local tokens="${2:-128}"
   local reps="${3:-3}"
   "${PYTHON_BIN}" - "${BASE_URL}" "${words}" "${tokens}" "${reps}" <<'PY'
+import hashlib
 import json
 import sys
 import time
@@ -598,6 +606,9 @@ for rep in range(reps):
     end = time.perf_counter()
     dt = end - start
     output_tokens = len(out.get("output_ids") or [])
+    output_hash = hashlib.sha256(
+        json.dumps(out.get("output_ids") or [], separators=(",", ":")).encode()
+    ).hexdigest()[:16]
     meta = out.get("meta_info", {})
     prompt_tokens = meta.get(
         "prompt_tokens", meta.get("input_token_logprobs", "unknown")
@@ -608,7 +619,7 @@ for rep in range(reps):
         f"END rep={rep} prompt_tokens={prompt_tokens} output_tokens={output_tokens} "
         f"wall={dt:.3f}s ttft={(first_chunk_at - start):.3f}s "
         f"decode_tok/s={decode_tokens / decode_dt:.3f} "
-        f"finish={meta.get('finish_reason')}",
+        f"finish={meta.get('finish_reason')} output_sha256={output_hash}",
         flush=True,
     )
 PY

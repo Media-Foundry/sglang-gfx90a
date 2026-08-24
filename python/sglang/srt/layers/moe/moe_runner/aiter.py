@@ -439,10 +439,19 @@ class AiterRunnerCore(MoeRunnerCore):
 
                 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
                     gfx90a_fp4_expert_down_grouped,
+                    gfx90a_fp4_expert_down_mfma32,
                     gfx90a_fp4_expert_gate_up_grouped,
+                    gfx90a_fp4_expert_gate_up_mfma32,
                 )
 
-                grouped_assignments = 8
+                use_mfma32_prefill = (
+                    # MFMA amortizes its 32-row expert tile for a full 1024-token
+                    # chunk.  At M=512 the current group-8 sdot path is still
+                    # faster once the stage-2 reduction is included.
+                    runner_input.hidden_states.shape[0] >= 1024
+                    and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
+                )
+                grouped_assignments = 32 if use_mfma32_prefill else 8
                 (
                     sorted_ids,
                     _sorted_weights,
@@ -457,21 +466,36 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.hidden_states.dtype,
                     block_size=grouped_assignments,
                 )
-                intermediate = gfx90a_fp4_expert_gate_up_grouped(
-                    gate_prequant[0],
-                    gate_prequant[1],
-                    quant_info.w13_weight,
-                    quant_info.w13_scale,
-                    sorted_ids,
-                    sorted_expert_ids,
-                    num_valid_ids,
-                    runner_input.topk_ids.shape[1],
-                    quant_info.swiglu_limit,
-                    assignments=grouped_assignments,
-                    blocks=(
-                        416 if runner_input.hidden_states.shape[0] >= 128 else 208
-                    ),
+                gate_blocks = (
+                    416 if runner_input.hidden_states.shape[0] >= 128 else 208
                 )
+                if use_mfma32_prefill:
+                    intermediate = gfx90a_fp4_expert_gate_up_mfma32(
+                        gate_prequant[0],
+                        gate_prequant[1],
+                        quant_info.w13_weight,
+                        quant_info.w13_scale,
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        runner_input.topk_ids.shape[1],
+                        quant_info.swiglu_limit,
+                        blocks=gate_blocks,
+                    )
+                else:
+                    intermediate = gfx90a_fp4_expert_gate_up_grouped(
+                        gate_prequant[0],
+                        gate_prequant[1],
+                        quant_info.w13_weight,
+                        quant_info.w13_scale,
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        runner_input.topk_ids.shape[1],
+                        quant_info.swiglu_limit,
+                        assignments=grouped_assignments,
+                        blocks=gate_blocks,
+                    )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
                     runner_input.hidden_states,
@@ -496,21 +520,36 @@ class AiterRunnerCore(MoeRunnerCore):
                 else None
             )
             if use_grouped_prefill:
-                output = gfx90a_fp4_expert_down_grouped(
-                    down_prequant[0],
-                    down_prequant[1],
-                    quant_info.w2_weight,
-                    quant_info.w2_scale,
-                    sorted_ids,
-                    sorted_expert_ids,
-                    num_valid_ids,
-                    runner_input.topk_weights,
-                    out=direct_out,
-                    assignments=grouped_assignments,
-                    blocks=(
-                        312 if runner_input.hidden_states.shape[0] >= 128 else 208
-                    ),
+                down_blocks = (
+                    312 if runner_input.hidden_states.shape[0] >= 128 else 208
                 )
+                if use_mfma32_prefill:
+                    output = gfx90a_fp4_expert_down_mfma32(
+                        down_prequant[0],
+                        down_prequant[1],
+                        quant_info.w2_weight,
+                        quant_info.w2_scale,
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        runner_input.topk_weights,
+                        out=direct_out,
+                        blocks=down_blocks,
+                    )
+                else:
+                    output = gfx90a_fp4_expert_down_grouped(
+                        down_prequant[0],
+                        down_prequant[1],
+                        quant_info.w2_weight,
+                        quant_info.w2_scale,
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        runner_input.topk_weights,
+                        out=direct_out,
+                        assignments=grouped_assignments,
+                        blocks=down_blocks,
+                    )
             else:
                 output = gfx90a_fp4_expert_down(
                     intermediate,
