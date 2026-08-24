@@ -781,3 +781,24 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - MFMA down几何与4-wave sparse attention叠加后，4604-token TTFT相对前一已推
   checkpoint `ea519e2e0f`的约2.924秒降到约2.608秒，累计提升约12.1%，达到
   checkpoint阈值。最终保留MFMA down split2/1040 blocks与attention 4 waves。
+- TP-only MHC的192-CTA geometry原本只想服务单-token decode，但selector仅检查
+  请求batch=1，导致单请求M1024 prefill也选择block_n=1。将其严格限制为
+  `num_tokens==1`后，M1024 fused-tail micro从约`0.482 -> 0.342 ms`，三个输出
+  逐元素bitwise exact；完整服务1028/4604-token约从`0.694/2.608 ->
+  0.679/2.554 s`，再提升约2.2%。
+- 8 MiB BF16 TP all-reduce实现对照：当前AIter peer-read约`0.679/2.554 s`；
+  RCCL约`0.711/2.616 s`，SGLang固定顺序1-stage约`0.713/2.617 s`。后二者均
+  退化，保留AIter；后续应减少/融合collective边界，而不是替换为RCCL。
+- chunked-prefill严格ABBA：A=1024返回约`0.693/2.559 s`，B=2048约
+  `0.545/2.433 s`（1028/4604 tokens），吞吐分别提升约27.2%/5.2%；4096约
+  `0.546/2.436 s`，没有进一步收益。默认采用2048，既消除1028请求的4-token
+  尾块，又把4604请求从5段减为3段。
+- M2048 MFMA独立扫描中，gate/up split4/624 blocks约`7.50 ms`，优于沿用的
+  split4/416约`7.74 ms`；down现有split2/1040约`6.42 ms`仍最优。因此只对
+  M>=2048采用624-block gate grid，M1024继续416。CK仓库虽有FP4 microscaling
+  MoE，但runtime正式支持列表不含gfx90a且MPerBlock=128；直接接入会重新引入
+  小expert padding，暂不替换当前group32 CDNA2 MFMA路径。
+- 最终默认2048+M2048 grid的1028-token六轮中位约`0.545 s`，4604-token五轮
+  中位约`2.421 s`（HTTP TTFT口径约1902 input tok/s）。短256-token native AR
+  为`74.53/74.95/74.87 tok/s`，3/3 hash仍为`51e2ac132057ead3`；4604+512
+  两轮均完整`finish=length`，TTFT `2.413/2.422 s`、decode约46.67 tok/s。

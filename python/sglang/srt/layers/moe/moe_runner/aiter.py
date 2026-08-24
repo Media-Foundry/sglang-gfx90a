@@ -466,8 +466,11 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.hidden_states.dtype,
                     block_size=grouped_assignments,
                 )
+                num_prefill_tokens = runner_input.hidden_states.shape[0]
                 gate_blocks = (
-                    416 if runner_input.hidden_states.shape[0] >= 128 else 208
+                    624
+                    if num_prefill_tokens >= 2048
+                    else 416 if num_prefill_tokens >= 128 else 208
                 )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
