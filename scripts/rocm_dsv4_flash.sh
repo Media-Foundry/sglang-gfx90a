@@ -204,6 +204,12 @@ fi
 if [[ -n "${SERVED_MODEL_NAME:-}" ]]; then
   server_args+=(--served-model-name "${SERVED_MODEL_NAME}")
 fi
+if [[ -n "${TOOL_CALL_PARSER:-}" ]]; then
+  server_args+=(--tool-call-parser "${TOOL_CALL_PARSER}")
+fi
+if [[ -n "${REASONING_PARSER:-}" ]]; then
+  server_args+=(--reasoning-parser "${REASONING_PARSER}")
+fi
 if [[ -n "${CUDA_GRAPH_BS_DECODE:-}" ]]; then
   read -r -a cuda_graph_bs_decode <<<"${CUDA_GRAPH_BS_DECODE}"
   server_args+=(--cuda-graph-bs-decode "${cuda_graph_bs_decode[@]}")
@@ -377,6 +383,9 @@ Optional env:
                               # shared-expert fallback.
   DISABLE_CUSTOM_ALL_REDUCE=0 # Use the fixed AIter peer-read custom AR.
   SERVED_MODEL_NAME=<name>     # Stable OpenAI-compatible model id returned by /v1/models.
+  TOOL_CALL_PARSER=deepseekv4 # Parse DSV4 DSML output into OpenAI tool_calls.
+  REASONING_PARSER=deepseek-v4
+                              # Split DSV4 reasoning_content for agent clients.
   DEEPEP_MODE=low_latency     # Experimental Mori AsyncLL split-phase transport.
   MORI_ENABLE_SDMA=1          # Move AsyncLL transport to copy engines.
   SGLANG_MORI_ASYNCLL_BLOCK_NUM=64
