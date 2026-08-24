@@ -12,9 +12,9 @@ done
 
 if command -v kpsewhich >/dev/null 2>&1; then
   for tex_file in \
-    ctexart.cls fontspec.sty geometry.sty amsmath.sty booktabs.sty \
+    article.cls fontspec.sty geometry.sty amsmath.sty booktabs.sty \
     longtable.sty tabularx.sty multirow.sty listings.sty tikz.sty \
-    pgfplots.sty hyperref.sty cleveref.sty; do
+    pgfplots.sty hyperref.sty cleveref.sty pzdr.tfm; do
     if [[ -z "$(kpsewhich "${tex_file}")" ]]; then
       echo "missing TeX file: ${tex_file}"
       missing=1
@@ -23,10 +23,16 @@ if command -v kpsewhich >/dev/null 2>&1; then
 fi
 
 for font_name in \
-  "Noto Serif" "Noto Sans" "Noto Sans Mono" \
-  "Noto Serif CJK SC" "Noto Sans CJK SC" "Noto Sans Mono CJK SC"; do
-  if ! fc-match "${font_name}" | grep -qi "Noto"; then
+  "Liberation Sans" "Noto Sans Mono"; do
+  if ! fc-match "${font_name}" >/dev/null; then
     echo "missing font: ${font_name}"
+    missing=1
+  fi
+done
+
+for python_module in matplotlib seaborn pandas; do
+  if ! python -c "import ${python_module}" >/dev/null 2>&1; then
+    echo "missing Python module: ${python_module}"
     missing=1
   fi
 done
@@ -37,8 +43,8 @@ if (( missing )); then
 Install the Ubuntu packages with:
   sudo apt-get update
   sudo apt-get install --no-install-recommends \
-    texlive-xetex texlive-lang-chinese texlive-latex-extra \
-    texlive-pictures latexmk fonts-noto-cjk
+    texlive-xetex texlive-latex-extra texlive-pictures \
+    texlive-fonts-recommended latexmk fonts-liberation fonts-noto-core
 EOF
   exit 1
 fi
