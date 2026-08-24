@@ -30,5 +30,15 @@ python generate_figures.py
 The script uses Arial when it is installed and otherwise uses the metric-compatible
 Liberation Sans fallback. Every chart removes the top and right spines.
 
+For the genuine Microsoft Arial font on Ubuntu, optionally install the core-font
+package and rebuild the figures and report:
+
+```bash
+sudo apt-get install ttf-mscorefonts-installer
+fc-cache -f
+python generate_figures.py
+make
+```
+
 The output is `main.pdf`. Generated LaTeX files are ignored by the report-local
 `.gitignore`.

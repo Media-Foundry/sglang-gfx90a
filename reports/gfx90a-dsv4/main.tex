@@ -1,10 +1,15 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage{fontspec}
-% Arial is not installed on the current host. Liberation Sans is the
-% metric-compatible fallback used by both XeLaTeX and the Seaborn figures.
-\setmainfont{Liberation Sans}
-\setsansfont{Liberation Sans}
+% fontconfig aliases Arial to Liberation Sans on Ubuntu, so \IfFontExistsTF
+% cannot distinguish the real Microsoft font. Test the packaged font file.
+\IfFileExists{/usr/share/fonts/truetype/msttcorefonts/Arial.ttf}{
+  \setmainfont{Arial}
+  \setsansfont{Arial}
+}{
+  \setmainfont{Liberation Sans}
+  \setsansfont{Liberation Sans}
+}
 \setmonofont{Noto Sans Mono}
 \renewcommand{\familydefault}{\sfdefault}
 \setlength{\emergencystretch}{2em}
