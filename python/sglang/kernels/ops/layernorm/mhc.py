@@ -561,7 +561,10 @@ def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
     num_tokens = residual.shape[0]
     splits = 8
     block_n = (
-        1 if envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get() else 4
+        1
+        if num_tokens == 1
+        and envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get()
+        else 4
     )
     dot_partials = torch.empty(
         (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
@@ -653,7 +656,10 @@ def gfx90a_mhc_splitk_fused_tail_triton(
 
     splits = 8
     block_n = (
-        1 if envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get() else 4
+        1
+        if num_tokens == 1
+        and envs.SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY.get()
+        else 4
     )
     dot_partials = torch.empty(
         (num_tokens, 24, splits), dtype=torch.float32, device=residual.device
