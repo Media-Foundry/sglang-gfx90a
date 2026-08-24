@@ -24,6 +24,12 @@ MUTED = "#66727D"
 
 
 def preferred_font() -> str:
+    # Matplotlib's persistent font cache may predate a newly installed
+    # msttcorefonts package. Register the real Arial files explicitly so a
+    # report rebuild does not silently keep using the fontconfig fallback.
+    arial_dir = Path("/usr/share/fonts/truetype/msttcorefonts")
+    for font_path in arial_dir.glob("[Aa]rial*.ttf"):
+        font_manager.fontManager.addfont(font_path)
     names = {entry.name for entry in font_manager.fontManager.ttflist}
     return "Arial" if "Arial" in names else "Liberation Sans"
 
