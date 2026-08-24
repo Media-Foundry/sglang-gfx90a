@@ -421,13 +421,25 @@ class AiterRunnerCore(MoeRunnerCore):
 
             gate_prequant = None
             if runner_input.hidden_states.shape[0] > 1:
-                from sglang.kernels.ops.quantization.int8_kernel import (
-                    per_token_group_quant_int8,
-                )
+                if (
+                    runner_input.hidden_states.shape[0] >= 1024
+                    and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
+                ):
+                    from sglang.kernels.ops.quantization.gfx90a_int8_quant import (
+                        gfx90a_int8_group32_quant,
+                    )
 
-                gate_prequant = per_token_group_quant_int8(
-                    runner_input.hidden_states, 32
-                )
+                    gate_prequant = gfx90a_int8_group32_quant(
+                        runner_input.hidden_states
+                    )
+                else:
+                    from sglang.kernels.ops.quantization.int8_kernel import (
+                        per_token_group_quant_int8,
+                    )
+
+                    gate_prequant = per_token_group_quant_int8(
+                        runner_input.hidden_states, 32
+                    )
             use_grouped_prefill = (
                 gate_prequant is not None
                 and envs.SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL.get()
@@ -451,7 +463,17 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.hidden_states.shape[0] >= 1024
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 )
-                grouped_assignments = 32 if use_mfma32_prefill else 8
+                num_prefill_tokens = runner_input.hidden_states.shape[0]
+                use_mfma64_prefill = (
+                    use_mfma32_prefill
+                    and num_prefill_tokens >= 2048
+                    and envs.SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL.get()
+                )
+                grouped_assignments = (
+                    64
+                    if use_mfma64_prefill
+                    else 32 if use_mfma32_prefill else 8
+                )
                 (
                     sorted_ids,
                     _sorted_weights,
@@ -466,10 +488,10 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.hidden_states.dtype,
                     block_size=grouped_assignments,
                 )
-                num_prefill_tokens = runner_input.hidden_states.shape[0]
                 gate_blocks = (
-                    624
-                    if num_prefill_tokens >= 2048
+                    416
+                    if use_mfma64_prefill
+                    else 1040 if num_prefill_tokens >= 2048
                     else 416 if num_prefill_tokens >= 128 else 208
                 )
                 if use_mfma32_prefill:
@@ -484,6 +506,8 @@ class AiterRunnerCore(MoeRunnerCore):
                         runner_input.topk_ids.shape[1],
                         quant_info.swiglu_limit,
                         blocks=gate_blocks,
+                        broadcast_scales=int(num_prefill_tokens >= 2048),
+                        assignments=grouped_assignments,
                     )
                 else:
                     intermediate = gfx90a_fp4_expert_gate_up_grouped(
@@ -510,11 +534,16 @@ class AiterRunnerCore(MoeRunnerCore):
                     quant_info.swiglu_limit,
                     prequant=gate_prequant,
                 )
-            down_prequant = (
-                per_token_group_quant_int8(intermediate, 32)
-                if gate_prequant is not None
-                else None
-            )
+            if gate_prequant is None:
+                down_prequant = None
+            elif use_grouped_prefill and use_mfma32_prefill:
+                down_prequant = gfx90a_int8_group32_quant(intermediate)
+            else:
+                from sglang.kernels.ops.quantization.int8_kernel import (
+                    per_token_group_quant_int8,
+                )
+
+                down_prequant = per_token_group_quant_int8(intermediate, 32)
             direct_out = (
                 runner_input.output_tensor[
                     : runner_input.hidden_states.shape[0], :4096
@@ -540,8 +569,12 @@ class AiterRunnerCore(MoeRunnerCore):
                         # K=512 needs only eight group-32 iterations per split.
                         # Two waves with a five-block/CU grid outperform the
                         # original four-wave geometry for a full M1024 chunk.
-                        blocks=1040,
+                        blocks=(
+                            624 if num_prefill_tokens >= 2048 else 1040
+                        ),
                         split=2,
+                        broadcast_scales=int(num_prefill_tokens >= 2048),
+                        assignments=grouped_assignments,
                     )
                 else:
                     output = gfx90a_fp4_expert_down_grouped(

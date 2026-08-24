@@ -586,7 +586,8 @@ struct Gfx90aFp4ExpertGateUpGroupedKernel {
 };
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
-          uint32_t kBlocks, uint32_t kSplit = 4>
+          uint32_t kBlocks, uint32_t kSplit = 4,
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
 __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_up_mfma32_kernel(
         bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
@@ -596,11 +597,12 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
         const int32_t* __restrict__ sorted_ids,
         const int32_t* __restrict__ sorted_expert_ids,
         const int32_t* __restrict__ num_valid_ids, float limit) {
-  constexpr uint32_t kAssignments = 32;
+  static_assert(kAssignments == 32 || kAssignments == 64);
+  constexpr uint32_t kAssignmentHalves = kAssignments / 16;
   constexpr uint32_t kGroups = K / 32;
   constexpr uint32_t kTiles = I / 16;
-  __shared__ float gate_partial[kSplit][512];
-  __shared__ float up_partial[kSplit][512];
+  __shared__ float gate_partial[kSplit][kAssignments * 16];
+  __shared__ float up_partial[kSplit][kAssignments * 16];
   const uint32_t lane = threadIdx.x & 63;
   const uint32_t split = threadIdx.x >> 6;
   const uint32_t matrix_index = lane & 15;
@@ -614,15 +616,24 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     const uint32_t local_row = (task % kTiles) * 16 + matrix_index;
     const int32_t expert_id = sorted_expert_ids[expert_block];
     const uint32_t expert = static_cast<uint32_t>(max(expert_id, 0));
-    uint32_t tokens[2][4], slots[2][4];
-    bool assignment_valid[2][4];
+    uint32_t assignment_lane = 0;
+    if constexpr (kBroadcastScales != 0) {
+      if (lane < kAssignments) {
+        assignment_lane = static_cast<uint32_t>(
+            sorted_ids[expert_block * kAssignments + lane]);
+      }
+    }
+    uint32_t tokens[kAssignmentHalves][4], slots[kAssignmentHalves][4];
+    bool assignment_valid[kAssignmentHalves][4];
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
       for (uint32_t r = 0; r < 4; ++r) {
         const uint32_t assignment = half * 16 + (lane >> 4) * 4 + r;
-        const uint32_t encoded = static_cast<uint32_t>(
-            sorted_ids[expert_block * kAssignments + assignment]);
+        const uint32_t encoded = kBroadcastScales != 0
+            ? __shfl(assignment_lane, assignment, kFp4ExpertWave)
+            : static_cast<uint32_t>(
+                  sorted_ids[expert_block * kAssignments + assignment]);
         const uint32_t token = encoded & 0x00ffffffu;
         const uint32_t slot = encoded >> 24;
         assignment_valid[half][r] = token < M && slot < T;
@@ -634,20 +645,23 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
         slots[half][r] = assignment_valid[half][r] ? slot : 0;
       }
     }
-    uint32_t a_tokens[2], a_slots[2];
-    bool a_valid[2];
+    uint32_t a_tokens[kAssignmentHalves], a_slots[kAssignmentHalves];
+    bool a_valid[kAssignmentHalves];
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
-      const uint32_t encoded = static_cast<uint32_t>(
-          sorted_ids[expert_block * kAssignments + half * 16 + matrix_index]);
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
+      const uint32_t assignment = half * 16 + matrix_index;
+      const uint32_t encoded = kBroadcastScales != 0
+          ? __shfl(assignment_lane, assignment, kFp4ExpertWave)
+          : static_cast<uint32_t>(
+                sorted_ids[expert_block * kAssignments + assignment]);
       const uint32_t token = encoded & 0x00ffffffu;
       const uint32_t slot = encoded >> 24;
       a_valid[half] = token < M && slot < T;
       a_tokens[half] = a_valid[half] ? token : 0;
       a_slots[half] = a_valid[half] ? slot : 0;
     }
-    float gate_acc[2][4] = {};
-    float up_acc[2][4] = {};
+    float gate_acc[kAssignmentHalves][4] = {};
+    float up_acc[kAssignmentHalves][4] = {};
     if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
       for (uint32_t group = split; group < kGroups; group += kSplit) {
         const uint32_t k0 = group * 32;
@@ -666,14 +680,42 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
             *reinterpret_cast<const uint16_t*>(weight + up_base + k_lane / 2));
         const int32_t up_b1 = gfx90a_fp4_pack4_i8(
             *reinterpret_cast<const uint16_t*>(weight + up_base + 8 + k_lane / 2));
-        const float gate_scale = gfx90a_e8m0_value(
-            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
-                expert, local_row, group)]);
-        const float up_scale = gfx90a_e8m0_value(
-            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
-                expert, I + local_row, group)]);
+        float gate_scale;
+        float up_scale;
+        float x_scale_lane = 0.0f;
+        if constexpr (kBroadcastScales != 0) {
+          float gate_scale_lane = 0.0f;
+          float up_scale_lane = 0.0f;
+          if (lane < 16) {
+            gate_scale_lane = gfx90a_e8m0_value(
+                weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                    expert, (task % kTiles) * 16 + lane, group)]);
+            up_scale_lane = gfx90a_e8m0_value(
+                weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                    expert, I + (task % kTiles) * 16 + lane, group)]);
+          }
+          gate_scale =
+              __shfl(gate_scale_lane, matrix_index, kFp4ExpertWave);
+          up_scale = __shfl(up_scale_lane, matrix_index, kFp4ExpertWave);
+          if (lane < kAssignments) {
+            const uint32_t encoded = assignment_lane;
+            const uint32_t token = encoded & 0x00ffffffu;
+            const uint32_t slot = encoded >> 24;
+            if (token < M && slot < T) {
+              x_scale_lane =
+                  x_scale[static_cast<size_t>(token) * kGroups + group];
+            }
+          }
+        } else {
+          gate_scale = gfx90a_e8m0_value(
+              weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                  expert, local_row, group)]);
+          up_scale = gfx90a_e8m0_value(
+              weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                  expert, I + local_row, group)]);
+        }
 #pragma unroll
-        for (uint32_t half = 0; half < 2; ++half) {
+        for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
           const size_t x_base = static_cast<size_t>(a_tokens[half]) * K + k0;
           const int32_t av0 = a_valid[half]
               ? *reinterpret_cast<const int32_t*>(xq + x_base + k_lane)
@@ -693,9 +735,17 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
               av1, up_b1, up_cv, 0, 0, 0);
 #pragma unroll
           for (uint32_t r = 0; r < 4; ++r) {
-            const float xs = assignment_valid[half][r]
-                ? x_scale[static_cast<size_t>(tokens[half][r]) * kGroups + group]
-                : 0.0f;
+            float xs;
+            if constexpr (kBroadcastScales != 0) {
+              const uint32_t assignment =
+                  half * 16 + (lane >> 4) * 4 + r;
+              xs = __shfl(x_scale_lane, assignment, kFp4ExpertWave);
+            } else {
+              xs = assignment_valid[half][r]
+                  ? x_scale[static_cast<size_t>(tokens[half][r]) * kGroups +
+                            group]
+                  : 0.0f;
+            }
             gate_acc[half][r] +=
                 static_cast<float>(gate_cv[r]) * xs * gate_scale * 0.5f;
             up_acc[half][r] +=
@@ -705,10 +755,11 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
       }
     }
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
       for (uint32_t r = 0; r < 4; ++r) {
-        const uint32_t index = lane * 8 + half * 4 + r;
+        const uint32_t index =
+            lane * (kAssignmentHalves * 4) + half * 4 + r;
         gate_partial[split][index] = gate_acc[half][r];
         up_partial[split][index] = up_acc[half][r];
       }
@@ -716,10 +767,11 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     __syncthreads();
     if (split == 0) {
 #pragma unroll
-      for (uint32_t half = 0; half < 2; ++half) {
+      for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
         for (uint32_t r = 0; r < 4; ++r) {
-          const uint32_t index = lane * 8 + half * 4 + r;
+          const uint32_t index =
+              lane * (kAssignmentHalves * 4) + half * 4 + r;
           float gate = gate_partial[0][index];
           float up = up_partial[0][index];
 #pragma unroll
@@ -745,7 +797,8 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
-          uint32_t kBlocks, uint32_t kSplit = 4>
+          uint32_t kBlocks, uint32_t kSplit = 4,
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
 struct Gfx90aFp4ExpertGateUpMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -765,7 +818,7 @@ struct Gfx90aFp4ExpertGateUpMfma32Kernel {
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_gate_up_mfma32_kernel<
-            E, M, T, I, K, kBlocks, kSplit>,
+            E, M, T, I, K, kBlocks, kSplit, kBroadcastScales, kAssignments>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
@@ -902,7 +955,8 @@ __global__ void gfx90a_fp4_expert_down_reduce_kernel(
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t kBlocks, uint32_t kSplit = 4>
+          uint32_t kBlocks, uint32_t kSplit = 4,
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
 __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     gfx90a_fp4_expert_down_mfma32_kernel(
         float* __restrict__ partial, const int8_t* __restrict__ xq,
@@ -913,10 +967,11 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
         const int32_t* __restrict__ sorted_expert_ids,
         const int32_t* __restrict__ num_valid_ids,
         const float* __restrict__ topk_weights) {
-  constexpr uint32_t kAssignments = 32;
+  static_assert(kAssignments == 32 || kAssignments == 64);
+  constexpr uint32_t kAssignmentHalves = kAssignments / 16;
   constexpr uint32_t kGroups = K / 32;
   constexpr uint32_t kTiles = N / 16;
-  __shared__ float tile_partial[kSplit][512];
+  __shared__ float tile_partial[kSplit][kAssignments * 16];
   const uint32_t lane = threadIdx.x & 63;
   const uint32_t split = threadIdx.x >> 6;
   const uint32_t matrix_index = lane & 15;
@@ -930,15 +985,31 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     const uint32_t row = (task % kTiles) * 16 + matrix_index;
     const int32_t expert_id = sorted_expert_ids[expert_block];
     const uint32_t expert = static_cast<uint32_t>(max(expert_id, 0));
-    uint32_t tokens[2][4], slots[2][4];
-    bool assignment_valid[2][4];
+    uint32_t assignment_lane = 0;
+    float assignment_weight_lane = 0.0f;
+    if constexpr (kBroadcastScales != 0) {
+      if (lane < kAssignments) {
+        const uint32_t encoded = static_cast<uint32_t>(
+            sorted_ids[expert_block * kAssignments + lane]);
+        assignment_lane = encoded;
+        const uint32_t token = encoded & 0x00ffffffu;
+        const uint32_t slot = encoded >> 24;
+        assignment_weight_lane = token < M && slot < T
+            ? topk_weights[static_cast<size_t>(token) * T + slot]
+            : 0.0f;
+      }
+    }
+    uint32_t tokens[kAssignmentHalves][4], slots[kAssignmentHalves][4];
+    bool assignment_valid[kAssignmentHalves][4];
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
       for (uint32_t r = 0; r < 4; ++r) {
         const uint32_t assignment = half * 16 + (lane >> 4) * 4 + r;
-        const uint32_t encoded = static_cast<uint32_t>(
-            sorted_ids[expert_block * kAssignments + assignment]);
+        const uint32_t encoded = kBroadcastScales != 0
+            ? __shfl(assignment_lane, assignment, kFp4ExpertWave)
+            : static_cast<uint32_t>(
+                  sorted_ids[expert_block * kAssignments + assignment]);
         const uint32_t token = encoded & 0x00ffffffu;
         const uint32_t slot = encoded >> 24;
         assignment_valid[half][r] = token < M && slot < T;
@@ -946,19 +1017,22 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
         slots[half][r] = assignment_valid[half][r] ? slot : 0;
       }
     }
-    uint32_t a_tokens[2], a_slots[2];
-    bool a_valid[2];
+    uint32_t a_tokens[kAssignmentHalves], a_slots[kAssignmentHalves];
+    bool a_valid[kAssignmentHalves];
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
-      const uint32_t encoded = static_cast<uint32_t>(
-          sorted_ids[expert_block * kAssignments + half * 16 + matrix_index]);
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
+      const uint32_t assignment = half * 16 + matrix_index;
+      const uint32_t encoded = kBroadcastScales != 0
+          ? __shfl(assignment_lane, assignment, kFp4ExpertWave)
+          : static_cast<uint32_t>(
+                sorted_ids[expert_block * kAssignments + assignment]);
       const uint32_t token = encoded & 0x00ffffffu;
       const uint32_t slot = encoded >> 24;
       a_valid[half] = token < M && slot < T;
       a_tokens[half] = a_valid[half] ? token : 0;
       a_slots[half] = a_valid[half] ? slot : 0;
     }
-    float acc[2][4] = {};
+    float acc[kAssignmentHalves][4] = {};
     if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
       for (uint32_t group = split; group < kGroups; group += kSplit) {
         const uint32_t k0 = group * 32;
@@ -968,11 +1042,34 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
             *reinterpret_cast<const uint16_t*>(weight + weight_base + k_lane / 2));
         const int32_t bv1 = gfx90a_fp4_pack4_i8(
             *reinterpret_cast<const uint16_t*>(weight + weight_base + 8 + k_lane / 2));
-        const float weight_s = gfx90a_e8m0_value(
-            weight_scale[gfx90a_down_scale_offset<E, N, K>(
-                expert, row, group)]);
+        float weight_s;
+        float x_scale_lane = 0.0f;
+        if constexpr (kBroadcastScales != 0) {
+          float weight_scale_lane = 0.0f;
+          if (lane < 16) {
+            weight_scale_lane = gfx90a_e8m0_value(
+                weight_scale[gfx90a_down_scale_offset<E, N, K>(
+                    expert, (task % kTiles) * 16 + lane, group)]);
+          }
+          weight_s =
+              __shfl(weight_scale_lane, matrix_index, kFp4ExpertWave);
+          if (lane < kAssignments) {
+            const uint32_t encoded = assignment_lane;
+            const uint32_t token = encoded & 0x00ffffffu;
+            const uint32_t slot = encoded >> 24;
+            if (token < M && slot < T) {
+              x_scale_lane =
+                  x_scale[(static_cast<size_t>(token) * T + slot) * kGroups +
+                          group];
+            }
+          }
+        } else {
+          weight_s = gfx90a_e8m0_value(
+              weight_scale[gfx90a_down_scale_offset<E, N, K>(
+                  expert, row, group)]);
+        }
 #pragma unroll
-        for (uint32_t half = 0; half < 2; ++half) {
+        for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
           const size_t input_assignment =
               static_cast<size_t>(a_tokens[half]) * T + a_slots[half];
           const size_t x_base = input_assignment * K + k0;
@@ -989,13 +1086,19 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
               av1, bv1, cv, 0, 0, 0);
 #pragma unroll
           for (uint32_t r = 0; r < 4; ++r) {
-            const size_t scale_index =
-                (static_cast<size_t>(tokens[half][r]) * T + slots[half][r]) *
-                    kGroups +
-                group;
-            const float xs = assignment_valid[half][r]
-                ? x_scale[scale_index]
-                : 0.0f;
+            float xs;
+            if constexpr (kBroadcastScales != 0) {
+              const uint32_t assignment =
+                  half * 16 + (lane >> 4) * 4 + r;
+              xs = __shfl(x_scale_lane, assignment, kFp4ExpertWave);
+            } else {
+              const size_t scale_index =
+                  (static_cast<size_t>(tokens[half][r]) * T +
+                   slots[half][r]) *
+                      kGroups +
+                  group;
+              xs = assignment_valid[half][r] ? x_scale[scale_index] : 0.0f;
+            }
             acc[half][r] +=
                 static_cast<float>(cv[r]) * xs * weight_s * 0.5f;
           }
@@ -1003,19 +1106,22 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
       }
     }
 #pragma unroll
-    for (uint32_t half = 0; half < 2; ++half) {
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
       for (uint32_t r = 0; r < 4; ++r) {
-        tile_partial[split][lane * 8 + half * 4 + r] = acc[half][r];
+        tile_partial[split]
+                    [lane * (kAssignmentHalves * 4) + half * 4 + r] =
+                        acc[half][r];
       }
     }
     __syncthreads();
     if (split == 0) {
 #pragma unroll
-      for (uint32_t half = 0; half < 2; ++half) {
+      for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
         for (uint32_t r = 0; r < 4; ++r) {
-          const uint32_t index = lane * 8 + half * 4 + r;
+          const uint32_t index =
+              lane * (kAssignmentHalves * 4) + half * 4 + r;
           float total = tile_partial[0][index];
 #pragma unroll
           for (uint32_t s = 1; s < kSplit; ++s) {
@@ -1025,8 +1131,14 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
               expert_id < static_cast<int32_t>(E)) {
             const size_t output_assignment =
                 static_cast<size_t>(tokens[half][r]) * T + slots[half][r];
+            const uint32_t assignment =
+                half * 16 + (lane >> 4) * 4 + r;
+            const float routed_weight = kBroadcastScales != 0
+                ? __shfl(assignment_weight_lane, assignment,
+                         kFp4ExpertWave)
+                : topk_weights[output_assignment];
             partial[output_assignment * N + row] =
-                total * topk_weights[output_assignment];
+                total * routed_weight;
           }
         }
       }
@@ -1081,7 +1193,8 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
 };
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t kBlocks, uint32_t kSplit = 4>
+          uint32_t kBlocks, uint32_t kSplit = 4,
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
 struct Gfx90aFp4ExpertDownMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -1105,7 +1218,7 @@ struct Gfx90aFp4ExpertDownMfma32Kernel {
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_mfma32_kernel<
-            E, M, T, N, K, kBlocks, kSplit>,
+            E, M, T, N, K, kBlocks, kSplit, kBroadcastScales, kAssignments>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

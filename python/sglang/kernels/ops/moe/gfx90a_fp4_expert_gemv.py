@@ -73,9 +73,19 @@ def _jit_gate_up_grouped(
 
 @cache_once
 def _jit_gate_up_mfma32(
-    e: int, m: int, t: int, i: int, k: int, blocks: int, split: int
+    e: int,
+    m: int,
+    t: int,
+    i: int,
+    k: int,
+    blocks: int,
+    split: int,
+    broadcast_scales: int,
+    assignments: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, i, k, blocks, split)
+    args = make_cpp_args(
+        e, m, t, i, k, blocks, split, broadcast_scales, assignments
+    )
     return load_jit(
         "gfx90a_fp4_expert_gate_up_mfma32",
         *args,
@@ -148,9 +158,19 @@ def _jit_down_grouped(
 
 @cache_once
 def _jit_down_mfma32(
-    e: int, m: int, t: int, n: int, k: int, blocks: int, split: int
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    blocks: int,
+    split: int,
+    broadcast_scales: int,
+    assignments: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, blocks, split)
+    args = make_cpp_args(
+        e, m, t, n, k, blocks, split, broadcast_scales, assignments
+    )
     return load_jit(
         "gfx90a_fp4_expert_down_mfma32",
         *args,
@@ -270,6 +290,8 @@ def gfx90a_fp4_expert_gate_up_mfma32(
     limit: float,
     blocks: int = 416,
     split: int = 4,
+    broadcast_scales: int = 0,
+    assignments: int = 32,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -277,7 +299,11 @@ def gfx90a_fp4_expert_gate_up_mfma32(
     assert packed_k * 2 == k and i % 16 == 0
     out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
     assert split in (2, 4, 8)
-    _jit_gate_up_mfma32(e, m, topk, i, k, blocks, split).run(
+    assert broadcast_scales in (0, 1)
+    assert assignments in (32, 64)
+    _jit_gate_up_mfma32(
+        e, m, topk, i, k, blocks, split, broadcast_scales, assignments
+    ).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
@@ -344,6 +370,8 @@ def gfx90a_fp4_expert_down_mfma32(
     out: torch.Tensor | None = None,
     blocks: int = 312,
     split: int = 4,
+    broadcast_scales: int = 0,
+    assignments: int = 32,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -352,7 +380,11 @@ def gfx90a_fp4_expert_down_mfma32(
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
     assert split in (2, 4, 8)
-    _jit_down_mfma32(e, m, topk, n, k, blocks, split).run(
+    assert broadcast_scales in (0, 1)
+    assert assignments in (32, 64)
+    _jit_down_mfma32(
+        e, m, topk, n, k, blocks, split, broadcast_scales, assignments
+    ).run(
         xq,
         x_scale,
         weight.view(torch.uint8),

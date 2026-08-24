@@ -1371,6 +1371,9 @@ class Envs:
     # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K
     # split. This reduces repeated FP4 weight scans for large prefill chunks.
     SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL = EnvBool(False)
+    # For M>=2048, group 64 routed rows per expert so the MFMA gate/down pair
+    # shares one sorter layout and scans each expert's packed weights once.
+    SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
