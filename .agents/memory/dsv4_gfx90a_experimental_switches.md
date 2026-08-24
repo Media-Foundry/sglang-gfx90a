@@ -802,3 +802,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   中位约`2.421 s`（HTTP TTFT口径约1902 input tok/s）。短256-token native AR
   为`74.53/74.95/74.87 tok/s`，3/3 hash仍为`51e2ac132057ead3`；4604+512
   两轮均完整`finish=length`，TTFT `2.413/2.422 s`、decode约46.67 tok/s。
+- M2048新profile中TP0主要kernel sum为：routed gate/up `292.6 ms`、down
+  `230.1 ms`、sparse attention `87.1 ms`、AIter peer AR `67.3 ms`、dense FP8
+  `66.6 ms`、MHC stage0/post约`35.5/33.3 ms`、两次INT8 quant `24.8 ms`。
+  因此即使prefill已接近2k，下一结构性目标仍是MoE数据复用/融合。
+- CK-style gate N32原型让同CTA覆盖两个N16 tile；M2048保持split4时约
+  `7.73 -> 7.70 ms`，仅约0.4%，split2更慢且改变归约。说明只放大N tile不能
+  消除K循环/scale开销，原型已撤回；下一版必须显式LDS复用activation/scale或
+  融合stage1→quant→stage2。
+- 已有单CTA/token HIP `gfx90a_mhc_post_pre`在M2048下也不合适：完整融合约
+  `1.248 ms`，当前两段Triton约`0.972 ms`，慢28%；其24x16384仍是标量FP16
+  FMA。要替换MHC也必须写MFMA tile版，不能仅靠减少launch。
+- Sparse paged-prefill attention继续扫描wave数，代表M2048、H16、D512、
+  prefix512+extend128 micro为：8-wave `9.612 ms`、4-wave `4.872 ms`、2-wave
+  `3.066 ms`、1-wave `1.958 ms`；四者输出逐元素bitwise exact。严格ABBA中
+  A(4-wave)返回`0.545/2.421 s`，B(1-wave)约`0.526/2.280 s`（1028/4604），
+  长prefill吞吐约2020 input tok/s，提升约3.6%/6.2%。B的短decode hash 3/3
+  保持`51e2ac132057ead3`；4604+512两轮均finish=length，TTFT `2.269/2.278 s`、
+  decode约46.10 tok/s。最终采用1 wave。
