@@ -13,6 +13,7 @@ namespace sglang {
 using namespace device;
 
 constexpr uint32_t kFp4ExpertWave = 64;
+using gfx90a_i32x4 = int32_t __attribute__((ext_vector_type(4)));
 
 __device__ __forceinline__ float gfx90a_fp4_value(uint8_t bits) {
   const uint8_t mag = bits & 7;
@@ -584,6 +585,198 @@ struct Gfx90aFp4ExpertGateUpGroupedKernel {
   }
 };
 
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
+          uint32_t kBlocks, uint32_t kSplit = 4>
+__global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
+    gfx90a_fp4_expert_gate_up_mfma32_kernel(
+        bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
+        const float* __restrict__ x_scale,
+        const uint8_t* __restrict__ weight,
+        const uint8_t* __restrict__ weight_scale,
+        const int32_t* __restrict__ sorted_ids,
+        const int32_t* __restrict__ sorted_expert_ids,
+        const int32_t* __restrict__ num_valid_ids, float limit) {
+  constexpr uint32_t kAssignments = 32;
+  constexpr uint32_t kGroups = K / 32;
+  constexpr uint32_t kTiles = I / 16;
+  __shared__ float gate_partial[kSplit][512];
+  __shared__ float up_partial[kSplit][512];
+  const uint32_t lane = threadIdx.x & 63;
+  const uint32_t split = threadIdx.x >> 6;
+  const uint32_t matrix_index = lane & 15;
+  const uint32_t k_lane = (lane >> 4) * 4;
+  const uint32_t valid = max(num_valid_ids[0], 0);
+  const uint32_t valid_blocks = (valid + kAssignments - 1) / kAssignments;
+
+  for (uint32_t task = blockIdx.x; task < valid_blocks * kTiles;
+       task += kBlocks) {
+    const uint32_t expert_block = task / kTiles;
+    const uint32_t local_row = (task % kTiles) * 16 + matrix_index;
+    const int32_t expert_id = sorted_expert_ids[expert_block];
+    const uint32_t expert = static_cast<uint32_t>(max(expert_id, 0));
+    uint32_t tokens[2][4], slots[2][4];
+    bool assignment_valid[2][4];
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        const uint32_t assignment = half * 16 + (lane >> 4) * 4 + r;
+        const uint32_t encoded = static_cast<uint32_t>(
+            sorted_ids[expert_block * kAssignments + assignment]);
+        const uint32_t token = encoded & 0x00ffffffu;
+        const uint32_t slot = encoded >> 24;
+        assignment_valid[half][r] = token < M && slot < T;
+        // AIter pads each expert block with an encoded sentinel.  Keep every
+        // subsequently formed address in bounds even for padded MFMA rows;
+        // merely masking the load result still leaves room for speculative
+        // address generation on gfx90a.
+        tokens[half][r] = assignment_valid[half][r] ? token : 0;
+        slots[half][r] = assignment_valid[half][r] ? slot : 0;
+      }
+    }
+    uint32_t a_tokens[2], a_slots[2];
+    bool a_valid[2];
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+      const uint32_t encoded = static_cast<uint32_t>(
+          sorted_ids[expert_block * kAssignments + half * 16 + matrix_index]);
+      const uint32_t token = encoded & 0x00ffffffu;
+      const uint32_t slot = encoded >> 24;
+      a_valid[half] = token < M && slot < T;
+      a_tokens[half] = a_valid[half] ? token : 0;
+      a_slots[half] = a_valid[half] ? slot : 0;
+    }
+    float gate_acc[2][4] = {};
+    float up_acc[2][4] = {};
+    if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
+      for (uint32_t group = split; group < kGroups; group += kSplit) {
+        const uint32_t k0 = group * 32;
+        const size_t gate_base =
+            (static_cast<size_t>(expert) * (2 * I) + local_row) * (K / 2) +
+            group * 16;
+        const size_t up_base =
+            (static_cast<size_t>(expert) * (2 * I) + I + local_row) *
+                (K / 2) +
+            group * 16;
+        const int32_t gate_b0 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + gate_base + k_lane / 2));
+        const int32_t gate_b1 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + gate_base + 8 + k_lane / 2));
+        const int32_t up_b0 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + up_base + k_lane / 2));
+        const int32_t up_b1 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + up_base + 8 + k_lane / 2));
+        const float gate_scale = gfx90a_e8m0_value(
+            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                expert, local_row, group)]);
+        const float up_scale = gfx90a_e8m0_value(
+            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
+                expert, I + local_row, group)]);
+#pragma unroll
+        for (uint32_t half = 0; half < 2; ++half) {
+          const size_t x_base = static_cast<size_t>(a_tokens[half]) * K + k0;
+          const int32_t av0 = a_valid[half]
+              ? *reinterpret_cast<const int32_t*>(xq + x_base + k_lane)
+              : 0;
+          const int32_t av1 = a_valid[half]
+              ? *reinterpret_cast<const int32_t*>(xq + x_base + 16 + k_lane)
+              : 0;
+          gfx90a_i32x4 gate_cv{0, 0, 0, 0};
+          gfx90a_i32x4 up_cv{0, 0, 0, 0};
+          gate_cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av0, gate_b0, gate_cv, 0, 0, 0);
+          gate_cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av1, gate_b1, gate_cv, 0, 0, 0);
+          up_cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av0, up_b0, up_cv, 0, 0, 0);
+          up_cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av1, up_b1, up_cv, 0, 0, 0);
+#pragma unroll
+          for (uint32_t r = 0; r < 4; ++r) {
+            const float xs = assignment_valid[half][r]
+                ? x_scale[static_cast<size_t>(tokens[half][r]) * kGroups + group]
+                : 0.0f;
+            gate_acc[half][r] +=
+                static_cast<float>(gate_cv[r]) * xs * gate_scale * 0.5f;
+            up_acc[half][r] +=
+                static_cast<float>(up_cv[r]) * xs * up_scale * 0.5f;
+          }
+        }
+      }
+    }
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        const uint32_t index = lane * 8 + half * 4 + r;
+        gate_partial[split][index] = gate_acc[half][r];
+        up_partial[split][index] = up_acc[half][r];
+      }
+    }
+    __syncthreads();
+    if (split == 0) {
+#pragma unroll
+      for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+        for (uint32_t r = 0; r < 4; ++r) {
+          const uint32_t index = lane * 8 + half * 4 + r;
+          float gate = gate_partial[0][index];
+          float up = up_partial[0][index];
+#pragma unroll
+          for (uint32_t s = 1; s < kSplit; ++s) {
+            gate += gate_partial[s][index];
+            up += up_partial[s][index];
+          }
+          if (assignment_valid[half][r] && expert_id >= 0 &&
+              expert_id < static_cast<int32_t>(E)) {
+            gate = fminf(gate, limit);
+            up = fmaxf(-limit, fminf(up, limit));
+            const float activated = gate / (1.0f + expf(-gate));
+            const size_t output_assignment =
+                static_cast<size_t>(tokens[half][r]) * T + slots[half][r];
+            out[output_assignment * I + local_row] =
+                cast<bf16_t>(activated * up);
+          }
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
+          uint32_t kBlocks>
+struct Gfx90aFp4ExpertGateUpMfma32Kernel {
+  static void run(const tvm::ffi::TensorView xq,
+                  const tvm::ffi::TensorView x_scale,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView weight_scale,
+                  const tvm::ffi::TensorView sorted_ids,
+                  const tvm::ffi::TensorView sorted_expert_ids,
+                  const tvm::ffi::TensorView num_valid_ids,
+                  const tvm::ffi::TensorView out, double limit) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, 2 * I, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, 2 * I, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
+    TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    LaunchKernel(kBlocks, 256, xq.device())(
+        gfx90a_fp4_expert_gate_up_mfma32_kernel<E, M, T, I, K, kBlocks>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const int8_t*>(xq.data_ptr()),
+        static_cast<const float*>(x_scale.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const uint8_t*>(weight_scale.data_ptr()),
+        static_cast<const int32_t*>(sorted_ids.data_ptr()),
+        static_cast<const int32_t*>(sorted_expert_ids.data_ptr()),
+        static_cast<const int32_t*>(num_valid_ids.data_ptr()),
+        static_cast<float>(limit));
+  }
+};
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
@@ -708,6 +901,140 @@ __global__ void gfx90a_fp4_expert_down_reduce_kernel(
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t kBlocks, uint32_t kSplit = 4>
+__global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
+    gfx90a_fp4_expert_down_mfma32_kernel(
+        float* __restrict__ partial, const int8_t* __restrict__ xq,
+        const float* __restrict__ x_scale,
+        const uint8_t* __restrict__ weight,
+        const uint8_t* __restrict__ weight_scale,
+        const int32_t* __restrict__ sorted_ids,
+        const int32_t* __restrict__ sorted_expert_ids,
+        const int32_t* __restrict__ num_valid_ids,
+        const float* __restrict__ topk_weights) {
+  constexpr uint32_t kAssignments = 32;
+  constexpr uint32_t kGroups = K / 32;
+  constexpr uint32_t kTiles = N / 16;
+  __shared__ float tile_partial[kSplit][512];
+  const uint32_t lane = threadIdx.x & 63;
+  const uint32_t split = threadIdx.x >> 6;
+  const uint32_t matrix_index = lane & 15;
+  const uint32_t k_lane = (lane >> 4) * 4;
+  const uint32_t valid = max(num_valid_ids[0], 0);
+  const uint32_t valid_blocks = (valid + kAssignments - 1) / kAssignments;
+
+  for (uint32_t task = blockIdx.x; task < valid_blocks * kTiles;
+       task += kBlocks) {
+    const uint32_t expert_block = task / kTiles;
+    const uint32_t row = (task % kTiles) * 16 + matrix_index;
+    const int32_t expert_id = sorted_expert_ids[expert_block];
+    const uint32_t expert = static_cast<uint32_t>(max(expert_id, 0));
+    uint32_t tokens[2][4], slots[2][4];
+    bool assignment_valid[2][4];
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        const uint32_t assignment = half * 16 + (lane >> 4) * 4 + r;
+        const uint32_t encoded = static_cast<uint32_t>(
+            sorted_ids[expert_block * kAssignments + assignment]);
+        const uint32_t token = encoded & 0x00ffffffu;
+        const uint32_t slot = encoded >> 24;
+        assignment_valid[half][r] = token < M && slot < T;
+        tokens[half][r] = assignment_valid[half][r] ? token : 0;
+        slots[half][r] = assignment_valid[half][r] ? slot : 0;
+      }
+    }
+    uint32_t a_tokens[2], a_slots[2];
+    bool a_valid[2];
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+      const uint32_t encoded = static_cast<uint32_t>(
+          sorted_ids[expert_block * kAssignments + half * 16 + matrix_index]);
+      const uint32_t token = encoded & 0x00ffffffu;
+      const uint32_t slot = encoded >> 24;
+      a_valid[half] = token < M && slot < T;
+      a_tokens[half] = a_valid[half] ? token : 0;
+      a_slots[half] = a_valid[half] ? slot : 0;
+    }
+    float acc[2][4] = {};
+    if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
+      for (uint32_t group = split; group < kGroups; group += kSplit) {
+        const uint32_t k0 = group * 32;
+        const size_t weight_base =
+            (static_cast<size_t>(expert) * N + row) * (K / 2) + group * 16;
+        const int32_t bv0 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + weight_base + k_lane / 2));
+        const int32_t bv1 = gfx90a_fp4_pack4_i8(
+            *reinterpret_cast<const uint16_t*>(weight + weight_base + 8 + k_lane / 2));
+        const float weight_s = gfx90a_e8m0_value(
+            weight_scale[gfx90a_down_scale_offset<E, N, K>(
+                expert, row, group)]);
+#pragma unroll
+        for (uint32_t half = 0; half < 2; ++half) {
+          const size_t input_assignment =
+              static_cast<size_t>(a_tokens[half]) * T + a_slots[half];
+          const size_t x_base = input_assignment * K + k0;
+          const int32_t av0 = a_valid[half]
+              ? *reinterpret_cast<const int32_t*>(xq + x_base + k_lane)
+              : 0;
+          const int32_t av1 = a_valid[half]
+              ? *reinterpret_cast<const int32_t*>(xq + x_base + 16 + k_lane)
+              : 0;
+          gfx90a_i32x4 cv{0, 0, 0, 0};
+          cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av0, bv0, cv, 0, 0, 0);
+          cv = __builtin_amdgcn_mfma_i32_16x16x16i8(
+              av1, bv1, cv, 0, 0, 0);
+#pragma unroll
+          for (uint32_t r = 0; r < 4; ++r) {
+            const size_t scale_index =
+                (static_cast<size_t>(tokens[half][r]) * T + slots[half][r]) *
+                    kGroups +
+                group;
+            const float xs = assignment_valid[half][r]
+                ? x_scale[scale_index]
+                : 0.0f;
+            acc[half][r] +=
+                static_cast<float>(cv[r]) * xs * weight_s * 0.5f;
+          }
+        }
+      }
+    }
+#pragma unroll
+    for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        tile_partial[split][lane * 8 + half * 4 + r] = acc[half][r];
+      }
+    }
+    __syncthreads();
+    if (split == 0) {
+#pragma unroll
+      for (uint32_t half = 0; half < 2; ++half) {
+#pragma unroll
+        for (uint32_t r = 0; r < 4; ++r) {
+          const uint32_t index = lane * 8 + half * 4 + r;
+          float total = tile_partial[0][index];
+#pragma unroll
+          for (uint32_t s = 1; s < kSplit; ++s) {
+            total += tile_partial[s][index];
+          }
+          if (assignment_valid[half][r] && expert_id >= 0 &&
+              expert_id < static_cast<int32_t>(E)) {
+            const size_t output_assignment =
+                static_cast<size_t>(tokens[half][r]) * T + slots[half][r];
+            partial[output_assignment * N + row] =
+                total * topk_weights[output_assignment];
+          }
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
           uint32_t kBlocks>
 struct Gfx90aFp4ExpertDownGroupedKernel {
@@ -735,6 +1062,48 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_grouped_kernel<
             E, M, T, N, K, kAssignments, kRows, kNumWaves>,
+        static_cast<float*>(partial.data_ptr()),
+        static_cast<const int8_t*>(xq.data_ptr()),
+        static_cast<const float*>(x_scale.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const uint8_t*>(weight_scale.data_ptr()),
+        static_cast<const int32_t*>(sorted_ids.data_ptr()),
+        static_cast<const int32_t*>(sorted_expert_ids.data_ptr()),
+        static_cast<const int32_t*>(num_valid_ids.data_ptr()),
+        static_cast<const float*>(topk_weights.data_ptr()));
+    constexpr uint32_t kThreads = 256;
+    LaunchKernel((M * N + kThreads - 1) / kThreads, kThreads, xq.device())(
+        gfx90a_fp4_expert_down_reduce_kernel<M, T, N>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const float*>(partial.data_ptr()));
+  }
+};
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t kBlocks>
+struct Gfx90aFp4ExpertDownMfma32Kernel {
+  static void run(const tvm::ffi::TensorView xq,
+                  const tvm::ffi::TensorView x_scale,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView weight_scale,
+                  const tvm::ffi::TensorView sorted_ids,
+                  const tvm::ffi::TensorView sorted_expert_ids,
+                  const tvm::ffi::TensorView num_valid_ids,
+                  const tvm::ffi::TensorView topk_weights,
+                  const tvm::ffi::TensorView partial,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, K}).with_dtype<int8_t>().with_device(device).verify(xq);
+    TensorMatcher({M, T, K / 32}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, N, K / 2}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E, N, K / 32}).with_dtype<uint8_t>().with_device(device).verify(weight_scale);
+    TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    LaunchKernel(kBlocks, 256, xq.device())(
+        gfx90a_fp4_expert_down_mfma32_kernel<E, M, T, N, K, kBlocks>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

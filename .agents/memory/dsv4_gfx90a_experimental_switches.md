@@ -736,3 +736,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `3.441--3.475 s`、中位约`3.446 s`，相对全旧A约3.598秒提升约4.2%。
   后四shape在第一批`8192x1024`之上主要改善长上下文，单独增益约3%；decode
   hash继续保持`51e2ac132057ead3`。
+- 为完整1024-token chunk新增group32、split-K=4的CDNA2 INT8 MFMA routed-MoE。
+  真实TP4/EP1 shape（E256、topk6、I512）M1024 micro中gate/up从约
+  `6.27 -> 3.98 ms`，down从`4.46 -> 3.71 ms`，合计提升约28.3%；M512合计
+  反而慢约4.6%，所以selector严格限制`M>=1024`，尾块仍走group8 sdot。
+  真实swizzled FP4 scale/layout oracle相对旧实现的L2误差约
+  `1.9e-5 / 2.5e-5`，分别只有约1930/390个BF16输出因FP32归约顺序不同。
+- GCD0--3严格返回A对照：A的1028-token十轮中位约`0.881 s`，4604-token八轮
+  中位约`3.445 s`；B分别约`0.757 s`和`2.924 s`，prefill throughput提升约
+  `16.4% / 17.8%`。B的4604+512两轮均完整`finish=length`，TTFT约2.918秒、
+  decode约46.2 tok/s。
+- 4604+512 completion hash在A和B内都会从第0个生成token分叉；A的独立两轮也
+  分别从token0走入不同greedy轨迹，因此该重复`indexer`压力prompt不是bitwise
+  correctness oracle，不能把漂移归因于MFMA。短prompt的既有稳定hash仍需继续
+  保留；长prefill后更严格的验收应改用teacher-forced logits/固定continuation。
+- 测试期间node0物理地址`0x3f87cc...`连续触发host DRAM uncorrectable MCE，内核
+  向scheduler发送SIGBUS；这不是kernel或权限问题。地址属于NUMA node0，使用
+  `numactl --membind=1 --cpunodebind=1`后服务加载及全部A/B稳定。硬件坏页应在
+  维护窗口重启并检查DIMM/EDAC，测试前继续用`amd-smi process`确认资源。

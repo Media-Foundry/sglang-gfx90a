@@ -72,6 +72,22 @@ def _jit_gate_up_grouped(
 
 
 @cache_once
+def _jit_gate_up_mfma32(
+    e: int, m: int, t: int, i: int, k: int, blocks: int
+) -> Module:
+    args = make_cpp_args(e, m, t, i, k, blocks)
+    return load_jit(
+        "gfx90a_fp4_expert_gate_up_mfma32",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aFp4ExpertGateUpMfma32Kernel<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
     args = make_cpp_args(e, m, t, ge, n, k, 2, 8)
     return load_jit(
@@ -125,6 +141,22 @@ def _jit_down_grouped(
                 "run",
                 f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::run",
             )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
+def _jit_down_mfma32(
+    e: int, m: int, t: int, n: int, k: int, blocks: int
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, blocks)
+    return load_jit(
+        "gfx90a_fp4_expert_down_mfma32",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aFp4ExpertDownMfma32Kernel<{args}>::run")
         ],
         extra_cuda_cflags=["-O3"],
     )
@@ -226,6 +258,37 @@ def gfx90a_fp4_expert_gate_up_grouped(
     return out
 
 
+def gfx90a_fp4_expert_gate_up_mfma32(
+    xq: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+    sorted_ids: torch.Tensor,
+    sorted_expert_ids: torch.Tensor,
+    num_valid_ids: torch.Tensor,
+    topk: int,
+    limit: float,
+    blocks: int = 416,
+) -> torch.Tensor:
+    e, two_i, packed_k = weight.shape
+    m, k = xq.shape
+    i = two_i // 2
+    assert packed_k * 2 == k and i % 16 == 0
+    out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
+    _jit_gate_up_mfma32(e, m, topk, i, k, blocks).run(
+        xq,
+        x_scale,
+        weight.view(torch.uint8),
+        weight_scale.view(torch.uint8).reshape(e, two_i, k // 32),
+        sorted_ids,
+        sorted_expert_ids,
+        num_valid_ids,
+        out,
+        float(limit),
+    )
+    return out
+
+
 def gfx90a_fp4_expert_down_grouped(
     xq: torch.Tensor,
     x_scale: torch.Tensor,
@@ -253,6 +316,39 @@ def gfx90a_fp4_expert_down_grouped(
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
     partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
     _jit_down_grouped(e, m, topk, n, k, assignments, blocks).run(
+        xq,
+        x_scale,
+        weight.view(torch.uint8),
+        weight_scale.view(torch.uint8).reshape(e, n, k // 32),
+        sorted_ids,
+        sorted_expert_ids,
+        num_valid_ids,
+        topk_weights,
+        partial,
+        out,
+    )
+    return out
+
+
+def gfx90a_fp4_expert_down_mfma32(
+    xq: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+    sorted_ids: torch.Tensor,
+    sorted_expert_ids: torch.Tensor,
+    num_valid_ids: torch.Tensor,
+    topk_weights: torch.Tensor,
+    out: torch.Tensor | None = None,
+    blocks: int = 312,
+) -> torch.Tensor:
+    e, n, packed_k = weight.shape
+    m, topk, k = xq.shape
+    assert packed_k * 2 == k and n % 16 == 0
+    partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
+    if out is None:
+        out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
+    _jit_down_mfma32(e, m, topk, n, k, blocks).run(
         xq,
         x_scale,
         weight.view(torch.uint8),

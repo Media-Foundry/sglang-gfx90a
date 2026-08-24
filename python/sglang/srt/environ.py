@@ -1399,6 +1399,9 @@ class Envs:
     # Group prefill assignments by expert so four token rows reuse each raw
     # packed-FP4 weight load. Decode M=1 remains on the direct wave64 path.
     SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL = EnvBool(False)
+    # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K
+    # split. This reduces repeated FP4 weight scans for large prefill chunks.
+    SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
