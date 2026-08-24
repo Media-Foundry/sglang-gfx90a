@@ -90,7 +90,10 @@ def create_app(upstream: str, system_prompt_file: Path) -> FastAPI:
             for key, value in request.headers.items()
             if key.lower() not in HOP_BY_HOP_HEADERS
         }
-        url = f"{upstream.rstrip('/')}{request.url.path}"
+        upstream_path = request.url.path
+        if request.method == "GET" and upstream_path == "/v1/chat/completions/models":
+            upstream_path = "/v1/models"
+        url = f"{upstream.rstrip('/')}{upstream_path}"
         if request.url.query:
             url = f"{url}?{request.url.query}"
         upstream_request = client.build_request(
