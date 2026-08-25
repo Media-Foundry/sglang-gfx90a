@@ -1,21 +1,11 @@
-% !TEX TS-program = xelatex
+% !TEX TS-program = pdflatex
 \documentclass[11pt,a4paper]{article}
 
-\usepackage{fontspec}
-% Keep the local Arial rendering when available, while allowing arXiv's
-% XeLaTeX environment to compile without proprietary system fonts.
-\IfFontExistsTF{Arial}{
-  \setmainfont{Arial}
-  \setsansfont{Arial}
-}{
-  \setmainfont{TeX Gyre Heros}
-  \setsansfont{TeX Gyre Heros}
-}
-\IfFontExistsTF{Noto Sans Mono}{
-  \setmonofont{Noto Sans Mono}
-}{
-  \setmonofont{TeX Gyre Cursor}
-}
+% Use TeX-distributed Type 1 fonts so arXiv does not depend on host fontconfig.
+% Helvetica is metrically close to Arial; the generated charts embed Arial.
+\usepackage[T1]{fontenc}
+\usepackage[scaled=0.95]{helvet}
+\usepackage{courier}
 \renewcommand{\familydefault}{\sfdefault}
 \setlength{\emergencystretch}{2em}
 
