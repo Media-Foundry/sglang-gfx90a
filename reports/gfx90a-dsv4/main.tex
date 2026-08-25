@@ -95,7 +95,8 @@ This report documents the enablement, correctness recovery, and performance engi
     Item & Result \\
     \midrule
     Model & DeepSeek-V4-Flash; 284B total parameters, approximately 13B active parameters, FP4 routed experts, and mostly FP8 non-expert weights \\
-    Hardware & Four visible MI250 GCDs (gfx90a), approximately 64 GiB HBM per GCD \\
+    Host platform & Supermicro A+ Server AS-4124GQ-TNMI; dual AMD EPYC 7763 processors with SMT enabled; 1 TiB DDR4-2933 from 32 $\times$ 32 GiB 2Rx8 RDIMMs \\
+    Accelerators & Four visible MI250 GCDs (gfx90a), approximately 64 GiB HBM per GCD \\
     Validated short decode & 256-token native AR at approximately 74.37--74.69 tok/s; fixed trajectory hash \texttt{51e2ac132057ead3} \\
     Long prefill & 4604-token TTFT: 2.184 s with the 32-row sorter and 2.061--2.062 s with the 64-row sorter; strict ABBA improvement of approximately 5.6\% \\
     Prefill throughput & $4604/2.061 \approx 2234$ input tok/s on the HTTP TTFT metric \\
@@ -126,7 +127,7 @@ On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile build
 
 \subsection{Hardware and software stack}
 
-The deployment uses AMD Instinct MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The model at \texttt{/home/pc/models/modelscope} consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} files are not referenced by the index and are not loaded.
+The experimental host is a Supermicro A+ Server AS-4124GQ-TNMI with two AMD EPYC 7763 processors and SMT enabled. Host memory comprises 32 32-GiB DDR4-2933 2Rx8 RDIMMs, for 1 TiB installed capacity. The deployment uses four visible AMD Instinct MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The model at \texttt{/home/pc/models/modelscope} consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} files are not referenced by the index and are not loaded.
 
 CDNA2 provides wave64 execution, 64 KiB LDS per CU, and INT8/BF16/FP16 matrix or dot instructions, but no native FP4 matrix core comparable to newer accelerator generations. DeepSeek-V4-Flash stores routed-expert weights in FP4. Consequently, the critical gfx90a cost is not raw HBM bandwidth alone: it is the combination of small-M utilization, online FP4 unpacking, scale handling, activation quantization, expert sorting, and layer-level synchronization. The AMD MI200 ISA manual guided the custom HIP kernels in this work\cite{amdisa}.
 
