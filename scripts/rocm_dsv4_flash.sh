@@ -126,6 +126,15 @@ export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD:-0}"
+# TP8's 8 KiB peer-read reductions naturally select eight CTAs, but the
+# gfx90a/AIter signal protocol is only correctness-stable at four CTAs. TP4
+# already selects four without an override. Keep an explicit user value for
+# geometry experiments and scope the safe default to TP8/EP1 no-A2A.
+if [[ -z "${AITER_GFX90A_AR_SMALL_BLOCKS+x}" && \
+      "${TP_SIZE:-4}" == "8" && "${EP_SIZE:-4}" == "1" && \
+      "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
+  export AITER_GFX90A_AR_SMALL_BLOCKS=4
+fi
 # The direct FP4 decode kernel is beneficial only for TP4/EP1's K=512 down
 # shard. EP2/EP4 keep CKTile: their wider K already fills wave64 and the
 # subgroup protocol adds overhead.

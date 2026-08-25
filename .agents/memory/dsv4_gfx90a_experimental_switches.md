@@ -883,3 +883,29 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   长prefill吞吐稳定提升约5.6%。两轮B短256-token native AR约
   `74.37/74.69 tok/s`且hash均为`51e2ac132057ead3`；新selector不触及decode。
   正式脚本通过`SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL`默认启用该路径。
+
+### TP8/EP1 首轮 bring-up 与 world-size-8 AR correctness（2026-08-26）
+
+- 八个GCD均空闲且相互为一跳XGMI；GPU0--3属于NUMA0、GPU4--7属于NUMA1。
+  已知node-0主存故障已由用户确认修复，因此8-rank服务使用
+  `numactl --interleave=all`，不再把全部host staging强制绑到NUMA1。
+- 为TP8/EP1接通raw packed-FP4 routed权重形状：
+  `w13=(256,512,2048)`、`w2=(256,4096,128)`。8-rank加载后每GCD模型权重
+  约26.80GB；`MAX_TOTAL_TOKENS=1048576`、`mem_fraction_static=0.96`下成功分配
+  完整1,048,576-token pool，捕获BS1/2/4/8/16 graph后仍余约16.0GB/GCD。
+- 默认AIter custom AR在TP8的8KiB BF16 reduction上自动使用8 CTA。BS1的
+  256-token hash可稳定为`2629699770b9e036`、速度约65.5 tok/s，但相同prompt
+  的BS2/4/8/16按batch slot分叉，故76.8/132.2/240.1/433.3 tok/s只记为无效
+  诊断数据，不能作为性能checkpoint。
+- direct-MoE关闭后的TP8 CKTile fallback约38 tok/s，单请求hash也漂移并产生重复
+  文本，说明legacy CK权重重排/配置并未对TP8 shape完成correctness验证；该路径
+  证伪。direct-MoE + RCCL则France固定IDs在BS1正确，BS2连续5轮共10请求全部
+  逐token精确，因而把并发分叉限定到world-size-8 custom AR。
+- SGLang legacy one-stage AR原先因DS环境缺少Python `amdsmi`而在cleanup调用未定义
+  `amdsmi_shut_down`。已增加HIP peer-access fallback使其能初始化，但模型France
+  oracle从BS1即完全错误，不能作为AIter替代。
+- 将AIter `AITER_GFX90A_AR_SMALL_BLOCKS=4`作为唯一变量后，France固定输出在
+  BS1为5/5、BS2为10/10逐token精确；256-token BS1六轮均为
+  `2629699770b9e036`，稳态约`66.08--66.16 tok/s`。因此脚本只对
+  `TP_SIZE=8, EP_SIZE=1, A2A=none`默认设置4 CTA；后续每个8-GCD性能改动必须先
+  通过France IDs、BS1重复hash及所有捕获tier的同prompt跨slot检查。

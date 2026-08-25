@@ -44,6 +44,7 @@ if _is_musa:
         logger.warning("Failed to import pymtml with %r", e)
 
 if _is_hip:
+    _has_amdsmi = False
     try:
         from amdsmi import (
             AmdSmiException,
@@ -52,8 +53,13 @@ if _is_hip:
             amdsmi_shut_down,
             amdsmi_topo_get_link_type,
         )
+        _has_amdsmi = True
     except ImportError as e:
-        logger.warning("Failed to import amdsmi with %r", e)
+        logger.warning(
+            "Failed to import amdsmi with %r; falling back to HIP peer-access "
+            "checks for custom all-reduce topology detection",
+            e,
+        )
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
@@ -335,6 +341,8 @@ def with_nvml_context(fn: Callable[_P, _R]) -> Callable[_P, _R]:
     @wraps(fn)
     def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         if _is_hip:
+            if not _has_amdsmi:
+                return fn(*args, **kwargs)
             try:
                 amdsmi_init()
                 return fn(*args, **kwargs)
@@ -356,6 +364,19 @@ def is_full_nvlink(physical_device_ids: List[int], world_size: int) -> bool:
         """
         query if the set of gpus are fully connected by xgmi (1 hop)
         """
+        if not _has_amdsmi:
+            # PyTorch's HIP runtime exposes the correctness-critical property
+            # needed by peer-read custom AR: every rank must be able to access
+            # every other rank's allocation.  amdsmi additionally distinguishes
+            # one-hop XGMI from slower peer links, but it is an optional Python
+            # package and its absence must not leave undefined cleanup symbols.
+            return all(
+                torch.cuda.can_device_access_peer(src, dst)
+                and torch.cuda.can_device_access_peer(dst, src)
+                for src in physical_device_ids
+                for dst in physical_device_ids
+                if src != dst
+            )
         handles = [amdsmi_get_processor_handles()[i] for i in physical_device_ids]
         for i, handle in enumerate(handles):
             for j, peer_handle in enumerate(handles):
