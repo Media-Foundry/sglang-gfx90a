@@ -1010,3 +1010,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   trimmed约`1152.69 tok/s`。所有请求均实际输出256 token。
 - 因此8-GCD多请求`>=700 tok/s`目标已在严格native AR下通过；这属于副本并行，
   不改善单请求延迟。单请求`>=120 tok/s`仍未完成，后续不能用aggregate替代。
+
+### DP-attention跨组A2A零token协议修复（2026-08-26）
+
+- `TP8/DP-attention2/attn-TP4/EP2/MoE-DP1/Mori`原先能同步完成scheduler的
+  MLP batch all-gather：DP0/DP1一致看到`global_tokens=[1,0]`并为DP1建立idle
+  batch；因此此前挂死并不是controller漏发请求或idle scheduler未运行。
+- 真正错误在DSV4 model层：A2A分支没有像no-A2A TP-MoE那样先做DP token
+  gather。DP0进入shared/routed MoE时buffer为`[1,4096]`，DP1为`[0,4096]`，
+  随后的full-TP shared/routed all-reduce以不同shape参与，导致设备端永久等待。
+- 修复后，A2A+DP-attention在每层MoE前先replicate-gather hidden states与input IDs，
+  在全局token buffer上按EP切source chunk并执行Mori，合并后再dp-scatter回attention
+  owner。这样idle DP组参与MoE，但下一层不会重复执行另一个DP组的attention。
+- graph capture需要禁用已知不安全的gfx90a Triton MHC+A2A组合；成功配置捕获全局
+  BS4后完成post-warmup并健康就绪。France固定IDs连续5/5逐token精确，证明零token
+  协议与scatter顺序正确。256-token native AR仅约`9.92--9.98 tok/s`，原因是每层
+  新增DP gather/scatter、Mori和full-TP shared reduce的固定通信成本，故它是
+  correctness修复而非性能checkpoint，不作为120 tok/s主路径。
+- 同轮TP4/EP1单batch-overlap再次ABBA证伪：候选trimmed约`73.50 tok/s`，基线
+  `74.79 tok/s`，两者hash同为`51e2ac132057ead3`；保持EP1默认关闭SBO。
+- BF16-MFMA MHC K-split原型也证伪：当前FP16 split-K pre-mix约`83.5 us`，已有
+  非split BF16-MFMA约`80.7 us`，新增split2/4/8/16均约`99--100 us`。原型未接
+  selector且已完整撤回。

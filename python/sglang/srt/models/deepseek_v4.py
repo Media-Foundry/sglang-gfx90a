@@ -2540,6 +2540,16 @@ class DeepseekV4DecoderLayer(nn.Module):
             and get_parallel().attn_dp_size > 1
             and get_moe_a2a_backend().is_none()
         )
+        # A2A MoE may span multiple attention-DP groups (for example TP8,
+        # attention-DP2, EP2, MoE-DP1).  Gather the rank-local attention rows
+        # before choosing the EP source chunk so every Mori subgroup enters its
+        # collectives with a shape-consistent global buffer.  The result is
+        # scattered back to the owning attention-DP group after MoE.
+        _use_dp_a2a_gather = (
+            not _use_cp
+            and get_parallel().attn_dp_size > 1
+            and not get_moe_a2a_backend().is_none()
+        )
         _use_tp_attn_a2a_scatter = (
             not _use_cp
             and get_parallel().attn_tp_size > 1
@@ -2601,7 +2611,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                     "(moe_a2a_backend == deepep or megamoe). "
                     f"Got {moe_a2a_backend.value}."
                 )
-        elif _use_tp_moe_gather:
+        elif _use_tp_moe_gather or _use_dp_a2a_gather:
             hidden_states, local_hidden_states = (
                 get_global_dp_buffer(get_tp_group()),
                 hidden_states,
@@ -2750,6 +2760,12 @@ class DeepseekV4DecoderLayer(nn.Module):
             if _rotate_a2a_owner:
                 gathered = _restore_mori_rotated_chunks(gathered, self.layer_id)
             hidden_states = torch.cat(gathered)
+        if _use_dp_a2a_gather:
+            hidden_states, global_hidden_states = (
+                get_local_dp_buffer(get_tp_group()),
+                hidden_states,
+            )
+            dp_scatter(hidden_states, global_hidden_states, forward_batch)
         return hidden_states
 
     # ------------------------------------------------------------------
@@ -3397,7 +3413,7 @@ class DeepseekV4Model(nn.Module):
                     hidden_states.shape[0], self.hc_mult, self.hidden_size
                 )
 
-        if get_parallel().attn_dp_size > 1 and get_moe_a2a_backend().is_none():
+        if get_parallel().attn_dp_size > 1:
             input_ids_global = torch.empty(
                 (get_global_dp_buffer_len(), 1),
                 dtype=input_ids.dtype,
