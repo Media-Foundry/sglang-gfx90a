@@ -1,0 +1,83 @@
+diff --git a/cmake/MoriDetectDevice.cmake b/cmake/MoriDetectDevice.cmake
+index 02f8dc27..d3712fc9 100644
+--- a/cmake/MoriDetectDevice.cmake
++++ b/cmake/MoriDetectDevice.cmake
+@@ -18,7 +18,7 @@
+ 
+ include_guard(GLOBAL)
+ 
+-set(_MORI_SUPPORTED_ARCHS "gfx942;gfx950")
++set(_MORI_SUPPORTED_ARCHS "gfx90a;gfx942;gfx950")
+ 
+ # ---------------------------------------------------------------------------
+ # GPU architecture detection
+diff --git a/python/mori/jit/config.py b/python/mori/jit/config.py
+index 0f75ea78..b51db8ef 100644
+--- a/python/mori/jit/config.py
++++ b/python/mori/jit/config.py
+@@ -28,7 +28,7 @@ import subprocess
+ from dataclasses import dataclass
+ from pathlib import Path
+ 
+-_SUPPORTED_ARCHS = ["gfx942", "gfx950", "gfx1250"]
++_SUPPORTED_ARCHS = ["gfx90a", "gfx942", "gfx950", "gfx1250"]
+ 
+ 
+ @dataclass(frozen=True)
+diff --git a/python/mori/shmem/api.py b/python/mori/shmem/api.py
+index efdd96a7..5a967ad8 100644
+--- a/python/mori/shmem/api.py
++++ b/python/mori/shmem/api.py
+@@ -109,13 +109,14 @@ def shmem_torch_process_group_init(group_name: str):
+     group = dist.distributed_c10d._resolve_process_group(group_name)
+     rank = dist.get_rank(group)
+     world_size = dist.get_world_size(group)
++    root_global_rank = dist.get_global_rank(group, 0)
+ 
+     if rank == 0:
+         uid = shmem_get_unique_id()
+-        dist.broadcast_object_list([uid], src=0, group=group)
++        dist.broadcast_object_list([uid], src=root_global_rank, group=group)
+     else:
+         uid_list = [None]
+-        dist.broadcast_object_list(uid_list, src=0, group=group)
++        dist.broadcast_object_list(uid_list, src=root_global_rank, group=group)
+         uid = uid_list[0]
+ 
+     return shmem_init_attr(MORI_SHMEM_INIT_WITH_UNIQUEID, rank, world_size, uid)
+diff --git a/setup.py b/setup.py
+index 28ad0a66..bf67a3f1 100644
+--- a/setup.py
++++ b/setup.py
+@@ -36,7 +36,7 @@ try:
+ except ImportError:
+     _HAVE_CYTHON = False
+ 
+-_supported_arch_list = ["gfx942", "gfx950", "gfx1250"]
++_supported_arch_list = ["gfx90a", "gfx942", "gfx950", "gfx1250"]
+ 
+ _REQUIRED_SYSTEM_DEPS: list = []
+ 
+diff --git a/src/application/CMakeLists.txt b/src/application/CMakeLists.txt
+index 91d62dac..97d3d4b0 100644
+--- a/src/application/CMakeLists.txt
++++ b/src/application/CMakeLists.txt
+@@ -33,6 +33,18 @@ if(NOT TARGET numa::numa)
+ endif()
+ 
+ find_package(hsakmt REQUIRED)
++# ROCm's RPM-built hsakmt export hard-codes /usr/lib64/libc.so.  Remap that
++# imported link item on Debian-family hosts instead of requiring a system-wide
++# compatibility symlink.
++if(TARGET hsakmt::hsakmt AND NOT EXISTS "/usr/lib64/libc.so")
++  find_library(MORI_SYSTEM_LIBC NAMES c REQUIRED)
++  get_target_property(_hsakmt_link_libraries hsakmt::hsakmt
++                      INTERFACE_LINK_LIBRARIES)
++  list(TRANSFORM _hsakmt_link_libraries REPLACE "^/usr/lib64/libc\\.so$"
++       "${MORI_SYSTEM_LIBC}")
++  set_target_properties(hsakmt::hsakmt PROPERTIES
++                        INTERFACE_LINK_LIBRARIES "${_hsakmt_link_libraries}")
++endif()
+ # find_library(IONIC_LIBRARY NAMES ionic HINTS /lib/x86_64-linux-gnu REQUIRED )
+ 
+ set(MORI_APP_SOURCES bootstrap/socket_bootstrap.cpp

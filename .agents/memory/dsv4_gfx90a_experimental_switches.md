@@ -958,3 +958,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   诊断约`65.5/76.8/132.2/240.1/433.3`，BS2/4/8/16约提升13%/16%/7%/10%。
   这是当前可提交的8-GCD小batch projection checkpoint，但距离单请求120和多请求
   700仍远，后续需改变TP8 expert/collective分解而非继续只调projection。
+
+### TP8/EP2 8-GCD结构对照与Mori恢复（2026-08-26）
+
+- DS环境中的`amd_mori 1.2.3.dev56+g704e464a5`原为editable安装，指向已被清理的
+  `/tmp/mori/python`。按同一commit `704e464a5`恢复源码；dry-run确认无依赖变更，
+  使用`--no-build-isolation --no-deps`重建。gfx90a白名单、Debian上ROCm hsakmt
+  错误硬编码`/usr/lib64/libc.so`的CMake remap，以及partial-EP subgroup broadcast
+  必须使用`dist.get_global_rank(group,0)`的修复，已持久化为
+  `scripts/rocm/patches/mori_gfx90a_partial_ep.patch`。后者对TP8/EP2的四个expert-TP
+  lanes `[0,4]/[1,5]/[2,6]/[3,7]`是必要条件；固定`src=0`只会让第一组成功。
+- TP8/EP2实际raw routed shape为`w13=(128,1024,2048)`、
+  `w2=(128,4096,256)`，即128 local experts与expert-TP4。上游AIter CK两阶段
+  FP4模板无论base Conda或系统ROCm 7.14 hipcc均在gfx90a报
+  `Cannot select: llvm.amdgcn.raw.buffer.load.lds`，不能作为该shape回退。
+  direct packed-FP4 shape白名单加入该精确组合后，Mori world-size2四组均成功初始化，
+  graph BS1/2/4捕获完成。
+- TP8/EP2 + Mori 16-block + direct FP4的France固定IDs在BS1/2/4共7/7逐token
+  精确；256-token native AR三轮中位约`55.62/78.92/125.87 tok/s`。相比TP8/EP1
+  的`65.52/86.84/153.52`三档均退化，因此TP8/EP2证伪为当前性能方向，不设默认；
+  其价值仅为partial-EP correctness/bring-up oracle。
