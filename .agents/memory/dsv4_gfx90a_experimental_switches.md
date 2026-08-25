@@ -1073,3 +1073,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   kernel已有M1--4能力，目标是BS2/4，必须逐行对AIter oracle检查router logits、
   top-6 IDs及weights，再做France/teacher-forced与ABBA。它不会改善replicated-DP
   BS1，因为该布局每个attention-DP组的本地M仍为1。
+
+### TP4 decode HIP/FP16局部探针（2026-08-26）
+
+- direct FP4的四nibble解包原本用selector构造加两次CDNA2 `v_perm_b32`。实验性
+  256-entry byte LUT用两个constant-memory读取一次解两个nibble；真实TP4 shape
+  micro反而将gate从`28.36 -> 45.05 us`、down从`23.39 -> 30.50 us`。随机lane
+  索引不能形成便宜scalar broadcast，现有byte permute明显更合适；原型完整撤回。
+- M1 direct kernel当前由一个线程串行量化一个group32，但128/96个group线程已并行
+  覆盖gate/down。改成16-lane subgroup在同一launch内协作量化后，输出对scalar
+  oracle逐元素bitwise exact；ABBA micro却让gate约`28.54--28.65 ->
+  29.76--29.83 us`，down约`23.52--23.70 us`持平。shuffle/协作成本没有回报，
+  原型完整撤回。外置HIP quant连同额外launch则约`36.14/36.63 us`，更慢。
+- 仓库已有未接线的BF16-input/FP16-weight HIP wave64 GEMV。真实projection micro中
+  `N256,K4096`约`13.46--13.62 -> 7.67--7.73 us`，FP16结果相对原FP32权重的最大
+  误差还略小于BF16；但N1536仅快约7%，N4096/N8192约1--2%，说明大shape已受带宽
+  限制。将FP16只接到40个learned-router层后，完整TP4/EP1/no-A2A、graph BS1
+  ABBA为A1约`73.49`、B1约`73.70`、B2约`73.53`、A2约`73.84 tok/s`，没有可复现
+  收益；所有服务France固定IDs正确，A/B各自长hash稳定但不同。接线与额外缓存均
+  撤回，保留原仓库HIP module，不把单projection micro收益冒充端到端收益。
+- 结论：当前约`13.6 ms/token`不能再靠5--6us/layer的小projection优化达到
+  `8.33 ms/token`。下一结构实验应维持两个attention TP4组，给两组复制TP4 expert
+  shard并按top-6 slots分工，只交换一次4096维rank-local partial；绝不能让MoE或
+  LM head重新扩大到full TP8 collective。
