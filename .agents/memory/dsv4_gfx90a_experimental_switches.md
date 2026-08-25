@@ -1040,3 +1040,36 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   这说明主要税来自通用DP-TP MoE每层full-TP gather/expert reduction/scatter及其
   graph协议，而非单纯dummy-row计算或CPU/Gloo控制面；BS1不应继续沿用通用DP路径，
   后续需要TP4主路径上的窄lane-pair远端worker协议。
+
+### 复制attention-DP、full-TP8 MoE对照（2026-08-26）
+
+- 为隔离通用DP gather/scatter固定税，实验性实现了latency-only replicated-DP：
+  controller把同一请求复制给两个attention-DP组，各组独立运行attn-TP4并维护相同
+  KV状态；DSV4 MoE与LM head跳过DP gather/scatter，八个rank直接以相同本地M进入
+  TP8 collective；仅DP0向detokenizer发布输出。还必须同步绕过logits processor的
+  DP gather/scatter及decode graph planner对global request-count metadata的要求。
+- 该结构能捕获BS1/2/4 graph，并通过France固定IDs连续`5/5`逐token精确；256-token
+  前两轮输出hash同为`50ad22ca8847feb3`。但端到端仅`21.744/21.737 tok/s`，显著低于
+  TP4/EP1基线约`74.79 tok/s`。消除DP同步的收益远小于每层routed/shared expert及
+  LM head从TP4扩到TP8带来的跨GCD collective固定税，因此该结构已证伪，所有原型
+  代码均撤回，不保留实验开关。若继续做8-GCD单请求，必须维持latency-critical
+  TP4主路径，只让额外GCD承担不扩大主collective的窄任务。
+
+### `M>2` specialized-path设计扫描（2026-08-26）
+
+- Inkling fused gate并不是`M>2`整体不可达。生产selector覆盖M1--4：M1/2使用
+  register-sliced权重预载，M3/4仍走同一专核但改为shared-memory staging，M>4才
+  回普通matrix multiply。阈值2来自VGPR/occupancy资源分桶；直接放宽寄存器路径会
+  超出当前按worst-case wpt=4分配的寄存器数组，并可能spill，不是模型correctness
+  限制。
+- Inkling all-reduce的`M<=2`是另一回事：无exit barrier的v4协议依赖A/B双缓冲、
+  reuse distance=2及全forward偶数次调用，属于协议安全边界；M>2切v5 push。它基于
+  NVIDIA NVLS/multimem/PTX，不能移植为gfx90a XGMI优化，也不能擅自放宽。
+- DSV4 gfx90a direct packed-FP4 MoE本身没有M>2禁令。M1在HIP kernel内量化一次，
+  M>1走外部per-token group32 INT8预量化后仍进入sdot4专核；EP1/TP8等raw FP4 shard
+  shape已在direct白名单内。真正的fallback浪费是通用AIter/CK按`block_m=32`处理
+  极小M，而不是M>2 correctness。
+- 可复用的最小实验是把DSV4 router wave64 GEMV从当前exact M1扩展到M1--4：底层
+  kernel已有M1--4能力，目标是BS2/4，必须逐行对AIter oracle检查router logits、
+  top-6 IDs及weights，再做France/teacher-forced与ABBA。它不会改善replicated-DP
+  BS1，因为该布局每个attention-DP组的本地M仍为1。
