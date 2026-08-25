@@ -143,7 +143,8 @@ __device__ __forceinline__ size_t gfx90a_down_scale_offset(
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t I, uint32_t K,
-          uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kSlotBegin, uint32_t kSlotEnd>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_up_kernel(
         bf16_t* __restrict__ out, const bf16_t* __restrict__ x,
@@ -180,6 +181,7 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     }
   }
   constexpr uint32_t kTilesPerAssignment = (I + kRows - 1) / kRows;
+  constexpr uint32_t kOwnedSlots = kSlotEnd - kSlotBegin;
   const uint32_t wave = threadIdx.x / kFp4ExpertWave;
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
   const uint32_t global_wave = blockIdx.x * kNumWaves + wave;
@@ -190,11 +192,11 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
           : min(static_cast<uint32_t>(max(live_count[0], 0)), M);
 
   for (uint32_t task = global_wave;
-       task < live * T * kTilesPerAssignment;
+       task < live * kOwnedSlots * kTilesPerAssignment;
        task += total_waves) {
     const uint32_t assignment = task / kTilesPerAssignment;
-    const uint32_t token = assignment / T;
-    const uint32_t slot = assignment % T;
+    const uint32_t token = assignment / kOwnedSlots;
+    const uint32_t slot = kSlotBegin + assignment % kOwnedSlots;
     const uint32_t row0 = (task % kTilesPerAssignment) * kRows;
     const int32_t expert_id = expert_ids[static_cast<size_t>(token) * T + slot];
     if (expert_id < 0 || expert_id >= static_cast<int32_t>(GE) ||
@@ -287,7 +289,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t N, uint32_t K,
-          uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kSlotBegin, uint32_t kSlotEnd>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_down_kernel(
         bf16_t* __restrict__ out, const bf16_t* __restrict__ x,
@@ -303,7 +306,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   __shared__ float sx_scale[M == 1 ? T * K / 32 : 1];
   if constexpr (M == 1) {
     if (xq == nullptr) {
-      for (uint32_t group = threadIdx.x; group < T * K / 32;
+      for (uint32_t group = kSlotBegin * (K / 32) + threadIdx.x;
+           group < kSlotEnd * (K / 32);
            group += blockDim.x) {
         const uint32_t k0 = group * 32;
         float local_max = 0.0f;
@@ -344,7 +348,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     const uint32_t row0 = (task % kTilesPerRow) * kRows;
     float acc[kRows] = {};
 
-    for (uint32_t slot = subgroup; slot < T; slot += kSubgroups) {
+    for (uint32_t slot = kSlotBegin + subgroup; slot < kSlotEnd;
+         slot += kSubgroups) {
       const int32_t expert_id =
           expert_ids[static_cast<size_t>(token) * T + slot];
       if (expert_id < 0 || expert_id >= static_cast<int32_t>(GE) ||
@@ -1238,7 +1243,8 @@ struct Gfx90aFp4ExpertDownMfma32Kernel {
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t I, uint32_t K,
-          uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kRows, uint32_t kNumWaves, uint32_t kBlocks,
+          uint32_t kSlotBegin, uint32_t kSlotEnd>
 struct Gfx90aFp4ExpertGateUpKernel {
   static void launch(const tvm::ffi::TensorView x,
                      const tvm::ffi::TensorView weight,
@@ -1250,10 +1256,9 @@ struct Gfx90aFp4ExpertGateUpKernel {
                      const int8_t* xq = nullptr,
                      const float* x_scale = nullptr) {
     using namespace host;
-    // Two blocks per MI250X GCD CU avoid oversubscribing the 104-CU device.
-    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
-        gfx90a_fp4_expert_gate_up_kernel<E, M, T, GE, I, K, kRows, kNumWaves>,
+        gfx90a_fp4_expert_gate_up_kernel<
+            E, M, T, GE, I, K, kRows, kNumWaves, kSlotBegin, kSlotEnd>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
         xq, x_scale,
@@ -1398,7 +1403,8 @@ struct Gfx90aFp4ExpertGateUpKernel {
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
           uint32_t N, uint32_t K,
-          uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kRows, uint32_t kNumWaves, uint32_t kBlocks,
+          uint32_t kSlotBegin, uint32_t kSlotEnd>
 struct Gfx90aFp4ExpertDownKernel {
   static void launch(const tvm::ffi::TensorView x,
                      const tvm::ffi::TensorView weight,
@@ -1411,9 +1417,9 @@ struct Gfx90aFp4ExpertDownKernel {
                      const int8_t* xq = nullptr,
                      const float* x_scale = nullptr) {
     using namespace host;
-    constexpr uint32_t kBlocks = 208;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, x.device())(
-        gfx90a_fp4_expert_down_kernel<E, M, T, GE, N, K, kRows, kNumWaves>,
+        gfx90a_fp4_expert_down_kernel<
+            E, M, T, GE, N, K, kRows, kNumWaves, kSlotBegin, kSlotEnd>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
         xq, x_scale,

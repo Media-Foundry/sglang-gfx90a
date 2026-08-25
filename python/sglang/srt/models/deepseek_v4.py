@@ -2681,6 +2681,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             not _use_cp
             and get_parallel().attn_dp_size > 1
             and get_moe_a2a_backend().is_none()
+            and not envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
         )
         # A2A MoE may span multiple attention-DP groups (for example TP8,
         # attention-DP2, EP2, MoE-DP1).  Gather the rank-local attention rows
@@ -3607,7 +3608,10 @@ class DeepseekV4Model(nn.Module):
                     hidden_states.shape[0], self.hc_mult, self.hidden_size
                 )
 
-        if get_parallel().attn_dp_size > 1:
+        if (
+            get_parallel().attn_dp_size > 1
+            and not envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+        ):
             input_ids_global = torch.empty(
                 (get_global_dp_buffer_len(), 1),
                 dtype=input_ids.dtype,

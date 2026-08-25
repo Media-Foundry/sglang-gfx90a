@@ -3817,14 +3817,18 @@ def require_gathered_buffer():
 def require_mlp_sync():
     from sglang.srt.runtime_context import get_parallel
 
-    return get_parallel().config.enable_dp_attention or require_gathered_buffer()
+    if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
+        return False
+    return get_parallel().enable_dp_attention or require_gathered_buffer(server_args)
 
 
 def get_cuda_graph_batch_size_alignment() -> int:
     alignment = 1
     if get_exec().overlap.enable_two_batch_overlap:
         alignment *= 2
-    if require_gathered_buffer():
+    if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
+        return alignment
+    if require_gathered_buffer(server_args):
         alignment *= get_parallel().attn_tp_size
     if alignment % get_parallel().attn_cp_size != 0:
         alignment *= get_parallel().attn_cp_size

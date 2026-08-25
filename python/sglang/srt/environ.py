@@ -785,6 +785,10 @@ class Envs:
     # symmetric-memory kernel), OFF elsewhere (would fall back to RCCL); override
     # explicitly to force on/off on any platform.
     SGLANG_DP_USE_REDUCE_SCATTER = EnvBool(_default_hip)
+    # DSV4 latency experiment: duplicate one request across two attention-TP4
+    # groups, split its top-k expert slots, and merge all TP4-sharded partials
+    # with one world-size-8 reduction. Explicit and off by default.
+    SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH = EnvBool(False)
     # Quantize the variable-length DP-MoE gather payload (SGLANG_DP_USE_GATHERV
     # path, prefill/extend only) to fp8-e4m3 with per-token-group-128 scales:
     # halves the gathered hidden-state bytes over NCCL; the combine

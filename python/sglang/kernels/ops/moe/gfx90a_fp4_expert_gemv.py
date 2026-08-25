@@ -11,8 +11,18 @@ if TYPE_CHECKING:
 
 
 @cache_once
-def _jit_gate_up(e: int, m: int, t: int, ge: int, i: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, ge, i, k, 2, 8)
+def _jit_gate_up(
+    e: int,
+    m: int,
+    t: int,
+    ge: int,
+    i: int,
+    k: int,
+    blocks: int,
+    slot_begin: int,
+    slot_end: int,
+) -> Module:
+    args = make_cpp_args(e, m, t, ge, i, k, 2, 8, blocks, slot_begin, slot_end)
     return load_jit(
         "gfx90a_fp4_expert_gate_up",
         *args,
@@ -98,8 +108,18 @@ def _jit_gate_up_mfma32(
 
 
 @cache_once
-def _jit_down(e: int, m: int, t: int, ge: int, n: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, ge, n, k, 2, 8)
+def _jit_down(
+    e: int,
+    m: int,
+    t: int,
+    ge: int,
+    n: int,
+    k: int,
+    blocks: int,
+    slot_begin: int,
+    slot_end: int,
+) -> Module:
+    args = make_cpp_args(e, m, t, ge, n, k, 2, 8, blocks, slot_begin, slot_end)
     return load_jit(
         "gfx90a_fp4_expert_down",
         *args,
@@ -191,6 +211,9 @@ def gfx90a_fp4_expert_gate_up(
     live_count: torch.Tensor | None,
     limit: float,
     prequant: tuple[torch.Tensor, torch.Tensor] | None = None,
+    blocks: int = 208,
+    slot_begin: int = 0,
+    slot_end: int | None = None,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = x.shape
@@ -198,7 +221,9 @@ def gfx90a_fp4_expert_gate_up(
     ge = e if expert_mask is None else expert_mask.numel()
     assert packed_k * 2 == k
     out = torch.empty((m, t, i), dtype=torch.bfloat16, device=x.device)
-    kernel = _jit_gate_up(e, m, t, ge, i, k)
+    slot_end = t if slot_end is None else slot_end
+    assert 0 <= slot_begin < slot_end <= t
+    kernel = _jit_gate_up(e, m, t, ge, i, k, blocks, slot_begin, slot_end)
     args = [x]
     if prequant is not None:
         xq, x_scale = prequant
@@ -409,6 +434,9 @@ def gfx90a_fp4_expert_down(
     live_count: torch.Tensor | None,
     out: torch.Tensor | None = None,
     prequant: tuple[torch.Tensor, torch.Tensor] | None = None,
+    blocks: int = 208,
+    slot_begin: int = 0,
+    slot_end: int | None = None,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, t, k = x.shape
@@ -416,7 +444,9 @@ def gfx90a_fp4_expert_down(
     assert packed_k * 2 == k
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
-    kernel = _jit_down(e, m, t, ge, n, k)
+    slot_end = t if slot_end is None else slot_end
+    assert 0 <= slot_begin < slot_end <= t
+    kernel = _jit_down(e, m, t, ge, n, k, blocks, slot_begin, slot_end)
     args = [x]
     if prequant is not None:
         xq, x_scale = prequant

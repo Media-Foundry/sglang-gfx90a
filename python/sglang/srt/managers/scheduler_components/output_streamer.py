@@ -148,6 +148,12 @@ class SchedulerOutputStreamer:
         skip_req: Optional[Req] = None,
         is_idle_batch: bool = False,
     ):
+        if (
+            envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+            and self.ps.dp_rank != 0
+        ):
+            return
+
         return_hidden_states = any(
             req.return_hidden_states for req in reqs if req is not skip_req
         )

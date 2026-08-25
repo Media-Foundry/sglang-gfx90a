@@ -1069,10 +1069,44 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   M>1走外部per-token group32 INT8预量化后仍进入sdot4专核；EP1/TP8等raw FP4 shard
   shape已在direct白名单内。真正的fallback浪费是通用AIter/CK按`block_m=32`处理
   极小M，而不是M>2 correctness。
-- 可复用的最小实验是把DSV4 router wave64 GEMV从当前exact M1扩展到M1--4：底层
-  kernel已有M1--4能力，目标是BS2/4，必须逐行对AIter oracle检查router logits、
-  top-6 IDs及weights，再做France/teacher-forced与ABBA。它不会改善replicated-DP
-  BS1，因为该布局每个attention-DP组的本地M仍为1。
+- 可复用的最小实验是补齐DSV4 router的M1--4链路：BF16 projection GEMV底层已经
+  支持M1--4，但后续native grouped Top-K严格锁定`[1,256]`，必须新写multi-row
+  selector/kernel，不能只放宽TensorMatcher。目标是BS2/4，必须逐行对AIter oracle
+  检查router logits、top-6 IDs及weights，再做France/teacher-forced与ABBA。它不会
+  改善replicated-DP BS1，因为该布局每个attention-DP组的本地M仍为1。
+
+### 8-GCD split-MoE单归约与slot-range专核（2026-08-26）
+
+- `TP8 + attention-DP2 + attention-TP4 + MoE-DP2 + MoE-TP4`复制同一BS1请求；两组
+  持有相同TP4 expert shards并计算互补Top-6 slots。初版3/3分工先做组内TP4 AR、
+  再做rank-pair AR，France 5/5正确但仅约`70.26 tok/s`。
+- 由于八个rank的local output正好是四个TP shard乘两组互补专家的partial，一次
+  global TP8 all-reduce即可同时完成TP求和和DP合并。替换两级归约后France固定IDs
+  5/5精确，默认AIter small-message geometry稳定约`72.57--73.74 tok/s`；显式
+  `AITER_GFX90A_AR_SMALL_BLOCKS=1/2`分别仅约`69.66/71.40 tok/s`，均证伪。
+- direct FP4 gate/down原固定208 blocks。3个live slots的真实shape扫描：52 blocks约
+  `37.37/35.02 us`，104约`27.32/24.00 us`，156约`27.29/21.88 us`，208约
+  `26.36/21.92 us`，260约`26.30/23.75 us`；各grid输出bitwise exact。减少grid
+  并无端到端机会，208仍接近综合最优。
+- shared expert只在DP0运行时，将routed分工改为连续2/4 slots后约`75.04 tok/s`；
+  再把slot ownership下沉到gfx90a direct FP4 JIT specialization，gate只枚举owned
+  tasks、down只量化/累加owned slots，同时保留上游`topk_ids=-1`语义mask，服务间
+  稳态约`75.35--76.20 tok/s`。两段slot-range对旧mask实现逐元素bitwise exact，
+  France固定IDs连续5/5正确，256-token hash在同一配置内稳定。
+- 不能删除上游`topk_ids` mask：即使direct kernel partial对旧实现bitwise exact，
+  服务级France会立即退化为单token EOS，说明runner外仍有消费者依赖sentinel；
+  恢复mask后correctness恢复。以后不得用局部kernel oracle替代服务级逐token门禁。
+- 两个结构对照均通过France 5/5但端到端退化，已撤回：attention heads从复制TP4
+  改为真实TP8仅约`73.51 tok/s`，说明wo_b world8 AR税大于head计算减半收益；shared
+  expert改为TP8并在两组都计算、routed恢复3/3仅约`72.32 tok/s`，原因是两组side
+  stream shared都与routed争CU。当前保留方案仍是attention TP4复制、shared仅DP0
+  TP4、routed连续2/4、单次global TP8 AR。
+- 最后移除运行时已不再使用的MoE-DP pair与MoE-TP custom-AR communicator（attention
+  TP4及global TP8仍保留AIter custom AR），新服务256-token稳态为
+  `77.006/77.046/77.033/77.005 tok/s`，相对初版`70.26`约`+9.6%`。France固定IDs
+  5/5精确；1024-token四轮均为同一hash `e39f2ee69e738527`，随KV增长的平均速度
+  `59.107--59.179 tok/s`。该checkpoint仍远未达到120 tok/s，但已是当前8-GCD
+  单请求路径的可信最佳值。
 
 ### TP4 decode HIP/FP16局部探针（2026-08-26）
 

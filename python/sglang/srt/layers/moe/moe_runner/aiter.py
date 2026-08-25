@@ -422,6 +422,16 @@ class AiterRunnerCore(MoeRunnerCore):
                 gfx90a_fp4_expert_gate_up,
             )
 
+            slot_begin = 0
+            slot_end = runner_input.topk_ids.shape[1]
+            if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
+                from sglang.srt.distributed.parallel_state import get_moe_dp_group
+
+                if get_moe_dp_group().rank_in_group == 0:
+                    slot_end = 2
+                else:
+                    slot_begin = 2
+
             gate_prequant = None
             if runner_input.hidden_states.shape[0] > 1:
                 if (
@@ -536,6 +546,8 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.num_local_tokens,
                     quant_info.swiglu_limit,
                     prequant=gate_prequant,
+                    slot_begin=slot_begin,
+                    slot_end=slot_end,
                 )
             if gate_prequant is None:
                 down_prequant = None
@@ -604,6 +616,8 @@ class AiterRunnerCore(MoeRunnerCore):
                     runner_input.num_local_tokens,
                     out=direct_out,
                     prequant=down_prequant,
+                    slot_begin=slot_begin,
+                    slot_end=slot_end,
                 )
             return AiterRunnerOutput(hidden_states=output)
         elif envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get():
