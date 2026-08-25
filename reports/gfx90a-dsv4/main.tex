@@ -78,7 +78,7 @@
 \maketitle
 
 \begin{abstract}
-This report documents the enablement, correctness recovery, and performance engineering of DeepSeek-V4-Flash native safetensors inference on AMD Instinct MI250X (gfx90a/CDNA2) with SGLang. The work covers TP/EP decomposition, AIter and CKTile FP4 routed mixture-of-experts (MoE), FP8 dense projections, manifold-constrained hyper-connections (mHC), DeepSeek-V4 sparse attention, HIP CUDA Graph, Mori communication, and OpenAI-compatible agent protocols. The decisive correctness finding was that an early 60 tok/s route was invalid because routed-expert computation was numerically wrong. After repairing the W2 layout, establishing fixed-token oracles, and optimizing the corrected path, TP4/EP1 native autoregressive decode reached approximately \metric{74.5 tok/s}. A 4604-token prompt reached \metric{2.061--2.062 s TTFT}, corresponding to approximately \metric{2234 input tok/s}. The current four-GCD service exposes a 560,896-token KV pool, decode graph tiers 1/2/4, streaming tool calls, and DeepSeek Harness compatibility.
+This report documents the enablement, correctness recovery, and performance engineering of DeepSeek-V4-Flash native safetensors inference on AMD Instinct MI250 (gfx90a/CDNA2) with SGLang. The work covers TP/EP decomposition, AIter and CKTile FP4 routed mixture-of-experts (MoE), FP8 dense projections, manifold-constrained hyper-connections (mHC), DeepSeek-V4 sparse attention, HIP CUDA Graph, Mori communication, and OpenAI-compatible agent protocols. The decisive correctness finding was that an early 60 tok/s route was invalid because routed-expert computation was numerically wrong. After repairing the W2 layout, establishing fixed-token oracles, and optimizing the corrected path, TP4/EP1 native autoregressive decode reached approximately \metric{74.5 tok/s}. A 4604-token prompt reached \metric{2.061--2.062 s TTFT}, corresponding to approximately \metric{2234 input tok/s}. The current four-GCD service exposes a 560,896-token KV pool, decode graph tiers 1/2/4, streaming tool calls, and DeepSeek Harness compatibility.
 \end{abstract}
 
 \tableofcontents
@@ -95,7 +95,7 @@ This report documents the enablement, correctness recovery, and performance engi
     Item & Result \\
     \midrule
     Model & DeepSeek-V4-Flash; 284B total parameters, approximately 13B active parameters, FP4 routed experts, and mostly FP8 non-expert weights \\
-    Hardware & Four visible MI250X GCDs (gfx90a), approximately 64 GiB HBM per GCD \\
+    Hardware & Four visible MI250 GCDs (gfx90a), approximately 64 GiB HBM per GCD \\
     Validated short decode & 256-token native AR at approximately 74.37--74.69 tok/s; fixed trajectory hash \texttt{51e2ac132057ead3} \\
     Long prefill & 4604-token TTFT: 2.184 s with the 32-row sorter and 2.061--2.062 s with the 64-row sorter; strict ABBA improvement of approximately 5.6\% \\
     Prefill throughput & $4604/2.061 \approx 2234$ input tok/s on the HTTP TTFT metric \\
@@ -114,11 +114,19 @@ The report applies three evidence rules:
   \item Kernel microbenchmarks select candidates; endpoint-level ABBA measurements determine adoption. Changes below approximately 5\% are normally not checkpointed independently.
 \end{enumerate}
 
+\section{Related systems}
+
+This work builds on serving systems that reduce scheduling and memory-management overhead for autoregressive language models. SGLang combines a structured runtime with RadixAttention and continuous batching, while vLLM introduced PagedAttention to manage KV-cache fragmentation and sharing efficiently\cite{sglang,vllm}. Our contribution is narrower and hardware-specific: we retain SGLang's serving abstractions while adapting the DeepSeek-V4 execution path to CDNA2 and validating optimizations against fixed-token numerical oracles.
+
+DeepSeek-V3 established the mixture-of-experts, auxiliary-loss-free routing, multi-token prediction, and low-precision training lineage from which DeepSeek-V4-Flash evolves\cite{dsv3,dsv4card}. Systems such as MegaBlocks show how block-sparse formulations can make MoE computation practical despite irregular routing\cite{megablocks}. The present workload exposes a complementary serving regime: batch-one decode produces extremely small expert matrices, so expert layout, routing synchronization, and fixed per-layer costs matter more than large-batch sparse-GEMM throughput.
+
+On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile building blocks for GEMM, quantization, attention, and MoE\cite{ck,aiter}. We use these libraries where their supported shapes are effective, but introduce gfx90a-specific paths where generic kernels do not match FP4 storage, wave64 execution, or the small-$M$ decode regime. The resulting system is therefore an integration and measurement study rather than a replacement for either the serving runtime or the kernel libraries.
+
 \section{System and model context}
 
 \subsection{Hardware and software stack}
 
-The deployment uses AMD Instinct MI250X/MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The model at \texttt{/home/pc/models/modelscope} consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} files are not referenced by the index and are not loaded.
+The deployment uses AMD Instinct MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The model at \texttt{/home/pc/models/modelscope} consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} files are not referenced by the index and are not loaded.
 
 CDNA2 provides wave64 execution, 64 KiB LDS per CU, and INT8/BF16/FP16 matrix or dot instructions, but no native FP4 matrix core comparable to newer accelerator generations. DeepSeek-V4-Flash stores routed-expert weights in FP4. Consequently, the critical gfx90a cost is not raw HBM bandwidth alone: it is the combination of small-M utilization, online FP4 unpacking, scale handling, activation quantization, expert sorting, and layer-level synchronization. The AMD MI200 ISA manual guided the custom HIP kernels in this work\cite{amdisa}.
 
@@ -249,7 +257,7 @@ The original raw-FP4 direct kernel sent M=256 prefill through a per-assignment F
 \begin{enumerate}[leftmargin=2em]
   \item packed-FP4 unpack reuse across rows, first group8 and then group32 for M$\geq$1024;
   \item \texttt{v\_perm\_b32} lookup tables instead of branch-heavy nibble decoding;
-  \item MI250X block-FP8 tuned configurations for M512 and M1024 dense projections;
+  \item MI250 block-FP8 tuned configurations for M512 and M1024 dense projections;
   \item CDNA2 INT8 MFMA routed gate and down kernels;
   \item sparse paged-prefill attention reduction from eight waves to one wave;
   \item chunked-prefill growth from 512/1024 to 2048;
@@ -292,7 +300,7 @@ Every GPU experiment begins with:
 amd-smi process --general --sort-by-pid -g 0 1 2 3
 \end{lstlisting}
 
-Measurements are rejected when unexpected scheduler, compiler, profiler, or model processes remain on the target GCDs. The native-AR harness rejects nonzero \texttt{SPECULATIVE\_*} variables. The service is bound to NUMA node 1 because node 0 produced repeated uncorrectable host-DRAM MCEs during long prefill tests.
+Measurements are rejected when unexpected scheduler, compiler, profiler, or model processes remain on the target GCDs. The native-AR harness rejects nonzero \texttt{SPECULATIVE\_*} variables. The experimental host had a known node-0 memory fault; therefore, all accepted measurements were pinned to NUMA node 1. This host condition is independent of the MI250 accelerators and SGLang software under evaluation.
 
 \subsection{ABBA and trimmed medians}
 
@@ -345,7 +353,7 @@ The JIT/cold-cache first round is excluded, and repeated rounds are summarized w
 The native AR server listens on \texttt{0.0.0.0:30001}. It runs TP4/EP1 without routed-expert A2A, uses decode graph tiers 1/2/4, and sets \texttt{mem\_fraction\_static=1.0}. Each GCD uses approximately 61.6/65.5 GB (94.1\%). The full-token KV pool is 560,896, while graph capture leaves approximately 4.3 GB/GCD runtime headroom.
 
 \begin{lstlisting}[language=bash]
-curl http://10.120.16.9:30001/v1/chat/completions \
+curl http://127.0.0.1:30001/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "deepseek-v4-flash",
@@ -375,12 +383,12 @@ Both streaming and non-streaming requests return standard OpenAI \texttt{tool\_c
   \item \textbf{Prefill MoE fusion.} Reuse activation and scale state across stage 1 and stage 2, or fuse stage1$\rightarrow$quant$\rightarrow$stage2. Merely enlarging an MFMA tile has already been disproven.
   \item \textbf{Collective boundaries.} Peer-read all-reduce is superior to RCCL, but the layer still benefits from fewer collectives or epilogue fusion.
   \item \textbf{Concurrency crossover.} BS1 favors TP4/EP1. EP2 showed exploratory gains at larger concurrency and should be re-evaluated on the corrected routed-MoE path.
-  \item \textbf{Operations.} Place both the model service and port-30002 proxy under systemd or a supervisor, and investigate the node-0 DIMM/EDAC fault during maintenance.
+  \item \textbf{Operations.} Place both the model service and port-30002 proxy under systemd or a supervisor. The known node-0 host-memory fault should be serviced separately; accepted measurements remain pinned to node 1 until then.
 \end{enumerate}
 
 \section{Conclusion}
 
-The principal result is not a single kernel but a reproducible gfx90a inference workflow built around correctness-first validation, hardware-shape-driven optimization, and endpoint-level ABBA tests. The project explicitly withdrew an attractive but incorrect 60 tok/s result. After W2 recovery, small-M packed-FP4-by-INT8 decode, lower collective latency, and large-M CDNA2 MFMA prefill work, the corrected native AR path reached approximately 74.5 tok/s and long prefill reached approximately 2.23k input tok/s. The evidence indicates that MI250X is limited less by nominal aggregate HBM bandwidth than by the mismatch between stored FP4 and CDNA2 execution formats, low-M utilization, and fixed synchronization costs per layer.
+The principal result is not a single kernel but a reproducible gfx90a inference workflow built around correctness-first validation, hardware-shape-driven optimization, and endpoint-level ABBA tests. The project explicitly withdrew an attractive but incorrect 60 tok/s result. After W2 recovery, small-M packed-FP4-by-INT8 decode, lower collective latency, and large-M CDNA2 MFMA prefill work, the corrected native AR path reached approximately 74.5 tok/s and long prefill reached approximately 2.23k input tok/s. The evidence indicates that MI250 is limited less by nominal aggregate HBM bandwidth than by the mismatch between stored FP4 and CDNA2 execution formats, low-M utilization, and fixed synchronization costs per layer.
 
 \appendix
 
@@ -421,8 +429,8 @@ The report does not require Biber, BibTeX, shell escape, or Pygments. Source-cod
 
   \bibitem{amdisa}
   Advanced Micro Devices, Inc.
-  \newblock \emph{AMD Instinct MI200 Instruction Set Architecture}.
-  \newblock Local copy: \texttt{/home/pc/Code/instinct-mi200-cdna2-instruction-set-architecture.pdf}.
+  \newblock \emph{AMD Instinct MI200 CDNA2 Instruction Set Architecture}.
+  \newblock \url{https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi200-cdna2-instruction-set-architecture.pdf}.
 
   \bibitem{cdna2}
   Advanced Micro Devices, Inc.
@@ -430,14 +438,34 @@ The report does not require Biber, BibTeX, shell escape, or Pygments. Source-cod
   \newblock \url{https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf}.
 
   \bibitem{sglang}
-  SGLang Project.
-  \newblock \emph{SGLang: A High-Performance Serving Framework}.
-  \newblock \url{https://github.com/sgl-project/sglang}.
+  L. Zheng et al.
+  \newblock \emph{SGLang: Efficient Execution of Structured Language Model Programs}.
+  \newblock In \emph{Proceedings of NeurIPS}, 2024. \url{https://arxiv.org/abs/2312.07104}.
+
+  \bibitem{vllm}
+  W. Kwon et al.
+  \newblock \emph{Efficient Memory Management for Large Language Model Serving with PagedAttention}.
+  \newblock In \emph{Proceedings of SOSP}, 2023. \url{https://arxiv.org/abs/2309.06180}.
+
+  \bibitem{dsv3}
+  DeepSeek-AI.
+  \newblock \emph{DeepSeek-V3 Technical Report}.
+  \newblock \url{https://arxiv.org/abs/2412.19437}, 2024.
+
+  \bibitem{megablocks}
+  T. Gale et al.
+  \newblock \emph{MegaBlocks: Efficient Sparse Training with Mixture-of-Experts}.
+  \newblock In \emph{Proceedings of MLSys}, 2023. \url{https://arxiv.org/abs/2211.15841}.
 
   \bibitem{ck}
   AMD ROCm.
   \newblock \emph{Composable Kernel}.
   \newblock \url{https://github.com/ROCm/composable_kernel}.
+
+  \bibitem{aiter}
+  AMD ROCm.
+  \newblock \emph{AIter: AI Tensor Engine for ROCm}.
+  \newblock \url{https://github.com/ROCm/aiter}.
 
   \bibitem{dsh}
   DeepSeek-AI.
