@@ -1,16 +1,21 @@
+% !TEX TS-program = xelatex
 \documentclass[11pt,a4paper]{article}
 
 \usepackage{fontspec}
-% fontconfig aliases Arial to Liberation Sans on Ubuntu, so \IfFontExistsTF
-% cannot distinguish the real Microsoft font. Test the packaged font file.
-\IfFileExists{/usr/share/fonts/truetype/msttcorefonts/Arial.ttf}{
+% Keep the local Arial rendering when available, while allowing arXiv's
+% XeLaTeX environment to compile without proprietary system fonts.
+\IfFontExistsTF{Arial}{
   \setmainfont{Arial}
   \setsansfont{Arial}
 }{
-  \setmainfont{Liberation Sans}
-  \setsansfont{Liberation Sans}
+  \setmainfont{TeX Gyre Heros}
+  \setsansfont{TeX Gyre Heros}
 }
-\setmonofont{Noto Sans Mono}
+\IfFontExistsTF{Noto Sans Mono}{
+  \setmonofont{Noto Sans Mono}
+}{
+  \setmonofont{TeX Gyre Cursor}
+}
 \renewcommand{\familydefault}{\sfdefault}
 \setlength{\emergencystretch}{2em}
 
@@ -127,7 +132,7 @@ On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile build
 
 \subsection{Hardware and software stack}
 
-The experimental host is a Supermicro A+ Server AS-4124GQ-TNMI with two AMD EPYC 7763 processors and SMT enabled. Host memory comprises 32 32-GiB DDR4-2933 2Rx8 RDIMMs, for 1 TiB installed capacity. The deployment uses four visible AMD Instinct MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The model at \texttt{/home/pc/models/modelscope} consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} files are not referenced by the index and are not loaded.
+The experimental host is a Supermicro A+ Server AS-4124GQ-TNMI with two AMD EPYC 7763 processors and SMT enabled. Host memory comprises 32 32-GiB DDR4-2933 2Rx8 RDIMMs, for 1 TiB installed capacity. The deployment uses four visible AMD Instinct MI250 gfx90a GCDs. The software environment is fixed to PyTorch \texttt{2.12.0a0+git78258b9} and HIP/ROCm \texttt{7.14.60850}, with local SGLang and AIter source trees. The checkpoint consists of 48 indexed safetensors shards. Residual \texttt{.incomplete} download files are not referenced by the index and are not loaded.
 
 CDNA2 provides wave64 execution, 64 KiB LDS per CU, and INT8/BF16/FP16 matrix or dot instructions, but no native FP4 matrix core comparable to newer accelerator generations. DeepSeek-V4-Flash stores routed-expert weights in FP4. Consequently, the critical gfx90a cost is not raw HBM bandwidth alone: it is the combination of small-M utilization, online FP4 unpacking, scale handling, activation quantization, expert sorting, and layer-level synchronization. The AMD MI200 ISA manual guided the custom HIP kernels in this work\cite{amdisa}.
 
