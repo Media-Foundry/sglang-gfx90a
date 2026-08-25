@@ -1135,6 +1135,37 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   稳定；该现象不随融合开关出现，需作为DP local-control/output-suppression的独立
   服务包装问题倒查，不能归因于router数值。
 
+### 8-GCD split路径的共同轨迹latency oracle（2026-08-26）
+
+- 当前真实路径约`76.1--77.0 tok/s`，即约`13.0 ms/token`。以下oracle均只为
+  latency decomposition，刻意破坏模型语义，实验后代码和开关全部撤回；不能作为
+  correctness或可交付吞吐。
+- 单独删除shared expert约`78.67--78.70 tok/s`，相对同轮基线只减少约
+  `0.3 ms/token`；shared并非当前第一瓶颈。删除router+routed FP4 MoE但保留shared
+  和TP8 layer-end AR约`100.36--100.48 tok/s`；删除全部MoE及该TP8 AR约
+  `109.47--109.61 tok/s`。即使MoE完全免费，现有其余路径仍达不到120。
+- 为消除不同输出导致expert weight-cache轨迹不同的干扰，attention分解全部在
+  self-attention结果清零、completion hash固定为`41d90b79a4feb5d6`的共同轨迹上
+  对照：完整执行attention约`13.37 ms/token`；整个attention跳过约`6.61`；只跳
+  paged core约`12.18`；保留prepare+core但跳inverse-RoPE/wo_a/wo_b/TP4 AR约
+  `11.39`。解得prepare约`3.59 ms/token`、paged core约`1.19`、output half约
+  `1.98`，attention合计约`6.76 ms/token`。
+- 在相同清零轨迹中同时跳过core/indexer两条compressor更新约
+  `13.27 ms/token`，只比完整attention少约`0.10 ms/token`；短上下文下compressor
+  已被multi-stream隐藏，prepare大头是Q/K/V projection、norm/RoPE/cache pipeline。
+- 现有wave64 projection真实shape为`wqkv_a=[1536,4096]`、
+  `wq_b=[8192,1024]`；批量event micro均约`15--16 us`/launch，已显著快于torch
+  的约`28--33 us`。旧INT8-weight kernel在当前代码反而约`16.5--16.9 us`，不再
+  快于BF16。一次全局activation quant再由dot4 kernel复用的两-launch原型与旧INT8
+  bitwise exact，但约`26.9--27.5 us`，额外launch和global input读取使其证伪并撤回。
+- 现有single-CTA native sqrt-softplus Top-K在当前split路径France 10/10精确、
+  hash稳定，但仅约`73.34--73.43 tok/s`，与atomic fused-router的约73.5相同，均
+  低于generic Triton约76--77；说明低CTA router在整图调度中不如Triton并行供给。
+- ROCm Kineto在stop trace时崩于`libkineto::RocprofActivityApi`；rocprofv3 attach
+  又受multiprocessing attach注册边界限制。包裹进程的延迟采集会污染`hipconfig`/
+  `rocminfo` stdout，并在采集窗口结束时令HIP graph capture失步。临时解析补丁和
+  profiler进程均已撤回；不得在该路径再次用在线Kineto/rocprof包裹graph服务。
+
 ### TP4 decode HIP/FP16局部探针（2026-08-26）
 
 - direct FP4的四nibble解包原本用selector构造加两次CDNA2 `v_perm_b32`。实验性
@@ -1157,3 +1188,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `8.33 ms/token`。下一结构实验应维持两个attention TP4组，给两组复制TP4 expert
   shard并按top-6 slots分工，只交换一次4096维rank-local partial；绝不能让MoE或
   LM head重新扩大到full TP8 collective。
+
+### CDNA2 BF16 MFMA用于M1 GEMV的反例（2026-08-26）
+
+- CK对gfx90a暴露`64x4x4 BF16 -> FP32` MFMA，可把单token GEMV映射成64个weight
+  rows乘一个live activation column，另外三列补零。实测lane mapping正确：在
+  `N=1536,K=4096`随机输入上，MFMA输出转BF16后与现有wave64 VALU专核逐元素一致。
+- 但单wave需要沿K串行发出1024条MFMA，约`193--213 us`；改成2/4/8 waves对同一
+  64 rows做split-K后分别约`132.5/97.2/95.7 us`，仍远慢于现有专核约
+  `13.46--13.60 us`。根因是M1映射浪费3/4矩阵列，且每个K4仍有长依赖链和额外
+  partial reduction；不是简单接入CK就能获得收益。
+- 原型、wrapper和selector均完整撤回。MFMA应保留给M足够大、至少能填满4列且能
+  沿M/N复用权重的BS4+路径；BS1 projection继续使用当前wave64向量读取+VALU归约。
