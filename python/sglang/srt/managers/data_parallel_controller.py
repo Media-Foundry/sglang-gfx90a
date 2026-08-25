@@ -145,6 +145,19 @@ class DataParallelController:
             server_args.load_balance_method
         )
         self.run_scheduler_process_func = run_scheduler_process_func
+        if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
+            if not (
+                server_args.enable_dp_attention
+                and server_args.dp_size == 2
+                and server_args.moe_dp_size == 2
+                and server_args.ep_size == 1
+                and server_args.moe_a2a_backend == "none"
+                and server_args.enable_dp_lm_head
+            ):
+                raise RuntimeError(
+                    "SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH requires "
+                    "DP-attention=2, MoE-DP=2, EP1, no A2A, and DP LM head"
+                )
 
         # Init inter-process communication
         self.context = zmq.Context(1 + get_parallel().dp_size)
@@ -324,7 +337,13 @@ class DataParallelController:
 
         time_stats.set_dp_dispatch_time()
         req.time_stats = wrap_as_pickle(time_stats)
-        self.dispatching(req)
+        if (
+            envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+            and isinstance(req, TokenizedGenerateReqInput)
+        ):
+            self.send_to_all_workers(req)
+        else:
+            self.dispatching(req)
         req.time_stats = time_stats
         req.time_stats.set_dp_dispatch_finish_time()
 

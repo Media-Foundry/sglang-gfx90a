@@ -682,7 +682,15 @@ class DeepseekV2MoE(nn.Module):
         mla_enable_prefill_cp: bool = False,
     ):
         super().__init__()
-        self.tp_size = get_parallel().tp_size
+        self._split_moe_dp_fast_path = (
+            is_deepseek_v4
+            and envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+        )
+        self.tp_size = (
+            get_parallel().moe_tp_size
+            if self._split_moe_dp_fast_path
+            else get_parallel().tp_size
+        )
         self.moe_ep_size = get_parallel().moe_ep_size
         self.routed_scaling_factor = config.routed_scaling_factor
         self.n_shared_experts = config.n_shared_experts
@@ -862,6 +870,14 @@ class DeepseekV2MoE(nn.Module):
                 or should_use_flashinfer_cutlass_moe_fp4_allgather()
                 or envs.SGLANG_SHARED_EXPERT_TP1.get()
             )
+            shared_parallel_override = (
+                dict(
+                    tp_rank=get_parallel().moe_tp_rank,
+                    tp_size=get_parallel().moe_tp_size,
+                )
+                if self._split_moe_dp_fast_path
+                else {}
+            )
             self.shared_experts = DeepseekV2MLP(
                 hidden_size=config.hidden_size,
                 intermediate_size=intermediate_size,
@@ -870,7 +886,11 @@ class DeepseekV2MoE(nn.Module):
                 reduce_results=False,
                 swiglu_limit=getattr(config, "swiglu_limit", None),
                 prefix=add_prefix("shared_experts", prefix),
-                **(dict(tp_rank=0, tp_size=1) if _shared_expert_use_tp1 else {}),
+                **(
+                    dict(tp_rank=0, tp_size=1)
+                    if _shared_expert_use_tp1
+                    else shared_parallel_override
+                ),
             )
             if (
                 is_deepseek_v4
@@ -1203,6 +1223,11 @@ class DeepseekV2MoE(nn.Module):
         input_ids_global: Optional[torch.Tensor] = None,
         skip_shared_experts: bool = False,
     ) -> torch.Tensor:
+        split_moe_dp = self._split_moe_dp_fast_path
+        if split_moe_dp and get_parallel().moe_dp_rank != 0:
+            # Shared expert is computed once by MoE-DP0; its TP4 partial joins
+            # the routed partial in the single world-size-8 reduction below.
+            skip_shared_experts = True
         if hasattr(self, "shared_experts") and use_intel_amx_backend(
             self.shared_experts.gate_up_proj
         ):
@@ -1248,6 +1273,14 @@ class DeepseekV2MoE(nn.Module):
                 expert_location_dispatch_info=dispatch_info,
                 **topk_kwargs,
             )
+            if split_moe_dp:
+                # Keep ownership visible to every downstream MoE path. The
+                # direct gfx90a kernel additionally specializes this same slot
+                # range so the sentinels do not create wasted expert work.
+                if get_parallel().moe_dp_rank == 0:
+                    topk_output.topk_ids[:, 2:].fill_(-1)
+                else:
+                    topk_output.topk_ids[:, :2].fill_(-1)
         else:
             pre_quant_input = None
             shared_output = None
@@ -1325,7 +1358,14 @@ class DeepseekV2MoE(nn.Module):
             self.routed_scaling_factor,
         )
 
-        if self.tp_size > 1 and not should_skip_post_experts_all_reduce(
+        if split_moe_dp:
+            # The two MoE-DP replicas own identical TP4 weight shards but
+            # compute complementary routed slots (and DP0 alone computes the
+            # shared expert).  A single TP8 sum therefore performs both the
+            # intra-shard reduction and the cross-replica merge.  This replaces
+            # the former TP4 sum followed by four independent rank-pair sums.
+            final_hidden_states = get_tp_group().all_reduce(final_hidden_states)
+        elif self.tp_size > 1 and not should_skip_post_experts_all_reduce(
             is_tp_path=True,
         ):
             final_hidden_states = tensor_model_parallel_all_reduce(final_hidden_states)

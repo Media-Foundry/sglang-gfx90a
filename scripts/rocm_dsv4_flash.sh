@@ -210,6 +210,9 @@ fi
 if [[ "${ENABLE_DP_ATTENTION_LOCAL_CONTROL_BROADCAST:-0}" == "1" ]]; then
   server_args+=(--enable-dp-attention-local-control-broadcast)
 fi
+if [[ "${ENABLE_DP_LM_HEAD:-0}" == "1" ]]; then
+  server_args+=(--enable-dp-lm-head)
+fi
 if [[ -n "${MOE_DP_SIZE:-}" ]]; then
   server_args+=(--moe-dp-size "${MOE_DP_SIZE}")
 fi

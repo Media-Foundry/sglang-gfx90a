@@ -6652,7 +6652,10 @@ class ServerArgs:
                 not self.enable_aiter_allreduce_fusion
             ), "Aiter allreduce fusion is not supported with context parallelism"
 
-        if view.attn_cp_size != self.moe_dp_size:
+        if (
+            view.attn_cp_size != self.moe_dp_size
+            and not envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+        ):
             assert (
                 self.moe_dp_size == 1
             ), "attn_cp_size != moe_dp_size is only supported when moe_dp_size == 1"

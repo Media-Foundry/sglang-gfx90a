@@ -222,9 +222,12 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         self.enable_torch_compile = get_flags().capture.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding
         self.is_encoder_decoder = model_runner.model_config.is_encoder_decoder
-        self.require_mlp_tp_gather = require_mlp_tp_gather(
-            model_runner.server_args
-        ) and not self._forward_is_dp_local(model_runner)
+        split_moe_dp = envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+        self.require_mlp_tp_gather = (
+            require_mlp_tp_gather(model_runner.server_args)
+            and not self._forward_is_dp_local(model_runner)
+            and not split_moe_dp
+        )
         self.require_attn_tp_gather = require_attn_tp_gather(model_runner.server_args)
         # Composite predicates derive from the instance values so the dp-local
         # draft exemption above stays consistent (require_gathered_buffer ==
@@ -233,8 +236,8 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             self.require_mlp_tp_gather or self.require_attn_tp_gather
         )
         self.require_mlp_sync = (
-            model_runner.server_args.enable_dp_attention or self.require_gathered_buffer
-        )
+            model_runner.server_args.enable_dp_attention and not split_moe_dp
+        ) or self.require_gathered_buffer
         self.enable_two_batch_overlap = (
             model_runner.server_args.enable_two_batch_overlap
         )
