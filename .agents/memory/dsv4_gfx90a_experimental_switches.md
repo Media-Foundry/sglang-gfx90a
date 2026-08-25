@@ -978,3 +978,35 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   精确；256-token native AR三轮中位约`55.62/78.92/125.87 tok/s`。相比TP8/EP1
   的`65.52/86.84/153.52`三档均退化，因此TP8/EP2证伪为当前性能方向，不设默认；
   其价值仅为partial-EP correctness/bring-up oracle。
+- 进一步尝试真正的异构分工：`TP8, DP attention=2, attn-TP4, EP2,
+  moe-DP1`，形成attention groups `[0..3]/[4..7]`和跨组expert lanes
+  `[0,4]/[1,5]/[2,6]/[3,7]`。服务可加载；graph模式也能捕获，但首请求后
+  detokenizer心跳超时；关闭decode graph后France首请求仍90秒无返回。开启
+  `--enable-dp-attention-local-control-broadcast`也不改变结果。日志仅显示收到请求的
+  DP0进入prefill/MoE，DP1没有同步forward，导致Mori等待对端。因此当前SGLang
+  scheduler不支持“单请求attention只在一个DP group、MoE却要求两个DP groups
+  共同参与”的执行协议；需要新增remote/dummy MoE worker调度，不能靠现有flags实现。
+  启动脚本已接入显式`DP_SIZE/ENABLE_DP_ATTENTION/
+  ENABLE_DP_ATTENTION_LOCAL_CONTROL_BROADCAST/MOE_DP_SIZE`以便后续协议开发，
+  但该组合不作为可用性能配置。
+
+### 双TP4副本的8-GCD多请求checkpoint（2026-08-26）
+
+- 8 GCD按`[0,1,2,3]`与`[4,5,6,7]`运行两个独立`TP4/EP1/no-A2A`
+  native-AR副本。必须通过本脚本启动或完整继承其环境；手工只传server args会漏掉
+  `unified_kv_triton`和gfx90a direct packed-FP4 MoE，前者在BS32退回TileLang DSA
+  并触发`hipModuleLoadData`失败，后者会让BS32落入不支持AIter的通用FP8 runner。
+- 每副本配置为`MAX_TOTAL_TOKENS=16384`、`SWA_FULL_TOKENS_RATIO=0.95`、
+  `MEM_FRACTION_STATIC=0.90`，捕获`1/2/4/8/16/20/24/32`。graph max BS32要求
+  `AITER_GFX90A_MXFP4_QUANT_MAX_ROWS>=192`；当前使用192。全部graph捕获约0.46GB，
+  完成后仍余约12GB/GCD。
+- 8K pool与SWA ratio 0.70只能同时admit约20个短请求/副本；24请求会分批prefill，
+  因而即使存在BS32 graph也从约660 tok/s退到约350 tok/s。扩为16K pool并捕获精确
+  BS20/24后消除了该scheduler/admission伪瓶颈。
+- 两副本在每个捕获tier分别执行官方France固定input IDs，合计`214/214`请求均与
+  9-token expected IDs逐token精确，每档输出唯一。256-token native AR、统一起跑、
+  每档4轮结果：40并发trimmed约`889.92 tok/s`；48并发trimmed约
+  `1005.39 tok/s`；64并发首轮冷态`641.38`，后三轮`1146.77--1158.73`，
+  trimmed约`1152.69 tok/s`。所有请求均实际输出256 token。
+- 因此8-GCD多请求`>=700 tok/s`目标已在严格native AR下通过；这属于副本并行，
+  不改善单请求延迟。单请求`>=120 tok/s`仍未完成，后续不能用aggregate替代。

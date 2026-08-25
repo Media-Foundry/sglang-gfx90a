@@ -201,6 +201,18 @@ fi
 if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
   server_args+=(--cpu-offload-gb "${CPU_OFFLOAD_GB}")
 fi
+if [[ -n "${DP_SIZE:-}" ]]; then
+  server_args+=(--dp-size "${DP_SIZE}")
+fi
+if [[ "${ENABLE_DP_ATTENTION:-0}" == "1" ]]; then
+  server_args+=(--enable-dp-attention)
+fi
+if [[ "${ENABLE_DP_ATTENTION_LOCAL_CONTROL_BROADCAST:-0}" == "1" ]]; then
+  server_args+=(--enable-dp-attention-local-control-broadcast)
+fi
+if [[ -n "${MOE_DP_SIZE:-}" ]]; then
+  server_args+=(--moe-dp-size "${MOE_DP_SIZE}")
+fi
 if [[ -n "${SERVED_MODEL_NAME:-}" ]]; then
   server_args+=(--served-model-name "${SERVED_MODEL_NAME}")
 fi
