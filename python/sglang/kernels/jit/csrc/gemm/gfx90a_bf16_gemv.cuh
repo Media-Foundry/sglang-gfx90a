@@ -36,23 +36,30 @@ __device__ __forceinline__ float gfx90a_dot8_f32(const float4 wv, const float4 x
   return acc;
 }
 
-template <uint32_t N, uint32_t K, uint32_t kRows, uint32_t kUnroll, uint32_t kNumWaves>
+template <uint32_t M, uint32_t N, uint32_t K, uint32_t kRows,
+          uint32_t kUnroll, uint32_t kNumWaves>
 __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
     gfx90a_bf16_gemv_kernel(bf16_t* __restrict__ out,
                             const bf16_t* __restrict__ x,
                             const bf16_t* __restrict__ weight) {
+  constexpr uint32_t kRowsPerBlock = kRows * kNumWaves;
+  constexpr uint32_t kBlocksPerToken =
+      (N + kRowsPerBlock - 1) / kRowsPerBlock;
+  const uint32_t token = blockIdx.x / kBlocksPerToken;
+  const uint32_t local_block = blockIdx.x % kBlocksPerToken;
   __shared__ bf16_t sx[K];
 
   const uint32_t tid = threadIdx.x;
   for (uint32_t k = tid * kGfx90aGemvVec; k < K;
        k += kNumWaves * kGfx90aWave * kGfx90aGemvVec) {
-    *reinterpret_cast<float4*>(sx + k) = *reinterpret_cast<const float4*>(x + k);
+    *reinterpret_cast<float4*>(sx + k) =
+        *reinterpret_cast<const float4*>(x + static_cast<size_t>(token) * K + k);
   }
   __syncthreads();
 
   const uint32_t wave = tid / kGfx90aWave;
   const uint32_t lane = tid % kGfx90aWave;
-  const uint32_t row0 = (blockIdx.x * kNumWaves + wave) * kRows;
+  const uint32_t row0 = (local_block * kNumWaves + wave) * kRows;
   if (row0 >= N) return;
 
   float acc[kRows];
@@ -90,12 +97,15 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
   if (lane == 0) {
 #pragma unroll
     for (uint32_t r = 0; r < kRows; ++r) {
-      if (row0 + r < N) out[row0 + r] = cast<bf16_t>(acc[r]);
+      if (row0 + r < N) {
+        out[static_cast<size_t>(token) * N + row0 + r] = cast<bf16_t>(acc[r]);
+      }
     }
   }
 }
 
-template <uint32_t N, uint32_t K, uint32_t kRows, uint32_t kUnroll, uint32_t kNumWaves>
+template <uint32_t M, uint32_t N, uint32_t K, uint32_t kRows,
+          uint32_t kUnroll, uint32_t kNumWaves>
 struct Gfx90aBf16GemvKernel {
   static_assert(K % (kGfx90aWave * kGfx90aGemvVec * kUnroll) == 0,
                 "K must cover complete wave64 vector strides");
@@ -106,14 +116,16 @@ struct Gfx90aBf16GemvKernel {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
-    TensorMatcher({1, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, K}).with_dtype<bf16_t>().with_device(device).verify(x);
     TensorMatcher({N, K}).with_dtype<bf16_t>().with_device(device).verify(weight);
-    TensorMatcher({1, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
 
     constexpr uint32_t kRowsPerBlock = kRows * kNumWaves;
-    constexpr uint32_t kBlocks = (N + kRowsPerBlock - 1) / kRowsPerBlock;
+    constexpr uint32_t kBlocksPerToken =
+        (N + kRowsPerBlock - 1) / kRowsPerBlock;
+    constexpr uint32_t kBlocks = M * kBlocksPerToken;
     LaunchKernel(kBlocks, kNumWaves * kGfx90aWave, device.unwrap())(
-        gfx90a_bf16_gemv_kernel<N, K, kRows, kUnroll, kNumWaves>,
+        gfx90a_bf16_gemv_kernel<M, N, K, kRows, kUnroll, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
         static_cast<const bf16_t*>(weight.data_ptr()));
@@ -198,7 +210,7 @@ struct Gfx90aBf16Fp32GemvKernel {
 
 // DSV4 wo_a has two independent [N,K] groups. Keep a single launch while each
 // workgroup stages the activation belonging to its own group.
-template <uint32_t G, uint32_t N, uint32_t K, uint32_t kRows,
+template <uint32_t M, uint32_t G, uint32_t N, uint32_t K, uint32_t kRows,
           uint32_t kUnroll, uint32_t kNumWaves>
 __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
     gfx90a_bf16_grouped_gemv_kernel(bf16_t* __restrict__ out,
@@ -206,14 +218,18 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
                                     const bf16_t* __restrict__ weight) {
   constexpr uint32_t kRowsPerBlock = kRows * kNumWaves;
   constexpr uint32_t kBlocksPerGroup = (N + kRowsPerBlock - 1) / kRowsPerBlock;
-  const uint32_t group = blockIdx.x / kBlocksPerGroup;
-  const uint32_t local_block = blockIdx.x % kBlocksPerGroup;
+  constexpr uint32_t kBlocksPerToken = G * kBlocksPerGroup;
+  const uint32_t token = blockIdx.x / kBlocksPerToken;
+  const uint32_t token_block = blockIdx.x % kBlocksPerToken;
+  const uint32_t group = token_block / kBlocksPerGroup;
+  const uint32_t local_block = token_block % kBlocksPerGroup;
   __shared__ bf16_t sx[K];
   const uint32_t tid = threadIdx.x;
   for (uint32_t k = tid * kGfx90aGemvVec; k < K;
        k += kNumWaves * kGfx90aWave * kGfx90aGemvVec) {
     *reinterpret_cast<float4*>(sx + k) =
-        *reinterpret_cast<const float4*>(x + static_cast<size_t>(group) * K + k);
+        *reinterpret_cast<const float4*>(
+            x + (static_cast<size_t>(token) * G + group) * K + k);
   }
   __syncthreads();
 
@@ -249,12 +265,13 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
       acc[r] += __shfl_down(acc[r], offset, kGfx90aWave);
     }
     if (lane == 0 && row0 + r < N) {
-      out[static_cast<size_t>(group) * N + row0 + r] = cast<bf16_t>(acc[r]);
+      out[(static_cast<size_t>(token) * G + group) * N + row0 + r] =
+          cast<bf16_t>(acc[r]);
     }
   }
 }
 
-template <uint32_t G, uint32_t N, uint32_t K, uint32_t kRows,
+template <uint32_t M, uint32_t G, uint32_t N, uint32_t K, uint32_t kRows,
           uint32_t kUnroll, uint32_t kNumWaves>
 struct Gfx90aBf16GroupedGemvKernel {
   static void run(const tvm::ffi::TensorView x,
@@ -263,13 +280,13 @@ struct Gfx90aBf16GroupedGemvKernel {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
-    TensorMatcher({1, G, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({M, G, K}).with_dtype<bf16_t>().with_device(device).verify(x);
     TensorMatcher({G, N, K}).with_dtype<bf16_t>().with_device(device).verify(weight);
-    TensorMatcher({1, G, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    TensorMatcher({M, G, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     constexpr uint32_t kBlocksPerGroup =
         (N + kRows * kNumWaves - 1) / (kRows * kNumWaves);
-    LaunchKernel(G * kBlocksPerGroup, kNumWaves * kGfx90aWave, device.unwrap())(
-        gfx90a_bf16_grouped_gemv_kernel<G, N, K, kRows, kUnroll, kNumWaves>,
+    LaunchKernel(M * G * kBlocksPerGroup, kNumWaves * kGfx90aWave, device.unwrap())(
+        gfx90a_bf16_grouped_gemv_kernel<M, G, N, K, kRows, kUnroll, kNumWaves>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
         static_cast<const bf16_t*>(weight.data_ptr()));

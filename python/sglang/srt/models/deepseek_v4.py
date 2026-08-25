@@ -3645,6 +3645,9 @@ class DeepseekV4Model(nn.Module):
             debug_dump_pos = int(
                 os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1")
             )
+            debug_dump_all_rows = (
+                os.getenv("SGLANG_DSV4_DEBUG_LAYER_DUMP_ALL_ROWS", "0") == "1"
+            )
             debug_dump = (
                 bool(debug_dump_dir)
                 and get_tp_group().rank_in_group == 0
@@ -3656,9 +3659,21 @@ class DeepseekV4Model(nn.Module):
             if debug_dump:
                 os.makedirs(debug_dump_dir, exist_ok=True)
                 torch.save(
-                    hidden_states[-1].detach().cpu(),
+                    (
+                        hidden_states.detach().cpu()
+                        if debug_dump_all_rows
+                        else hidden_states[-1].detach().cpu()
+                    ),
                     os.path.join(debug_dump_dir, "layer_-1.pt"),
                 )
+                if debug_dump_all_rows:
+                    torch.save(
+                        {
+                            "input_ids": input_ids.detach().cpu(),
+                            "positions": positions.detach().cpu(),
+                        },
+                        os.path.join(debug_dump_dir, "metadata.pt"),
+                    )
             for i in range(self.start_layer, self.end_layer):
                 layer = self.layers[i]
                 last_layer = layer
@@ -3693,7 +3708,11 @@ class DeepseekV4Model(nn.Module):
                         else hidden_states
                     )
                     torch.save(
-                        completed[-1].detach().cpu(),
+                        (
+                            completed.detach().cpu()
+                            if debug_dump_all_rows
+                            else completed[-1].detach().cpu()
+                        ),
                         os.path.join(debug_dump_dir, f"layer_{i}.pt"),
                     )
             if use_fused and last_layer is not None:

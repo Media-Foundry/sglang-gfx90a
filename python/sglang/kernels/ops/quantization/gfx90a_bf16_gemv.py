@@ -24,9 +24,9 @@ def _config(n: int) -> tuple[int, int, int]:
 
 
 @cache_once
-def _jit_gfx90a_bf16_gemv_module(n: int, k: int) -> Module:
+def _jit_gfx90a_bf16_gemv_module(m: int, n: int, k: int) -> Module:
     rows, unroll, waves = _config(n)
-    args = make_cpp_args(n, k, rows, unroll, waves)
+    args = make_cpp_args(m, n, k, rows, unroll, waves)
     return load_jit(
         "gfx90a_bf16_gemv",
         *args,
@@ -57,8 +57,8 @@ def _jit_gfx90a_bf16_fp32_gemv_module(n: int) -> Module:
 
 
 @cache_once
-def _jit_gfx90a_bf16_grouped_gemv_module() -> Module:
-    args = make_cpp_args(2, 1024, 4096, 1, 2, 4)
+def _jit_gfx90a_bf16_grouped_gemv_module(m: int) -> Module:
+    args = make_cpp_args(m, 2, 1024, 4096, 1, 2, 4)
     return load_jit(
         "gfx90a_bf16_grouped_gemv",
         *args,
@@ -74,7 +74,9 @@ def gfx90a_wave64_bf16_gemv(
     if (
         not torch.version.hip
         or x.ndim != 2
-        or x.shape[0] != 1
+        # Independent wave64 rows beat rocBLAS for the latency tiers, but the
+        # duplicated weight scan loses once M reaches the throughput tiers.
+        or not (1 <= x.shape[0] <= 4)
         or weight.ndim != 2
         or x.shape[1] != weight.shape[1]
         or x.dtype != torch.bfloat16
@@ -90,8 +92,10 @@ def gfx90a_wave64_bf16_gemv(
     ):
         return None
 
-    out = torch.empty((1, weight.shape[0]), dtype=x.dtype, device=x.device)
-    _jit_gfx90a_bf16_gemv_module(weight.shape[0], weight.shape[1]).run(
+    out = torch.empty((x.shape[0], weight.shape[0]), dtype=x.dtype, device=x.device)
+    _jit_gfx90a_bf16_gemv_module(
+        x.shape[0], weight.shape[0], weight.shape[1]
+    ).run(
         x, weight, out
     )
     return out
@@ -126,7 +130,11 @@ def gfx90a_wave64_bf16_grouped_gemv(
 ) -> torch.Tensor | None:
     if (
         not torch.version.hip
-        or x.shape != (1, 2, 4096)
+        or x.ndim != 3
+        # Grouped wo_a remains competitive through M=8; M=16 should reuse
+        # weights through the batched einsum/GEMM path instead.
+        or not (1 <= x.shape[0] <= 8)
+        or x.shape[1:] != (2, 4096)
         or weight.shape != (2, 1024, 4096)
         or x.dtype != torch.bfloat16
         or weight.dtype != torch.bfloat16
@@ -138,6 +146,6 @@ def gfx90a_wave64_bf16_grouped_gemv(
         != "gfx90a"
     ):
         return None
-    out = torch.empty((1, 2, 1024), dtype=torch.bfloat16, device=x.device)
-    _jit_gfx90a_bf16_grouped_gemv_module().run(x, weight, out)
+    out = torch.empty((x.shape[0], 2, 1024), dtype=torch.bfloat16, device=x.device)
+    _jit_gfx90a_bf16_grouped_gemv_module(x.shape[0]).run(x, weight, out)
     return out

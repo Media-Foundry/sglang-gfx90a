@@ -906,6 +906,55 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   oracle从BS1即完全错误，不能作为AIter替代。
 - 将AIter `AITER_GFX90A_AR_SMALL_BLOCKS=4`作为唯一变量后，France固定输出在
   BS1为5/5、BS2为10/10逐token精确；256-token BS1六轮均为
-  `2629699770b9e036`，稳态约`66.08--66.16 tok/s`。因此脚本只对
-  `TP_SIZE=8, EP_SIZE=1, A2A=none`默认设置4 CTA；后续每个8-GCD性能改动必须先
-  通过France IDs、BS1重复hash及所有捕获tier的同prompt跨slot检查。
+  `2629699770b9e036`，稳态约`66.08--66.16 tok/s`。但更强的128-token同prompt
+  跨slot检查推翻了短France结论：BS2仍可在generated token 3分叉，BS4/8/16也在
+  3/24/82/112等位置分叉。把override扩到128KiB或降为1 CTA均不能修复；RCCL
+  对照在BS2/4同样分叉。因此这不是AIter custom-AR/CTA竞态，而更接近TP8 attention
+  或KV-slot相关的batch-shape数值差异。4-CTA不设为默认，相关阈值实验全部撤回。
+  后续每个8-GCD性能改动必须先通过France IDs、BS1重复hash及至少128-token的所有
+  捕获tier同prompt跨slot检查。
+- 进一步关闭decode CUDA Graph、使用RCCL并在纯eager路径重复128-token同prompt
+  检查：BS1自身稳定；BS2在generated token 3分叉；BS4分别在token 3/21分叉。
+  因此CUDA Graph capture、AIter custom AR和Mori均已从该基础错误的必要条件中
+  排除。当前应定位TP8下随batch/slot变化的attention、KV metadata或其他batch
+  kernel；在逐token跨slot一致性修复前，TP8约65--67 tok/s只能标为correctness
+  未通过的诊断性能，不能作为checkpoint。
+- 8-GCD correctness gate固定为：官方France固定input IDs逐token精确；BS1重复
+  hash；128-token同prompt在BS1/2/4/8/16所有目标tier逐token一致。任何代码、
+  kernel或正式配置改动均先过该gate，再采纳性能数字；最终生成hash只用于发现
+  分叉，定位根因时改用固定token/teacher-forced first-divergence。
+- direct FP4 MoE存在一个真实但非首因的batch-shape数学分流：M=1在208个CTA内
+  把activation量化进LDS，M>1则由runner先调用`per_token_group_quant_int8`。
+  前者源自decode融合优化，后者源自prefill避免LDS随M扩张并复用一次量化，并非
+  SGLang上游限制。两者的scale floor、除法顺序和round/clamp契约并不完全相同。
+  将M=1也临时统一为外部quant后，随机duplicated-row oracle的gate/up和down在
+  M1/M2之间均逐元素bitwise exact；但完整TP8 RCCL+eager仍在BS2 token 3、BS4
+  token 3/21分叉，且BS2/4 hash集合与修改前一致，仅BS1轨迹改变。因此该改动已
+  撤回且不作为修复提交。后续若要统一，应先让HIP group32 quant严格复刻Triton
+  契约，再把同一helper融合回M1回收launch；当前首因仍在更早的batch-dependent
+  hidden-state路径。
+- TP8 RCCL+eager逐层/逐stage dump进一步定位：decode position 16的embedding、
+  layer-0 MHC pre与attn norm在BS1/BS2间bitwise exact；首个差异出现在attention。
+  layer-0相对L2依次为Q约`3.8e-6`、attention core约`2.8e-4`、wo_a约
+  `8.6e-4`、wo_b/最终attn out约`4.4e-3`。关闭BS1专用fused inverse-RoPE
+  不改变分叉，已证伪。主要放大源是cached-BF16 projection在M1走wave64 GEMV、
+  M>1回退rocBLAS/einsum，使用不同归约树。
+- 将普通wave64 BF16 GEMV和grouped wo_a GEMV扩展到M=1..16：每个token使用独立
+  block网格与完全相同的wave64归约。三种真实普通projection shape及wo_a的
+  duplicated-row micro在M1/2/4/8/16均bitwise exact。普通projection M2约比
+  rocBLAS快40%，M4为持平到快34%，M8/16分别可能慢约1.1--1.8x/2.2--3.4x；
+  grouped wo_a的M2/M4分别快约68%/48%，M8持平，M16慢约89%。整模型短gate中
+  BS2两个slot由分叉变为逐token一致，但BS1/BS2仍可因attention core约2.8e-4
+  数值差异在低margin token走不同greedy轨迹，BS4也可能分两类。此处应以
+  duplicated-row bitwise、France固定IDs及teacher-forced logit tolerance作
+  correctness证据，同时保留跨BS hash作为敏感诊断，不能把低margin greedy
+  分叉单独解释为内存/竞态错误。端到端性能尚待graph+custom-AR ABBA后决定是否
+  保留该batched projection改动。
+- 最终按micro收紧selector：普通cached-BF16 projection只在M<=4使用batched
+  wave64专核，grouped wo_a在M<=8使用；更大M回到能复用权重的rocBLAS/einsum。
+  TP8/EP1 no-A2A、AIter custom AR、graph BS1/2/4/8/16下，France固定IDs在
+  31/31请求逐token精确。256-token native AR每tier预热后3轮中位为
+  `65.52/86.84/153.52/258.09/478.80 tok/s`（BS1/2/4/8/16）；相对首轮TP8
+  诊断约`65.5/76.8/132.2/240.1/433.3`，BS2/4/8/16约提升13%/16%/7%/10%。
+  这是当前可提交的8-GCD小batch projection checkpoint，但距离单请求120和多请求
+  700仍远，后续需改变TP8 expert/collective分解而非继续只调projection。
