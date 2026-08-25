@@ -1032,3 +1032,11 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - BF16-MFMA MHC K-split原型也证伪：当前FP16 split-K pre-mix约`83.5 us`，已有
   非split BF16-MFMA约`80.7 us`，新增split2/4/8/16均约`99--100 us`。原型未接
   selector且已完整撤回。
+- 另测无Mori的`TP8/DP-attention2/attn-TP4/EP1/MoE-DP1`：France固定IDs
+  连续8/8精确，但256-token native AR仅约`11.00 tok/s`。该布局的MAX_LEN
+  decode把单请求按partial attn-TP对齐到M4；实验性保留真实M1/SUM_LEN没有改善，
+  `SGLANG_NCCL_ALL_GATHER_IN_OVERLAP_SCHEDULER_SYNC_BATCH=1`把scheduler metadata
+  同步改到device group也没有改善（仍约`11.02 tok/s`）。两项实验改动均已撤回。
+  这说明主要税来自通用DP-TP MoE每层full-TP gather/expert reduction/scatter及其
+  graph协议，而非单纯dummy-row计算或CPU/Gloo控制面；BS1不应继续沿用通用DP路径，
+  后续需要TP4主路径上的窄lane-pair远端worker协议。
