@@ -1108,6 +1108,33 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `59.107--59.179 tok/s`。该checkpoint仍远未达到120 tok/s，但已是当前8-GCD
   单请求路径的可信最佳值。
 
+### M>2路径审计与router-linear融合反例（2026-08-26）
+
+- 仓库不存在统一的“M>2不支持”。gfx90a native grouped router/Top-K严格只支持
+  `scores=(1,256)`，真正已有M1--4能力的是它前面的BF16 router projection GEMV；
+  M>1时projection仍可走wave64 HIP，但Top-K回到通用Triton。不能只放宽matcher，
+  若扩展native router必须使用`grid.x=M`并让每个block处理一个token。
+- Inkling gate中M1/2使用寄存器预载权重，M3/4改用shared-memory staging，是VGPR、
+  occupancy与权重复用形成的性能分桶，不是correctness限制；该CUDA kernel不可直接
+  搬到gfx90a，但“按M设计不同wave64 staging”可用于未来BS2/4专核。Inkling TP8
+  all-reduce的M1/2边界则来自A/B双缓冲、reuse-distance=2及无exit barrier协议，
+  又依赖CUDA NVLS/multimem，不能复用于ROCm通信协议。
+- DSV4 direct FP4 MoE本身没有M>2禁令：M1在kernel内量化并通过shared memory复用，
+  M>1由runner先做外部group-32 INT8 quant；当前split-MoE BS1的每组本地M仍为1，
+  所以迁移Inkling M3/4策略不会改善当前单请求。MHC的`global_batch_size==1`限制
+  主要用于保证各rank graph捕获相同kernel/collective序列，扩到BS2/4必须另做
+  rank-invariant验证。
+- 实验性HIP kernel将learned-router的BF16 `[1,4096]x[256,4096]` projection、
+  sqrt-softplus、bias、Top-6 renorm与2/4 slot mask融合为一次launch。32 CTAs各算
+  8个logits，最后CTA通过atomic ticket完成Top-K。随机micro中logits/IDs一致，weights
+  仅有`1.49e-8--5.96e-8`差异；standalone约`16.9--17.1 us`，看似远快于分离调用。
+  但完整graph开启态七轮稳定约`73.47--73.54 tok/s`，关闭态热稳态约
+  `76.13--76.19 tok/s`，端到端反而退化约3.5%。32-CTA驻留、threadfence/atomic
+  以及图内调度成本抵消了省下的launch，原型与开关已完整撤回。
+- A/B服务均偶发`/generate` 502，而随后的256-token benchmark连续成功且hash各自
+  稳定；该现象不随融合开关出现，需作为DP local-control/output-suppression的独立
+  服务包装问题倒查，不能归因于router数值。
+
 ### TP4 decode HIP/FP16局部探针（2026-08-26）
 
 - direct FP4的四nibble解包原本用selector构造加两次CDNA2 `v_perm_b32`。实验性
