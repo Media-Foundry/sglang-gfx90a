@@ -1277,6 +1277,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   的收益；接线、selector和环境开关已完整撤回。除非先重做更轻的CTA/wave几何，
   不应再次把该现成AIter接口直接接入生产路径。
 
+### bitwise-exact HIP Q/K norm+RoPE+BF16 cache probe（2026-08-26）
+
+- 根据生产Triton LLVM IR复刻了gfx90a的四wave RMS归约顺序：wave内使用
+  DPP `row_shr 8/4/2/1`、`row_bcast 15/31`，跨wave按
+  `(wave0+wave2)+(wave1+wave3)`累加。HIP专核将16个Q head、K RMSNorm、RoPE及
+  unified BF16 cache store合并为一次launch；standalone可由约`84.8 us`降至
+  `21.4--21.8 us`，且Q输出、原位K和cache row均逐元素bitwise一致。
+- 完整TP8/DP2 graph扫描每CTA处理`1/2/4`个Q heads。France固定IDs各10/10精确，
+  256-token hash始终为基线`14593da264d38f29`。hpb1热稳态约`76.09--76.14 tok/s`，
+  hpb2约`76.45--76.56 tok/s`，hpb4约`76.41--76.49 tok/s`；同期A约
+  `75.86--75.97 tok/s`，最好收益不足1%。
+- 结论：standalone launch latency大幅下降并不代表完整graph收益；CTA驻留和其它
+  streams/collectives的调度抵消了该micro收益。selector、环境开关和HIP专核均已
+  撤回。后续除非能与attention core或下游collective进一步融合，不应再次单独替换
+  Q/K prologue。
+
 ### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
 
 - 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
