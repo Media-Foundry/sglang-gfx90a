@@ -1398,3 +1398,24 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `14593da264d38f29`；第二个服务热稳态约`76.36--76.40 tok/s`，说明仍有服务间
   约0.7 tok/s漂移，但已消除遗漏外层NUMA wrapper造成的系统性回退。后续所有8-GCD
   A/B必须通过同一harness启动，不再手写不同的numactl前缀。
+
+### CDNA2 v_dot2 MHC split-K stage0反例（2026-08-26）
+
+- 当前M1 fused MHC先用`24 rows * 8 splits = 192`个Triton单-wave CTA生成FP16-weight
+  dot partial，再由单CTA fused tail完成partial/RMS reduction、Sinkhorn、weighted
+  residual与RMSNorm。HIP原型让每个`(row,split)` CTA直接用CDNA2
+  `v_dot2_f32_f16`，不增加grid barrier。
+- 预分配output的stage0 micro中，Triton约`20.2--20.7 us`；HIP每task 1/2/4 waves
+  分别约`3.6/3.26/3.10 us`。192个partial对FP32 oracle cosine约`0.99999988`，
+  最大差约`3.6e-5`。完整函数wrapper表面从约`107`降到`90 us`，一度看似可提供
+  超过5%的整模型收益。
+- 服务结果推翻该外推：4-wave HIP France 10/10精确、256-token hash稳定为
+  `1d5c45e0caac9601`，热稳态约`76.44--76.55 tok/s`，同期A约`76.36--76.40`；
+  1-wave France 5/5精确、hash稳定为`30e9e330b5b7affe`，却只有
+  `75.43--75.55 tok/s`。两者均未形成可采用收益。
+- 更严格的预分配分解显示：Triton stage0约`19.7--21.2 us`、stage1约`15.9--16.0
+  us`、仓库已有HIP finish仅约`7.26--7.36 us`。此前`~105 us`完整wrapper计时混入
+  动态output allocation；graph replay的真实kernel链远短于此。stage0又与其它stream
+  重叠，因此6倍局部加速不在critical path。
+- HIP stage0、selector和环境开关已完整撤回。今后MHC micro必须预分配所有output并
+  分别计stage0/stage1/finish；不得再用Python wrapper链时间推断CUDA graph收益。
