@@ -1550,3 +1550,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 尝试每次32-bit加载8个FP4 nibble、配对两次`sdot4`以替代两个16-bit load。
   micro在rows1 gate快约1--3%，且全部bitwise exact；完整服务却仅
   `76.88--76.98 tok/s`，低于rows1/load4，load8实现和开关已撤回。
+
+### 双TP4的32并发SBO+multistream checkpoint（2026-08-26）
+
+- 8 GCD继续拆成两个独立`TP4/EP1/no-A2A`副本，每副本16请求、16K token pool、
+  graph tiers`1/2/4/8/16/20/24/32`。严格native AR、256-token、统一barrier的
+  32总并发基线A1/A2热态trimmed分别为`753.58/751.38 tok/s`。
+- 同时开启`--enable-single-batch-overlap`和`SGLANG_ROCM_USE_MULTI_STREAM=1`，
+  让shared expert在ROCm辅助stream上与routed expert重叠。B1/B2热态trimmed分别
+  为`818.41/810.17 tok/s`，配对均值相对A提升约8.2%。France fixed IDs四个服务
+  合计40/40逐token精确；正式32并发请求均输出256 token并`finish=length`。
+- 新增显式`SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1`，只为多请求
+  profile同时选择SBO和ROCm multistream，不改变默认BS1延迟配置。仅设置该profile
+  的最终独立服务确认进程环境与server args均命中，France 10/10，32并发三轮热态
+  `814.93--815.08 tok/s`。
+- admission对照`CHUNKED_PREFILL_SIZE=4096`为`744.16 tok/s`，低于2048；更大首批
+  prefill没有改善group wall。direct-FP4 grouped assignments从8改4仅约
+  `758.17 tok/s`且出现一次慢态，改2退化到`725.49`；non-grouped direct仅约
+  `528.17`，AIter/CKTile direct-off约`542.35 tok/s`。这些分支均不采纳，group8
+  direct专核仍为M16默认。
