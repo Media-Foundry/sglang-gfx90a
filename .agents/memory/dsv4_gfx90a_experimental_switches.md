@@ -1735,3 +1735,52 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 早期候选与基线都出现约`243--381 tok/s`慢轮；退出日志显示AIter首次见到如M=11
   的shared-expert BF16 GEMM时即时选解/JIT。随着1--32实际active-batch shapes被缓存，
   候选最后12轮不再复现，因此该慢态不是LDS barrier、graph deadlock或radix walk。
+- 在同一已热透的1M-token服务按`32 -> 1 -> 16 -> 2 -> 8 -> 4 -> 32`补齐当前配置
+  吞吐矩阵（每tier两轮、256 token）：BS1 `73.81/74.45`，BS2 `99.85/99.69`，
+  BS4 `176.79/176.91`，BS8 `313.58/314.04`，BS16 `565.57/581.14`，BS32端点
+  `870.86/875.14/903.78/875.34 tok/s`。BS32的`903.78`视为高态，稳态中心仍约
+  `875--876`；tier下降后回到BS32没有性能塌陷。
+
+### TP8吞吐预算、CK对照与decode-TBO证伪（2026-08-26）
+
+- 当前1M-token、SBO+multistream、LDS-unpack服务的统一矩阵如下。BS1--16取同一热服务
+  两轮均值，BS32取12轮median：
+
+  | tier | aggregate tok/s | amortized step ms | per-request tok/s | BS1 linear efficiency |
+  |---:|---:|---:|---:|---:|
+  | 1 | 74.13 | 13.490 | 74.13 | 100.0% |
+  | 2 | 99.77 | 20.046 | 49.89 | 67.3% |
+  | 4 | 176.85 | 22.618 | 44.21 | 59.6% |
+  | 8 | 313.81 | 25.493 | 39.23 | 52.9% |
+  | 16 | 573.36 | 27.906 | 35.83 | 48.3% |
+  | 32 | 875.80 | 36.538 | 27.37 | 36.9% |
+
+  BS32达到`1500 tok/s`需要step从`36.538 -> 21.333 ms`，即净减`15.205 ms`
+  （41.6%）；按43层折算由约`849.7 -> 496.1 us/layer`，需净减约
+  `353.6 us/layer`。
+- LDS后的layer-20/M32 marker中位数为MHC-pre约`51.8 us`、attention prepare约
+  `239.6 us`、attention core约`42.9 us`、attention output约`104.5 us`、MHC transition
+  约`50.6 us`、MoE约`358.5 us`。两次TP8 collective合计通常约`65--73 us/layer`，
+  不是第一瓶颈。目标层预算几乎等于当前完整attention侧，因此必须隐藏大部分MoE，
+  同时继续降低M16/M32的权重扫描成本。
+- 用本地Composable Kernel `ckProfiler`扫描真实M32 BF16投影shape，CK最佳分别为
+  `(N,K)=(1536,4096) 74.97 us`、`(2048,4096) 81.12 us`、`(512,4096) 62.12 us`、
+  `(64,4096) 59.14 us`、`(8192,1024) 34.51 us`、`(4096,2048) 48.13 us`；同机
+  `torch.nn.functional.linear`分别约`35.66/36.91/28.34/35.47/28.62/30.03 us`。
+  CK在全部目标shape上均更慢，因此当前不接入regular BF16 CK路径。
+- 实现过一个仅由`SGLANG_DSV4_GFX90A_DECODE_TBO=1`开放的eager诊断原型：把BS32拆成
+  两个M16 child，在attention stream与MoE stream间用逐层event形成流水。France
+  `32/32`逐token exact，说明基础依赖没有立即死锁；但它关闭decode graph且使用
+  非融合MHC。严格matched、完整256 token、`ignore_eos=true`的普通eager基线为
+  `191.22 tok/s`，TBO原型仅`104.15 tok/s`，至少回退45.5%。原型还缺少跨stream
+  temporary的`record_stream`/keepalive，存在allocator复用风险，不能作为可保留路径。
+- 该原型退化有结构原因：两次M16会重复读取投影与expert权重；LDS FP4 micro中
+  `2 x M16`约`502 us`，而一次M32约`351 us`。由当前BS16约`581 tok/s`推导，即使
+  两阶段attention/MoE完美重叠，简单2xM16流水的绝对上界也仅约`1.15--1.16k tok/s`，
+  现实约`1.0--1.1k`，不足以单独达到1500。只有真实stage micro的两phase时间降到
+  `<=575 us/layer`（约1294 tok/s）才值得重新接模型/graph；原型代码因此撤回，只保留
+  数据和设计结论。
+- 当前correctness证据边界保持不变：LDS微核M8/M16/M32最终BF16 bitwise exact，France
+  覆盖当前tier，但128/256 token仍有基线既存的跨slot greedy漂移。后续性能改动至少要
+  做France全tier，并比较长序列first-divergence；最终应增加固定continuation的
+  teacher-forced top-20 logits oracle，而不是只用最终生成hash二分。
