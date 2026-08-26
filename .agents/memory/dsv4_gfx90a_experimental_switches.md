@@ -2035,3 +2035,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   BF16 projection/compressor流竞争同一GCD的HBM/CU，理论重叠未缩短rank-max tail。
   接线已撤回且未提交生产代码；若再做此方向，必须先在独立graph micro把C4 prepare压到
   `<=156 us`才值得service，`<=118 us`才可能单项达到5%。
+
+### gfx90a AIter BF16 M32定向调优（2026-08-27）
+
+- TP8 graph capture日志显示BF16 `M32,N256,K4096`与`M32,N512,K4096`没有gfx90a
+  tuned row，均回退AIter `torch solution:0`。前者主要为learned router；后者同时被
+  C4 index compressor和TP8 shared-expert gate/up复用。AIter BF16 tuner在单GCD、
+  `cu_num=104`上得到hipBLASLt N256 solution3992=`13.8415 us`、N512 solution5042=
+  `15.4779 us`，tuner err_ratio均为0。
+- 独立CUDA/HIP graph实测并未复制tuner的裸kernel数字：N256 torch/tuned为
+  `23.20/24.64 us`，故立即排除；N512为`42.40/24.48 us`，约快42.3%。五组随机输入
+  全部finite且所有元素满足`abs(error)<=0.05+0.05*abs(ref)`；首次replay之后连续12次
+  graph replay bitwise稳定，最大BF16差`0.125`。
+- 将N512 row作为全局AIter配置加载会同时改变compressor与shared expert。France全tiers
+  `107/107` exact，但六轮固定11-ID France仅trimmed `980.08 tok/s`，相对A基线约
+  `990.45`退化1.05%；更高CU占用破坏shared/routed overlap。
+- 随后只在`linear_bf16_fp32`的compressor调用点定向solution5042，明确阻止shared
+  expert命中。France仍`107/107` exact，但八轮为
+  `958.53/984.37/985.86/983.52/986.05/982.74/983.77/984.49`，trimmed
+  `984.13 tok/s`，仍退化约0.64%。两个生产候选均已撤回，未提交硬编码solution；
+  结论是单kernel graph快不能代表C4 compressor完整链或层级critical path更快。
