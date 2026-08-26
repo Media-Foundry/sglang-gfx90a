@@ -1944,3 +1944,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   LDS reference `max_abs=0.25`、relative-L2约`1.7e-5`；但gate耗时`4258.30 us`，
   对比A4/LDS `158.50 us`慢26.9倍。K4096下每wave需约2048条two-pass MFMA，该方向
   已完整撤回，未接selector。
+- 为消除A8的8份accumulator常驻，依次验证了三种单次global-scan staging：每wave
+  8KiB decoded gate/up LDS、每8-lane subgroup 256B down LDS，以及转置
+  `[wave][side][j][group]`并只stage 124/128 groups的31KiB gate LDS。全部输出对A4
+  BF16逐元素exact，但gate分别为`301.50/245.20 us`（A4约`103.4--103.6 us`），down
+  `111.59 us`（A4 `83.69 us`）。后一版保持32KiB/CTA、避免bank conflict，并对66.4%
+  second-chunk-empty blocks做wave-uniform skip，仍慢2.37倍；显式global->LDS写、二次
+  LDS读与同步成本压倒VGPR收益，三项均撤回。
+- 给服务补过临时decode-wave接线，测试原生A8/R1/W4/B2080（只捕获BS1/32）。France
+  BS32为`32/32`逐tokenexact且输出唯一；动态shape热透后BS32/256-token两轮为
+  `945.12/946.70 tok/s`，低于A4 checkpoint约`969.8 tok/s`。因此即使真实路由相关、
+  A8 micro偶尔快约2--5%，sorter/grid与完整graph仍使端到端退化约2.4%；wave接线和
+  A8配置均撤回，保持A4默认。
