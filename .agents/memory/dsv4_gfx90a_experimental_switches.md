@@ -1914,3 +1914,33 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 唯一尚合理的occupancy-aware候选是singleton A1与multi A4分流，但它不减少权重
   流量并增加partition metadata和graph kernel launch；结合A2 micro更快、服务却仅
   `946.7--949.1 tok/s`的反例，预计端到端收益不足1--2%，不列为当前优先方向。
+
+### TP8真实BS32路由热度与后续weight-reuse探针（2026-08-27）
+
+- 使用SGLang `stat` expert-distribution recorder记录三轮32请求、每请求256-token的
+  native AR，共得到768个完整BS32 decode passes。TP8 recorder的logical count在每个
+  rank上已按world-size求和，分析时除以8；每pass/layer严格恢复为`32*topk6=192`
+  assignments。此次harness的32个请求使用相同基准prompt和独立cache salt，因此该数据
+  精确描述当前目标benchmark，但不能外推为任意自然流量。
+- 与早先均匀路由估计不同，实际每pass/layer平均只有`39.07`个active experts；A4的
+  weight blocks平均`61.46`，A8=`46.00`，A16=`40.67`，A32=`39.07`。这说明同批请求
+  的路由高度相关，A4仍会对同一expert重复扫描约36%的权重。
+- 用偶数decode pass选择每层热expert、奇数pass做held-out验证，Top-N覆盖的A4 block
+  scan比例为：N8 `31.42%`、N16 `45.06%`、N24 `54.48%`、N32 `61.99%`、N48
+  `72.91%`、N64 `80.56%`、N96 `90.43%`、N128 `95.47%`。assignment覆盖率N64为
+  `82.91%`、N128为`96.06%`；前三个hash-router层明显更分散。
+- 选择性INT8预展开cache虽有热度，但在当前LDS decoder后已无计算收益：同一M32/A4/
+  R2/W8/B832 stage micro中，packed-LDS gate `155.44 us`、全prepacked gate
+  `246.02 us`；packed-LDS down `135.68 us`、prepacked down `143.65 us`，输出均
+  bitwise exact。完整prepacked stage `392.93 us`，而packed-LDS为`292.61 us`。
+  因此不以额外4--8GiB/GCD换取prepacked hot cache。
+- 使用一个真实occupancy profile构造相同expert count的synthetic micro：A4/R2/W8/
+  B832为`192.31 us`；A8/R1/W8/B832为`207.07 us`，调到A8/R1/W4/B1664为
+  `192.93 us`、B2080为`189.02 us`。A8虽减少约25%的global weight scans，却因8份
+  accumulator的VGPR/控制成本只留下约1.7%收益。下一候选是每wave将一个row的packed
+  gate/up一次解包到LDS，再按两个A4 chunk计算，以一次global scan同时避免acc8常驻；
+  仅当gate micro相对A4至少提升15%才进入服务。
+- 独立`V_MFMA_I32_4X4X4I8` A4 prototype完成了正确lane mapping，结果finite、相对
+  LDS reference `max_abs=0.25`、relative-L2约`1.7e-5`；但gate耗时`4258.30 us`，
+  对比A4/LDS `158.50 us`慢26.9倍。K4096下每wave需约2048条two-pass MFMA，该方向
+  已完整撤回，未接selector。
