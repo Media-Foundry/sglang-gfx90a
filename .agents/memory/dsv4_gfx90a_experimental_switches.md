@@ -1614,3 +1614,33 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1`的双TP4特例互不替代。
 - AIter BF16 tuned-config与M16 hipBLASLt projection在双TP4端到端仅约`+0.8%`，其中
   N1536 helper叠加收益约`0.1%`；复杂度不值，已从工作树撤掉，不混入TP8 checkpoint。
+
+### TP8 BS32热点分解与负结果（2026-08-26）
+
+- TP8/EP1、SBO+multistream、M32 realtime marker在layer20给出约`969 us/layer`：
+  MHC pre约`54 us`，attention prepare约`242 us`，attention core约`55 us`，
+  inverse-RoPE与`wo_a/wo_b`约`108 us`，attention后的MHC过渡约`49 us`，完整MoE
+  约`458 us`。MoE内部router约`25 us`、Top-K约`12 us`、routed FP4约
+  `346--376 us`、shared expert约`140--205 us`且被routed分支完全隐藏、TP8
+  all-reduce约`33--41 us`。因此下一阶段第一瓶颈是routed FP4，attention总段与之
+  同量级，collective不是第一优先级。
+- M32真实routed shape中，将grouped assignments从8改4、gate/down每wave rows从2改4、
+  blocks从208改832，standalone完整sort+gate+quant+down由`657.90 -> 517.09 us`
+  （约`+27.2%`），输出逐元素bitwise exact；完整服务从约`768.6`升到约
+  `786.5 tok/s`，仅`+2.3%`，尚不足以单独形成5% performance checkpoint。
+- AIter custom all-reduce的8-rank graph micro：M16/128KiB约`22.6 us`，
+  M32/256KiB约`32.3 us`。扫描one-stage/two-stage与8--64 blocks均无改善；源码实验
+  已撤回。结合trace中AR仅约35us，继续调通信协议的收益上限太低。
+- 尝试将C4 core-compressor join从indexer query前延后到query后。只捕获BS1/32的
+  A2热态约`789.9--791.8 tok/s`；B1一度约`821.4`，但独立B2仅
+  `786.0--791.3`，与A重叠，判定B1为服务状态高点而非可复现收益。France在A2/B1/B2
+  合计`30/30`精确；依赖改动和开关已撤回。
+- M32三个BF16 attention-prep投影的单GCD micro：独立顺序GEMM约`142.6 us`，三流
+  并发反而约`210.6 us`，拼成一次N=4096 GEMM约`89.9 us`。融合结果对N512分支
+  bitwise exact，N1536/N2048最大BF16差异0.5。完整服务France`10/10`正确，但六轮
+  稳态除一次`822.6`高点外为`783--793 tok/s`，与未融合A/B重叠；额外约0.65GB/GCD
+  的融合权重缓存不值，代码与开关已撤回。说明standalone GEMM节省被现有compressor
+  后处理/多流尾部抵消，后续必须以graph replay分段而非裸GEMM决定是否接入。
+- 为加快BS32专项A/B，graph tiers可临时只捕获`1,32`，capture约`6.3 s`、graph约
+  `0.47 GB/GCD`；但多轮会偶发落入未捕获/新shape慢态（约238--364 tok/s），生产
+  与最终验收仍需恢复`1/2/4/8/16/20/24/32`以覆盖admission和batch下降。
