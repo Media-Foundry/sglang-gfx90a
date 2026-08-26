@@ -1784,3 +1784,32 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   覆盖当前tier，但128/256 token仍有基线既存的跨slot greedy漂移。后续性能改动至少要
   做France全tier，并比较长序列first-divergence；最终应增加固定continuation的
   teacher-forced top-20 logits oracle，而不是只用最终生成hash二分。
+
+### LDS后的grouped geometry复扫（2026-08-26）
+
+- 发现TP8 profile此前只默认开启LDS unpack，并没有进入四卡multi-request分支的
+  `624`-block默认值；实际仍是代码默认`assignments=8, rows=2, blocks=208`。LDS改变了
+  kernel的寄存器/LDS占用后，旧几何不是最佳点，因此重新扫描M32的
+  `assignments=4/8`、`rows=2/4`、`blocks=416/624/832`。
+- 全部LDS候选相对同几何packed reference最终BF16逐元素exact。关键micro结果：
+  production-near `A8/R2/B624=411.24 us`，`A8/R2/B832=423.32 us`；最佳为
+  `A4/R2/B832=329.79 us`，相对A8/R2/B624节省`81.45 us`（19.8%）。A4/R2/B416
+  也为`330.74 us`，而R4各点约`339.92--347.81 us`，因此选择A4/R2/B832以保留
+  较大的跨CU grid。
+- 服务B1显式设置A4/R2/B832，完整graph tiers capture成功，France BS1/2/4/8/16/32
+  合计`63/63` exact。BS32、32请求各256 token、`ignore_eos=true`连续12轮为
+  `913.86/914.75/911.82/911.86/910.06/911.84/914.45/910.57/912.50/913.47/910.79/911.14`
+  tok/s，median `911.85`、trimmed `912.23`。
+- A2回到TP8 profile原默认A8/R2/B208，同样先做全tier France `63/63`，八轮BS32为
+  `843.79/844.48/847.98/844.99/846.11/847.27/847.24/848.29 tok/s`，median
+  `846.68`、trimmed `846.34`。B2再次使用A4/R2/B832，全tier France仍`63/63`，八轮
+  为`916.28/916.46/916.39/915.13/914.60/916.98/910.74/916.06 tok/s`，median
+  `916.17`、trimmed `915.82`。配对B2/A2提升约8.2%；相对此前更高的完整tier
+  LDS checkpoint `875.78`仍提升约4.6%。ABBA方向一致，说明收益来自几何而非单次
+  服务高态。
+- B1的BS32/256-token完成hash有7种（主两种各12/11 slot），全部长度256；这与当前
+  TP8基线已有的跨slot greedy漂移同类，不能据此宣称长bitwise parity。短France和
+  micro exact均通过，但固定continuation logits oracle仍是独立correctness债务。
+- TP8 profile现默认导出`SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS=4`及
+  gate/down blocks `832`；其他TP4/普通profile继续保持原A8及208/624默认值，显式环境
+  覆盖仍优先。
