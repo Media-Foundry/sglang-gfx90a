@@ -1385,3 +1385,16 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   接口、RMS+INT8 HIP核、selector及环境开关全部撤回；若以后重做weight-only路径，
   必须让同一份量化activation跨wqkv/router/MoE消费者复用并改变临界依赖，而不是只
   替换单个q_b producer-consumer链。
+
+### 8-GCD host NUMA启动固定（2026-08-26）
+
+- 同一TP8/DP2代码未加host NUMA策略时热稳态约`75.49--75.51 tok/s`；显式
+  `numactl --interleave=all`的首个服务约`77.06--77.08 tok/s`。这是host staging、
+  scheduler及JIT内存落点造成的系统差异，不是GPU kernel收益。
+- harness现在对`TP_SIZE=8`默认加`numactl --interleave=all`，较小部署默认不变，
+  可用`NUMA_INTERLEAVE_ALL=0|1`覆盖。自动路径的`/proc/<pid>/numa_maps`有2944个
+  `interleave:0-1`映射，主进程node0/node1内存约`639/649 MB`，确认不是注释性开关。
+- 自动路径France固定IDs 5/5精确，256-token 4/4 hash保持
+  `14593da264d38f29`；第二个服务热稳态约`76.36--76.40 tok/s`，说明仍有服务间
+  约0.7 tok/s漂移，但已消除遗漏外层NUMA wrapper造成的系统性回退。后续所有8-GCD
+  A/B必须通过同一harness启动，不再手写不同的numactl前缀。
