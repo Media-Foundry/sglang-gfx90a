@@ -1884,3 +1884,11 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `1313.46 us`。汇编虽使gate VGPR从94降至68、最长LDS read burst从24降至4，却把
   vector global load拆成大量scalar load，并使`s_waitcnt`约122增至233、
   `s_and_saveexec`约24增至136；控制流/等待成本压倒寄存器收益。P1已完整撤回。
+- 另外三类后续候选均未进入正式配置：删除LDS lookup后的16-bit mask为`297.66 us`
+  （退化约1.8%）；4份、257-stride skew LUT为`306.25 us`（退化约4.7%）；现有
+  MFMA32 gate/down直接用于M32约`1.26--1.44 ms`且相对sdot reference最大BF16差达
+  4--32，均立即停止并撤回。
+- 稀疏几何micro中A2/gate-rows2/down-rows1/B1664可到`268.92 us`，但完整服务France
+  全tier虽`63/63` exact，稳态只有约`946.7--949.1 tok/s`，低于A4默认约969.8；
+  sorter/padding与更大grid抵消裸kernel收益。保持A4、只设down-rows1的micro约
+  `275.8--276.3 us`，服务稳态约`965.8--968.9 tok/s`，同样未超过默认。两项均不保留。
