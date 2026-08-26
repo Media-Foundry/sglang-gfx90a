@@ -1429,3 +1429,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 原因是当前HIP/PyTorch栈没有让这些Python Event对象在graph replay时形成可读取的
   新时间戳；结果实际来自capture/eager warmup的M256轨迹。France固定IDs 5/5仍精确，
   但该计时不能作为性能证据。探针已撤回；不要再次用capture内torch Event拆阶段。
+
+### AIter graph peer metadata与shared-add归约融合反例（2026-08-26）
+
+- 临时给AIter `CustomAllreduce`增加只读metadata入口，返回已注册输入对应的device
+  `RankData`、本地/peer signal地址、rank与world size。8-rank oracle证明：复用AIter
+  自身预注册buffer的eager路径，以及capture后执行base+offset注册的普通allocator
+  graph输入，都能被SGLang HIP JIT正确peer-read；4096个BF16元素的TP8求和逐元素精确。
+- oracle同时暴露AIter eager `register_buffer()`的现有陷阱：对小PyTorch caching-
+  allocator子分配，`_get_ipc_meta()`只传播HIP IPC handle并把offset固定为0，remote
+  rank会读到同一allocation slab的错误地址。graph注册会通过
+  `hipPointerGetAttribute`计算真实base+offset，因此当前正式decode graph不受影响；
+  以后不得用eager注册的小子分配验证peer kernel，除非先修该offset协议。
+- 独立graph ABBA中，现有AIter 8KiB TP8 AR中位`16.441 us`；使用保留signal槽的
+  SGLang 8-block peer-reduce为`18.510 us`，慢约12.6%。再把DP0四rank的BF16
+  `routed += shared`折进entry barrier前：分离add+AIter为`17.900 us`，融合实现
+  `18.450 us`，仍慢约3.1%。因此它不具备接服务或并入direct-down的收益门槛。
+- 两套JIT均未可靠地因被include header变化自动失效：AIter模块和SGLang实验模块都
+  曾复用旧`.so`，必须移动缓存后才执行新签名。该方向的metadata接口、JIT kernel、
+  benchmark和生成模块均已撤回/恢复；若以后做producer-row overlap，需先修cache key，
+  并直接复用AIter更高效的8-warp cooperative load，而不是每线程串行读八个peer。
