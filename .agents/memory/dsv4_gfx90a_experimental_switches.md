@@ -1261,3 +1261,18 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   值得复用的后续工作是：为native grouped router增加`grid.x=M`的一-token-per-block
   M1--4实现并测BS2/4；以及在真实M1/2/4 MoE shape上比较核内与外置量化。任何扩展
   都必须逐行核对router top-k IDs/weights、MoE输出和graph各rank collective顺序。
+
+### TP4 attention AR + MHC post融合反例（2026-08-26）
+
+- AIter已有TP4/gfx90a专用`fused_mhc_post`：用一个`4 CTA x 512` peer-read kernel
+  同时完成4096维BF16 attention all-reduce、四通道MHC post以及64个RMS partial。
+  临时接到8-GCD的`TP8/DP2/attention-TP4` decode路径，并将partial直接交给现有
+  split-K MHC pre-mix；graph BS1八rank均能稳定捕获，没有设备端自旋。
+- correctness方面，France固定IDs连续10/10逐token精确；融合配置的256-token hash
+  连续7轮稳定为`bee97dfcc2868264`。它与基线`14593da264d38f29`不同，来自peer-read
+  reduction顺序变化，但没有观察到配置内漂移。
+- 服务级ABBA：A1热稳态约`75.52 tok/s`，B约`75.42 tok/s`，返回A2约
+  `75.95--75.99 tok/s`（忽略首轮频率/JIT样本）。融合约回退0.7%，没有收益。
+  固定四个512-thread CTA的MHC四通道计算、RMS归约和barrier驻留抵消了少一个launch
+  的收益；接线、selector和环境开关已完整撤回。除非先重做更轻的CTA/wave几何，
+  不应再次把该现成AIter接口直接接入生产路径。
