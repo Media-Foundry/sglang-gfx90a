@@ -503,6 +503,10 @@ class AiterRunnerCore(MoeRunnerCore):
                     and num_prefill_tokens >= 2048
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL.get()
                 )
+                use_lds_unpack = (
+                    num_prefill_tokens <= 64
+                    and envs.SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK.get()
+                )
                 grouped_assignments = (
                     64
                     if use_mfma64_prefill
@@ -570,6 +574,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         assignments=grouped_assignments,
                         rows=grouped_gate_rows,
                         blocks=gate_blocks,
+                        use_lds_lut=use_lds_unpack,
                     )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
@@ -645,6 +650,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         assignments=grouped_assignments,
                         rows=grouped_down_rows,
                         blocks=down_blocks,
+                        use_lds_lut=use_lds_unpack,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

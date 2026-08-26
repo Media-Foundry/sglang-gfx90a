@@ -1375,6 +1375,9 @@ class Envs:
     # Group prefill assignments by expert so four token rows reuse each raw
     # packed-FP4 weight load. Decode M=1 remains on the direct wave64 path.
     SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL = EnvBool(False)
+    # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
+    # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
+    SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
     # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K
     # split. This reduces repeated FP4 weight scans for large prefill chunks.
     SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL = EnvBool(False)
