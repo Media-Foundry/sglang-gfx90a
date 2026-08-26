@@ -42,6 +42,8 @@ CASES = (
     Case("ar_1537_fp32", "ar", (32, 1537), torch.float32),
     Case("ar_2560_bf16", "ar", (32, 2560), torch.bfloat16),
     Case("ar_4160_bf16", "ar", (32, 4160), torch.bfloat16),
+    Case("ar_4160_fp16", "ar", (32, 4160), torch.float16),
+    Case("ar_4160_fp32", "ar", (32, 4160), torch.float32),
     Case("ag_32k_bf16", "ag", (32, 512), torch.bfloat16),
 )
 
@@ -120,7 +122,7 @@ def main() -> None:
     if world != 8:
         raise RuntimeError(f"TP8 benchmark requires world=8, got {world}")
     rccl = dist.new_group(backend="nccl")
-    custom = CustomAllreduce(dist.group.WORLD, local_rank)
+    custom = CustomAllreduce(dist.group.WORLD, torch.device("cuda", local_rank))
     if custom.disabled:
         raise RuntimeError("AIter custom collectives did not initialize")
 
