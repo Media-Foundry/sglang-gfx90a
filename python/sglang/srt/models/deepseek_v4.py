@@ -1303,6 +1303,17 @@ class MQALayer(MqaAttentionBase):
         stream_indexer_compressor = (
             self.alt_streams[1] if len(self.alt_streams) > 1 else None
         )
+        realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        mark(8)
 
         if self.compressor is not None:
             stream_compressor.wait_stream(current_stream)
@@ -1320,6 +1331,7 @@ class MQALayer(MqaAttentionBase):
                     layer_id=self.indexer.layer_id,
                     compressor=self.indexer.compressor,
                 )
+        mark(9)
 
         x_linear = x_quant if x_quant is not None else x
         if self.fuse_wqa_wkv:
@@ -1328,6 +1340,7 @@ class MQALayer(MqaAttentionBase):
         else:
             q_lora, _ = self.wq_a(x_linear)
             qkv_a = None
+        mark(10)
 
         if self.use_fused_qk_norm_rope:
             if _is_gfx95_supported:
@@ -1339,7 +1352,9 @@ class MQALayer(MqaAttentionBase):
                 q, _ = self.wq_b(q_for_wqb)
             else:
                 q_lora = self.q_norm(q_lora)
+                mark(11)
                 q, _ = self.wq_b(q_lora)
+                mark(12)
 
             kv = (
                 qkv_a[..., self.q_lora_rank :]
@@ -1373,6 +1388,7 @@ class MQALayer(MqaAttentionBase):
                 q_out=q_out,
                 dtype=x.dtype,
             )
+            mark(13)
         else:
             q_lora = self.q_norm(q_lora)
             q = self._compute_q_b(q_lora, positions, q_out)
@@ -1396,6 +1412,8 @@ class MQALayer(MqaAttentionBase):
         elif self.compressor is not None:
             current_stream.wait_stream(stream_compressor)
 
+        mark(14)
+
         return q
 
     def _forward_prepare(
@@ -1407,6 +1425,17 @@ class MQALayer(MqaAttentionBase):
         q_out: Optional[torch.Tensor] = None,
         x_quant=None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        mark(8)
         x_linear = x_quant if x_quant is not None else x
         # kv_score depends only on x, so its CP all-gather can start before the
         # projections and be collected inside forward_core_compressor below --
@@ -1416,6 +1445,7 @@ class MQALayer(MqaAttentionBase):
             self.compressor.prelaunch_kv_score(x, forward_batch)
             if self.indexer is not None:
                 self.indexer.compressor.prelaunch_kv_score(x, forward_batch)
+        mark(9)
 
         if self.fuse_wqa_wkv:
             qkv_a, _ = self.wqkv_a(x_linear)
@@ -1423,6 +1453,7 @@ class MQALayer(MqaAttentionBase):
         else:
             q_lora, _ = self.wq_a(x_linear)
             qkv_a = None
+        mark(10)
 
         use_cp = self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch)
         kv: Optional[torch.Tensor]
@@ -1453,10 +1484,13 @@ class MQALayer(MqaAttentionBase):
                     self.q_norm.weight,
                     self.q_norm.variance_epsilon,
                 )
+                mark(11)
                 q, _ = self.wq_b(q_for_wqb)
             else:
                 q_lora = self.q_norm(q_lora)
+                mark(11)
                 q, _ = self.wq_b(q_lora)
+            mark(12)
 
             kv = (
                 qkv_a[..., self.q_lora_rank :]
@@ -1521,13 +1555,8 @@ class MQALayer(MqaAttentionBase):
                 dtype=x.dtype,
                 bf16_store=bf16_store,
             )
-            # On the verify path the kernel normed + RoPE'd kv in place and wrote
-            # nothing, so hand it back: the caller feeds it to attention as the
-            # current chunk (attn_k = kv) and save_kv_cache = kv is not None lets
-            # the backend do its normal causally-indexed store into the ring
-            # before the decode kernel runs -- exactly as the unfused path did.
-            if not (unified and fuse_verify):
-                kv = None
+            mark(13)
+            kv = None
 
             if not unified and use_cp:
                 # DSA CP: keep bf16 kv around for the cross-rank all-gather, then
@@ -1659,6 +1688,7 @@ class MQALayer(MqaAttentionBase):
                 forward_batch=forward_batch,
                 attn_backend=attn_backend,
             )
+        mark(15)
         if self.compressor is not None:
             attn_backend.forward_core_compressor(
                 x,
@@ -1666,6 +1696,7 @@ class MQALayer(MqaAttentionBase):
                 self.layer_id,
                 self.compressor,
             )
+        mark(14)
 
         if _is_hip and kv_handle is not None:
             kv = cp_all_gather_rerange_finish(kv_handle)
@@ -1679,6 +1710,16 @@ class MQALayer(MqaAttentionBase):
         forward_batch: ForwardBatch,
         x_quant=None,
     ) -> torch.Tensor:
+        realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
         debug_attn_dir = os.getenv("SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR")
         debug_attn_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
         debug_attn = (
@@ -1751,6 +1792,7 @@ class MQALayer(MqaAttentionBase):
                 q_out = q_padded[:, tp_slice, :]
         attn_sink = self._local_attn_sink()
 
+        mark(2)
         if enable_multi_stream:
             # Multi-stream path always fuses cache write into the K kernel,
             # so the bf16 KV intermediate is gone.
@@ -1791,6 +1833,7 @@ class MQALayer(MqaAttentionBase):
                 q_out,
                 x_quant=x_quant,
             )
+        mark(3)
         dump_attn("q", q_out if q_out is not None else q)
 
         # save_kv_cache = kv is not None selects who writes the ring. When kv is
@@ -1858,6 +1901,7 @@ class MQALayer(MqaAttentionBase):
                     save_kv_cache=save_kv_cache,
                 )
             o = o[:, tp_slice, :]
+        mark(4)
         dump_attn("attn_core", o)
         if _is_npu:
             cos4, sin4 = self._get_npu_rope_position_cache(
@@ -1942,6 +1986,8 @@ class MQALayer(MqaAttentionBase):
         dump_attn("wo_b", o)
         if self.attn_tp_size > 1 and self.attn_tp_size < get_parallel().tp_size:
             o = attn_tp_all_reduce(o)
+
+        mark(5)
 
         return o
 
@@ -2032,6 +2078,16 @@ class DeepseekV4DecoderLayer(nn.Module):
         self._hc_ffn_fn_bf16 = None
         self._hc_attn_fn_fp16 = None
         self._hc_ffn_fn_fp16 = None
+        trace_layer = int(os.getenv("SGLANG_DSV4_GFX90A_REALTIME_TRACE_LAYER", "-1"))
+        if _is_hip and self.layer_id == trace_layer:
+            self.register_buffer(
+                "_gfx90a_realtime_trace",
+                torch.zeros(16, dtype=torch.uint64, device=get_device().device),
+                persistent=False,
+            )
+            self.self_attn._gfx90a_realtime_trace = self._gfx90a_realtime_trace
+        else:
+            self._gfx90a_realtime_trace = None
 
     def _build_self_attn(
         self,
@@ -2424,6 +2480,17 @@ class DeepseekV4DecoderLayer(nn.Module):
         Optional[torch.Tensor],
         Optional[torch.Tensor],
     ]:
+        realtime_trace = self._gfx90a_realtime_trace
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        mark(0)
         use_fused = self.use_fused_mhc_post_pre
         debug_stage_dir = os.getenv("SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR")
         debug_target_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
@@ -2560,6 +2627,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 x_quant = None
         dump_stage("attn_norm", hidden_states)
 
+        mark(1)
         with self.self_attn.maybe_use_decode_attn_tp(forward_batch):
             hidden_states = self.self_attn(
                 x=hidden_states,
@@ -2651,12 +2719,14 @@ class DeepseekV4DecoderLayer(nn.Module):
                     hidden_states = self.post_attention_layernorm(hidden_states)
             dump_stage("ffn_norm", hidden_states)
 
+        mark(6)
         hidden_states = self._run_moe_ffn_dp_sync(
             hidden_states,
             forward_batch,
             input_ids=input_ids,
             input_ids_global=input_ids_global,
         )
+        mark(7)
         dump_stage("ffn_out", hidden_states)
 
         if not use_fused:

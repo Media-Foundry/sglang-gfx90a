@@ -1502,6 +1502,57 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
 
             output = self.backend.replay(self._replay_graph_key, forward_batch)
 
+            trace_every = int(
+                os.getenv("SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY", "0")
+            )
+            if trace_every > 0:
+                self._gfx90a_realtime_trace_replays = (
+                    getattr(self, "_gfx90a_realtime_trace_replays", 0) + 1
+                )
+                if self._gfx90a_realtime_trace_replays % trace_every == 0:
+                    for module in self.model_runner.model.modules():
+                        markers = getattr(module, "_gfx90a_realtime_trace", None)
+                        if markers is None:
+                            continue
+                        values = markers.detach().cpu().tolist()
+                        prepare_order = [2, 8, 9, 10, 11, 12, 13, 15, 14, 3]
+                        required_slots = sorted(set(range(8)) | set(prepare_order))
+                        coarse_pairs = list(zip(range(7), range(1, 8)))
+                        prepare_pairs = list(zip(prepare_order, prepare_order[1:]))
+                        if any(values[i] == 0 for i in required_slots) or any(
+                            values[end] < values[start]
+                            for start, end in coarse_pairs + prepare_pairs
+                        ):
+                            logger.warning(
+                                "Invalid gfx90a realtime layer trace: rank=%d "
+                                "ticks=%s; required marker slots must be nonzero "
+                                "and monotonic",
+                                get_parallel().tp_rank,
+                                values,
+                            )
+                            break
+                        deltas_us = [
+                            round((values[i + 1] - values[i]) * 0.04, 3)
+                            for i in range(7)
+                        ]
+                        prepare_us = [
+                            round(
+                                (values[prepare_order[i + 1]] - values[prepare_order[i]])
+                                * 0.04,
+                                3,
+                            )
+                            for i in range(len(prepare_order) - 1)
+                        ]
+                        logger.info(
+                            "gfx90a realtime layer trace: rank=%d ticks=%s "
+                            "deltas_us=%s prepare_us=%s",
+                            get_parallel().tp_rank,
+                            values,
+                            deltas_us,
+                            prepare_us,
+                        )
+                        break
+
             if shared_read_ends is SharedReadEnds.IN_REPLAY:
                 self._publish_read_done(in_graph=True)
 
