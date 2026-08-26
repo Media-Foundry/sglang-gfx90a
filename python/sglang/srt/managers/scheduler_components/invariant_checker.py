@@ -462,6 +462,16 @@ class SchedulerInvariantChecker:
         return has_leak, messages
 
     def _check_tree_cache(self):
+        # A hybrid DSV4 cache can contain roughly a million token pages.  A
+        # full structural walk on every idle scheduler iteration is a debug
+        # invariant, not production housekeeping: once the radix tree has
+        # accumulated entries it can stall the request receiver for seconds.
+        # Keep it available under the existing invariant/debug controls.
+        if not (
+            envs.SGLANG_CHECK_KV_PAGE_INVARIANTS.get()
+            or envs.SGLANG_INVARIANT_CHECK.get() > 0
+        ):
+            return
         if (
             self.tree_cache.is_tree_cache()
             and (self.is_hybrid_swa and self.tree_cache.supports_swa())

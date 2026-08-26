@@ -484,6 +484,20 @@ class AiterRunnerCore(MoeRunnerCore):
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 )
                 num_prefill_tokens = runner_input.hidden_states.shape[0]
+                grouped_gate_rows = (
+                    2
+                    if num_prefill_tokens >= 128
+                    else get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_ROWS", 2
+                    )
+                )
+                grouped_down_rows = (
+                    2
+                    if num_prefill_tokens >= 128
+                    else get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_ROWS", 2
+                    )
+                )
                 use_mfma64_prefill = (
                     use_mfma32_prefill
                     and num_prefill_tokens >= 2048
@@ -492,8 +506,17 @@ class AiterRunnerCore(MoeRunnerCore):
                 grouped_assignments = (
                     64
                     if use_mfma64_prefill
-                    else 32 if use_mfma32_prefill else 8
+                    else 32
+                    if use_mfma32_prefill
+                    else get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS", 8
+                    )
                 )
+                if grouped_assignments not in (1, 2, 4, 8, 16, 32, 64):
+                    raise ValueError(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS "
+                        f"must be a power-of-two sorter block, got {grouped_assignments}"
+                    )
                 (
                     sorted_ids,
                     _sorted_weights,
@@ -545,6 +568,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         runner_input.topk_ids.shape[1],
                         quant_info.swiglu_limit,
                         assignments=grouped_assignments,
+                        rows=grouped_gate_rows,
                         blocks=gate_blocks,
                     )
             else:
@@ -619,6 +643,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         runner_input.topk_weights,
                         out=direct_out,
                         assignments=grouped_assignments,
+                        rows=grouped_down_rows,
                         blocks=down_blocks,
                     )
             else:

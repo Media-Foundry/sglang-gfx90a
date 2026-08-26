@@ -1651,3 +1651,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   BS1/2/4退化，在192 routed assignments的BS32仍不能摊平每层Mori固定成本，正式
   证伪为当前TP8吞吐方向。多并发若再引入EP，必须先改变dispatch/combine协议或采用
   更大的请求批次，而不是复用现有逐层Mori路径。
+- 小M direct-FP4的两次group32 INT8 activation quant曾用已有HIP wave64专核替代
+  generic Triton，并扫描每block `2/4/8/16` waves。两处真实M32 shape的量化结果均与
+  Triton逐元素bitwise exact；单次quant由约`61--62 us`降到约`38--39 us`，完整合成
+  routed stage由`629.76 -> 598.88 us`（约`+4.9%`）。但TP8服务级France固定IDs
+  `10/10`精确后，32并发两组各6轮的主要稳态仅约`788--796 tok/s`（各有一次
+  `824 tok/s`高点），对同tier Triton A约`790 tok/s`的trimmed收益只有约`0.5%`。
+  量化已被graph并行/尾部隐藏，故撤回decode selector和多wave模板，不作为正式优化。
+- M32 grouped direct-FP4增加独立micro harness并扫描row/wave/grid：`rows=4,waves=8`
+  明确优于rows 1/2/3/5/6/8；gate/down同为832 blocks约`502.9 us`，down改1664约
+  `496.0 us`，但完整TP8热态仍约`790--795 tok/s`，没有可复现端到端收益。尝试把
+  gate/up的BF16 SwiGLU落地与后续group32 INT8 quant融合进同一8-wave CTA，INT8
+  bitwise exact、scale最大差`7.9e-13`、最终BF16 bitwise exact，但LDS与两次barrier
+  使完整stage由约`501 -> 620 us`，退化约24%，实现已撤回。
+- 1M-token Unified Radix Cache暴露出独立的生产尾延迟bug：scheduler在每次fully-idle
+  循环无条件执行全树`sanity_check()`；radix条目积累后，32并发轮会周期性由约
+  `790 tok/s`跌到`361--363 tok/s`，退出栈显示八个scheduler都在tree walk。现将该
+  debug walk只保留在`SGLANG_CHECK_KV_PAGE_INVARIANTS`或
+  `SGLANG_INVARIANT_CHECK>0`下；不能复用strict-idle mem check，因为该分支后者默认
+  为True。最终guard下TP8 BS1/32 graph的France固定IDs`10/10`精确；8轮32并发为
+  `775.7/822.2/819.9/822.3/787.1/787.9/786.2/790.0 tok/s`，没有再出现约363的
+  周期性腰斩。退出时scheduler栈也从radix `sanity_check()`变为正常的request broadcast
+  wait，确认默认全树walk已被移出生产idle路径。这是尾延迟/可用吞吐修复；它不改变
+  约`790 tok/s`的kernel热态中心。

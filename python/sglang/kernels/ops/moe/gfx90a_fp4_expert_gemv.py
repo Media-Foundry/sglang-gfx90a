@@ -167,9 +167,11 @@ def _jit_down_grouped(
     n: int,
     k: int,
     assignments: int,
+    rows: int,
+    waves: int,
     blocks: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, assignments, 2, 8, blocks)
+    args = make_cpp_args(e, m, t, n, k, assignments, rows, waves, blocks)
     return load_jit(
         "gfx90a_fp4_expert_down_grouped",
         *args,
@@ -365,6 +367,8 @@ def gfx90a_fp4_expert_down_grouped(
     topk_weights: torch.Tensor,
     out: torch.Tensor | None = None,
     assignments: int = 2,
+    rows: int = 2,
+    waves: int = 8,
     blocks: int = 208,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
@@ -380,7 +384,7 @@ def gfx90a_fp4_expert_down_grouped(
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
     partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
-    _jit_down_grouped(e, m, topk, n, k, assignments, blocks).run(
+    _jit_down_grouped(e, m, topk, n, k, assignments, rows, waves, blocks).run(
         xq,
         x_scale,
         weight.view(torch.uint8),
