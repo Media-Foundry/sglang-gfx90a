@@ -2083,3 +2083,29 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   wqkv_a->AR1536`；attention边界`RS->sharded MHC`后并行`AG4096`与row-sharded
   router `AR256`。必须先做layer20真实tensor oracle，并要求每边界slowest-rank至少省
   20us、1000次graph replay稳定，不能直接改模型。
+
+### TP8基线复核、PP容量定位与sort8 hybrid反例（2026-08-27）
+
+- 固定11-token France input IDs、BS32×256、full graph tiers、1M token pool的当前
+  TP8/EP1/no-A2A热态可信中心为`987--991 tok/s`。当前服务八轮去掉首个冷态后
+  trimmed=`987.11 tok/s`，近期另一独立服务trimmed=`990.53 tok/s`；约0.4%的
+  跨服务波动要求后续只用同输入、同机ABBA判定。France全tier `107/107`逐tokenexact，
+  4096-token mixed-ID oracle的completion SHA仍为
+  `a563b647156bc5fb`。16-token Explain-2+2的`947--954 tok/s`不可与此口径混用。
+- PP2×TP4功能与correctness均成立，正常BS32中心约`748 tok/s`，但比当前TP8低约
+  24%；它的价值是把估计KV容量提高到约`2.57M tokens`，而不是当前1500 tok/s吞吐
+  路线。按`987.11 tok/s`计算，step约`32.42 ms`，目标1500需`21.33 ms`，仍需净省
+  `11.09 ms/step`（34.2%，约258us/layer）。配置审计未发现遗漏的已验证正收益开关。
+- routed-FP4尝试过sort8后按第5项valid分流：occupancy 1--4由A4 light kernel处理，
+  5--8由A8 heavy kernel处理，两核共享gate输出/down partial，down只做一次最终reduce。
+  真实recorder pass42/layer20（active experts=40）中，生产A4/LDS B832完整stage七轮
+  median=`194.773 us`；hybrid的heavy B208/416/832分别为
+  `292.245/278.757/245.610 us`，最佳仍退化26.1%。所有最终BF16输出逐元素exact。
+  双kernel重复遍历sort blocks并各自初始化/同步1KiB LDS LUT，开销超过减少25.15%
+  weight scan的收益；未接生产selector，原型完整撤回。若重访weight reuse，必须在
+  单kernel内动态复用且不让light block承担A8的VGPR常驻，不能再用双launch分流。
+- AIter已有M1 `fused_allreduce_mhc_post`末尾缺少普通one-stage AR现有的
+  `end_sync<ngpus,true>`，因此直接复用存在peer input覆写竞态。M32输入为256KiB，正常
+  TP8 AR已走two-stage；不能简单批化one-stage。更合理的后续oracle是保留two-stage
+  reduce-scatter及BF16 rounding顺序，只把MHC post/RMS epilogue并入stage-2 all-gather，
+  先要求8-rank slowest latency每boundary至少节省8us、理想20us，再考虑接模型。
