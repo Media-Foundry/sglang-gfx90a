@@ -1200,3 +1200,31 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   partial reduction；不是简单接入CK就能获得收益。
 - 原型、wrapper和selector均完整撤回。MFMA应保留给M足够大、至少能填满4列且能
   沿M/N复用权重的BS4+路径；BS1 projection继续使用当前wave64向量读取+VALU归约。
+
+### q_lora RMSNorm backend ABBA（2026-08-26）
+
+- `[1,1024]` BF16 standalone直接调用时，AIter RMSNorm约`10.01 us`，仓库现有
+  HIP-JIT RMSNorm约`4.45 us`；两者最大BF16输出差`0.03125`。经`RMSNorm`模块在
+  eager Python循环测得的约80us主要是host enqueue，不代表graph中的kernel时间。
+- 只将43层q_lora切到JIT后，France固定IDs 5/5仍精确；A长输出hash
+  `14593da264d38f29`、B为`bf80c4a9b3acaecd`，各自稳定但因reduction顺序不同而分叉。
+  ABBA受到跨服务频率漂移：A1约`76.96`、B1/B2约`76.55--76.57`、A2约
+  `75.75--75.86 tok/s`。两端A平均后差异仅约0.25%，没有可复现端到端收益。
+- selector和接线完整撤回。后续不得用未捕获的Python module循环延迟直接外推
+  CUDA graph；此类小norm替换必须服务级ABBA过门槛才保留。
+
+### unified-KV Q/K norm+RoPE HIP融合反例（2026-08-26）
+
+- 生产Triton kernel在一个launch内完成16个local Q heads的RMSNorm+RoPE，以及K
+  RMSNorm+RoPE+BF16 ring store。独立真实shape约`43--55 us`。两段现有HIP专核加
+  新BF16 unified-store K专核可到约`18.99 us`，但服务只有约`74.5 tok/s`。
+- 将Q的2个workgroups和K的1个workgroup进一步融合为单HIP launch，standalone约
+  `8.05--10.06 us`；使用与Triton相同的BF16 cos/sin后K cache逐元素bitwise一致，
+  Q因RMS reduction顺序仍有最大`0.03125`、平均约`1.61e-4`差异。France固定IDs
+  10/10精确，长输出hash在配置内稳定。
+- 端到端仍只有约`74.7--75.1 tok/s`，关闭multi-stream后约`74.7 tok/s`，均低于
+  同期A约`75.8--77.0 tok/s`。说明standalone launch latency不是该graph的充分
+  指标；Q轨迹改变及整图调度抵消了micro收益。两核、单核、selector全部撤回。
+- 原Triton prologue的`num_warps=1/2/4`输出逐元素bitwise一致，standalone分别约
+  `44.00/43.75/43.29 us`，当前4 warps已最优；8 warps约`43.10 us`但K输出明显
+  损坏。临时wrapper参数化已撤回，不应再扫这一维。
