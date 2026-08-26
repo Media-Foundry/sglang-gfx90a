@@ -2289,3 +2289,28 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   更大组合测试在超时前未完成。PP stages确实有重叠，但逐token AR的跨stage依赖制造流水
   气泡，拆小M又降低每stage kernel效率。PP2保留为扩大KV容量的特例（理论约2.57M token
   cache），不能作为BS32冲击1500 tok/s的主路径；后续不再纯参数扫描PP。
+
+### split-MoE M>1 grouped-down correctness修复与协议边界（2026-08-27）
+
+- 补测旧`TP8/DP-attention2/attention-TP4/MoE-DP2/MoE-TP4` split fast path的
+  M8/M16/M32。未修复时France为BS1 `1/1`，BS8 `2/8`、BS16 `1/16`、BS32 `0/32`
+  exact；BS8已有6种输出，属于确定的kernel correctness错误，不能测速。
+- 根因是M>1进入grouped FP4 down：split路径先用`topk_ids=-1`排除另一DP replica的
+  slots，sorter因此不会为这些slots产生任务；但wrapper分配
+  `partial=[M,topk,N] FP32`时使用`torch.empty`，final reduce却无条件读取并累加全部
+  6 slots，把未初始化显存混入输出。BS1走slot-range direct kernel，没有该partial，
+  所以旧BS1 oracle一直无法暴露此bug。
+- 修复只在split grouped路径将partial显式清零；普通完整Top-6路径仍使用`empty`，不增加
+  正式TP8/EP1开销。修复后full graph tiers `1/8/16/32`的France合计`57/57`逐token
+  exact、每tier输出唯一。一次额外的跨MoE-DP Top-K broadcast没有改善未修复结果，已
+  撤回，确认首故障不是router replica浮点分叉。
+- 但256-token并发仍暴露更高层协议阻塞：两个独立DP scheduler在prefill/JIT和后续
+  decode中形成不同local batch shape（日志可见同阶段M22/M33等差异），最终进入同一个
+  TP8 collective时失配；请求与`/health`同时挂住。服务停止后八卡显存完全释放。因此
+  本修复应作为M>1 grouped kernel correctness checkpoint保留，但split-MoE大并发仍不
+  可交付，也没有有效吞吐数字。下一步若重访，必须由一个authoritative scheduler广播
+  decode batch plan、request row order、active mask和graph tier，使两组逐step lockstep；
+  仅让controller向两组发送相同请求不构成协议保证。
+- 另一个独立的gate/up packed-FP4成对存储原型在真实pass47/layer20上逐元素bitwise
+  exact，但完整stage由`195.836 -> 198.535 us`，退化1.38%；重排/地址依赖抵消合并VMEM
+  load收益，原型已撤回，不接production。
