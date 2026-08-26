@@ -1248,6 +1248,17 @@ class DeepseekV2MoE(nn.Module):
         input_ids_global: Optional[torch.Tensor] = None,
         skip_shared_experts: bool = False,
     ) -> torch.Tensor:
+        realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        mark(16)
         split_moe_dp = self._split_moe_dp_fast_path
         if split_moe_dp and get_parallel().moe_dp_rank != 0:
             # Shared expert is computed once by MoE-DP0; its TP4 partial joins
@@ -1285,8 +1296,10 @@ class DeepseekV2MoE(nn.Module):
                     gemm_output_zero_allocator,
                     pre_quant_input=pre_quant_input,
                 )
+            mark(17)
             # router_logits: (num_tokens, n_experts)
             router_logits = self.gate(hidden_states, gemm_output_zero_allocator)
+            mark(18)
             topk_kwargs = (
                 {"input_ids": input_ids_global}
                 if getattr(self, "is_hash", False)
@@ -1306,6 +1319,7 @@ class DeepseekV2MoE(nn.Module):
                     topk_output.topk_ids[:, 2:].fill_(-1)
                 else:
                     topk_output.topk_ids[:, :2].fill_(-1)
+            mark(19)
         else:
             pre_quant_input = None
             shared_output = None
@@ -1354,6 +1368,7 @@ class DeepseekV2MoE(nn.Module):
                 hidden_states,
                 topk_output,
             )
+        mark(20)
         if (
             not _is_cuda
             and not _is_musa
@@ -1375,6 +1390,7 @@ class DeepseekV2MoE(nn.Module):
                 gemm_output_zero_allocator,
                 pre_quant_input=pre_quant_input,
             )
+        mark(21)
 
         final_hidden_states = maybe_fuse_routed_scale_and_shared_add(
             self.experts,
@@ -1382,7 +1398,9 @@ class DeepseekV2MoE(nn.Module):
             None if self._shared_expert_tp1 else shared_output,
             self.routed_scaling_factor,
         )
+        mark(22)
 
+        mark(23)
         if split_moe_dp:
             # The two MoE-DP replicas own identical TP4 weight shards but
             # compute complementary routed slots (and DP0 alone computes the
@@ -1398,6 +1416,7 @@ class DeepseekV2MoE(nn.Module):
         # avoid summing the same shared output once per TP rank.
         if shared_output is not None and self._shared_expert_tp1:
             final_hidden_states += shared_output
+        mark(24)
         return final_hidden_states
 
     def forward_cpu(

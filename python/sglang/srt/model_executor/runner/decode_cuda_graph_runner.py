@@ -1516,12 +1516,16 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                             continue
                         values = markers.detach().cpu().tolist()
                         prepare_order = [2, 8, 9, 10, 11, 12, 13, 15, 14, 3]
-                        required_slots = sorted(set(range(8)) | set(prepare_order))
+                        moe_order = [6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 7]
+                        required_slots = sorted(
+                            set(range(8)) | set(prepare_order) | set(moe_order)
+                        )
                         coarse_pairs = list(zip(range(7), range(1, 8)))
                         prepare_pairs = list(zip(prepare_order, prepare_order[1:]))
+                        moe_pairs = list(zip(moe_order, moe_order[1:]))
                         if any(values[i] == 0 for i in required_slots) or any(
                             values[end] < values[start]
-                            for start, end in coarse_pairs + prepare_pairs
+                            for start, end in coarse_pairs + prepare_pairs + moe_pairs
                         ):
                             logger.warning(
                                 "Invalid gfx90a realtime layer trace: rank=%d "
@@ -1543,13 +1547,22 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                             )
                             for i in range(len(prepare_order) - 1)
                         ]
+                        moe_us = [
+                            round(
+                                (values[moe_order[i + 1]] - values[moe_order[i]])
+                                * 0.04,
+                                3,
+                            )
+                            for i in range(len(moe_order) - 1)
+                        ]
                         logger.info(
                             "gfx90a realtime layer trace: rank=%d ticks=%s "
-                            "deltas_us=%s prepare_us=%s",
+                            "deltas_us=%s prepare_us=%s moe_us=%s",
                             get_parallel().tp_rank,
                             values,
                             deltas_us,
                             prepare_us,
+                            moe_us,
                         )
                         break
 

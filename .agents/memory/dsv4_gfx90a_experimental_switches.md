@@ -1469,3 +1469,38 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `14593da264d38f29`，热稳态`76.18--76.27 tok/s`。中途marker误接到未启用的HIP
   multi-stream与相邻NPU路径时，槽位保持0；对应负数/超大差值明确判无效，不作为性能
   证据。后续诊断logger应对零槽与非单调时间戳fail-loud。
+
+### TP8 split-MoE细分、并发与active-grid反例（2026-08-26）
+
+- AMD原有`_forward_prepare_multi_stream_hip()`在后续NPU refactor中因MQALayer
+  selector只保留CUDA/NPU而变为不可达。临时恢复HIP selector后graph能捕获、France
+  10/10及256-token hash均保持基线，但热稳态仍约`76.13--76.17 tok/s`，没有超过
+  串行路径。真实projection graph micro进一步解释：两条512 GEMV串行约`14.01 us`、
+  side-stream并发约`22.22 us`；生产512+2048组合串行约`25.66 us`、并发约
+  `34.61 us`。跨stream fork/join及CU/HBM竞争大于重叠收益，selector恢复已撤回。
+- 为测试CK-style compressor专核，实现过单个512-thread HIP CTA融合paged state更新、
+  online softmax pool、RMSNorm、RoPE，并进一步融合c4 FP8 quant/paged store。c4/c128
+  数值oracle的state逐元素一致，输出max error约`4.8e-7/1.9e-6`；直接store的scale
+  byte完全一致、576-byte value区仅24 byte不同。但预分配graph ABBA中，c4现有两段
+  Triton为`8.72 us`、HIP为`9.78 us`；c128为`12.30/60.28 us`。连store后现有三段
+  `10.18 us`、HIP单核`10.97 us`。单CTA丢失跨CTA维度/slot并行，原型完整撤回。
+- split-MoE当前是DP0/DP1按Top-6的`2/4` slots分工。direct FP4默认208 blocks；真实
+  TP8 shape micro显示active-grid不是首因：2-slot gate blocks64/104/208约
+  `18.21/18.22/18.28 us`，4-slot gate 104/128/156/208约
+  `30.83/29.52/28.93/29.59 us`；down最佳仍约156--208 blocks。所有输出逐元素一致。
+- layer20 marker显示DP0 MoE span约91--97us、DP1约97--103us。3/3 slot实验France
+  10/10、hash稳定为`84208f7692fab60b`，约`76.40--76.48 tok/s`；同期2/4为
+  `75.82--76.01 tok/s`，仅约0.6--0.8%，低于采用门槛。2/4的用途是用DP0 shared
+  expert补偿DP1更多routed slots，阈值实验接线已撤回。
+- realtime trace扩展到MLP内部后，33组replay逐组取8 rank最慢值：shared-pre
+  `20.64 us`、router `7.52 us`、Top-K+mask `18.08 us`、routed experts
+  `50.56 us`、combine-add `4.32 us`、TP8 AR+等待 `41.92 us`。逐rank解释了AR值中
+  包含arrival等待：DP0 shared约19--20us且routed约36--41us；DP1无shared但routed
+  约41--51us；早到rank在AR内等待，AIter 8KiB TP8 AR本体仍约16us。
+- 只在split DP0把shared expert放辅助stream与2-slot routed重叠，graph和France
+  10/10均通过、hash不变，但热稳态约`74.86--75.19 tok/s`，相对串行
+  `75.82--76.01`退化约1.1%；同卡CU/带宽竞争推迟collective arrival，完整撤回。
+- 尝试在direct MoE下省略Top-K后的`topk_ids.fill_(-1)`时，France首轮立即错误为
+  `[1,1,1,1,1,16,...]`。说明sentinel不仅限制direct kernel slots，还参与上游
+  runner/dispatcher语义；该mask不能由`slot_begin/end`替代，改动已恢复且错误性能
+  数据作废。

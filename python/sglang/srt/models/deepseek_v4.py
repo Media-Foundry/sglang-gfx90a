@@ -2082,10 +2082,11 @@ class DeepseekV4DecoderLayer(nn.Module):
         if _is_hip and self.layer_id == trace_layer:
             self.register_buffer(
                 "_gfx90a_realtime_trace",
-                torch.zeros(16, dtype=torch.uint64, device=get_device().device),
+                torch.zeros(32, dtype=torch.uint64, device=get_device().device),
                 persistent=False,
             )
             self.self_attn._gfx90a_realtime_trace = self._gfx90a_realtime_trace
+            self.mlp._gfx90a_realtime_trace = self._gfx90a_realtime_trace
         else:
             self._gfx90a_realtime_trace = None
 
