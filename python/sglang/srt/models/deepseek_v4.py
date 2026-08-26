@@ -2423,17 +2423,29 @@ class DeepseekV4DecoderLayer(nn.Module):
         use_fused = self.use_fused_mhc_post_pre
         debug_stage_dir = os.getenv("SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR")
         debug_target_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
+        debug_target_layer = int(
+            os.getenv("SGLANG_DSV4_DEBUG_STAGE_LAYER", "0")
+        )
+        debug_target_rank = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_RANK", "0"))
+        debug_target_rows = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_ROWS", "-1"))
         debug_stages = (
             debug_stage_dir
-            and self.layer_id == 0
-            and get_tp_group().rank_in_group == 0
+            and self.layer_id == debug_target_layer
+            and get_tp_group().rank_in_group == debug_target_rank
+            and (debug_target_rows < 0 or positions.numel() == debug_target_rows)
             and (debug_target_pos < 0 or bool((positions == debug_target_pos).any().item()))
         )
 
-        def dump_stage(name: str, value: torch.Tensor) -> None:
+        def dump_stage(
+            name: str, value: torch.Tensor, *, once: bool = False
+        ) -> None:
             if debug_stages:
                 os.makedirs(debug_stage_dir, exist_ok=True)
-                torch.save(value.detach().cpu(), os.path.join(debug_stage_dir, f"layer_0_{name}.pt"))
+                path = os.path.join(
+                    debug_stage_dir, f"layer_{self.layer_id}_{name}.pt"
+                )
+                if not once or not os.path.exists(path):
+                    torch.save(value.detach().cpu(), path)
 
         dump_stage("hc_attn_fn", self.hc_attn_fn)
         dump_stage("hc_attn_scale", self.hc_attn_scale)
@@ -2442,6 +2454,33 @@ class DeepseekV4DecoderLayer(nn.Module):
         dump_stage("attn_residual", hidden_states)
         dump_stage("input_ids", input_ids)
         dump_stage("positions", positions)
+
+        # Projection-only TP8 oracle inputs.  Layer 20 is a C4 layer, so these
+        # four replicated logical BF16 matrices cover every consumer of the
+        # normalized activation.  Save weights once; the target-position gate
+        # selects the desired M32 decode activation without touching production
+        # execution when the debug environment is unset.
+        if debug_stages:
+            attn = self.self_attn
+            if getattr(attn, "fuse_wqa_wkv", False):
+                dump_stage("projection_wqkv_a", attn.wqkv_a.weight, once=True)
+            if attn.compressor is not None:
+                dump_stage(
+                    "projection_core_compressor",
+                    attn.compressor.wkv_gate.weight,
+                    once=True,
+                )
+            if attn.indexer is not None:
+                dump_stage(
+                    "projection_index_compressor",
+                    attn.indexer.compressor.wkv_gate.weight,
+                    once=True,
+                )
+                dump_stage(
+                    "projection_index_weights",
+                    attn.indexer.weights_proj.weight,
+                    once=True,
+                )
 
         if prev_residual is not None and use_fused:
             residual, post, comb, hidden_states = _get_mhc_ops().mhc_fused_post_pre(
