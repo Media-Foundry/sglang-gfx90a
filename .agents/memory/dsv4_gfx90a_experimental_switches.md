@@ -2392,3 +2392,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 另一个无barrier half-wave A8 gate原型（lane halves分别A4）在真实路由中为
   `106.310 -> 128.611 us`（+20.98%），且非bitwise（max-abs=`0.0625`、relative-L2=
   `4.10e-6`）；原型已撤回。当前不再投入A8 weight-reuse重排。
+
+### TP8 K256 down half-wave A8权重复用否证（2026-08-27）
+
+- 进一步隔离测试了down projection：每个wave划分四个16-lane pair，每个pair的低8 lane
+  只加载一次K256 packed-FP4权重与scale，再用wave64 shuffle广播给高8 lane；两个half各自
+  保持A4 accumulator和原有width-8 reduction，因此不引入block barrier或LDS staging。
+- 在真实pass47/layer20、M32路由上，候选相对A4/R2/B832 LDS reference逐元素exact、
+  `max-abs=0`，但七轮50-iteration median为`85.083 -> 128.903 us`（`+51.50%`）。
+  wave shuffle、A8活跃状态和寄存器压力明显超过减半权重读取的收益。
+- C++ kernel、Python wrapper和benchmark开关已全部撤回。结合gate/up half-wave与LDS A8
+  两个反例，A8 route pairing不再作为当前TP8优化方向；继续推进跨层persistent hidden
+  shard，它在真实层20 tensor oracle中仍有约19.5%的FFN边界收益。
