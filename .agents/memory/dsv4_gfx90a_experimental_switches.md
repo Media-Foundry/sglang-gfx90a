@@ -1419,3 +1419,13 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   重叠，因此6倍局部加速不在critical path。
 - HIP stage0、selector和环境开关已完整撤回。今后MHC micro必须预分配所有output并
   分别计stage0/stage1/finish；不得再用Python wrapper链时间推断CUDA graph收益。
+
+### HIP graph内torch Event阶段计时不可用（2026-08-26）
+
+- 临时在layer20的attention-pre、attention、FFN-pre、MoE边界记录
+  `torch.cuda.Event(enable_timing=True)`，并在decode graph replay后同步读取。即使
+  关闭dual sparse graph、只捕获dense graph，仍得到单层约2.7ms、明显超过整token
+  约13ms/43层的矛盾结果。
+- 原因是当前HIP/PyTorch栈没有让这些Python Event对象在graph replay时形成可读取的
+  新时间戳；结果实际来自capture/eager warmup的M256轨迹。France固定IDs 5/5仍精确，
+  但该计时不能作为性能证据。探针已撤回；不要再次用capture内torch Event拆阶段。
