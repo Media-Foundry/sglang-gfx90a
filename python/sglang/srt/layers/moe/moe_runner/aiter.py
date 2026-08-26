@@ -512,7 +512,11 @@ class AiterRunnerCore(MoeRunnerCore):
                     416
                     if use_mfma64_prefill
                     else 1040 if num_prefill_tokens >= 2048
-                    else 416 if num_prefill_tokens >= 128 else 208
+                    else 416
+                    if num_prefill_tokens >= 128
+                    else get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
+                    )
                 )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
@@ -576,7 +580,11 @@ class AiterRunnerCore(MoeRunnerCore):
             )
             if use_grouped_prefill:
                 down_blocks = (
-                    312 if runner_input.hidden_states.shape[0] >= 128 else 208
+                    312
+                    if runner_input.hidden_states.shape[0] >= 128
+                    else get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS", 208
+                    )
                 )
                 if use_mfma32_prefill:
                     output = gfx90a_fp4_expert_down_mfma32(

@@ -1569,3 +1569,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `758.17 tok/s`且出现一次慢态，改2退化到`725.49`；non-grouped direct仅约
   `528.17`，AIter/CKTile direct-off约`542.35 tok/s`。这些分支均不采纳，group8
   direct专核仍为M16默认。
+
+### M16 dual-stream trace与grouped-FP4 persistent grid（2026-08-26）
+
+- 原realtime MLP marker只接在`forward_normal()`；SBO+ROCm multistream的graph实际
+  选择`forward_normal_dual_stream()`，因此旧16--24槽位只保留capture时间戳。将同一
+  默认关闭marker接到dual-stream主分支，并用25/26记录alt shared分支后，M16 layer20
+  France 5/5精确且取得有效replay分解。
+- M16典型每层：router约`24--27 us`、Top-K约`12 us`、routed FP4约
+  `230--365 us`、shared expert约`160--205 us`、join约`4 us`、combine/add约
+  `4 us`、TP4 AR约`31--43 us`。shared已完全隐藏在更慢的routed分支后，routed FP4
+  是当前最大单项；整层随路由分布约`0.8--0.93 ms`。
+- 真实TP4/EP1 M16、83个unique experts的graph micro中，group8 gate/down从208 blocks
+  的`335.13/211.42 us`降到624 blocks的`308.55/175.19 us`，全部逐元素一致。继续扫到
+  gate1040/down1248仅为`300.73/167.36 us`，端到端收益已饱和且hash轨迹抖动更明显，
+  因此选择624。
+- 双TP4、SBO+multistream、32总并发ABBA：208-block A3热态约`812.32 tok/s`；624-block
+  B1/B2 trimmed约`843.37/842.48 tok/s`，相对A约+3.7%，相对最初无SBO的`~752.5`
+  累计约+12%。两轮624服务France合计20/20逐token精确，所有正式请求均256 token。
+  B2有一次首个prefill仅`7.64 tok/s`并使整轮降到243，日志显示为新的JIT慢态；下一轮
+  自动恢复843，故不计稳态但必须继续保留多轮trim。
+- throughput profile现在将小M grouped gate/down默认grid设为624；普通延迟profile仍
+  保持208，且两个grid均可分别用环境变量覆盖。
