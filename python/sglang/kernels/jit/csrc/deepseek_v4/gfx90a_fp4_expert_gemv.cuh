@@ -893,7 +893,18 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     }
     __syncthreads();
   }
-  constexpr uint32_t kSubgroupWidth = 16;
+  static_assert(K >= 32 && K % 32 == 0,
+                "grouped down requires a positive group-32 K dimension");
+  constexpr uint32_t kGroups = K / 32;
+  // TP8 shards the down projection to K=256, so only eight group-32 dot
+  // products exist.  Keep all lanes productive there instead of carrying an
+  // otherwise idle upper half of a 16-lane subgroup through every task and
+  // reduction.  Wider K retains the established 16-lane mapping.
+  constexpr uint32_t kSubgroupWidth = kGroups < 16 ? kGroups : 16;
+  static_assert((kSubgroupWidth & (kSubgroupWidth - 1)) == 0,
+                "grouped down subgroup width must be a power of two");
+  static_assert(kFp4ExpertWave % kSubgroupWidth == 0,
+                "grouped down subgroup width must divide wave64");
   constexpr uint32_t kSubgroupsPerWave = kFp4ExpertWave / kSubgroupWidth;
   constexpr uint32_t kTilesPerExpertBlock = (N + kRows - 1) / kRows;
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
