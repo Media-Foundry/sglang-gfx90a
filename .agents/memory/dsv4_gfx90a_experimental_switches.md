@@ -1330,6 +1330,20 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 因此锁`PERF_LEVEL_HIGH`不会解释当前约76到120 tok/s的缺口；不用再把跨服务的
   小幅频率漂移误判为主要性能机会。当前限制仍是graph内计算/collective结构。
 
+### attention wo_a→wo_b persistent融合反例（2026-08-26）
+
+- HIP原型用常驻grid在一个launch内依次完成本地`wo_a [2,4096]→[2,1024]`和
+  `wo_b [2048]→[4096]`，中间仍写BF16，wave64 dot归约顺序与现有两kernel一致。
+  104/208 CTA均在随机输入上实现中间值和最终值逐元素bitwise exact；连续300次
+  epoch barrier replay无死锁。
+- standalone ABBA中104 CTA约`50--53 us`，208 CTA约`48.8--49.2 us`，分离链约
+  `55.7--65.1 us`。但完整TP8/DP2 graph中104 CTA仅约`75.72--75.78 tok/s`，
+  208 CTA进一步降至约`73.95--74.01 tok/s`，同期A约`76.60--76.63 tok/s`。
+- France固定IDs在104 CTA为10/10、208 CTA为5/5精确，256-token hash均保持基线
+  `14593da264d38f29`。退化纯属persistent grid barrier/CTA驻留改变graph调度；原型、
+  selector和环境开关全部撤回。后续若融合attention output，必须避免全grid barrier，
+  或直接并入已有collective/MHC消费者而不是用新的常驻同步核。
+
 ### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
 
 - 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
