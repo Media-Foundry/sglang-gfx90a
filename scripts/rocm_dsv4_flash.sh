@@ -22,6 +22,27 @@ if [[ "${GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE}" == "1" ]]; then
   export SGLANG_ROCM_USE_MULTI_STREAM=1
 fi
 
+# Single-model 8-GCD profile: shard one checkpoint over TP8 instead of
+# duplicating two TP4 replicas.  The released HBM is assigned to a 1M-token
+# pool, while SBO and the ROCm auxiliary stream overlap shared and routed MoE
+# work at multi-request decode tiers.  Keep the dual-TP4 profile above as an
+# explicit short-request throughput specialization.
+GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"
+if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
+  DEFAULT_GPUS="0,1,2,3,4,5,6,7"
+  DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="32"
+  DEFAULT_MAX_TOTAL_TOKENS="1048576"
+  DEFAULT_MEM_FRACTION_STATIC="0.96"
+  TP_SIZE="${TP_SIZE:-8}"
+  EP_SIZE="${EP_SIZE:-1}"
+  MOE_A2A_BACKEND="${MOE_A2A_BACKEND:-none}"
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 20 24 32}"
+  SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-deepseek-v4-flash-tp8}"
+  export SGLANG_ROCM_USE_MULTI_STREAM=1
+  export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-192}"
+  export SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK:-64}"
+fi
+
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-${DEFAULT_PORT}}"
 BASE_URL="http://${HOST}:${PORT}"
@@ -261,7 +282,8 @@ fi
 if [[ -n "${DEEPEP_MODE:-}" ]]; then
   server_args+=(--deepep-mode "${DEEPEP_MODE}")
 fi
-if [[ "${GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE}" == "1" ]]; then
+if [[ "${GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE}" == "1" || \
+      "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
   DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=1
 elif [[ "${EP_SIZE:-4}" == "1" ]]; then
   DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=0
@@ -456,6 +478,10 @@ Optional env:
   SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1
                               # TP4/EP1 throughput profile: enable SBO plus the
                               # graph-safe ROCm shared-expert auxiliary stream.
+  SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=1
+                              # Single-model TP8/EP1 profile: use all eight GCDs,
+                              # a 1M-token pool, BS1..32 graphs, SBO, and the ROCm
+                              # auxiliary stream without duplicating TP4 weights.
   ENABLE_PROFILE_CUDA_GRAPH=1 # Record kernels while the decode graph is captured.
   SGLANG_ROCM_CUDA_GRAPH_UPLOAD=0
                               # Explicitly hipGraphUpload each captured graph.
