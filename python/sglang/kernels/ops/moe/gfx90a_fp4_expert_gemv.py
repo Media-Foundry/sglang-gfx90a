@@ -21,8 +21,12 @@ def _jit_gate_up(
     blocks: int,
     slot_begin: int,
     slot_end: int,
+    rows: int,
+    waves: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, ge, i, k, 2, 8, blocks, slot_begin, slot_end)
+    args = make_cpp_args(
+        e, m, t, ge, i, k, rows, waves, blocks, slot_begin, slot_end
+    )
     return load_jit(
         "gfx90a_fp4_expert_gate_up",
         *args,
@@ -118,8 +122,12 @@ def _jit_down(
     blocks: int,
     slot_begin: int,
     slot_end: int,
+    rows: int,
+    waves: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, ge, n, k, 2, 8, blocks, slot_begin, slot_end)
+    args = make_cpp_args(
+        e, m, t, ge, n, k, rows, waves, blocks, slot_begin, slot_end
+    )
     return load_jit(
         "gfx90a_fp4_expert_down",
         *args,
@@ -214,6 +222,8 @@ def gfx90a_fp4_expert_gate_up(
     blocks: int = 208,
     slot_begin: int = 0,
     slot_end: int | None = None,
+    rows: int = 2,
+    waves: int = 8,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = x.shape
@@ -223,7 +233,9 @@ def gfx90a_fp4_expert_gate_up(
     out = torch.empty((m, t, i), dtype=torch.bfloat16, device=x.device)
     slot_end = t if slot_end is None else slot_end
     assert 0 <= slot_begin < slot_end <= t
-    kernel = _jit_gate_up(e, m, t, ge, i, k, blocks, slot_begin, slot_end)
+    kernel = _jit_gate_up(
+        e, m, t, ge, i, k, blocks, slot_begin, slot_end, rows, waves
+    )
     args = [x]
     if prequant is not None:
         xq, x_scale = prequant
@@ -437,6 +449,8 @@ def gfx90a_fp4_expert_down(
     blocks: int = 208,
     slot_begin: int = 0,
     slot_end: int | None = None,
+    rows: int = 2,
+    waves: int = 8,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, t, k = x.shape
@@ -446,7 +460,9 @@ def gfx90a_fp4_expert_down(
         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
     slot_end = t if slot_end is None else slot_end
     assert 0 <= slot_begin < slot_end <= t
-    kernel = _jit_down(e, m, t, ge, n, k, blocks, slot_begin, slot_end)
+    kernel = _jit_down(
+        e, m, t, ge, n, k, blocks, slot_begin, slot_end, rows, waves
+    )
     args = [x]
     if prequant is not None:
         xq, x_scale = prequant

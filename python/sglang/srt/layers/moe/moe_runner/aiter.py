@@ -432,6 +432,13 @@ class AiterRunnerCore(MoeRunnerCore):
                 else:
                     slot_begin = 2
 
+            direct_rows = (
+                envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_ROWS.get()
+                if runner_input.hidden_states.shape[0] == 1
+                and envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+                else 2
+            )
+
             gate_prequant = None
             if runner_input.hidden_states.shape[0] > 1:
                 if (
@@ -548,6 +555,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     prequant=gate_prequant,
                     slot_begin=slot_begin,
                     slot_end=slot_end,
+                    rows=direct_rows,
                 )
             if gate_prequant is None:
                 down_prequant = None
@@ -618,6 +626,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     prequant=down_prequant,
                     slot_begin=slot_begin,
                     slot_end=slot_end,
+                    rows=direct_rows,
                 )
             return AiterRunnerOutput(hidden_states=output)
         elif envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get():
