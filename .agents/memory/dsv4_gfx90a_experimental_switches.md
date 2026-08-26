@@ -1892,3 +1892,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   全tier虽`63/63` exact，稳态只有约`946.7--949.1 tok/s`，低于A4默认约969.8；
   sorter/padding与更大grid抵消裸kernel收益。保持A4、只设down-rows1的micro约
   `275.8--276.3 us`，服务稳态约`965.8--968.9 tok/s`，同样未超过默认。两项均不保留。
+
+### TP8 BS32 expert occupancy与MFMA上界（2026-08-27）
+
+- 对`M=32, topk=6, 256 experts`按每token内部不重复、expert近似均匀建模，单expert
+  occupancy为`Binom(32,6/256)`，期望`k=0..6`的expert数约为
+  `119.85/92.05/34.24/8.22/1.43/0.192/0.0208`，即约`136.15`个active experts。
+  assignments中约47.94%属于singleton expert，48.51%属于occupancy 2--3，
+  occupancy>=4仅3.55%。M16实测约83个unique experts，与均匀模型的80.84接近，
+  因而该模型足以解释当前geometry结果。
+- assignment block扫描数期望为：A1=`192`、A2=`146.23`、A4=`136.36`、A8及以上
+  约`136.15`。当前A4距理论最少weight scan仅约0.16%；A2多约7.23%，A1多约40.8%。
+  因此继续增大assignment不能减少有意义的权重扫描，只会扩大寄存器数组和padding。
+- TP8每个expert每次gate/down合计约读取`3.1875 MiB`的FP4权重与scale，A4约为
+  `455.8 MB/layer/rank`。当前M32 routed micro `292.49 us`对应约`1.56 TB/s`，已接近
+  单GCD约1.6384TB/s的名义HBM带宽；除权重扫描外的理论余量约14us（约5%）。
+- 现有MFMA32在M32约`1.26--1.44 ms`并非简单调参问题：每个active expert通常只有
+  1--3行，却固定执行16/32-row tile，约94--97%为padding；split-K LDS partial、归约
+  和双barrier又放大固定成本。其FP4 codebook/scale mapping可复用，但全量M32 MFMA
+  路径不值得继续接服务。
+- 唯一尚合理的occupancy-aware候选是singleton A1与multi A4分流，但它不减少权重
+  流量并增加partition metadata和graph kernel launch；结合A2 micro更快、服务却仅
+  `946.7--949.1 tok/s`的反例，预计端到端收益不足1--2%，不列为当前优先方向。
