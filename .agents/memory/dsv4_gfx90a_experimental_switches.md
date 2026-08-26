@@ -2366,3 +2366,29 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 该结果与此前整行decoded-LDS staging失败一致：gfx90a routed小M当前需要保持无block
   barrier的wave级persistent任务。后续若重访weight reuse，应采用不要求同CTA wave同步的
   表示（例如离线layout/跨route寄存器映射），不能继续扩大LDS staging tile。
+
+### TP8真实FFN边界hidden-RS oracle（2026-08-27）
+
+- 扩展`bench_dsv4_tp8_rs_mhc_oracle.py`覆盖FFN边界：attention `wo_b` rank-local
+  partial先reduce-scatter为H512 shard；MHC residual/post/pre保持hidden shard；router
+  使用K512 row-sharded FP32 partial并AR256；同时把normalized H512 shard all-gather成
+  routed/shared experts需要的完整H4096输入。当前oracle保守地串行router AR与expert AG，
+  尚未把两支overlap收益计入。
+- 随机结构输入中，BF16 router partial版本由`225.203 -> 171.753 us`（-23.73%），但
+  router relative-L2=`2.616e-3`；FP32 partial把relative-L2降到`2.986e-4`，仍由
+  `225.272 -> 180.153 us`（-20.03%）。FP32 primitive rank-max为RS4096=`17.44us`、
+  stats AR25=`14.14us`、norm AR1=`11.82us`、router AR256=`23.43us`、expert AG4096=
+  `34.39us`。
+- 随后从真实TP8 eager层20、M32 decode抓取八rank `wo_b` partial、MHC state/参数、norm
+  和router weight；所有partial FP32求和再落BF16与production `attn_out`逐元素exact。
+  使用这些真实tensor时，reference/candidate为`225.847/181.851 us`（-19.48%）；sharded
+  layer-input relative-L2=`1.147e-5`，FP32 router logits relative-L2=`1.424e-4`。
+- 从raw checkpoint加载`layers.20.ffn.gate.bias`并执行真实sqrt-softplus+bias Top-6：
+  32/32行expert集合完全一致，最小第6/7名margin=`4.9973e-4`，candidate最大choice-score
+  扰动=`1.9455e-4`。debug dump接线的服务France tiers1/8/16/32也为`57/57`逐tokenexact。
+  该结果达到进入默认关闭production原型的数值/预算门槛，但不能只在FFN边界临时分片：
+  MHC residual必须跨层持续保持shard，MoE output和attention `wo_b`都应以RS结束；attention
+  replicated projections改为K512 row-shard+AR，expert入口才AG full-H，最终层再恢复full-H。
+- 另一个无barrier half-wave A8 gate原型（lane halves分别A4）在真实路由中为
+  `106.310 -> 128.611 us`（+20.98%），且非bitwise（max-abs=`0.0625`、relative-L2=
+  `4.10e-6`）；原型已撤回。当前不再投入A8 weight-reuse重排。
