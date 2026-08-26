@@ -1323,6 +1323,13 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 结论：shared与routed的CU/缓存竞争超过3/3分工带来的收益。辅助stream接线、slot
   参数和环境开关均撤回；当前2/4串行并非遗漏开关，而是更好的端到端平衡点。
 
+### 8-GCD decode clock residency检查（2026-08-26）
+
+- `PERF_LEVEL_AUTO`空闲时为800 MHz，但长native-AR请求期间八个GCD连续采样均为
+  `100% GFX`、`1700 MHz`，无throttle；四张卡有功耗读数的主GCD约`340--356 W`。
+- 因此锁`PERF_LEVEL_HIGH`不会解释当前约76到120 tok/s的缺口；不用再把跨服务的
+  小幅频率漂移误判为主要性能机会。当前限制仍是graph内计算/collective结构。
+
 ### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
 
 - 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
