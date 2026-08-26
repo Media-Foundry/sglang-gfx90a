@@ -1134,6 +1134,17 @@ class DeepseekV2MoE(nn.Module):
         input_ids: Optional[torch.Tensor] = None,
         input_ids_global: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        mark(16)
         # Note(kpham-sgl): issue order satisfies 3 constraints:
         # - no stream explosion: main (routed) issued before alt block -> capture reuses 1 alt stream;
         # - PDL overlap: routed is the last main-stream kernel (fuses w/ residual add);
@@ -1159,6 +1170,7 @@ class DeepseekV2MoE(nn.Module):
         )
         # router_logits: (num_tokens, n_experts)
         router_logits = self.gate(hidden_states, gemm_output_zero_allocator)
+        mark(17)
         if use_flashinfer_trtllm_bypass:
             topk_output = BypassedTopKOutput(
                 hidden_states=hidden_states,
@@ -1177,6 +1189,7 @@ class DeepseekV2MoE(nn.Module):
                 expert_location_dispatch_info=dispatch_info,
                 **topk_kwargs,
             )
+        mark(18)
         deferred_finalize = (
             has_shared_output
             and not self._shared_expert_tp1
@@ -1195,6 +1208,7 @@ class DeepseekV2MoE(nn.Module):
             )
         else:
             final_hidden_states = self.experts(hidden_states, topk_output)
+        mark(19)
         if (
             not _is_cuda
             and not _is_musa
@@ -1205,13 +1219,16 @@ class DeepseekV2MoE(nn.Module):
 
         # Shared expert on alt stream, issued AFTER the main (routed) branch. See note above.
         with torch.cuda.stream(self.alt_stream):
+            mark(25)
             shared_output = self._forward_shared_experts(
                 hidden_states,
                 gemm_output_zero_allocator,
                 pre_quant_input=pre_quant_input,
             )
+            mark(26)
 
         current_stream.wait_stream(self.alt_stream)
+        mark(20)
 
         if deferred_finalize:
             from sglang.srt.layers.moe.moe_runner.flashinfer_trtllm import (
@@ -1229,7 +1246,10 @@ class DeepseekV2MoE(nn.Module):
                 None if self._shared_expert_tp1 else shared_output,
                 self.routed_scaling_factor,
             )
+        mark(21)
 
+        mark(22)
+        mark(23)
         if self.tp_size > 1 and not should_skip_post_experts_all_reduce(
             is_tp_path=True,
         ):
@@ -1238,6 +1258,7 @@ class DeepseekV2MoE(nn.Module):
         # avoid summing the same shared output once per TP rank.
         if self._shared_expert_tp1:
             final_hidden_states += shared_output
+        mark(24)
         return final_hidden_states
 
     def forward_normal(
