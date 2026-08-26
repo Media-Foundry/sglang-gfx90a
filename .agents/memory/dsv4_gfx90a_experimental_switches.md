@@ -1312,6 +1312,17 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   kernel、handoff、selector和环境开关均完整撤回。除非改成无全grid等待的producer-
   consumer或硬件cooperative launch，不应再次使用此融合协议。
 
+### split-MoE shared overlap + 3/3 routed slots反例（2026-08-26）
+
+- 当前可信布局在MoE-DP0串行计算shared expert+前2个routed slots，DP1计算后4个
+  routed slots。实验将DP0 shared放到辅助stream，并把routed ownership改为连续3/3，
+  期望用并行shared换取最慢routed分支由4 slots降为3。
+- TP8/DP2 graph BS1八rank均能捕获，France固定IDs 10/10精确，256-token hash在配置
+  内稳定为`9e98303cfefcd3ce`。但热稳态仅约`75.03--75.29 tok/s`，低于同期串行2/4
+  基线约`76.60--76.63 tok/s`。
+- 结论：shared与routed的CU/缓存竞争超过3/3分工带来的收益。辅助stream接线、slot
+  参数和环境开关均撤回；当前2/4串行并非遗漏开关，而是更好的端到端平衡点。
+
 ### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
 
 - 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
