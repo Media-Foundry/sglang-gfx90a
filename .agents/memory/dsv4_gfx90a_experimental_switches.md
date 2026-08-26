@@ -2127,3 +2127,58 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   leader/run判定与任务映射破坏了原grid-stride负载/缓存效率，权重复用没有转化为吞吐；
   独立原型撤回。当前A4 wave64已接近仅靠sort/block重排可获得的局部上限，后续需要改变
   FP4执行表示、减少量化/中间态，或做更大结构的RS-sharded residual，而非继续重排扫描。
+
+### TP8 M32 hidden-RS / sharded-MHC结构oracle（2026-08-27）
+
+- 新增完全独立、默认不接模型selector的
+  `scripts/rocm/bench_dsv4_tp8_rs_mhc_oracle.py`。attention边界候选保持MHC residual
+  按H分片：row-parallel partial `[32,4096] bf16`先RS成每rank `[32,512]`，本地执行
+  MHC post；MHC pre先AR `[32,25] fp32`（24个mix dot partial加residual sumsq）。pre
+  weighted sum按production落BF16，再AR `[32,1] fp32`取得全H sumsq，严格在RMSNorm后
+  再落一次BF16；之后以K=512做row-sharded replicated projections并一次BF16 AR输出。
+  没有把inverse-RMS穿过BF16 rounding，避免为省一个collective而改变production数值语义。
+- 现有AIter
+  RS只scatter dim0，普通row-major `[M,H]`必须先重排成`[P,M,H/P]`；正式kernel需要让
+  producer直接写rank-major layout，或实现last-dim hidden RS，不能把额外transpose藏在
+  micro之外。
+- 八rank strict-semantics结构容差通过（不是模型correctness通过）：RS后的MHC-post shard相对full-H reference
+  `max_abs=0`；plain wqkv N1536的sharded layer-input/final projection `max_abs`分别为
+  `0.015625/0.015625`，projection relative-L2=`0.00258147`。C128将所有可复制projection
+  打包为N2560（wqkv1536+core compressor1024）后，final `max_abs=0.015625`、relative-L2=
+  `0.00260277`。差异来自K-shard GEMM/collective accumulation顺序，尚不满足bitwise；接
+  真实权重前仍须layer20 tensor及France/long-context hash。三种projection shape的
+  layer-input relative-L2均`1.71642e-4`、cosine=`0.999999881`，projection在八rank的
+  output hash均只有一个唯一值；但N1536/N2560 projection relative-L2分别`0.00258147/
+  0.00260277`，已超过初筛`1e-3`，必须标红为后续numerical blocker而非忽略。
+- 五轮100-replay slowest-rank synthetic graph：plain N1536 full-H reference/candidate为
+  `243.393/142.465 us`（-41.47%），C128 N2560为`247.498/148.283 us`（-40.09%）。这些
+  PyTorch pointwise/GEMM数字只能作为继续写专核的promising oracle，不能当端到端收益。
+  N1536 collective floor为RS=`18.342 us`、AR25=`15.061 us`、AR1=`12.755 us`、
+  AR1536-BF16=`19.944 us`，四次通信合计约`66.1 us`；C128对应为`18.018/14.403/
+  12.247/24.210 us`，合计约`68.9 us`。
+- 早先BF16 AR1536=`19.9 us`与独立BF16 AR1537=`27.9 us`的差异已解释：1536 shape的
+  byte count能整除TP8 vector pack，走vector two-stage；1537余64 bytes而进入
+  `cross_device_reduce_2stage_naive`，不是计时矛盾。打包projection N必须保持TP8 pack
+  对齐。
+- C4把wqkv1536、core compressor2048、index compressor512和weights64合成N4160后，
+  strict结构容差同样通过但不满足初筛：layer-input `max_abs=0.015625`、relative-L2=
+  `1.71642e-4`、cosine=`0.999999881`；projection `max_abs=0.015625`、relative-L2=
+  `0.00260659`、cosine=`0.999996543`，八rank hash一致。五轮100-replay full/candidate为
+  `266.724/169.489 us`（synthetic -36.46%）；collective为RS=`18.475`、AR25=`14.499`、
+  AR1=`12.389`、AR4160=`32.805 us`，合计`78.17 us`。FFN边界则是RS+AR25+AR1后，row-sharded router
+  AR256与给expert gate/up恢复full-H的AG4096并行；只有attention边界在真实layer20上
+  slowest-rank净省至少20us并1000 replay稳定后再实现，避免同时改两处跨层状态。
+- 独立`bench_dsv4_tp8_collective_budget.py`以500 replay、7轮、逐轮8-rank max补齐严格
+  通信预算并完成逐元素exact校验：AIter RS `[32,4096]bf16->[32,512]`=`17.540 us`，
+  AR `[32,25]fp32`=`14.068 us`，AR `[32,1]fp32`=`12.193 us`，AR
+  `[32,1536]bf16`=`19.659 us`；因此未融合的严格链为`63.46 us/layer`。作为替代布局，
+  AR `[32,2560]bf16`=`23.844 us`、AR `[32,4160]bf16`=`33.622 us`，当前full-H
+  AR `[32,4096]bf16`复测=`32.349 us`。同一micro的RCCL细粒度graph约
+  `217--255 us/op`，不适合逐层方案；生产原型必须基于AIter peer-read。
+- `AR1536=19.66 us`与此前`AR1537=27.16--27.87 us`的差异已定位为确定的layout
+  fast-path边界，而非计时噪声。AIter two-stage在消息字节数可整除`world_size*16=128`
+  时选vector kernel，否则选`cross_device_reduce_2stage_naive`：M32x1536 BF16为
+  `98,304 B`且整除128，M32x1537为`98,368 B`且余64。二者都超过TP8的80KiB one-stage
+  阈值。故不能用同质`1537xbf16`模拟真实`1536xbf16+1xfp32`；异构专核应保持1536 bulk
+  的vector访问，在同一rendezvous附带FP32 scalar（或至少padding通信layout），否则会
+  白白损失约7.5us。
