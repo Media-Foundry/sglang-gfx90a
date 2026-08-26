@@ -2008,3 +2008,10 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - CDNA2只有I8 `16x16x16` MFMA而无`16x16x32`；真实A8 MFMA必须每K32发两条指令，
   并用多CTA/expert维持CU占用。独立micro stop-gate设为完整stage低于`248 us`（相对
   A4约292us至少15%）；未达标则不得接selector或服务。
+- 独立A8 MFMA16 gate原型使用真实`39 active experts/192 assignments`、A4为61次scan、
+  A8为46次scan。K32 I32 dot oracle逐元素exact；完整BF16输出finite，相对A4 reference
+  `max_abs=0.0625`、mean abs约`2.94e-6`、relative-L2约`4.82e-6`。但A4 gate仅
+  `103.232 us`，A8 MFMA16为`303.600 us`（慢2.94倍），远未达到`<=0.8x`门槛。
+  因此没有实现down、没有接selector/graph/service，三个独立原型文件已删除。这个结果
+  证实即使移除MFMA32的split-K/LDS partial税，16-row固定M tile在真实A8 occupancy下
+  仍无法战胜当前wave64 LDS-sdot；下一步不再沿用固定16-row MFMA做BS32 routed MoE。
