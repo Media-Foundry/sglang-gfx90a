@@ -14,6 +14,14 @@ DEFAULT_MAX_TOTAL_TOKENS="8192"
 DEFAULT_SWA_FULL_TOKENS_RATIO="0.65"
 DEFAULT_MEM_FRACTION_STATIC="0.80"
 
+# Keep the latency-oriented defaults unless the caller explicitly selects the
+# graph-safe multi-request profile.  On gfx90a TP4/EP1 this lets the shared
+# expert use the ROCm auxiliary stream while SBO overlaps it with routed MoE.
+GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE="${SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE:-0}"
+if [[ "${GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE}" == "1" ]]; then
+  export SGLANG_ROCM_USE_MULTI_STREAM=1
+fi
+
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-${DEFAULT_PORT}}"
 BASE_URL="http://${HOST}:${PORT}"
@@ -246,7 +254,9 @@ fi
 if [[ -n "${DEEPEP_MODE:-}" ]]; then
   server_args+=(--deepep-mode "${DEEPEP_MODE}")
 fi
-if [[ "${EP_SIZE:-4}" == "1" ]]; then
+if [[ "${GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE}" == "1" ]]; then
+  DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=1
+elif [[ "${EP_SIZE:-4}" == "1" ]]; then
   DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=0
 else
   DEFAULT_ENABLE_SINGLE_BATCH_OVERLAP=1
@@ -436,6 +446,9 @@ Optional env:
   ENABLE_SINGLE_BATCH_OVERLAP=1
                               # Overlap communication inside one request; this
                               # does not create a multi-request batch.
+  SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1
+                              # TP4/EP1 throughput profile: enable SBO plus the
+                              # graph-safe ROCm shared-expert auxiliary stream.
   ENABLE_PROFILE_CUDA_GRAPH=1 # Record kernels while the decode graph is captured.
   SGLANG_ROCM_CUDA_GRAPH_UPLOAD=0
                               # Explicitly hipGraphUpload each captured graph.
