@@ -1361,3 +1361,27 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   固定IDs连续10/10精确，256-token hash连续7轮稳定为`2afddbaf14d77f25`。但服务级
   ABBA中融合约`75.84--76.10 tok/s`，返回基线约`76.93--77.00 tok/s`，端到端回退
   约1.2%。生产接线及环境开关已完整撤回；除非重做更轻的CTA/尾部协同，不再启用。
+
+### prequant INT8 q-lora/q_b融合反例（2026-08-26）
+
+- 先补扫attention output现有wave64几何：`kRows=2,waves=4`的grouped `wo_a`+
+  `wo_b`约`33.89--33.94 us`，慢于当前`kRows=1,waves=4`的约`32.76--32.83 us`；
+  `kRows=4,waves=4`进一步退到约`36.55--36.57 us`。三者输出均逐元素bitwise一致，
+  当前几何仍是较优点，不再接服务。
+- 给per-row INT8 weight GEMV做过仅用于lower-bound的prequant入口。三个真实shape
+  `N,K=(1536,4096)/(8192,1024)/(4096,2048)`在预分配output下，BF16 wave64约
+  `12.9/15.9/15.9 us`，纯prequant INT8 scan约`5.5/6.7/7.2 us`；prequant与原
+  kernel内部per-tensor量化输出逐元素bitwise一致。说明INT8 weight scan本身有潜力，
+  但独立wrapper/额外量化不能代表graph收益。
+- HIP单CTA原型将M1 `[1,1024]` q-lora RMSNorm同时输出BF16、per-tensor INT8与scale。
+  16 waves/1024 threads约`4.43 us`，对FP32/Torch RMSNorm及其自身量化oracle均逐元素
+  bitwise一致；与prequant q_b合并的standalone链约`11.1 us`，相对AIter RMSNorm+
+  BF16 q_b的约`19.3 us`表面节省约`8 us/layer`。
+- 完整TP8/DP2 graph中同时启用既有三个INT8 projection cache及该q_b融合：France
+  固定IDs 10/10精确，256-token 8/8 hash稳定为`777c3b8757e7edae`；关闭态hash为
+  `14593da264d38f29`。B热稳态约`75.58--75.71 tok/s`，同期A约
+  `75.49--75.51 tok/s`，收益不足0.3%，远低于采用门槛。
+- 结论：projection kernel的局部节省仍被compressor/多流graph调度隐藏。prequant
+  接口、RMS+INT8 HIP核、selector及环境开关全部撤回；若以后重做weight-only路径，
+  必须让同一份量化activation跨wqkv/router/MoE消费者复用并改变临界依赖，而不是只
+  替换单个q_b producer-consumer链。
