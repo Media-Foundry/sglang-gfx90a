@@ -2331,3 +2331,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 256-token completion在BS8为2种hash、BS16为1种、BS32为既有7种hash；短France
   完全一致但长decode跨slot漂移债务仍存在。本轮没有生产代码改动，不能把短oracle扩大
   为长序列bitwise parity结论。
+
+### TP8 BS32 BF16 hipBLASLt穷举与wqkv定向否证（2026-08-27）
+
+- AIter hipBLASLt对八个真实M32 BF16 shape逐个穷举2226个solution。独立CUDA Graph
+  五轮ABBA中，`wqkv_a [32,4096]x[1536,4096]`的solution 3931由
+  `37.245 -> 28.958 us`（快28.62%，省8.29us）；core compressor N2048的solution
+  3929由`40.709 -> 33.846 us`，N512的solution 5042由`25.162 -> 16.052 us`。
+  其余主链候选没有价值：wq_b N8192/K1024慢6.26%，wo_b N4096/K2048仅快0.79%，
+  shared-down N4096/K512慢2.06%。所有定解finite、12次graph replay bitwise稳定；相对
+  Torch reference的relative-L2不高于`4.42e-5`。
+- 只在wqkv_a、且仅M32调用点启用solution3931后，graph capture成功，France tiers
+  1/8/16/32在A与B均为`57/57`逐tokenexact。服务级A/B/B/A的hot BS32结果为：A1约
+  `942.1`，B1约`943.4`，B2约`943.1`，A2约`946.4 tok/s`。局部8.29us/layer节省没有
+  转化为端到端收益，B相对末端A约退化0.3%；生产selector、layer标记和固定solution接线
+  已全部撤回。
+- 保留`scripts/rocm/bench_aiter_bf16_m32_gemm.py`作为独立复现工具。结论与此前N512
+  “裸graph快42%、E2E慢约1%”一致：M32 dense GEMM的单stream局部时间不是当前graph
+  critical tail，不能把hipBLASLt tuner结果直接全局接入。后续转向真实routed-MoE
+  K-tiled packed-FP4 cooperative reuse；其继续门槛是完整routed stage从约195.8us降到
+  不高于145us，并保持BF16逐元素exact。
