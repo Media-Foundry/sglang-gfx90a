@@ -2351,3 +2351,18 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   critical tail，不能把hipBLASLt tuner结果直接全局接入。后续转向真实routed-MoE
   K-tiled packed-FP4 cooperative reuse；其继续门槛是完整routed stage从约195.8us降到
   不高于145us，并保持BF16逐元素exact。
+
+### routed FP4 cooperative A8 LDS复用否证（2026-08-27）
+
+- 按真实pass47/layer20路由实现过一个仅用于micro的gate/up原型：sorter直接用A8
+  metadata；每CTA两条wave、每wave仍只保留A4 accumulator；两wave处理同一expert/row
+  tile的前后四个routes，并由128线程把K2048 packed-FP4 tile和scale协作搬入LDS。lane
+  仍按`g,g+64`累加，shuffle树不变，因此完整stage相对A4/R2/B832/LDS reference为BF16
+  逐元素exact、max-abs=0。
+- 但七轮50-iteration中reference median=`194.946 us`，cooperative A8 median=
+  `546.881 us`（`+180.53%`）。A8把真实weight scans从约61.46降到约46（仅25.2%），
+  完全不足以抵消global-to-LDS store、每tile block barrier、两wave LDS重读和有效并行度下降。
+  因结果远高于145us继续门槛，C++ kernel、Python wrapper和benchmark接线均已撤回。
+- 该结果与此前整行decoded-LDS staging失败一致：gfx90a routed小M当前需要保持无block
+  barrier的wave级persistent任务。后续若重访weight reuse，应采用不要求同CTA wave同步的
+  表示（例如离线layout/跨route寄存器映射），不能继续扩大LDS staging tile。
