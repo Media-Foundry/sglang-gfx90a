@@ -288,6 +288,26 @@ else
   done
 fi
 
+# The 8-GCD profile spans both host NUMA nodes.  Interleaving host allocations
+# avoids scheduler/JIT staging landing entirely on one socket; measured native
+# AR is about 2% faster and substantially more reproducible.  Keep smaller
+# deployments unchanged unless explicitly requested.
+if [[ -n "${NUMA_INTERLEAVE_ALL:-}" ]]; then
+  USE_NUMA_INTERLEAVE_ALL="${NUMA_INTERLEAVE_ALL}"
+elif [[ "${TP_SIZE:-4}" == "8" ]]; then
+  USE_NUMA_INTERLEAVE_ALL=1
+else
+  USE_NUMA_INTERLEAVE_ALL=0
+fi
+server_prefix=()
+if [[ "${USE_NUMA_INTERLEAVE_ALL}" == "1" ]]; then
+  if ! command -v numactl >/dev/null 2>&1; then
+    echo "error: NUMA_INTERLEAVE_ALL=1 requires numactl" >&2
+    exit 2
+  fi
+  server_prefix=(numactl --interleave=all)
+fi
+
 usage() {
   cat <<'EOF'
 Usage: scripts/rocm_dsv4_flash.sh <command> [args]
@@ -333,6 +353,7 @@ DSpark contract:
   comparable to the native-AR forward-per-token contract above.
 
 Optional env:
+  NUMA_INTERLEAVE_ALL=0|1    # Defaults to 1 for TP_SIZE=8, otherwise 0.
   TP_SIZE=4 EP_SIZE=4 MOE_A2A_BACKEND=mori
                               # Default EP4 service. For the validated BS1
                               # no-A2A oracle use EP_SIZE=1 and
@@ -482,7 +503,7 @@ start_server() {
   mkdir -p "$(dirname "${LOG_FILE}")"
   : > "${LOG_FILE}"
   cd "${ROOT_DIR}"
-  nohup "${PYTHON_BIN}" -m sglang.launch_server "${server_args[@]}" \
+  nohup "${server_prefix[@]}" "${PYTHON_BIN}" -m sglang.launch_server "${server_args[@]}" \
     >>"${LOG_FILE}" 2>&1 &
   echo "$!" > "${PID_FILE}"
   echo "started pid=$(cat "${PID_FILE}") log=${LOG_FILE}"
@@ -491,7 +512,7 @@ start_server() {
 
 serve_server() {
   cd "${ROOT_DIR}"
-  exec "${PYTHON_BIN}" -m sglang.launch_server "${server_args[@]}"
+  exec "${server_prefix[@]}" "${PYTHON_BIN}" -m sglang.launch_server "${server_args[@]}"
 }
 
 stop_server() {
