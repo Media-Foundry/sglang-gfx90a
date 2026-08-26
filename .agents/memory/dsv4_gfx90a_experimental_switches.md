@@ -2109,3 +2109,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   TP8 AR已走two-stage；不能简单批化one-stage。更合理的后续oracle是保留two-stage
   reduce-scatter及BF16 rounding顺序，只把MHC post/RMS epilogue并入stage-2 all-gather，
   先要求8-rank slowest latency每boundary至少节省8us、理想20us，再考虑接模型。
+- 上述M32 two-stage epilogue随后已用隔离AIter `.so`完成8-rank graph oracle，正式
+  `module_custom_all_reduce.so`未被覆盖。A为现有two-stage custom AR后接Triton
+  MHC-post/RMS，B为stage-2 gather时直接执行四通道post并写RMS partial；final peer
+  barrier包含在B计时内。1000-replay rank-max ABBA为A1/B1/B2/A2=
+  `37.644/38.500/38.499/37.558 us`，A/B median=`37.601/38.499 us`，融合反而慢2.33%。
+  8次变异输入没有stale-read或hang、八rank hash一致，但相对reference初始max-abs
+  `2.44e-4`、变异最大`9.77e-4`，RMS sum最大relative差`5.45e-7`，不满足bitwise。
+  因此未接SGLang生产路径；后续不再投入该epilogue，除非能同时消除final barrier成本
+  并严格复现Triton reduction顺序。
+- 继续验证了不增加第二compute launch的paired-A4单kernel：同expert连续A4 block映射
+  到paired waves（gate/up）或paired 8-lane subgroups（TP8 K256 down），每个执行单元
+  仍只保留A4 accumulator。recorder pass42/layer20严格重构32x6无重复路由，active=40、
+  max occupancy=16；理论weight scans由64降到45（-29.69%）。但7轮ABBA实测gate
+  `106.508 -> 134.228 us`、down `87.160 -> 113.296 us`、full stage
+  `195.816 -> 249.724 us`，分别退化26.0%/30.0%/27.5%，虽三段均逐元素bitwise exact。
+  leader/run判定与任务映射破坏了原grid-stride负载/缓存效率，权重复用没有转化为吞吐；
+  独立原型撤回。当前A4 wave64已接近仅靠sort/block重排可获得的局部上限，后续需要改变
+  FP4执行表示、减少量化/中间态，或做更大结构的RS-sharded residual，而非继续重排扫描。
