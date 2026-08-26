@@ -31,9 +31,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import statistics
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.distributed as dist
@@ -68,11 +70,22 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--mixes", type=int, default=24)
     p.add_argument("--qkv", type=int, default=1536)
     p.add_argument(
+        "--dump-dir",
+        help="Load real layer-20 tensors produced by the DSV4 debug dump.",
+    )
+    p.add_argument("--model-dir", default="/home/pc/models/modelscope")
+    p.add_argument("--layer-id", type=int, default=20)
+    p.add_argument(
         "--projection-partial-dtype",
         choices=("bf16", "fp16", "fp32"),
         default="bf16",
     )
     p.add_argument("--isolate-reference-layer-input", action="store_true")
+    p.add_argument(
+        "--include-expert-all-gather",
+        action="store_true",
+        help="Model the FFN boundary by restoring full-H expert input.",
+    )
     p.add_argument(
         "--tuned-fp16",
         action="store_true",
@@ -100,6 +113,59 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
     assert args.hidden % world == 0
     hs = args.hidden // world
     lo, hi = rank * hs, (rank + 1) * hs
+
+    if args.dump_dir:
+        dump_dir = Path(args.dump_dir)
+
+        def load(name: str) -> torch.Tensor:
+            return torch.load(
+                dump_dir / f"layer_20_rank_{rank}_{name}.pt",
+                map_location="cpu",
+                weights_only=True,
+            ).cuda()
+
+        partial = load("wo_b_partial").contiguous()
+        partial_rank_major = (
+            partial.view(args.rows, world, hs)
+            .movedim(1, 0)
+            .reshape(world * args.rows, hs)
+            .contiguous()
+        )
+        residual_full = load("ffn_mhc_residual").contiguous()
+        residual_shard = residual_full[:, :, lo:hi].contiguous()
+        post = load("ffn_mhc_post").contiguous()
+        comb = load("ffn_mhc_comb").contiguous()
+        fn_full = load("hc_ffn_fn").reshape(args.mixes, args.hc, args.hidden)
+        fn_shard = fn_full[:, :, lo:hi].contiguous()
+        pre_scale = load("hc_ffn_scale").contiguous()
+        pre_base = load("hc_ffn_base").contiguous()
+        norm_full = load("ffn_norm_weight").contiguous()
+        norm_shard = norm_full[lo:hi].contiguous()
+        wqkv_full = load("router_weight").contiguous()
+        if wqkv_full.shape != (args.qkv, args.hidden):
+            raise ValueError(
+                f"dumped projection shape {tuple(wqkv_full.shape)} does not "
+                f"match --qkv={args.qkv}"
+            )
+        wqkv_shard = wqkv_full[:, lo:hi].contiguous()
+        wqkv_shard_fp16 = wqkv_shard.to(torch.float16)
+        return Inputs(
+            partial,
+            partial_rank_major,
+            residual_full,
+            residual_shard,
+            post,
+            comb,
+            fn_full,
+            fn_shard,
+            pre_scale,
+            pre_base,
+            norm_full,
+            norm_shard,
+            wqkv_full,
+            wqkv_shard,
+            wqkv_shard_fp16,
+        )
 
     # Each rank contributes a different row-parallel output partial.
     partial = _randn(
@@ -183,7 +249,7 @@ def pre_weights_from_stats(
     mixes = dots * inv_rms
     # Only the first hc MHC outputs produce pre weights.  post/comb Sinkhorn
     # outputs do not affect the layer-input and wqkv_a budget being tested.
-    return torch.sigmoid(mixes[:, :hc] * scale + base) + eps
+    return torch.sigmoid(mixes[:, :hc] * scale.flatten()[0] + base[:hc]) + eps
 
 
 def full_reference(
@@ -192,7 +258,7 @@ def full_reference(
     comm: CustomAllreduce,
     *,
     registered: bool,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     reduced = comm.all_reduce(inp.partial, registered=registered)
     residual = mhc_post(reduced, inp.residual_full, inp.post, inp.comb)
     residual_f = residual.float()
@@ -216,7 +282,7 @@ def full_reference(
         * inp.norm_full.float()
     ).to(torch.bfloat16)
     qkv = torch.matmul(layer_input, inp.wqkv_full.T)
-    return residual, layer_input, qkv
+    return residual, layer_input, qkv, layer_input
 
 
 def sharded_candidate(
@@ -227,7 +293,7 @@ def sharded_candidate(
     *,
     registered: bool,
     layer_input_override: torch.Tensor | None = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
     hs = args.hidden // dist.get_world_size()
     reduced_shard = torch.empty(
         (args.rows, hs), dtype=torch.bfloat16, device="cuda"
@@ -290,7 +356,18 @@ def sharded_candidate(
     else:
         qkv_local = torch.matmul(projection_input, inp.wqkv_shard.T)
         qkv = comm.all_reduce(qkv_local, registered=registered)
-    return residual, layer_input, qkv
+    expert_input = None
+    if args.include_expert_all_gather:
+        gathered = comm.custom_all_gather(layer_input.contiguous())
+        if gathered is None:
+            raise RuntimeError("AIter custom all-gather is unavailable")
+        expert_input = (
+            gathered.view(dist.get_world_size(), args.rows, hs)
+            .movedim(0, 1)
+            .reshape(args.rows, args.hidden)
+            .contiguous()
+        )
+    return residual, layer_input, qkv, expert_input
 
 
 def critical_us(
@@ -333,7 +410,7 @@ def main() -> None:
         raise RuntimeError("AIter custom collectives did not initialize")
 
     dist.barrier()
-    ref_residual, ref_layer_input, ref_qkv = full_reference(
+    ref_residual, ref_layer_input, ref_qkv, ref_expert_input = full_reference(
         args, inp, comm, registered=False
     )
     hs = args.hidden // world
@@ -343,7 +420,7 @@ def main() -> None:
         if args.isolate_reference_layer_input
         else None
     )
-    cand_residual, cand_layer_input, cand_qkv = sharded_candidate(
+    cand_residual, cand_layer_input, cand_qkv, cand_expert_input = sharded_candidate(
         args,
         inp,
         comm,
@@ -358,6 +435,38 @@ def main() -> None:
         cand_layer_input, ref_layer_input[:, lo:hi], rtol=2e-2, atol=2e-2
     )
     torch.testing.assert_close(cand_qkv, ref_qkv, rtol=3e-2, atol=5e-2)
+    if args.include_expert_all_gather:
+        assert cand_expert_input is not None
+        torch.testing.assert_close(
+            cand_expert_input, ref_expert_input, rtol=2e-2, atol=2e-2
+        )
+    topk_summary = None
+    if args.dump_dir and args.qkv == 256:
+        from safetensors import safe_open
+
+        key = f"layers.{args.layer_id}.ffn.gate.bias"
+        index_path = Path(args.model_dir) / "model.safetensors.index.json"
+        shard_name = json.loads(index_path.read_text())["weight_map"][key]
+        with safe_open(
+            Path(args.model_dir) / shard_name, framework="pt", device="cpu"
+        ) as handle:
+            router_bias = handle.get_tensor(key).cuda().float()
+        ref_choice = torch.nn.functional.softplus(ref_qkv.float()).sqrt()
+        ref_choice = ref_choice + router_bias
+        cand_choice = torch.nn.functional.softplus(cand_qkv.float()).sqrt()
+        cand_choice = cand_choice + router_bias
+        ref_top7 = torch.topk(ref_choice, 7, dim=-1, sorted=True)
+        cand_top6 = torch.topk(cand_choice, 6, dim=-1, sorted=False).indices
+        ref_top6 = ref_top7.indices[:, :6]
+        ref_sets = torch.sort(ref_top6, dim=-1).values
+        cand_sets = torch.sort(cand_top6, dim=-1).values
+        topk_summary = (
+            int(torch.equal(ref_sets, cand_sets)),
+            int((ref_sets != cand_sets).any(dim=-1).sum()),
+            float((ref_top7.values[:, 5] - ref_top7.values[:, 6]).min()),
+            float((cand_choice - ref_choice).abs().max()),
+        )
+
     def error_triplet(candidate: torch.Tensor, reference: torch.Tensor):
         candidate_f = candidate.float().flatten()
         reference_f = reference.float().flatten()
@@ -400,6 +509,7 @@ def main() -> None:
             f"projection_partial_dtype={args.projection_partial_dtype} "
             f"isolate_reference_layer_input={args.isolate_reference_layer_input} "
             f"tuned_fp16={args.tuned_fp16} "
+            f"include_expert_all_gather={args.include_expert_all_gather} "
             f"residual_max_abs={local_metrics[0].item():.6g} "
             f"residual_rel_l2={local_metrics[1].item():.6g} "
             f"residual_cosine={local_metrics[2].item():.9f} "
@@ -412,6 +522,14 @@ def main() -> None:
             f"rank_hashes_unique={len(set(qkv_hashes))}",
             flush=True,
         )
+        if topk_summary is not None:
+            print(
+                "router_topk_set_exact="
+                f"{bool(topk_summary[0])} mismatched_rows={topk_summary[1]} "
+                f"min_6v7_margin={topk_summary[2]:.8g} "
+                f"choice_max_abs={topk_summary[3]:.8g}",
+                flush=True,
+            )
 
     if not args.skip_graphs:
         # Capture separately: registering all graph input pointers is part of
@@ -498,6 +616,11 @@ def main() -> None:
                 seed=11000 + rank,
                 dtype=projection_dtype,
             )
+            expert_shard = _randn(
+                (args.rows, args.hidden // world),
+                seed=12000 + rank,
+                dtype=torch.bfloat16,
+            )
 
             def capture_collective(fn):
                 graph = torch.cuda.CUDAGraph()
@@ -530,6 +653,9 @@ def main() -> None:
             proj16_graph, proj16_keepalive = capture_collective(
                 lambda: comm.all_reduce(projection, registered=True)
             )
+            expert_ag_graph, expert_ag_keepalive = capture_collective(
+                lambda: comm.custom_all_gather(expert_shard)
+            )
             breakdown = []
             for name, graph in (
                 ("RS_32x4096_bf16", rs_graph),
@@ -539,6 +665,7 @@ def main() -> None:
                     f"AR_32x{args.qkv}_{args.projection_partial_dtype}",
                     proj16_graph,
                 ),
+                ("AG_32x512_bf16", expert_ag_graph),
             ):
                 median, reps = critical_us(
                     graph,
@@ -549,7 +676,13 @@ def main() -> None:
                 )
                 breakdown.append((name, median, reps))
             # Explicitly retain captured outputs until every replay completes.
-            _ = (rs_keepalive, stats_keepalive, norm_keepalive, proj16_keepalive)
+            _ = (
+                rs_keepalive,
+                stats_keepalive,
+                norm_keepalive,
+                proj16_keepalive,
+                expert_ag_keepalive,
+            )
             if rank == 0:
                 for name, median, reps in breakdown:
                     print(
