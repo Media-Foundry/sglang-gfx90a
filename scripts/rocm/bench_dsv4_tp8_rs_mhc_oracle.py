@@ -53,6 +53,7 @@ class Inputs:
     comb: torch.Tensor
     fn_full: torch.Tensor
     fn_shard: torch.Tensor
+    fn_shard_fp16: torch.Tensor
     pre_scale: torch.Tensor
     pre_base: torch.Tensor
     norm_full: torch.Tensor
@@ -97,6 +98,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--reps", type=int, default=5)
     p.add_argument("--skip-graphs", action="store_true")
     p.add_argument("--skip-breakdown", action="store_true")
+    p.add_argument(
+        "--native-sharded-mhc",
+        action="store_true",
+        help="Use the standalone gfx90a H512 stage1/2/3 HIP kernels.",
+    )
     return p.parse_args()
 
 
@@ -137,6 +143,9 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
         comb = load("ffn_mhc_comb").contiguous()
         fn_full = load("hc_ffn_fn").reshape(args.mixes, args.hc, args.hidden)
         fn_shard = fn_full[:, :, lo:hi].contiguous()
+        fn_shard_fp16 = (
+            fn_shard.to(torch.float16).reshape(args.mixes, -1).contiguous()
+        )
         pre_scale = load("hc_ffn_scale").contiguous()
         pre_base = load("hc_ffn_base").contiguous()
         norm_full = load("ffn_norm_weight").contiguous()
@@ -158,6 +167,7 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
             comb,
             fn_full,
             fn_shard,
+            fn_shard_fp16,
             pre_scale,
             pre_base,
             norm_full,
@@ -190,6 +200,9 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
         (args.mixes, args.hc, args.hidden), seed=5000, dtype=torch.float32
     ).mul_(0.01)
     fn_shard = fn_full[:, :, lo:hi].contiguous()
+    fn_shard_fp16 = (
+        fn_shard.to(torch.float16).reshape(args.mixes, -1).contiguous()
+    )
     pre_scale = torch.tensor(0.25, device="cuda", dtype=torch.float32)
     pre_base = _randn((args.hc,), seed=6000, dtype=torch.float32).mul_(0.1)
     norm_full = (
@@ -212,6 +225,7 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
         comb,
         fn_full,
         fn_shard,
+        fn_shard_fp16,
         pre_scale,
         pre_base,
         norm_full,
@@ -301,29 +315,60 @@ def sharded_candidate(
     comm.reduce_scatter(
         inp.partial_rank_major, reduced_shard, registered=registered
     )
-    residual = mhc_post(reduced_shard, inp.residual_shard, inp.post, inp.comb)
-    residual_f = residual.float()
-    dots_local = torch.einsum("mch,kch->mk", residual_f, inp.fn_shard)
-    sumsq_local = residual_f.square().sum((1, 2), keepdim=False).unsqueeze(1)
-    stats_local = torch.cat((dots_local, sumsq_local), dim=1)
-    stats = comm.all_reduce(stats_local, registered=registered)
-    pre = pre_weights_from_stats(
-        stats,
-        hc=args.hc,
-        hidden=args.hidden,
-        scale=inp.pre_scale,
-        base=inp.pre_base,
-        eps=args.eps,
-    )
-    y = torch.einsum("mc,mch->mh", pre, residual_f).to(torch.bfloat16)
-    y_f = y.float()
-    y_sumsq_local = y_f.square().sum(1, keepdim=True)
+    if args.native_sharded_mhc:
+        from sglang.kernels.ops.layernorm.gfx90a_sharded_mhc import (
+            gfx90a_sharded_mhc_stage1,
+            gfx90a_sharded_mhc_stage2,
+            gfx90a_sharded_mhc_stage3,
+        )
 
-    y_sumsq = comm.all_reduce(y_sumsq_local, registered=registered)
-    inv_rms = torch.rsqrt(y_sumsq / args.hidden + args.eps)
-    layer_input = (
-        y_f * inv_rms * inp.norm_shard.float()
-    ).to(torch.bfloat16)
+        residual, stats_local = gfx90a_sharded_mhc_stage1(
+            reduced_shard,
+            inp.residual_shard,
+            inp.post,
+            inp.comb,
+            inp.fn_shard_fp16,
+        )
+        stats = comm.all_reduce(stats_local, registered=registered)
+        post, comb, y, y_sumsq_local = gfx90a_sharded_mhc_stage2(
+            residual,
+            stats,
+            inp.pre_scale,
+            inp.pre_base,
+            args.eps,
+            args.eps,
+            2.0,
+        )
+        y_sumsq = comm.all_reduce(y_sumsq_local, registered=registered)
+        layer_input = gfx90a_sharded_mhc_stage3(
+            y,
+            y_sumsq,
+            inp.norm_shard,
+            args.eps,
+        )
+    else:
+        residual = mhc_post(reduced_shard, inp.residual_shard, inp.post, inp.comb)
+        residual_f = residual.float()
+        dots_local = torch.einsum("mch,kch->mk", residual_f, inp.fn_shard)
+        sumsq_local = residual_f.square().sum((1, 2), keepdim=False).unsqueeze(1)
+        stats_local = torch.cat((dots_local, sumsq_local), dim=1)
+        stats = comm.all_reduce(stats_local, registered=registered)
+        pre = pre_weights_from_stats(
+            stats,
+            hc=args.hc,
+            hidden=args.hidden,
+            scale=inp.pre_scale,
+            base=inp.pre_base,
+            eps=args.eps,
+        )
+        y = torch.einsum("mc,mch->mh", pre, residual_f).to(torch.bfloat16)
+        y_f = y.float()
+        y_sumsq_local = y_f.square().sum(1, keepdim=True)
+        y_sumsq = comm.all_reduce(y_sumsq_local, registered=registered)
+        inv_rms = torch.rsqrt(y_sumsq / args.hidden + args.eps)
+        layer_input = (
+            y_f * inv_rms * inp.norm_shard.float()
+        ).to(torch.bfloat16)
     projection_input = (
         layer_input if layer_input_override is None else layer_input_override
     )
@@ -510,6 +555,7 @@ def main() -> None:
             f"isolate_reference_layer_input={args.isolate_reference_layer_input} "
             f"tuned_fp16={args.tuned_fp16} "
             f"include_expert_all_gather={args.include_expert_all_gather} "
+            f"native_sharded_mhc={args.native_sharded_mhc} "
             f"residual_max_abs={local_metrics[0].item():.6g} "
             f"residual_rel_l2={local_metrics[1].item():.6g} "
             f"residual_cosine={local_metrics[2].item():.9f} "
@@ -572,6 +618,25 @@ def main() -> None:
             reps=args.reps,
             world=world,
         )
+        # A/B/B/A guards against one-time clock and cache state.  Report both
+        # individual legs and the combined medians; every leg still uses the
+        # slowest rank for each repetition.
+        cand_median_2, cand_reps_2 = critical_us(
+            cand_graph,
+            warmup=args.warmup,
+            iters=args.iters,
+            reps=args.reps,
+            world=world,
+        )
+        ref_median_2, ref_reps_2 = critical_us(
+            ref_graph,
+            warmup=args.warmup,
+            iters=args.iters,
+            reps=args.reps,
+            world=world,
+        )
+        ref_abba = statistics.median(ref_reps + ref_reps_2)
+        cand_abba = statistics.median(cand_reps + cand_reps_2)
         # Keep outputs live through timing and validate graph replay too.
         torch.testing.assert_close(
             cand_graph_outputs[2], ref_graph_outputs[2], rtol=3e-2, atol=5e-2
@@ -586,6 +651,22 @@ def main() -> None:
                 f"candidate_critical_us={cand_median:.3f} "
                 f"reps={[round(x, 3) for x in cand_reps]} "
                 f"delta_pct={(cand_median / ref_median - 1.0) * 100.0:+.2f}",
+                flush=True,
+            )
+            print(
+                f"abba_A2_reference_us={ref_median_2:.3f} "
+                f"reps={[round(x, 3) for x in ref_reps_2]}",
+                flush=True,
+            )
+            print(
+                f"abba_B2_candidate_us={cand_median_2:.3f} "
+                f"reps={[round(x, 3) for x in cand_reps_2]}",
+                flush=True,
+            )
+            print(
+                f"abba_reference_median_us={ref_abba:.3f} "
+                f"abba_candidate_median_us={cand_abba:.3f} "
+                f"abba_delta_pct={(cand_abba / ref_abba - 1.0) * 100.0:+.2f}",
                 flush=True,
             )
             print(
