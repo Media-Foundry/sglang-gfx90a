@@ -1591,3 +1591,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   自动恢复843，故不计稳态但必须继续保留多轮trim。
 - throughput profile现在将小M grouped gate/down默认grid设为624；普通延迟profile仍
   保持208，且两个grid均可分别用环境变量覆盖。
+
+### 单模型TP8的1M-token多请求profile（2026-08-26）
+
+- 双TP4副本继续作为短请求最大吞吐特例保留，但它会复制两份完整模型：每GCD仍持有
+  约45.34GB权重，每副本16K pool后约余11.4GB。面向大并发与长上下文的正式拓扑改为
+  单实例`TP8/EP1/no-A2A`，不再用模型复制掩盖KV容量。
+- TP8每GCD权重约`26.80 GB`。`mem_fraction_static=0.96`、
+  `MAX_TOTAL_TOKENS=1048576`、SWA ratio0.65下实际成功分配完整
+  `1,048,576-token` pool；BS`1/2/4/8/16/20/24/32` graph总计约0.46GB，capture后
+  仍余约`15.9 GB/GCD`。DSV4 allocator报告理论容量约1,155,840 full tokens，因此
+  当前1M上限不是OOM边缘值。
+- 基础TP8配置在全部8个graph tier执行France固定input IDs，合计`107/107`请求均与
+  9-token expected IDs逐token精确且每tier输出唯一。BS32、256-token native AR冷态
+  前两轮为`229.12/350.72 tok/s`，JIT完成后四轮稳定为
+  `713.61/713.96/713.70/713.88 tok/s`；正式比较必须剔除首次shape编译。
+- 仅开启`--enable-single-batch-overlap`与`SGLANG_ROCM_USE_MULTI_STREAM=1`，保持
+  group8/208 blocks及同一1M pool，France在BS1/16/32合计`49/49`逐token精确。
+  六轮为`779.15/782.90/766.96/768.47/768.60/768.55 tok/s`，trim约
+  `771.19 tok/s`，相对TP8热基线约`+7.7%`。新增
+  `SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=1`固化单模型TP8容量/吞吐配置；它与
+  `SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1`的双TP4特例互不替代。
+- AIter BF16 tuned-config与M16 hipBLASLt projection在双TP4端到端仅约`+0.8%`，其中
+  N1536 helper叠加收益约`0.1%`；复杂度不值，已从工作树撤掉，不混入TP8 checkpoint。
