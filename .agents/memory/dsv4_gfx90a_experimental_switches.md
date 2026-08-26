@@ -2015,3 +2015,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   因此没有实现down、没有接selector/graph/service，三个独立原型文件已删除。这个结果
   证实即使移除MFMA32的split-K/LDS partial税，16-row固定M tile在真实A8 occupancy下
   仍无法战胜当前wave64 LDS-sdot；下一步不再沿用固定16-row MFMA做BS32 routed MoE。
+
+### TP8 BS32 benchmark口径与HIP attention多流接线（2026-08-27）
+
+- 历史`969.82 tok/s`与后来约`947 tok/s`并不是同一输入：scheduler日志的pending-token
+  显示历史轮为每请求11-token France输入，后者脚本为16-token Explain-2+2输入；两者
+  不仅prefill长度不同，后续greedy路由轨迹也不同。完整graph tiers、同一HEAD下，16-token
+  输入八轮约`941.67--953.83 tok/s`；固定11个France `input_ids`六轮为
+  `967.23/991.08/991.54/991.78/988.08/991.41`，median `991.25`、trimmed `990.53`。
+  因此没有生产kernel回退，正式性能对比以后必须固定input IDs，不能混用这两组prompt。
+- 只读审计发现`DeepseekV4Model`虽为HIP创建两条alt streams，`MQALayer.__init__`却只在
+  CUDA/NPU条件下保存它们，导致现有`_forward_prepare_multi_stream_hip()`不可达。串行
+  C4 prepare约`196.48 us/layer`，主要为wqkv_a `45.60`、qnorm `16.32`、wq_b
+  `24.64`、store `9.76`、indexer `48.96`、core compressor `46.88 us`。
+- 临时补上HIP alt-stream接线后，完整tiers graph稳定捕获，France全tiers仍`63/63`
+  exact；固定11-ID France长生成六轮为`966.60/988.92/989.36/989.42/990.42/988.88`，
+  trimmed `989.14 tok/s`。回退接线后的A2同样France `63/63`，六轮trimmed
+  `990.45 tok/s`；A1/B/A2分别`990.53/989.14/990.45`，B稳定约慢0.13%。说明三条
+  BF16 projection/compressor流竞争同一GCD的HBM/CU，理论重叠未缩短rank-max tail。
+  接线已撤回且未提交生产代码；若再做此方向，必须先在独立graph micro把C4 prepare压到
+  `<=156 us`才值得service，`<=118 us`才可能单项达到5%。
