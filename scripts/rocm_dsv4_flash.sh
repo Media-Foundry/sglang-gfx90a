@@ -276,6 +276,18 @@ fi
 if [[ -n "${REASONING_PARSER:-}" ]]; then
   server_args+=(--reasoning-parser "${REASONING_PARSER}")
 fi
+if [[ -n "${EXPERT_DISTRIBUTION_RECORDER_MODE:-}" ]]; then
+  server_args+=(
+    --expert-distribution-recorder-mode
+    "${EXPERT_DISTRIBUTION_RECORDER_MODE}"
+  )
+fi
+if [[ -n "${EXPERT_DISTRIBUTION_RECORDER_BUFFER_SIZE:-}" ]]; then
+  server_args+=(
+    --expert-distribution-recorder-buffer-size
+    "${EXPERT_DISTRIBUTION_RECORDER_BUFFER_SIZE}"
+  )
+fi
 if [[ -n "${CUDA_GRAPH_BS_DECODE:-}" ]]; then
   read -r -a cuda_graph_bs_decode <<<"${CUDA_GRAPH_BS_DECODE}"
   server_args+=(--cuda-graph-bs-decode "${cuda_graph_bs_decode[@]}")
