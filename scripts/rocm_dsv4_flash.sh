@@ -255,6 +255,15 @@ fi
 if [[ -n "${DP_SIZE:-}" ]]; then
   server_args+=(--dp-size "${DP_SIZE}")
 fi
+if [[ -n "${PP_SIZE:-}" ]]; then
+  server_args+=(--pp-size "${PP_SIZE}")
+fi
+if [[ -n "${PP_MAX_MICRO_BATCH_SIZE:-}" ]]; then
+  server_args+=(--pp-max-micro-batch-size "${PP_MAX_MICRO_BATCH_SIZE}")
+fi
+if [[ -n "${PP_ASYNC_BATCH_DEPTH:-}" ]]; then
+  server_args+=(--pp-async-batch-depth "${PP_ASYNC_BATCH_DEPTH}")
+fi
 if [[ "${ENABLE_DP_ATTENTION:-0}" == "1" ]]; then
   server_args+=(--enable-dp-attention)
 fi

@@ -2261,3 +2261,31 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   均为`107/107`逐token一致，但projection micro的局部节省没有转化为E2E critical-path
   收益。因此production env、cache、loader post-quant hook和forward接线均已撤出；保留真实
   tensor oracle与默认关闭的stage dump，供后续结构研究，不能将该路线列为有效优化。
+
+### TP8 routed-MoE结构探针与PP2并发实验（2026-08-27）
+
+- 真实BS32 expert recorder仍可复用：`logical_count=[4096,43,256]`，pass 42对应buffer
+  index 47；layer 20有40个active experts、最大occupancy 16、共192 assignments。现有
+  gfx90a A4/R2/W8/B832/LDS FP4专核在该分布下约`195--196 us`，其中gate/up约
+  `106.51 us`、down约`87.16 us`；均匀synthetic约`293 us`，说明真实router偏斜会
+  显著改变微核预算，后续MoE候选必须同时报告真实分布与synthetic。
+- gate/up后融合INT8 group-32 quant的HIP原型在production shape I256/A4上保证
+  intermediate BF16、INT8量化值与scale逐元素bitwise exact，但reference为
+  `98.8--99.4 us`时，候选在80/104/208/416 blocks分别约`161.87/132.08/133.48/
+  133.29 us`，退化约`+63%/+34%/+35%/+34%`。原因是融合后每个wave承担更多串行任务和
+  block级同步，省下一个launch不足以抵消并行度损失；原型已删除。
+- token-major direct-final down在真实M32链路约`756.90 us`，对比grouped链路
+  `293.45 us`退化`+157.9%`，且输出并非bitwise exact（max-abs 16）。跨expert直接按
+  token消费会丢失grouped kernel的权重tile复用，因此不能用“直接写最终输出”替代当前
+  expert-major down。
+- 通用MFMA32对真实40个active experts仍需把每个expert pad到32 rows：104 blocks/
+  split2约`1088.1 us`，104/208/416 blocks split4约`768.54/794.51/720.61 us`，均远慢于
+  当前A4 sdot约`196.2 us`；relative-L2约`1.24e-4`但非bitwise。结论是BS32 routed
+  shape仍属于大量小M专家，不能直接套用dense MFMA32 tile；当前A4 sdot映射接近该局部
+  设计空间的最优点。
+- PP2xTP4已通过通用启动参数接线验证。`pp-max-micro-batch-size=16`、无async depth时
+  BS32约`748 tok/s`；改为micro-batch 8、async depth 2后，32x64 wall=`5.412 s`，仅
+  `378.39 tok/s`。单France输出逐tokenexact但延迟`6.07 s`；group France 1/2/4 exact，
+  更大组合测试在超时前未完成。PP stages确实有重叠，但逐token AR的跨stage依赖制造流水
+  气泡，拆小M又降低每stage kernel效率。PP2保留为扩大KV容量的特例（理论约2.57M token
+  cache），不能作为BS32冲击1500 tok/s的主路径；后续不再纯参数扫描PP。
