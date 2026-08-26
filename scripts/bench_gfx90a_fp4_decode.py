@@ -16,8 +16,14 @@ import statistics
 import torch
 
 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+    gfx90a_fp4_expert_down,
     gfx90a_fp4_expert_down_grouped,
+    gfx90a_fp4_expert_down_mfma32,
     gfx90a_fp4_expert_gate_up_grouped,
+    gfx90a_fp4_expert_gate_up_mfma32,
+)
+from sglang.kernels.ops.quantization.gfx90a_int8_quant import (
+    gfx90a_int8_group32_quant,
 )
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
@@ -66,6 +72,29 @@ def unpack_fp4_i8(weight: torch.Tensor) -> torch.Tensor:
     return out
 
 
+def reconstruct_topk_from_counts(counts: torch.Tensor) -> torch.Tensor:
+    """Build a deterministic duplicate-free [32,6] routing with exact counts."""
+    counts = counts.to(torch.int64).cpu()
+    if counts.shape != (E,) or counts.sum().item() != 32 * TOPK:
+        raise ValueError(f"expected 256 counts summing to 192, got {counts.shape}")
+    rows: list[list[int]] = [[] for _ in range(32)]
+    # Place high-occupancy experts first into the currently least-filled rows.
+    for expert in torch.argsort(counts, descending=True).tolist():
+        for _ in range(int(counts[expert].item())):
+            choices = [
+                token
+                for token in range(32)
+                if len(rows[token]) < TOPK and expert not in rows[token]
+            ]
+            if not choices:
+                raise RuntimeError(f"cannot place expert {expert} without duplicates")
+            token = min(choices, key=lambda value: (len(rows[value]), value))
+            rows[token].append(expert)
+    if any(len(row) != TOPK for row in rows):
+        raise RuntimeError(f"unbalanced reconstruction: {[len(row) for row in rows]}")
+    return torch.tensor(rows, dtype=torch.int32)
+
+
 def timed_us(fn, warmup: int, iterations: int, rounds: int):
     result = None
     samples = []
@@ -108,6 +137,17 @@ def main():
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--prepacked", action="store_true")
     parser.add_argument("--lds-lut", action="store_true")
+    parser.add_argument(
+        "--compare-direct-down",
+        action="store_true",
+        help="Also time the token-major direct-final down kernel.",
+    )
+    parser.add_argument("--recorder", help="Expert recorder .pt for real routing")
+    parser.add_argument("--pass-index", type=int, default=47)
+    parser.add_argument("--layer", type=int, default=20)
+    parser.add_argument("--compare-mfma32", action="store_true")
+    parser.add_argument("--mfma-blocks", type=int, nargs="+", default=[104, 208, 416])
+    parser.add_argument("--mfma-split", type=int, nargs="+", default=[2, 4])
     args = parser.parse_args()
     if args.prepacked and args.lds_lut:
         parser.error("--prepacked and --lds-lut are mutually exclusive")
@@ -121,7 +161,21 @@ def main():
     torch.manual_seed(7)
     device = torch.device("cuda")
     x = torch.randn((args.m, HIDDEN), dtype=torch.bfloat16, device=device)
-    topk_ids = torch.randint(0, E, (args.m, TOPK), dtype=torch.int32, device=device)
+    if args.recorder:
+        if args.m != 32:
+            parser.error("--recorder currently requires --m 32")
+        payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
+        counts = payload["logical_count"][args.pass_index, args.layer] // 8
+        topk_ids = reconstruct_topk_from_counts(counts).to(device)
+        print(
+            f"routing=recorder pass={args.pass_index} layer={args.layer} "
+            f"active={(counts > 0).sum().item()} max_occ={counts.max().item()}",
+            flush=True,
+        )
+    else:
+        topk_ids = torch.randint(
+            0, E, (args.m, TOPK), dtype=torch.int32, device=device
+        )
     topk_weights = torch.rand((args.m, TOPK), dtype=torch.float32, device=device)
     w13 = torch.randint(
         0, 256, (E, 2 * INTERMEDIATE, HIDDEN // 2), dtype=torch.uint8, device=device
@@ -243,6 +297,115 @@ def main():
             f"samples={[round(x, 3) for x in samples]} exact={exact}",
             flush=True,
         )
+
+        if args.compare_direct_down:
+            def run_direct_down():
+                intermediate = gfx90a_fp4_expert_gate_up_grouped(
+                    xq,
+                    xs,
+                    w13,
+                    s13,
+                    sorted_ids,
+                    sorted_experts,
+                    valid,
+                    TOPK,
+                    10.0,
+                    assignments=args.assignments,
+                    rows=rows,
+                    waves=waves,
+                    blocks=blocks,
+                    prepacked_weight=w13_prepacked,
+                    use_lds_lut=args.lds_lut,
+                )
+                iq, isc = per_token_group_quant_int8(intermediate, 32)
+                return gfx90a_fp4_expert_down(
+                    intermediate,
+                    w2,
+                    s2,
+                    topk_ids,
+                    expert_mask=None,
+                    topk_weights=topk_weights,
+                    live_count=None,
+                    prequant=(iq, isc),
+                    blocks=down_blocks,
+                    rows=down_rows,
+                    waves=waves,
+                )
+
+            direct_median, direct_samples, direct_output = timed_us(
+                run_direct_down, args.warmup, args.iterations, args.rounds
+            )
+            direct_exact = torch.equal(output, direct_output)
+            direct_diff = (
+                output.float() - direct_output.float()
+            ).abs().max().item()
+            print(
+                f"direct_down median_us={direct_median:.3f} "
+                f"samples={[round(x, 3) for x in direct_samples]} "
+                f"exact={direct_exact} max_abs={direct_diff:.6g} "
+                f"delta_pct={(direct_median / median - 1.0) * 100.0:+.2f}",
+                flush=True,
+            )
+
+        if args.compare_mfma32:
+            mfma_sorted_ids, mfma_sorted_experts, mfma_valid = (
+                make_sorted_metadata(topk_ids, 32)
+            )
+            for mfma_blocks, mfma_split in itertools.product(
+                args.mfma_blocks, args.mfma_split
+            ):
+                def run_mfma():
+                    intermediate = gfx90a_fp4_expert_gate_up_mfma32(
+                        xq,
+                        xs,
+                        w13,
+                        s13,
+                        mfma_sorted_ids,
+                        mfma_sorted_experts,
+                        mfma_valid,
+                        TOPK,
+                        10.0,
+                        blocks=mfma_blocks,
+                        split=mfma_split,
+                        assignments=32,
+                    )
+                    iq, isc = gfx90a_int8_group32_quant(intermediate)
+                    return gfx90a_fp4_expert_down_mfma32(
+                        iq,
+                        isc,
+                        w2,
+                        s2,
+                        mfma_sorted_ids,
+                        mfma_sorted_experts,
+                        mfma_valid,
+                        topk_weights,
+                        blocks=mfma_blocks,
+                        split=mfma_split,
+                        assignments=32,
+                    )
+
+                mfma_median, mfma_samples, mfma_output = timed_us(
+                    run_mfma, args.warmup, args.iterations, args.rounds
+                )
+                mfma_exact = torch.equal(output, mfma_output)
+                mfma_diff = (
+                    output.float() - mfma_output.float()
+                ).abs().max().item()
+                rel_l2 = (
+                    torch.linalg.vector_norm(
+                        output.float() - mfma_output.float()
+                    )
+                    / torch.linalg.vector_norm(output.float()).clamp_min(1e-12)
+                ).item()
+                print(
+                    f"mfma32 blocks={mfma_blocks} split={mfma_split} "
+                    f"median_us={mfma_median:.3f} "
+                    f"samples={[round(x, 3) for x in mfma_samples]} "
+                    f"exact={mfma_exact} max_abs={mfma_diff:.6g} "
+                    f"rel_l2={rel_l2:.6g} "
+                    f"delta_pct={(mfma_median / median - 1.0) * 100.0:+.2f}",
+                    flush=True,
+                )
 
 
 if __name__ == "__main__":
