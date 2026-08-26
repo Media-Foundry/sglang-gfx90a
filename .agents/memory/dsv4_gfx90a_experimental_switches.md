@@ -1956,3 +1956,30 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `945.12/946.70 tok/s`，低于A4 checkpoint约`969.8 tok/s`。因此即使真实路由相关、
   A8 micro偶尔快约2--5%，sorter/grid与完整graph仍使端到端退化约2.4%；wave接线和
   A8配置均撤回，保持A4默认。
+
+### TP8/PP2归因与C4 dual-compressor探针（2026-08-27）
+
+- 当前最后一个通过完整correctness gate的BS32 checkpoint仍为TP8/EP1/no-A2A、
+  A4/R2/B832 LDS unpack与TP8 K256 8-lane down：12轮中位`969.82 tok/s`、trimmed
+  `969.19 tok/s`，France全tier `63/63`。本节后续结果均未替代该checkpoint。
+- PP2×TP4约`748 tok/s`并非pipeline没有运行：global BS32对应`42.78 ms/step`，每级
+  M16 service time约`21.39 ms`。PP0为21层且包含3个较便宜hash-router层，PP1为22层
+  并带HC head/norm/LM head；TP4 shard又是TP8的两倍，且该profile关闭scheduler
+  overlap。即使改为22/21反向切分，估计也只回收约4--5%，仍明显低于TP8。PP2的价值
+  是容量：最小stage约可容纳`2.57M` tokens，约为当前TP8正式1M pool的2.5倍。
+- C4 core/index compressor的原路径为两个stream、共4个postprocess launch；原型HIP
+  dual kernel在M32把独立postprocess由约`132--143 us`降至`7.2--7.5 us`。使用刻意
+  不同的core/index out-loc地址域后，core/index state、临时输出和两种cache仍全部
+  byte-exact。乐观E2E上限约`969 -> 1055 tok/s`，但原两支多被main stream隐藏，真实
+  收益可能远小于8.9%，必须测join exposed tail。
+- 生产ABI审查确认core Unified-KV使用`unified.c4_out_loc`，index cache使用原始
+  `c4_out_loc`；两者不可复用。state均为FP32，core cache为BF16/page1，index cache为
+  FP8-preshuffle/page64；FP4 indexer与非Unified-KV必须拒绝。
+- 为让dual与reference逐位一致，曾把公开index epilogue抽成共享device helper；该
+  refactor即使dual开关关闭也会令首次真实请求退出，而standalone decode oracle无法
+  暴露这一生产prefill问题。共享header已恢复到HEAD逐字节状态，dual生产接线和开关
+  也已完整撤出默认代码，只保留未跟踪的独立原型/benchmark供后续重新设计。
+- 连续设备fault后，即使精确恢复实验前源码并清空/重建特定`fused_norm_rope_v2` JIT
+  cache，八rank服务仍在首请求一起退出；单GCD dual micro仍正常，说明ROCm/XGMI运行
+  态需要GPU reset。当前无GPU进程，但`amd-smi reset -G -g all`需要sudo，本会话无
+  passwordless sudo；在reset/重启前不接受任何新的服务性能或correctness结果。
