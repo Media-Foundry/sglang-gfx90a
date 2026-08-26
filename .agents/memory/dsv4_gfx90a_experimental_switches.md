@@ -1879,3 +1879,8 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - BS32/256-token完成hash仍为改动前完全相同的7种及相同slot计数：主两种12/11，
   其余4/2/1/1/1，全部长度256。结合micro exact和France全tier，说明此改动没有引入
   新分叉；原有TP8跨slot greedy漂移仍作为独立correctness债务。
+- 后续尝试将LDS path从“先解包8组权重、再逐assignment dot”改为逐j
+  `decode -> sdot4`软件流水。M32输出仍exact，但完整micro由`292.49`退化到
+  `1313.46 us`。汇编虽使gate VGPR从94降至68、最长LDS read burst从24降至4，却把
+  vector global load拆成大量scalar load，并使`s_waitcnt`约122增至233、
+  `s_and_saveexec`约24增至136；控制流/等待成本压倒寄存器收益。P1已完整撤回。
