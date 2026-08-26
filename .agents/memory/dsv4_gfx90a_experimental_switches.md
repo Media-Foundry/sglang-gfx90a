@@ -1293,6 +1293,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   撤回。后续除非能与attention core或下游collective进一步融合，不应再次单独替换
   Q/K prologue。
 
+### learned-router + direct FP4 gate/up融合反例（2026-08-26）
+
+- direct FP4的M1核内group-32 activation quant已被weight streaming隐藏：真实接口
+  micro中gate/down传入预量化buffer与核内量化几乎同速，而独立量化launch约增加
+  `60 us`；两条量化契约还存在scale/rounding差异。因此未采用“把量化前移到MHC”方案。
+- 原型把40个learned-router层的BF16 `[1,4096]x[256,4096]` GEMV、
+  sqrt-softplus Top-6和direct FP4 gate/up合并到一个kernel。前32个CTA计算router，
+  最后到达CTA完成Top-K，epoch/seen协议允许graph反复replay；前三个hash-router层保持
+  原路径。随机oracle中router logits、Top-6 weights、owned IDs和gate/up输出均与
+  分离native链bitwise exact，连续300次208-CTA replay无死锁。
+- standalone ABBA中104-CTA融合约`76 us`，分离链约`91--97 us`，表面可节省
+  `15--21 us/learned layer`。完整TP8/DP2 graph却回退：104-CTA约`72.50 tok/s`，
+  208-CTA约`73.13 tok/s`，同期A约`76.60--76.63 tok/s`。France固定IDs分别
+  10/10与5/5精确；B的256-token hash稳定为`434f12104b0d1f9d`，A为
+  `14593da264d38f29`，差异来自native Top-K reduction轨迹。
+- 结论：graph中的epoch等待、额外LDS/VGPR footprint及CTA调度抵消了省下的launch；
+  kernel、handoff、selector和环境开关均完整撤回。除非改成无全grid等待的producer-
+  consumer或硬件cooperative launch，不应再次使用此融合协议。
+
 ### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
 
 - 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
