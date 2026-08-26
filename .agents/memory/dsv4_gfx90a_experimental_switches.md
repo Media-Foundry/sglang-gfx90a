@@ -2314,3 +2314,20 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 另一个独立的gate/up packed-FP4成对存储原型在真实pass47/layer20上逐元素bitwise
   exact，但完整stage由`195.836 -> 198.535 us`，退化1.38%；重排/地址依赖抵消合并VMEM
   load收益，原型已撤回，不接production。
+
+### 当前TP8同服务BS8/16/32矩阵复核（2026-08-27）
+
+- 在`d2c118d116`、单模型`TP8/EP1/no-A2A`、1M-token pool、SBO+ROCm multistream、
+  A4/R2/B832 LDS unpack、TP8 K256 8-lane down下，只捕获`1/8/16/32`，固定同一组
+  11-token France input IDs。France合计`57/57`逐token exact、每tier输出唯一。
+- 256-token native AR同服务结果：BS8=`326.58/336.85 tok/s`，BS16=
+  `629.60/629.93 tok/s`，BS32首两轮=`962.98/963.47 tok/s`。BS32随后六轮为
+  `958.14/965.13/966.12/960.26/964.15/959.35`，median=`962.20`、trimmed=
+  `962.22 tok/s`。所有请求均实际输出256 tokens。
+- 因此当前跨服务可信运行包络应写作约`962--991 tok/s`，而不是只报告此前约990的
+  高频态。BS8到BS16约1.90x，BS16到BS32仅约1.53x，效率损失主要集中在M32每层
+  attention/routed-MoE tail。按本轮trimmed，BS32 step约`33.26 ms`；到1500目标的
+  `21.33 ms`仍需净省约`11.93 ms/step`（35.9%，约277us/layer）。
+- 256-token completion在BS8为2种hash、BS16为1种、BS32为既有7种hash；短France
+  完全一致但长decode跨slot漂移债务仍存在。本轮没有生产代码改动，不能把短oracle扩大
+  为长序列bitwise parity结论。
