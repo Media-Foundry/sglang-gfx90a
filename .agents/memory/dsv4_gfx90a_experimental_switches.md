@@ -1528,3 +1528,25 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   保留fill后，首个请求正确，但随后graph replay持续生成错误序列。说明独立fill还在
   捕获图的复用buffer生命周期中提供稳定覆盖，不能只按producer类型局部消除。实验
   完整撤回，不采纳任何性能数据。
+
+### split direct-FP4单行wave checkpoint（2026-08-26）
+
+- 短上下文C4 indexer虽跳过logits，仍调用通用AOT Top-K的`seq_len<=topk` naive分支。
+  实现过无LDS、256-thread的select-all HIP JIT专核；B=1/2/4、长度
+  0/1/127/128/511/512以及raw/physical indices均逐元素一致。但graph内完整节点为
+  现有`zeros+AOT`约`6.348 us`、新`empty+JIT`约`6.920 us`，退化约9%，完整撤回。
+- direct FP4 gate/down此前固定每wave累加2个输出rows。真实TP8 split的四-slot shape
+  中，`rows=1` gate约`29.33 -> 24.99 us`、down约`15.15 -> 14.93 us`；不同rows、
+  blocks和waves的eager/graph输出均bitwise exact。rows4/8受VGPR压力明显退化，
+  wave16的1024-thread block也退化，保持8 waves。
+- 八卡graph ABBA：B1 rows1热态`78.20--78.38 tok/s`，A rows2约
+  `76.19--76.35`，B2 rows1约`77.65--77.73`；B2相对A中位约+1.85%。法国oracle
+  B1/B2合计20/20精确，所有256-token hash均保持`14593da264d38f29`。因此仅在
+  TP8/DP2 split fast path且本地M=1时默认rows1；其它direct/prefill shape保持rows2。
+  最终不显式覆盖环境变量的独立服务再次法国10/10、六轮hash一致，去首轮后稳定为
+  `77.74--77.77 tok/s`。
+- rows1的isolated gate在2/4 slots分别偏好128/156 blocks，但端到端约
+  `77.47--77.56 tok/s`，低于继续使用208 blocks的B2，故不按owner缩grid。
+- 尝试每次32-bit加载8个FP4 nibble、配对两次`sdot4`以替代两个16-bit load。
+  micro在rows1 gate快约1--3%，且全部bitwise exact；完整服务却仅
+  `76.88--76.98 tok/s`，低于rows1/load4，load8实现和开关已撤回。

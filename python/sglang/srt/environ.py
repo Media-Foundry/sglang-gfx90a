@@ -1369,6 +1369,9 @@ class Envs:
     # Direct BF16-activation/FP4-weight routed-MoE for Mori's fixed-capacity
     # decode buffers. It bypasses activation quantization and expert sorting.
     SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE = EnvBool(False)
+    # Output rows accumulated by each wave in the M=1 direct FP4 expert
+    # kernels. One row reduces VGPR pressure on gfx90a; larger-M paths keep 2.
+    SGLANG_DSV4_GFX90A_FP4_DIRECT_ROWS = EnvInt(1)
     # Group prefill assignments by expert so four token rows reuse each raw
     # packed-FP4 weight load. Decode M=1 remains on the direct wave64 path.
     SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL = EnvBool(False)
