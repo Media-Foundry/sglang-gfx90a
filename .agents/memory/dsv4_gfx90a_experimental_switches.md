@@ -1674,3 +1674,64 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   周期性腰斩。退出时scheduler栈也从radix `sanity_check()`变为正常的request broadcast
   wait，确认默认全树walk已被移出生产idle路径。这是尾延迟/可用吞吐修复；它不改变
   约`790 tok/s`的kernel热态中心。
+
+### TP8数据缺口与FP4 unpack上界（2026-08-26）
+
+- 对当前单实例TP8/EP1/no-A2A、1M-token、SBO+multistream profile做了口径审计：
+  只有BS32具备当前配置的完整吞吐数据，稳态中心约`790 tok/s`。BS1/2/4/8/16现有
+  `65.52/86.84/153.52/258.09/478.80 tok/s`来自旧8K pool、SBO-off服务，只能作为
+  历史参考，不能填入当前矩阵。全部graph tiers `1/2/4/8/16/20/24/32`已确认capture，
+  但仍需补逐tier replay命中证据与当前配置吞吐。
+- France fixed-input oracle已覆盖基础全tier `107/107`，SBO覆盖BS1/16/32共`49/49`，
+  最新radix guard覆盖BS1/32共`10/10`。不过当前1M/SBO checkpoint尚未记录相同
+  128/256-token continuation在所有batch slot的逐token一致性，因此不能把短France
+  通过扩大为长decode bitwise parity。下一次单服务补测应按
+  `32 -> 1 -> 16 -> 2 -> 8 -> 4 -> 32`采吞吐，同时保存first-divergence与graph
+  replay counter。
+- rocprof的M32 grouped kernel显示gate/down分别约`253.2/252.8 us`，两次Triton量化
+  各约`4.48 us`、final reduce约`5.16 us`。静态HSACO中gate编译体含约
+  `192 v_perm / 432 v_and / 212 shift / 256 v_dot4`，说明packed-FP4在线解码具有
+  显著VALU指令压力。
+- 实验性地把E2M1权重离线展开成signed INT8 codebook，保持scale与sdot4数学不变。
+  M32、A4/R4/832的严格ABBA为packed `504.40/504.36 us`，prepacked
+  `443.06/444.36 us`，最终BF16逐元素bitwise exact；即完整routed micro上界约
+  `12.0%`。但TP8每层全专家额外`768 MiB`，43层为`32.25 GiB/GCD`，会破坏1M KV
+  容量，不能全量接入。
+- 512-byte `__constant__` byte-pair LUT保持packed FP4且输出bitwise exact，但M32
+  退化到`835.73 us`（相对现路径约`+66%`延迟），与CDNA2对lane-divergent constant
+  lookup不友好一致，已撤回且不接服务。下一候选是每CTA 1KiB LDS LUT，必须同时测
+  LDS bank conflicts；若仍不赢则转向共享SWAR selector，不能假定查表一定优于
+  `v_perm`。
+- 有限热专家cache每expert-layer额外约`3 MiB`；跳过近似均匀的前三个hash-router层，
+  固定N=8/16/32/64约占`0.94/1.88/3.75/7.50 GiB/GCD`。是否值得必须先按实际
+  `sorted_expert_ids`统计grouped weight-scan block命中率；双段N16若held-out命中率
+  低于约46%，预计端到端连2%都达不到。若分布足够偏斜，优先评估w2-only cache，
+  其单位显存收益约为w13的两倍。
+
+### packed-FP4 CTA-local LDS unpack checkpoint（2026-08-26）
+
+- constant-memory byte LUT因逐lane发散读取退化后，改为每个CTA用256线程初始化
+  `uint32 pair_lut[256]`（1KiB LDS），每个packed `uint16`用两次LDS byte-pair读取
+  产生四个signed-INT8 E2M1 code，再复用现有`s_dot4`累加。权重始终保持4-bit packed，
+  不增加模型常驻显存；原三次`v_perm` decoder保留为默认/reference模板实例。
+- M32、A4/R4/832严格ABBA为原路径`504.13 us`、LDS `351.25/351.58 us`、原路径
+  `504.82 us`，完整gate+quant+down提升约30.3%，最终BF16逐元素bitwise exact。
+  形状扩展也通过同一reference检查：M8 `175.25 -> 115.46 us`（约34.1%），M16
+  `324.29 -> 251.34 us`（约22.5%），M32独立并行复测`500.74 -> 347.81 us`
+  （约30.5%）。
+- 通过默认关闭的`SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK`接入non-MFMA grouped路径，
+  且仅对`M<=64`生效；TP8 multi-request profile现默认开启，其他拓扑/普通profile
+  保持关闭。graph capture `1/2/4/8/16/20/24/32`成功，graph约0.54GB/GCD，1M-token
+  pool不变。
+- 服务级correctness：候选在BS1/2/4/8/16/32的France fixed-input合计`63/63`
+  逐tokenexact；独立完整tier服务的BS32再通过`32/32`。128/256-token并发hash仍
+  存在基线已有的slot漂移，候选与LDS-off的主要hash集合高度重叠，不能宣称长生成
+  bitwise parity已修复；这项基础correctness债务继续单独跟踪。
+- 同机LDS-off A端热态主要为`788--792 tok/s`，另有`821 tok/s`高态；LDS-on B端
+  首轮热态约`869.8--872.3 tok/s`。完整tier并耗尽动态BF16 M-shape JIT后，连续12轮
+  为`876.65/874.86/876.30/875.48/878.02/873.42/874.20/874.64/876.16/876.12/878.03/875.37`
+  tok/s，median `875.80`、trimmed mean `875.78`、零慢轮。相对约790中心保守提升
+  约10.7%，是可提交的性能checkpoint。
+- 早期候选与基线都出现约`243--381 tok/s`慢轮；退出日志显示AIter首次见到如M=11
+  的shared-expert BF16 GEMM时即时选解/JIT。随着1--32实际active-batch shapes被缓存，
+  候选最后12轮不再复现，因此该慢态不是LDS barrier、graph deadlock或radix walk。

@@ -69,8 +69,11 @@ def _jit_gate_up_grouped(
     rows: int,
     waves: int,
     blocks: int,
+    prepacked: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, i, k, assignments, rows, waves, blocks)
+    args = make_cpp_args(
+        e, m, t, i, k, assignments, rows, waves, blocks, prepacked
+    )
     return load_jit(
         "gfx90a_fp4_expert_gate_up_grouped",
         *args,
@@ -170,8 +173,11 @@ def _jit_down_grouped(
     rows: int,
     waves: int,
     blocks: int,
+    prepacked: int,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, assignments, rows, waves, blocks)
+    args = make_cpp_args(
+        e, m, t, n, k, assignments, rows, waves, blocks, prepacked
+    )
     return load_jit(
         "gfx90a_fp4_expert_down_grouped",
         *args,
@@ -290,6 +296,8 @@ def gfx90a_fp4_expert_gate_up_grouped(
     rows: int = 2,
     waves: int = 8,
     blocks: int = 208,
+    prepacked_weight: torch.Tensor | None = None,
+    use_lds_lut: bool = False,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -301,12 +309,34 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assert sorted_expert_ids.dtype == torch.int32
     assert num_valid_ids.shape == (2,) and num_valid_ids.dtype == torch.int32
     out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
+    kernel_weight = weight if prepacked_weight is None else prepacked_weight
+    if prepacked_weight is not None:
+        assert prepacked_weight.shape == (e, two_i, k)
+        assert (
+            prepacked_weight.dtype == torch.int8
+            and prepacked_weight.is_contiguous()
+        )
+    assert not (prepacked_weight is not None and use_lds_lut)
+    weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
     _jit_gate_up_grouped(
-        e, m, topk, i, k, assignments, rows, waves, blocks
+        e,
+        m,
+        topk,
+        i,
+        k,
+        assignments,
+        rows,
+        waves,
+        blocks,
+        weight_mode,
     ).run(
         xq,
         x_scale,
-        weight.view(torch.uint8),
+        (
+            kernel_weight
+            if prepacked_weight is not None
+            else kernel_weight.view(torch.uint8)
+        ),
         weight_scale.view(torch.uint8).reshape(e, two_i, k // 32),
         sorted_ids,
         sorted_expert_ids,
@@ -370,6 +400,8 @@ def gfx90a_fp4_expert_down_grouped(
     rows: int = 2,
     waves: int = 8,
     blocks: int = 208,
+    prepacked_weight: torch.Tensor | None = None,
+    use_lds_lut: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -384,10 +416,34 @@ def gfx90a_fp4_expert_down_grouped(
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
     partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
-    _jit_down_grouped(e, m, topk, n, k, assignments, rows, waves, blocks).run(
+    kernel_weight = weight if prepacked_weight is None else prepacked_weight
+    if prepacked_weight is not None:
+        assert prepacked_weight.shape == (e, n, k)
+        assert (
+            prepacked_weight.dtype == torch.int8
+            and prepacked_weight.is_contiguous()
+        )
+    assert not (prepacked_weight is not None and use_lds_lut)
+    weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
+    _jit_down_grouped(
+        e,
+        m,
+        topk,
+        n,
+        k,
+        assignments,
+        rows,
+        waves,
+        blocks,
+        weight_mode,
+    ).run(
         xq,
         x_scale,
-        weight.view(torch.uint8),
+        (
+            kernel_weight
+            if prepacked_weight is not None
+            else kernel_weight.view(torch.uint8)
+        ),
         weight_scale.view(torch.uint8).reshape(e, n, k // 32),
         sorted_ids,
         sorted_expert_ids,
