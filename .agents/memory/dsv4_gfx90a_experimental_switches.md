@@ -2207,6 +2207,31 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   relative-L2=`0.00149906`、cosine=`0.999998808`，与通用FP16数学基本相同，仍略高于
   `1e-3`初筛。因此定解证明FP16 compute可以回收约39us synthetic开销，但没有解决
   partial-rounding数值障碍，仍不能接production或宣称模型correctness。
+
+### Layer20 M32真实projection tensor oracle（2026-08-27）
+
+- 复用现有stage dump，仅增加默认关闭的layer/rank/row selector；固定11-ID France输入的
+  position11、M32 decode在rank0保存了layer20 C4 `attn_norm=[32,4096] BF16`，以及四个
+  production逻辑BF16矩阵：wqkv `[1536,4096]`、core compressor `[2048,4096]`、index
+  compressor `[512,4096]`和index weights `[64,4096]`。独立
+  `bench_dsv4_tp8_real_projection_oracle.py`让reference保持四次full-K BF16 `F.linear`
+  各自舍入再concat；candidate才concat weight、按K512分片并做一次AIter AR。未接模型
+  selector。
+- 必须把static FP32 weight shard预先缓存。早先synthetic FP32 graph把约34MiB BF16 weight
+  每replay转FP32，错误得到约260us；修正后graph只保留小activation cast。真实dump五轮
+  200-replay rank-max：四projection reference=`123.536 us`，BF16 partial candidate=
+  `40.347 us`（-67.34%），tuned FP16=`64.602 us`（-47.71%），FP32=`86.226 us`
+  （-30.20%）。这些仍是projection子图、未包含跨层RS/MHC通信，不能直接折算E2E。
+- 真实数值显著确认FP32 partial方向：BF16整体max-abs=`0.03125`、relative-L2=
+  `0.0023567621`；FP16为`0.03125/0.0014017423`，仍未过`1e-3`；FP32为
+  `0.0078125/4.5238427e-5`、cosine=`1.0`，八rank hash唯一。FP32分段relative-L2为
+  wqkv=`3.91327e-5`、core=`5.75366e-5`、index-core=`8.26959e-7`、index-weight=`0`。
+  因此真实权重没有复现synthetic中对FP32预算的悲观判断，下一步可进入teacher-forced/
+  top-k-margin oracle，但仍不足以宣称生成correctness。
+- 动态activation BF16→FP32 cast与预缓存FP32 activation的ABBA为A1/B1/B2/A2=
+  `83.695/86.152/86.430/84.351 us`；cached-x反而慢约2.27us。小activation cast不是
+  critical bottleneck，差异更像输入地址、cache状态或cast预热对后续GEMM的影响；不应从
+  理想预算中武断扣掉cast时间。static weight cache才是此前FP32结果被严重低估的根因。
 - 进一步要求hipBLASLt直接执行`BF16 input/weight -> FP16 output`时，M32/K512的
   N1536/2560/4160三形状均由`tuner/hipb_findallsols`返回0个solution；当前AIter
   mixed-output API不可用，raw `hipb_mm(solution=-1)`还会native SIGSEGV，禁止作为
@@ -2217,3 +2242,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `9.360/11.734/22.001 us`。FP16路线相对FP32-accumulate再落FP16的relative-L2约
   `5.98e-5/7.14e-5/6.62e-5`，优于BF16输出再cast的约`1.67e-3`，但当前API与端到端
   延迟均不支持接production；该探针无代码改动、无checkpoint。
+- Production consumer contract修正为mixed dtype：wqkv与index weights为BF16，两路
+  compressor score tensor为FP32。Packed FP32 AR后只cast 1536/64两段；2048/512两段
+  显式`contiguous()`保持FP32，四段均物化为storage-offset 0的连续tensor，避免split view
+  的stride=4160泄漏给下游。CPU contract验证dtype/shape严格为
+  `BF16/FP32/FP32/BF16`与`1536/2048/512/64`。
+- 真实layer20 M32 dump计入四段物化后，FP32 candidate五轮200-replay rank-max=
+  `100.716 us`，同轮reference=`121.409 us`，projection子图仍省17.04%；相对未计copy
+  的约86.2us，连续化成本约14.5us。八rank hash一致。Mixed语义整体relative-L2=
+  `0.00133577`，主要来自core/index-core score分别`0.00148367/0.00152420`；wqkv仍为
+  `3.91327e-5`，index weight exact。当前reference compressor的FP32 tensor实际承载
+  BF16 GEMM舍入值，而candidate保留真正FP32 partial，因此不能仅以“更高精度”为由接受；
+  必须继续做compressor下游与teacher-forced/top-k margin验证。
+- 默认关闭的TP8 FP32 attention-prep production实验随后完成端到端否证。仅C4开启的B服务
+  hot三轮为`965.95/969.65/972.88 tok/s`，相邻A基线hot为`966.51/966.62 tok/s`，差异
+  落在服务波动/噪声内；C4+C128扩展后的B2首轮cold=`852.79 tok/s`，hot仅
+  `963.34/964.25 tok/s`，同样没有收益。两个candidate的full graph tiers France oracle
+  均为`107/107`逐token一致，但projection micro的局部节省没有转化为E2E critical-path
+  收益。因此production env、cache、loader post-quant hook和forward接线均已撤出；保留真实
+  tensor oracle与默认关闭的stage dump，供后续结构研究，不能将该路线列为有效优化。
