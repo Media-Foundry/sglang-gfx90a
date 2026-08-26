@@ -2404,3 +2404,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - C++ kernel、Python wrapper和benchmark开关已全部撤回。结合gate/up half-wave与LDS A8
   两个反例，A8 route pairing不再作为当前TP8优化方向；继续推进跨层persistent hidden
   shard，它在真实层20 tensor oracle中仍有约19.5%的FFN边界收益。
+
+### TP8 native HIP sharded-MHC真实张量oracle（2026-08-27）
+
+- 新增了尚未接production、默认不可达的gfx90a H512 sharded-MHC三阶段HIP JIT：stage1
+  完成BF16 hc_post并输出rank-local FP32 `[M,25]`（24 dots+sumsq）；AR25后stage2完成
+  Sinkhorn与BF16 weighted residual并输出local y-sumsq；AR1后stage3完成本rank H512
+  RMSNorm。`fn`按每个HC的同一hidden slice重排为连续`[24,2048]` FP16。
+- 在真实TP8 eager layer20、M32 dump上，完整oracle边界包含RS4096、native sharded-MHC、
+  FP32 router AR256和expert-input AG4096。严格A/B/B/A、每腿7轮×200 graph replay的
+  rank-max合并median为reference=`225.929 us`、candidate=`116.961 us`，即`-48.23%`；
+  两条candidate腿分别为`116.918/116.980 us`，收益不是热态顺序伪影。
+- 数值检查：residual relative-L2=`2.261e-5`，layer-input relative-L2=`3.379e-4`，
+  router-logit relative-L2=`3.506e-4`；八rank candidate hash唯一。加载raw checkpoint
+  layer20 gate bias并执行真实choice math后，32/32行Top-6 expert集合完全一致，最小6/7
+  margin=`4.9973e-4`，candidate choice max-abs=`4.52995e-4`。
+- 该结果通过进入默认关闭的43层persistent hidden-shard bring-up门槛，但尚不能外推为E2E
+  收益或生成correctness。production必须整次forward严格gate为gfx90a/TP8/EP1/no-A2A/
+  PP1/decode，并依次验证单层partial、43层eager France、全graph tier France、固定
+  continuation teacher-forced logits和1000 replay稳定性，之后才允许测速。
