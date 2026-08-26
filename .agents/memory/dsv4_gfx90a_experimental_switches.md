@@ -2055,3 +2055,31 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `958.53/984.37/985.86/983.52/986.05/982.74/983.77/984.49`，trimmed
   `984.13 tok/s`，仍退化约0.64%。两个生产候选均已撤回，未提交硬编码solution；
   结论是单kernel graph快不能代表C4 compressor完整链或层级critical path更快。
+
+### C4 dual preshuffle与TP8后续结构边界（2026-08-27）
+
+- C4 core/index dual HIP原型完全私有复制production epilogue，没有再改公开
+  `fused_norm_rope_v2.cuh`。正式AIter index cache使用tile-16 preshuffle；最初普通布局
+  oracle不足以证明长上下文正确，修正为与public `kPreshuffleSize=16`相同的地址公式后，
+  连续四个独立进程的core/index tmp、两套state、BF16 core cache、FP8 index cache及
+  scale均byte-exact。串行reference到dual的trimmed结果为`31.552->7.330`、
+  `30.332->7.321`、`30.004->7.294`、`32.738->7.308 us`，每C4层省约23--25us。
+- 默认关闭的临时生产接线仅命中HIP、strict decode、M32、C4、Unified-KV、非FP4-indexer、
+  无CP路径；prefill和其他tiers保持原实现。修正preshuffle后完整graph捕获成功，France
+  tiers 1/2/4/8/16/20/24/32合计`107/107` exact。4096-token混合input IDs跨过sparse
+  indexer边界，dual与baseline的16个completion IDs完全相同，SHA均
+  `a563b647156bc5fb`。
+- 端到端固定11-ID France的B八轮trimmed=`987.37 tok/s`；回程A同机八轮trimmed=
+  `987.11 tok/s`，仅+0.026%，属于噪声。micro节省在完整graph中被其他工作隐藏，生产
+  接线已撤回；保留三个未跟踪standalone原型供后续trace研究，不作为性能成果。
+- 短请求在`c4_seq_len<=index_topk`时已经跳过Q/weight/logits，但仍写index cache。
+  依据请求最终horizon跳过cache只对禁用radix/session/HiCache复用的terminal graph安全；
+  通用实现必须区分`dense_terminal/dense_growing/sparse`三variant或维护
+  `index-valid-through`并在复用时reprefill。裸上限约1--3%，暂不为benchmark引入不通用
+  的shortcut。
+- 两次TP8 output all-reduce合计约65--73us/layer，全部删除的E2E上限也仅约
+  `1085--1097 tok/s`。普通hidden不能永久RS，因为expert gate/up在SwiGLU前需要完整H。
+  中期5--10%候选是仅让MHC residual按H分片：MoE边界`RS->sharded MHC->row-sharded
+  wqkv_a->AR1536`；attention边界`RS->sharded MHC`后并行`AG4096`与row-sharded
+  router `AR256`。必须先做layer20真实tensor oracle，并要求每边界slowest-rank至少省
+  20us、1000次graph replay稳定，不能直接改模型。
