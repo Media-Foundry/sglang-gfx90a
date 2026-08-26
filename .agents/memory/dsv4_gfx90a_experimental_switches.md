@@ -1504,3 +1504,27 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `[1,1,1,1,1,16,...]`。说明sentinel不仅限制direct kernel slots，还参与上游
   runner/dispatcher语义；该mask不能由`slot_begin/end`替代，改动已恢复且错误性能
   数据作废。
+
+### M>2路径边界审计与Top-K producer sentinel反例（2026-08-26）
+
+- 仓库不存在统一的“M>2不支持”。三个容易混淆的边界含义不同：gfx90a native
+  grouped Top-K/router当前严格是`M=1,N=256`单CTA专核；已有`M=1..4`能力的是它前面的
+  BF16 router projection wave64 GEMV。通用Triton router本身支持任意M，因此M>1只会
+  失去native Top-K专核，并非correctness失败。
+- Inkling gate的`M<=2`是CUDA资源分桶：权重切片驻留VGPR；`M=3/4`仍走专核但改为
+  shared-memory staging，之后才回常规GEMM。这个按M改变staging/warp分工的思路可供
+  gfx90a wave64 router复用，但CUDA实现不能直接移植。
+- Inkling TP8 all-reduce的`M<=2`则是协议安全边界：v4省略exit barrier，依赖A/B
+  双缓冲、reuse-distance=2及每次forward偶数次AR。它又依赖NVLS/multimem，既不能
+  随意放宽到M>2，也不能直接移植ROCm。当前AIter gfx90a AR没有M<=2限制，小消息瓶颈
+  是固定barrier成本。
+- DSV4 direct FP4 MoE同样没有M>2禁令：M=1在kernel内量化并由shared memory复用；
+  M>1先做外置per-token group-32 INT8 quant，避免每个expert CTA重复量化。大M
+  grouped/MFMA路径主要受动态Mori token count与expert mask selector限制。后续可为
+  native grouped router实现`grid.x=M`、每block一个token，并按M=1/2/4分别ABBA；它
+  主要改善BS2/4，不会改善当前每个DP副本本地M=1的单请求路径。
+- 尝试把split-MoE的`-1` sentinel直接写入通用Triton Top-K producer以消除独立fill。
+  第一版同时跳过hash-router层fill，法国oracle首请求即EOS；修正为前三个HashTopK层
+  保留fill后，首个请求正确，但随后graph replay持续生成错误序列。说明独立fill还在
+  捕获图的复用buffer生命周期中提供稳定覆盖，不能只按producer类型局部消除。实验
+  完整撤回，不采纳任何性能数据。
