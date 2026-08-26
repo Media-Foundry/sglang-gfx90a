@@ -402,6 +402,7 @@ def gfx90a_fp4_expert_down_grouped(
     blocks: int = 208,
     prepacked_weight: torch.Tensor | None = None,
     use_lds_lut: bool = False,
+    zero_partial: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -415,7 +416,14 @@ def gfx90a_fp4_expert_down_grouped(
     assert topk_weights.shape == (m, topk)
     if out is None:
         out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
-    partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
+    # Split-MoE masks the slots owned by the other DP replica before sorting.
+    # Those slots are intentionally never written by the grouped down kernel,
+    # while the legacy final reduction still visits all top-k slots.
+    partial = (
+        torch.zeros((m, topk, n), dtype=torch.float32, device=xq.device)
+        if zero_partial
+        else torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
+    )
     kernel_weight = weight if prepacked_weight is None else prepacked_weight
     if prepacked_weight is not None:
         assert prepacked_weight.shape == (e, n, k)

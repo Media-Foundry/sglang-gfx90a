@@ -651,6 +651,9 @@ class AiterRunnerCore(MoeRunnerCore):
                         rows=grouped_down_rows,
                         blocks=down_blocks,
                         use_lds_lut=use_lds_unpack,
+                        zero_partial=(
+                            envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+                        ),
                     )
             else:
                 output = gfx90a_fp4_expert_down(
