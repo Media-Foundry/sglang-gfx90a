@@ -1276,3 +1276,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   固定四个512-thread CTA的MHC四通道计算、RMS归约和barrier驻留抵消了少一个launch
   的收益；接线、selector和环境开关已完整撤回。除非先重做更轻的CTA/wave几何，
   不应再次把该现成AIter接口直接接入生产路径。
+
+### TP8 MoE AR + MHC post融合与AIter数值修复（2026-08-26）
+
+- 将AIter现有TP4 `fused_mhc_post`泛化为TP8：每rank一个CTA，TP8时每CTA两个
+  32-lane subgroup，八个CTA仍输出固定16个RMS partial/channel。独立8-rank graph
+  micro的分离`TP8 AR + Triton MHC post/RMS`最慢rank中位约`26--28 us`，融合约
+  `23.7--25.0 us`，micro看似快约9--13%。
+- 独立CPU/Gloo oracle暴露了原TP4融合核已有的真实correctness bug：MHC定义为
+  `out[j] += comb[k,j] * residual[k]`，kernel却读取`comb[j,k]`，把mixing matrix
+  转置。修为`comb[input_channel * 4 + channel]`后，随机BF16融合输出对Triton oracle
+  逐元素完全一致；RMS partial最大差仅`4.88e-4`，来自局部求和顺序。
+- AIter eager wrapper还把uint8注册buffer直接传给要求BF16的C++入口，必然触发dtype
+  检查。将所需byte slice先`view(input.dtype).view_as(input)`后，eager与graph随机
+  oracle均通过。这两项属于数值/API修复，不应与性能收益混为一谈。
+- 临时将split-MoE层尾TP8 AR延迟到下一层MHC post：BS1 graph八rank稳定捕获，France
+  固定IDs连续10/10精确，256-token hash连续7轮稳定为`2afddbaf14d77f25`。但服务级
+  ABBA中融合约`75.84--76.10 tok/s`，返回基线约`76.93--77.00 tok/s`，端到端回退
+  约1.2%。生产接线及环境开关已完整撤回；除非重做更轻的CTA/尾部协同，不再启用。
