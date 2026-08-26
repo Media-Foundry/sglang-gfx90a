@@ -1449,3 +1449,23 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   曾复用旧`.so`，必须移动缓存后才执行新签名。该方向的metadata接口、JIT kernel、
   benchmark和生成模块均已撤回/恢复；若以后做producer-row overlap，需先修cache key，
   并直接复用AIter更高效的8-warp cooperative load，而不是每线程串行读八个peer。
+
+### gfx90a graph-replay realtime marker与attention prepare分解（2026-08-26）
+
+- HIP graph capture内的`torch.cuda.Event`不能提供可信replay时间戳后，新增默认关闭的
+  gfx90a realtime marker：单线程HIP kernel读取`__builtin_amdgcn_s_memrealtime()`
+  并写入预分配`uint64` tensor。独立capture/replay校准约`40 ns/tick`，能在graph每次
+  replay中更新；仅当`SGLANG_DSV4_GFX90A_REALTIME_TRACE_LAYER`与
+  `SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY`显式设置时启用。
+- TP8/DP2、EP1/no-A2A、graph BS1的layer20粗分解，按33组完整replay逐组取8 rank最慢
+  值：attention prepare约`85 us/layer`、attention core约`25--28 us/layer`、output/
+  inverse-RoPE+projection+TP4 AR约`41--50 us/layer`、MoE+TP8 AR约`90--100 us/layer`。
+  单层总span约`289 us`，乘43层与约`13 ms/token`的客户端稳态一致。
+- layer20为c4层。细分prepare同样按33组replay的max-rank中位数：`wq_a 14.88 us`、
+  q-norm `6.88 us`、`wq_b 16.80 us`、fused qk-norm/RoPE/cache store `7.52 us`、
+  indexer `18.08 us`、compressor `21.12 us`；marker/return固定开销约`4.5 us`。所以此前
+  合并观察到的约`37 us`尾段不是一个巨核，而是indexer与compressor两条固定成本链。
+- 三次诊断服务均通过France固定IDs 5/5；最终服务256-token 4/4 hash为基线
+  `14593da264d38f29`，热稳态`76.18--76.27 tok/s`。中途marker误接到未启用的HIP
+  multi-stream与相邻NPU路径时，槽位保持0；对应负数/超大差值明确判无效，不作为性能
+  证据。后续诊断logger应对零槽与非单调时间戳fail-loud。
