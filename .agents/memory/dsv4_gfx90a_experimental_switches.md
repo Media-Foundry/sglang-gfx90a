@@ -1829,3 +1829,17 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   资源使两段近似串行，且额外event/队列带来退化。结果远低于继续门槛（至少20% saved、
   总层预算<=575us）；不再投入decode-TBO graph化，也无需冒险测试custom AR的并发
   scratch/reentrancy。诊断helper与forward hook已撤回，只保留数据结论。
+
+### LDS几何尾扫与PP2/TP4 oracle（2026-08-26）
+
+- 在A4/R2基础上分别固定down或gate扫描`208..2080` blocks及4/8 waves。最佳micro为
+  `waves=4, gate_blocks=1664, down_blocks=1664`约`322.03 us`，相对已交付的
+  A4/R2/waves8/B832约`329.8--330.5 us`只再省约2.4%；不足端到端5%门槛，且runner
+  目前不暴露waves变量，因此不启动服务、不增加新开关。
+- 尝试单模型`PP2 x TP4`，而非两个重复TP4副本：每个GCD只加载半数层的TP4 shard，
+  `pp_max_micro_batch_size=16`、global BS32、PP async depth 0。模型/graph正常启动，
+  1M-token pool保持不变；每GCD模型约`22.6--23.2 GB`，capture后仍余`28--30 GB`。
+- France BS1/2/4/8/16/32合计`63/63` exact，但BS32/256-token四轮为
+  `749.24/747.02/358.58/748.23 tok/s`，正常中心约`748`且有一次慢态，明显低于当前
+  TP8约`912--916`及预设`830`停止门槛。现有PP microbatch调度与TP4更宽权重扫描没有
+  形成收益；不继续扫async depth。临时PP harness接线已撤回，仅保留实验记录。
