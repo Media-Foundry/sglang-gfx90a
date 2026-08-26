@@ -1228,3 +1228,36 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 原Triton prologue的`num_warps=1/2/4`输出逐元素bitwise一致，standalone分别约
   `44.00/43.75/43.29 us`，当前4 warps已最优；8 warps约`43.10 us`但K输出明显
   损坏。临时wrapper参数化已撤回，不应再扫这一维。
+
+### TP4/TP8 small-message AIter AR分离扫描（2026-08-26）
+
+- 8KiB BF16消息的AIter one-stage默认grid随world size变化：TP4为4 CTAs、TP8为
+  8 CTAs。旧`AITER_GFX90A_AR_SMALL_BLOCKS=1/2`同时压低两者，不能单独判断
+  attention TP4 AR。临时增加按world-size覆盖后，TP4 graph micro按最慢rank计，
+  1/2/3/4 CTAs约`14.39/12.95/9.09/9.62 us`，3 CTAs略优于默认4。
+- 完整8-GCD split服务只设TP4=3、TP8维持默认8，France固定IDs 10/10精确，256-token
+  hash仍为基线`14593da264d38f29`；热稳态仅`75.21--75.26 tok/s`，低于同期基线
+  `75.75--75.86`。micro优势被完整graph中的CTA/barrier调度抵消。
+- world-size覆盖和测试脚本参数均已撤回；AIter外部仓库恢复到实验前状态。不要再用
+  全局small-block变量推断某一个collective group的收益。
+
+### `M>2` 分支语义与可复用边界（2026-08-26）
+
+- 仓库不存在统一的“`M>2`不支持”。gfx90a native grouped router/Top-K才是严格的
+  `M=1`专核：Python selector和HIP `TensorMatcher`均固定`[1,256]`，kernel也没有
+  token/block维度。此前所谓已有`M=1..4`能力指的是router前面的BF16 projection
+  GEMV，不是Top-K本身；M>1会回退通用Triton router。
+- Inkling gate中的`M<=2`是CUDA资源分桶：M1/2把权重切片驻留寄存器，M3/4改用
+  shared-memory staging并由多个warp分摊；这是VGPR、occupancy和权重重用的性能
+  选择，不是correctness限制。可复用的是“按M选择寄存器/shared staging”的设计，
+  不能直接复用其CUDA kernel。
+- Inkling TP8 all-reduce的M1/2 v4路径则是通信协议安全边界：它省略exit barrier，
+  依赖A/B双缓冲、reuse distance=2及每次forward偶数次AR。该实现依赖NVLS/
+  multimem，既不能简单放宽到M>2，也不能直接移植到ROCm。
+- AIter gfx90a custom all-reduce没有M2上限；8KiB小消息的主要问题是每层固定barrier
+  与CTA驻留。DSV4 direct FP4 MoE同样支持M>1：M1在kernel内量化，M>1先做外部
+  group-32 INT8量化，避免按expert/CTA重复量化。
+- 对当前BS1，两个DP副本的本地M仍为1，因此照搬Inkling M3/4 staging不会改善单请求。
+  值得复用的后续工作是：为native grouped router增加`grid.x=M`的一-token-per-block
+  M1--4实现并测BS2/4；以及在真实M1/2/4 MoE shape上比较核内与外置量化。任何扩展
+  都必须逐行核对router top-k IDs/weights、MoE输出和graph各rank collective顺序。
