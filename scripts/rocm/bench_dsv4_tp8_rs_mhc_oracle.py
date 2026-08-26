@@ -57,6 +57,7 @@ class Inputs:
     norm_shard: torch.Tensor
     wqkv_full: torch.Tensor
     wqkv_shard: torch.Tensor
+    wqkv_shard_fp16: torch.Tensor
 
 
 def parse_args() -> argparse.Namespace:
@@ -66,6 +67,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--hc", type=int, default=4)
     p.add_argument("--mixes", type=int, default=24)
     p.add_argument("--qkv", type=int, default=1536)
+    p.add_argument(
+        "--projection-partial-dtype",
+        choices=("bf16", "fp16", "fp32"),
+        default="bf16",
+    )
+    p.add_argument("--isolate-reference-layer-input", action="store_true")
+    p.add_argument(
+        "--tuned-fp16",
+        action="store_true",
+        help="Use the isolated hipBLASLt solution tuned for the selected N.",
+    )
     p.add_argument("--eps", type=float, default=1e-6)
     p.add_argument("--warmup", type=int, default=20)
     p.add_argument("--iters", type=int, default=200)
@@ -114,7 +126,9 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
     fn_shard = fn_full[:, :, lo:hi].contiguous()
     pre_scale = torch.tensor(0.25, device="cuda", dtype=torch.float32)
     pre_base = _randn((args.hc,), seed=6000, dtype=torch.float32).mul_(0.1)
-    norm_full = _randn((args.hidden,), seed=7000, dtype=torch.bfloat16).mul_(0.1).add_(1)
+    norm_full = (
+        _randn((args.hidden,), seed=7000, dtype=torch.bfloat16).mul_(0.1).add_(1)
+    )
     norm_shard = norm_full[lo:hi].contiguous()
 
     # The real fused wqkv_a is [1536,4096].  K-sharding is contiguous.
@@ -122,6 +136,7 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
         (args.qkv, args.hidden), seed=8000, dtype=torch.bfloat16
     ).mul_(0.015625)
     wqkv_shard = wqkv_full[:, lo:hi].contiguous()
+    wqkv_shard_fp16 = wqkv_shard.to(torch.float16)
     return Inputs(
         partial,
         partial_rank_major,
@@ -137,6 +152,7 @@ def make_inputs(args: argparse.Namespace, rank: int, world: int) -> Inputs:
         norm_shard,
         wqkv_full,
         wqkv_shard,
+        wqkv_shard_fp16,
     )
 
 
@@ -210,6 +226,7 @@ def sharded_candidate(
     rank: int,
     *,
     registered: bool,
+    layer_input_override: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     hs = args.hidden // dist.get_world_size()
     reduced_shard = torch.empty(
@@ -241,8 +258,38 @@ def sharded_candidate(
     layer_input = (
         y_f * inv_rms * inp.norm_shard.float()
     ).to(torch.bfloat16)
-    qkv_local = torch.matmul(layer_input, inp.wqkv_shard.T)
-    qkv = comm.all_reduce(qkv_local, registered=registered)
+    projection_input = (
+        layer_input if layer_input_override is None else layer_input_override
+    )
+    if args.projection_partial_dtype == "fp32":
+        qkv_local = torch.matmul(
+            projection_input.float(), inp.wqkv_shard.float().T
+        )
+        qkv = comm.all_reduce(qkv_local, registered=registered).to(torch.bfloat16)
+    elif args.projection_partial_dtype == "fp16":
+        projection_input_fp16 = projection_input.to(torch.float16)
+        if args.tuned_fp16:
+            solutions = {1536: 12183, 2560: 12008, 4160: 11948}
+            if args.qkv not in solutions:
+                raise ValueError(f"no tuned FP16 solution for N={args.qkv}")
+            from aiter.tuned_gemm import hipb_gemm
+
+            # hipb_gemm owns the per-process hipBLASLt extension lifecycle;
+            # calling raw hipb_mm before hipb_create_extension segfaults.
+            qkv_local = hipb_gemm(
+                projection_input_fp16,
+                inp.wqkv_shard_fp16,
+                solutions[args.qkv],
+                otype=torch.float16,
+            )
+        else:
+            qkv_local = torch.matmul(
+                projection_input_fp16, inp.wqkv_shard_fp16.T
+            )
+        qkv = comm.all_reduce(qkv_local, registered=registered).to(torch.bfloat16)
+    else:
+        qkv_local = torch.matmul(projection_input, inp.wqkv_shard.T)
+        qkv = comm.all_reduce(qkv_local, registered=registered)
     return residual, layer_input, qkv
 
 
@@ -289,11 +336,21 @@ def main() -> None:
     ref_residual, ref_layer_input, ref_qkv = full_reference(
         args, inp, comm, registered=False
     )
-    cand_residual, cand_layer_input, cand_qkv = sharded_candidate(
-        args, inp, comm, rank, registered=False
-    )
     hs = args.hidden // world
     lo, hi = rank * hs, (rank + 1) * hs
+    projection_input_override = (
+        ref_layer_input[:, lo:hi].contiguous()
+        if args.isolate_reference_layer_input
+        else None
+    )
+    cand_residual, cand_layer_input, cand_qkv = sharded_candidate(
+        args,
+        inp,
+        comm,
+        rank,
+        registered=False,
+        layer_input_override=projection_input_override,
+    )
     torch.testing.assert_close(
         cand_residual, ref_residual[:, :, lo:hi], rtol=2e-2, atol=2e-2
     )
@@ -339,7 +396,10 @@ def main() -> None:
             f"RS={args.rows}x{args.hidden}bf16->{args.rows}x{hs}bf16 "
             f"stats_AR={args.rows}x{args.mixes + 1}fp32 "
             f"norm_AR={args.rows}x1fp32 "
-            f"projection_AR={args.rows}x{args.qkv}bf16 "
+            f"projection_AR={args.rows}x{args.qkv}{args.projection_partial_dtype} "
+            f"projection_partial_dtype={args.projection_partial_dtype} "
+            f"isolate_reference_layer_input={args.isolate_reference_layer_input} "
+            f"tuned_fp16={args.tuned_fp16} "
             f"residual_max_abs={local_metrics[0].item():.6g} "
             f"residual_rel_l2={local_metrics[1].item():.6g} "
             f"residual_cosine={local_metrics[2].item():.9f} "
@@ -371,7 +431,12 @@ def main() -> None:
         with comm.capture():
             with torch.cuda.graph(cand_graph):
                 cand_graph_outputs = sharded_candidate(
-                    args, inp, comm, rank, registered=True
+                    args,
+                    inp,
+                    comm,
+                    rank,
+                    registered=True,
+                    layer_input_override=projection_input_override,
                 )
         dist.barrier()
 
@@ -419,8 +484,19 @@ def main() -> None:
             norm_seed = _randn(
                 (args.rows, 1), seed=10000 + rank, dtype=torch.float32
             )
-            projection_bf16 = _randn(
-                (args.rows, args.qkv), seed=11000 + rank, dtype=torch.bfloat16
+            projection_dtype = (
+                torch.float32
+                if args.projection_partial_dtype == "fp32"
+                else (
+                    torch.float16
+                    if args.projection_partial_dtype == "fp16"
+                    else torch.bfloat16
+                )
+            )
+            projection = _randn(
+                (args.rows, args.qkv),
+                seed=11000 + rank,
+                dtype=projection_dtype,
             )
 
             def capture_collective(fn):
@@ -452,14 +528,17 @@ def main() -> None:
                 lambda: comm.all_reduce(norm_seed, registered=True)
             )
             proj16_graph, proj16_keepalive = capture_collective(
-                lambda: comm.all_reduce(projection_bf16, registered=True)
+                lambda: comm.all_reduce(projection, registered=True)
             )
             breakdown = []
             for name, graph in (
                 ("RS_32x4096_bf16", rs_graph),
                 ("AR_32x25_fp32", stats_graph),
                 ("AR_32x1_fp32", norm_graph),
-                (f"AR_32x{args.qkv}_bf16", proj16_graph),
+                (
+                    f"AR_32x{args.qkv}_{args.projection_partial_dtype}",
+                    proj16_graph,
+                ),
             ):
                 median, reps = critical_us(
                     graph,

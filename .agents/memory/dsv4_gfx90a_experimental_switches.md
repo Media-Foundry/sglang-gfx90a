@@ -2182,3 +2182,38 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   阈值。故不能用同质`1537xbf16`模拟真实`1536xbf16+1xfp32`；异构专核应保持1536 bulk
   的vector访问，在同一rendezvous附带FP32 scalar（或至少padding通信layout），否则会
   白白损失约7.5us。
+- C4 N4160进一步对row-sharded projection partial做了BF16/FP16/FP32 A/B，并用
+  full-H reference layer-input的本rank slice替换sharded-MHC输出做误差隔离。BF16
+  normal/isolation projection relative-L2=`0.00260659/0.00260309`，FP16为
+  `0.00149932/0.00149408`，说明两者误差几乎全部来自K512局部GEMM partial rounding与
+  rank reduction，而非前面的sharded MHC；FP16虽同为2-byte通信且AR4160约`33.1 us`，
+  仍未达到`1e-3`初筛。FP32 normal/isolation则降到`2.63233e-4/5.14203e-5`，数值过筛；
+  isolation max-abs=`0.0078125`、cosine=`1.0`。所有variant八rank output hash一致。
+- 性能上BF16 normal/isolation candidate为`169.489/168.182 us`；FP16为
+  `259.259/259.034 us`，当前Torch/HIP FP16 local GEMM抵消全部结构收益；FP32为
+  `260.651/262.847 us`，且独立500-replay AR4160-FP32保守值=`84.939 us`（本脚本短测
+  `65.915 us`）。因此FP16是同带宽但数值仍不达标且kernel慢，FP32数值可接受但通信/计算
+  预算不成立；三者都不能直接接production。若继续，必须写能以FP32 accumulator保留
+  partial精度、却用2-byte或融合peer reduction避免FP32 bulk通信的专核，并在真实layer20
+  FP8/BF16 cache权重上重新评估，而不是复用当前通用Torch GEMM。
+- `/tmp/aiter_fp16_rs_projection_tuned.csv`的hipBLASLt定解进一步接入独立oracle（仅
+  `--tuned-fp16`，未碰production）：N1536/2560/4160分别映射solution
+  `12183/12008/11948`。必须通过`tuned_gemm.hipb_gemm`调用以创建每进程hipBLASLt
+  extension；直接调用raw `hipb_mm`会让八rank全部native SIGSEGV，该失败路径已修正。
+  C4 N4160 solution11948的五轮100-replay rank-max candidate=`220.138 us`，相对同轮
+  full-H synthetic reference=`267.045 us`为-17.57%，也比通用Torch FP16 candidate
+  `259.259 us`快约15.1%；collective仍为RS=`18.170`、AR25=`14.618`、AR1=`12.562`、
+  AR4160-FP16=`33.117 us`。八rank output hash一致，projection max-abs=`0.015625`、
+  relative-L2=`0.00149906`、cosine=`0.999998808`，与通用FP16数学基本相同，仍略高于
+  `1e-3`初筛。因此定解证明FP16 compute可以回收约39us synthetic开销，但没有解决
+  partial-rounding数值障碍，仍不能接production或宣称模型correctness。
+- 进一步要求hipBLASLt直接执行`BF16 input/weight -> FP16 output`时，M32/K512的
+  N1536/2560/4160三形状均由`tuner/hipb_findallsols`返回0个solution；当前AIter
+  mixed-output API不可用，raw `hipb_mm(solution=-1)`还会native SIGSEGV，禁止作为
+  fallback。可运行的`BF16 GEMM -> FP16 cast`单GCD graph为
+  `12.870/13.326/15.609 us`；常驻FP16 weight并每步将activation转FP16后调用上述
+  tuned solutions为`12.523/16.388/29.157 us`，仅N1536快`0.347 us`（2.77%），后两者
+  分别退化22.98%/86.80%。不含activation cast的理想FP16 GEMM为
+  `9.360/11.734/22.001 us`。FP16路线相对FP32-accumulate再落FP16的relative-L2约
+  `5.98e-5/7.14e-5/6.62e-5`，优于BF16输出再cast的约`1.67e-3`，但当前API与端到端
+  延迟均不支持接production；该探针无代码改动、无checkpoint。
