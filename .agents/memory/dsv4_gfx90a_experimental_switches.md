@@ -1644,3 +1644,10 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 为加快BS32专项A/B，graph tiers可临时只捕获`1,32`，capture约`6.3 s`、graph约
   `0.47 GB/GCD`；但多轮会偶发落入未捕获/新shape慢态（约238--364 tok/s），生产
   与最终验收仍需恢复`1/2/4/8/16/20/24/32`以覆盖admission和batch下降。
+- 补齐此前缺失的TP8/EP2大并发对照：启用partial-EP、Mori world-size2、16-block、
+  direct FP4并捕获BS1/32。France固定IDs`10/10`精确，但32并发三轮仅
+  `394.36/398.90/399.12 tok/s`，约为EP1的一半；graph内存也由EP1约
+  `0.47 GB/GCD`增至约`6.8 GB/GCD`（capture后仅余约9.5GB）。因此EP2不仅在
+  BS1/2/4退化，在192 routed assignments的BS32仍不能摊平每层Mori固定成本，正式
+  证伪为当前TP8吞吐方向。多并发若再引入EP，必须先改变dispatch/combine协议或采用
+  更大的请求批次，而不是复用现有逐层Mori路径。
