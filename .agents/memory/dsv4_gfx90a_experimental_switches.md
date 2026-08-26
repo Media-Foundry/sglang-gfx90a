@@ -1979,7 +1979,32 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   refactor即使dual开关关闭也会令首次真实请求退出，而standalone decode oracle无法
   暴露这一生产prefill问题。共享header已恢复到HEAD逐字节状态，dual生产接线和开关
   也已完整撤出默认代码，只保留未跟踪的独立原型/benchmark供后续重新设计。
-- 连续设备fault后，即使精确恢复实验前源码并清空/重建特定`fused_norm_rope_v2` JIT
-  cache，八rank服务仍在首请求一起退出；单GCD dual micro仍正常，说明ROCm/XGMI运行
-  态需要GPU reset。当前无GPU进程，但`amd-smi reset -G -g all`需要sudo，本会话无
-  passwordless sudo；在reset/重启前不接受任何新的服务性能或correctness结果。
+- 最初用临时`urllib.request.urlopen()`检查服务时继承了代理环境，代理返回`502`，一度
+  被误判成八rank设备fault。前台复查确认scheduler与GPU进程始终存活、`/health=200`；
+  改用正式harness同样的`ProxyHandler({})`后，恢复原header/撤出dual接线的服务France
+  BS1=`1/1`、BS32=`32/32`逐token exact。以后所有本机HTTP oracle必须显式禁用代理，
+  不得把代理层502当作设备或kernel故障。
+- 随后用正常`start`流程（显式`NO_PROXY`、graph tiers仅`1/32`）复测，日志确认八个
+  scheduler与detokenizer均已freeze GC。France BS1/BS32合计`33/33`逐token exact；
+  BS32/256-token八轮为`937.07/947.30/943.07/948.23/952.93/949.33/947.44/947.23`
+  tok/s，中位约`947.37 tok/s`。该次低于历史完整tier checkpoint约2.3%，尚不足以
+  宣称基线回退；长输出跨slot hash仍呈现既有多hash债务，但France没有新增漂移。
+- 单独拆出的C4 core-only HIP后处理同样byte-exact，reference约`13.56--17.90 us`、
+  fused约`7.87 us`，每个C4层仅节约约`6--10 us`，端到端乐观收益不足1%，因此未接
+  生产服务并已删除原型。dual探针的主要micro时间显然来自index分支，但其原路径与
+  core分支并行，仍需以join exposed tail而非两支耗时简单相加判断价值。
+
+### TP8 BS32精确expert occupancy数据（2026-08-27）
+
+- 对rank0 recorder中的768个完整BS32 passes重新统计，每pass/layer均严格恢复192个
+  assignments。可复现分析脚本为`analyze_tp8_bs32_expert_occupancy.py`，逐层CSV为
+  `tp8_bs32_expert_occupancy.csv`。
+- 每pass/layer平均`39.065`个active experts。occupancy为1/2/3/4的active expert数
+  分别为`7.097/5.498/5.005/9.722`；occupancy<=4占active experts约69.94%，但仅承载
+  37.50%的assignments。5--8、9--16、17--32分别承载23.30%、20.10%、19.11%。
+- 固定tile统计：A4平均61.463次weight scan、容量利用率78.10%；A8为46.001次、
+  52.17%；A16为40.668次、29.51%；A32为39.065次、15.36%。A4到A8可减少25.15%
+  scan，A8到A16仅再减11.59%，因此下一原型最多验证真实A8，不能直接扩大到M16/32。
+- CDNA2只有I8 `16x16x16` MFMA而无`16x16x32`；真实A8 MFMA必须每K32发两条指令，
+  并用多CTA/expert维持CU占用。独立micro stop-gate设为完整stage低于`248 us`（相对
+  A4约292us至少15%）；未达标则不得接selector或服务。
