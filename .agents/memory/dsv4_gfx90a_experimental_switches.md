@@ -1843,3 +1843,39 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `749.24/747.02/358.58/748.23 tok/s`，正常中心约`748`且有一次慢态，明显低于当前
   TP8约`912--916`及预设`830`停止门槛。现有PP microbatch调度与TP4更宽权重扫描没有
   形成收益；不继续扫async depth。临时PP harness接线已撤回，仅保留实验记录。
+
+### A4几何后的trace与attention-concat复测（2026-08-26）
+
+- 在新默认A4/R2/B832、M32、layer20重新抓取520个rank-sample，去掉每rank前两次后
+  marker median：coarse=`48.32/1.44/196.48/32.80/106.80/49.44/316.24 us`，
+  prepare=`1.44/1.44/45.60/16.32/24.64/9.76/48.96/46.88/1.28 us`，MoE=
+  `1.44/23.84/12.16/228.48/4.00/4.16/1.44/1.44/37.92/1.44 us`。marker总计约
+  `751.5 us/layer`；目标1500 tok/s约需`496 us/layer`，仍需约255us结构性降幅。
+- 恢复此前M32 C4 attention-prep concat：将BF16的N1536/N2048/N512三个投影拼成
+  N4096，20个C4层额外约625MiB/GCD。当前graph micro独立投影`103.90 us`，concat
+  `51.98--52.70 us`；N512结果exact，N1536/N2048因GEMM归约顺序最大BF16差约
+  `1.0/0.125`。
+- 新A4服务全tier France仍`63/63` exact，但BS32八轮仅
+  `913.29/916.01/907.83/911.00/915.18/912.58/909.47/913.52 tok/s`，median
+  `912.94`、trimmed `912.51`，相对当前默认B2 trimmed `915.82`无收益。concat推迟了
+  原本并行的两条compressor支路，裸GEMM节省没有缩短graph critical path；实现和开关
+  再次撤回。
+
+### TP8 K256 down的8-lane subgroup checkpoint（2026-08-27）
+
+- grouped down原来固定使用16-lane subgroup，但TP8的down shard只有K=256，即8个
+  group-32 dot；lane 8--15不进入group loop，且旧offset-8 reduction只加入零。现按
+  `min(K/32,16)`选择subgroup width：K256用8 lanes、每wave 8个subgroup，K512及以上
+  保持16 lanes；增加K整除、power-of-two和wave64整除静态断言。非零项加法树仍为
+  offset `4/2/1`，数学顺序不变。
+- 生产A4/R2/W8/B832/LDS micro全部相对原LDS reference最终BF16 exact：M8
+  `100.82 us`、M16 `164.68 us`、M32 `292.49 us`。M32相对同几何旧约
+  `329.8--330.5 us`节省约38us（11.5%）。K512兼容实例也通过HIP syntax compile。
+- 完整graph tiers capture成功，France BS1/2/4/8/16/32合计`63/63` exact。首次服务
+  前两轮和中途一轮因新动态M实例JIT为`398.6/395.1/252.0 tok/s`；热透后连续12轮为
+  `963.25/970.10/969.86/969.04/969.77/969.86/969.36/970.25/970.39/966.88/970.18/966.61`
+  tok/s，median `969.82`、trimmed `969.19`，零慢轮。相对上一A4 checkpoint B2
+  trimmed `915.82`提升约5.83%。
+- BS32/256-token完成hash仍为改动前完全相同的7种及相同slot计数：主两种12/11，
+  其余4/2/1/1/1，全部长度256。结合micro exact和France全tier，说明此改动没有引入
+  新分叉；原有TP8跨slot greedy漂移仍作为独立correctness债务。
