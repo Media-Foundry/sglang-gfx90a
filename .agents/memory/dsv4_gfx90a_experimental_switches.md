@@ -1813,3 +1813,19 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - TP8 profile现默认导出`SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS=4`及
   gate/down blocks `832`；其他TP4/普通profile继续保持原A8及208/624默认值，显式环境
   覆盖仍优先。
+
+### 真实M32 stage overlap probe（2026-08-26）
+
+- 为排除旧eager TBO被non-fused MHC混淆，曾加入默认不可达的一次性诊断probe，在
+  layer 20的真实`mark(1)`/`mark(6)`边界捕获输入，直接重复生产attention和MoE闭包；
+  使用两条stream、显式event、`record_stream`与平衡ABBA，先以RCCL关闭custom AR和
+  decode graph测试M32。probe不包含约102us的MHC固定段。
+- France BS32在probe过程中仍为`32/32` exact；8个rank的attention/MoE/serial/overlap
+  输出全部逐元素exact且finite。rank-max median为attention `1.915 ms`、MoE
+  `1.541 ms`、serial `3.253 ms`、overlap `3.396 ms`；空fork/join约`0.051 ms`。
+  各rank overlap相对serial的saved time均为负，范围`-0.155..-0.123 ms`，MoE并发
+  slowdown约`1.008--1.060x`。
+- 因此当前真实M32 attention与MoE在双流/RCCL下没有形成GPU计算重叠，collective和CU
+  资源使两段近似串行，且额外event/队列带来退化。结果远低于继续门槛（至少20% saved、
+  总层预算<=575us）；不再投入decode-TBO graph化，也无需冒险测试custom AR的并发
+  scratch/reentrancy。诊断helper与forward hook已撤回，只保留数据结论。
