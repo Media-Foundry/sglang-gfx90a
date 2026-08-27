@@ -338,6 +338,26 @@ removed nibble decoding entirely but expanded weight traffic by 4x. The first
 dominant packed-kernel cost, and spending memory bandwidth on FP16 shadows is
 counterproductive on this BS1 route. Both prototypes were removed.
 
+## HIP PLE fused-hash reachability and first-replay crash
+
+`SGLANG_ENABLE_QWEN4_PLE_FUSION=1` did not actually select the fused N-gram
+hash on HIP because `can_fuse_qwen4_ngram_hash()` contained an unconditional
+`not _is_hip` guard. The fallback graph retained PyTorch
+`cummax/where/gather` metadata kernels. On several independent services the
+first post-capture request caused all four ranks to report an HSA hardware
+exception in `at::native::vectorized_gather_kernel<16, long>`; a slower
+experimental down kernel could accidentally mask the race by changing graph
+timing.
+
+The fused hash is integer-only Triton and was enabled on HIP. Random contexts
+at B=1/4/16/32, including EOS in every boundary position, matched the eager
+hash element-for-element. The TP4/EP4 graph then captured and completed ten
+consecutive France requests with one exact output. Seven hot 128-token native
+AR requests measured `34.350--34.413 tok/s`, median `34.383` and trimmed
+`34.389`, essentially neutral versus the 34.329 checkpoint while removing the
+first-replay crash and the fallback small-kernel chain. This is a correctness
+fix rather than a claimed 5% performance checkpoint.
+
 ## Fused routed SwiGLU/FWHT and gfx90a QSA packed decode
 
 Two independent decode consumers were fused on the TP4/EP4 MQ4 graph. First,

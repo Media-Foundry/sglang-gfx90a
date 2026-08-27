@@ -83,7 +83,6 @@ def can_fuse_qwen4_ngram_hash(
 
     return (
         contexts.is_cuda
-        and not _is_hip
         and contexts.dtype == torch.long
         and contexts.dim() == 2
         and contexts.shape[1] == _QWEN4_NGRAM_SIZE
