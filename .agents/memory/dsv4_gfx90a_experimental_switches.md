@@ -2446,3 +2446,41 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   graph组合还会卡在ROCm queue-interposition signal，只产出EXTEND trace，故不采用其
   失真数据。下一步须直接进入Phase2：移除attention前AG，把replicated attention prepare
   projections改为K512 row-shard+output AR；在此之前Phase1保持默认关闭且不得报告为收益。
+
+### TP8 persistent hidden-shard Phase2/3与collective隔离（2026-08-27）
+
+- Phase2以默认关闭的`SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_ATTN_ROW=1`移除了
+  attention入口H4096 AG。每层缓存K512 FP16 row shards，把qkv/core-compressor/
+  index-compressor/index-weight四组投影按实际层拼成N1536/2560/4160 hipBLASLt GEMM，
+  分别固定solution 12183/12008/11948，随后只做一次拼接输出AR并把bundle传给既有
+  attention消费者。完整graph tiers1/8/16/32 capture成功，France合计57/57逐tokenexact。
+- 32请求端到端结果仍为负：128-token为`604.7/627.8/627.3 tok/s`，256-token早期单轮
+  为`642.33 tok/s`；独立返程服务256-token达到`653.99/655.22/655.37/655.00 tok/s`。
+  即使采用较高稳定状态，也比正式TP8/EP1约962 tok/s基线慢约32%。恢复attention
+  multi-stream prepare hook对结果无可测收益，说明损失不是该hook遗漏。
+- Phase3曾把learned router改成K512 FP32 local GEMM+AR256，再进入expert-input AG。
+  该路径保持tiers1/8/16/32 France 57/57 exact，但128-token热态仅
+  `616.77--617.25 tok/s`，低于Phase2；串行增加一次全局rendezvous不值得保留。
+  现由`SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_ROUTER`单独默认关闭，不能随ATTN_ROW隐式启用。
+- 为隔离RS本身，增加默认关闭的ATTN/MOE `AR+local slice`诊断开关。两处同时切换后
+  France 57/57 exact、128-token热态`619.46--619.76 tok/s`；attention-only在BS1/32
+  France 33/33 exact、256-token热态`645.38/646.50/646.45 tok/s`，反而比返程RS/RS
+  的约655 tok/s慢1.4%；MoE端切换近似中性。因此AIter RS并非结构退化主因。
+- 预算模型显示candidate每层约9次collective：两个MHC各AR25+AR1、attention projection
+  AR、wo_b RS、router AR（仅Phase3）、expert-input AG、MoE-output RS；baseline约两个
+  H4096 AR。裸collective增量只解释约5ms/token，剩余约12ms主要符合多次rendezvous反复
+  放大rank arrival skew的现象。persistent hidden-shard现作为correctness-valid oracle保留，
+  不进入正式性能配置；主线返回约962 tok/s的full-hidden TP8 graph。
+- 同期审计确认`SGLANG_USE_AITER_AG=1`在本机AIter版本实际静默无效：SGLang要求新版
+  `should_custom_ag`与带`dim`参数API，本机0.1.11.dev32+g9a469a608均缺失。更重要的是
+  当前`module_custom_all_reduce.so`早于源码新增AG end-sync barrier，不能直接绕过selector；
+  接线前必须重编该module，并以变异输入做多轮graph replay八rank逐元素exact验证。
+
+### 8-GCD pipeline-parallel对照结论（2026-08-27）
+
+- 两个TP4 stage组成的PP2在BS32 native AR约`748 tok/s`，异步pipeline约`378 tok/s`，
+  均低于单副本TP8/EP1约`962 tok/s`。PP可通过按层切分权重增加KV容量，但decode每token
+  都要跨stage且BS32不足以摊平bubble；它不是当前1500 tok/s吞吐目标的可用主线。
+- 8 GCD拆成两个独立TP4副本可获得较高聚合吞吐，但重复权重导致KV容量近似四卡配置，
+  只保留为短请求特例。需要长上下文和大并发时，正式结构必须是单副本TP8；PP不能冒充
+  TP8容量/吞吐结果。
