@@ -342,6 +342,82 @@ class CustomAllreduce:
         self.close()
 
 
+def _adapt_aiter_all_gather_api(aiter_cls):
+    """Add the current all-gather API to older AIter communicators.
+
+    AIter releases predating ``should_custom_ag`` already contain the same
+    registered device kernels, but their Python methods do not accept ``dim``.
+    Adapt only that interface here so graph capture and buffer registration
+    continue to be owned by AIter itself.
+    """
+
+    has_gate = hasattr(aiter_cls, "should_custom_ag")
+    reg_has_dim = "dim" in inspect.signature(aiter_cls.all_gather_reg).parameters
+    unreg_has_dim = "dim" in inspect.signature(
+        aiter_cls.all_gather_unreg
+    ).parameters
+    if has_gate and reg_has_dim and unreg_has_dim:
+        return aiter_cls
+
+    class AiterCustomAllreduceCompat(aiter_cls):
+        def should_custom_ag(self, inp: torch.Tensor) -> bool:
+            if has_gate:
+                return bool(super().should_custom_ag(inp))
+            input_bytes = inp.numel() * inp.element_size()
+            return bool(
+                not self.disabled
+                and inp.numel() > 0
+                and is_weak_contiguous(inp)
+                and input_bytes % 16 == 0
+                and input_bytes <= self.max_size // (self.world_size * 2)
+            )
+
+        def _check_ag_output(
+            self, inp: torch.Tensor, out: Optional[torch.Tensor], dim: int
+        ) -> None:
+            if dim != 0:
+                raise ValueError(f"AIter custom all-gather supports dim=0, got {dim}")
+            if out is None:
+                return
+            expected = (inp.shape[0] * self.world_size,) + tuple(inp.shape[1:])
+            if (
+                tuple(out.shape) != expected
+                or out.dtype != inp.dtype
+                or out.device != inp.device
+                or not out.is_contiguous()
+            ):
+                raise ValueError(
+                    "Invalid AIter all-gather output: "
+                    f"input={tuple(inp.shape)} output={tuple(out.shape)} "
+                    f"expected={expected}"
+                )
+
+        def all_gather_reg(
+            self,
+            inp: torch.Tensor,
+            out: Optional[torch.Tensor] = None,
+            dim: int = 0,
+        ):
+            self._check_ag_output(inp, out, dim)
+            if reg_has_dim:
+                return super().all_gather_reg(inp, out=out, dim=dim)
+            return super().all_gather_reg(inp, out=out)
+
+        def all_gather_unreg(
+            self,
+            inp: torch.Tensor,
+            out: Optional[torch.Tensor] = None,
+            dim: int = 0,
+        ):
+            self._check_ag_output(inp, out, dim)
+            if unreg_has_dim:
+                return super().all_gather_unreg(inp, out=out, dim=dim)
+            return super().all_gather_unreg(inp, out=out)
+
+    AiterCustomAllreduceCompat.__name__ = f"{aiter_cls.__name__}Compat"
+    return AiterCustomAllreduceCompat
+
+
 def dispatch_custom_allreduce(
     group: ProcessGroup,
     device: torch.device,
@@ -396,6 +472,9 @@ def dispatch_custom_allreduce(
                 CustomAllreduce as AiterCustomAllreduce,
             )
 
+            AiterCustomAllreduce = _adapt_aiter_all_gather_api(
+                AiterCustomAllreduce
+            )
             logger.info("[AR] Using AiterCustomAllreduce (AMD default)")
             tms_cudagraph = envs.SGLANG_MEMORY_SAVER_CUDA_GRAPH.get()
             if "enable_register_for_capturing" not in inspect.signature(
