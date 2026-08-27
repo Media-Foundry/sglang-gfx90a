@@ -214,7 +214,23 @@ def fused_hc_mix(
     lowrank = w_down.shape[0]
     rows_pad = 16
     device = hyper_input_normed.device
-    num_ctas = torch.cuda.get_device_properties(device).multi_processor_count
+    props = torch.cuda.get_device_properties(device)
+    is_gfx90a = bool(
+        torch.version.hip
+        and getattr(props, "gcnArchName", "").split(":", 1)[0] == "gfx90a"
+    )
+    # Qwen4 decode (K=10240, lowrank=320, HS=2560) is dominated by the
+    # software grid barriers and atomic partials when every gfx90a CU carries
+    # an eight-wave CTA. Four-wave CTAs with a 100-CTA grid retain enough
+    # phase-A tiles while substantially reducing the barrier tail. Keep the
+    # original one-CTA-per-SM geometry on all other architectures.
+    num_ctas = (
+        min(100, props.multi_processor_count)
+        if is_gfx90a
+        else props.multi_processor_count
+    )
+    num_warps = 4 if is_gfx90a else 8
+    block_r = 32 if is_gfx90a else 64
     t_raw = torch.empty((rows_pad, lowrank), dtype=torch.float32, device=device)
     out = torch.empty(
         (rows, hs), dtype=hyper_input_normed.dtype, device=device
@@ -239,7 +255,7 @@ def fused_hc_mix(
         BLOCK_N=32,
         BLOCK_K=256,
         BLOCK_J=32,
-        BLOCK_R=64,
-        num_warps=8,
+        BLOCK_R=block_r,
+        num_warps=num_warps,
     )
     return out

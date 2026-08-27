@@ -216,3 +216,32 @@ padding, all ten expert shards executing on every rank, and TP reduction. One
 long greedy prompt also produced two completion hashes across three hot runs,
 so this branch did not meet the performance or strict-parity retention gate.
 The production changes were removed; TP4/EP4 remains the validated default.
+
+## gfx90a hyperconnection mix/combine checkpoint
+
+The Qwen4 decode graph used a persistent Triton HC mix grid with all 110 gfx90a
+CUs, eight warps per CTA, and `BLOCK_R=64`. On the production shape
+`rows=1, K=10240, lowrank=320, HS=2560`, a geometry sweep reduced the median
+kernel time from about 98.7 us to about 54.0 us with 100 CTAs, four warps, and
+`BLOCK_R=32`; sampled outputs were BF16 bitwise identical. This geometry is
+selected only on gfx90a, while other architectures retain the original grid.
+
+The larger omission was HC combine. Its existing fused C++ kernel was guarded
+by `not _is_hip`, although the implementation is portable through the SGLang
+device abstractions. On gfx90a the fused kernel measured about 15.7 us for the
+same Qwen shape versus about 145.1 us for the torch.compile chain, with bitwise
+equality to the eager BF16 reference. The HIP guard is now relaxed only for
+gfx90a.
+
+TP4/EP4, no-A2A, MQ4G128, PLE-on, graph-BS1 ABBA results for 128-token native
+AR were:
+
+- A1, tuned mix and old HIP combine: `22.99 tok/s`;
+- B1, tuned mix and fused gfx90a combine: `24.287 tok/s`;
+- B2, independent service: `24.367 tok/s`;
+- A2, independent old-combine service: `22.937 tok/s`.
+
+Thus fused combine contributes about 6.1%, and the final mix+combine checkpoint
+is about 8.9% faster than the earlier PLE-on 22.36 tok/s baseline. All four
+services returned the exact France sentence; the final B service passed 10/10
+France requests. The dedicated HC mix/combine tests passed 25/25 on gfx90a.

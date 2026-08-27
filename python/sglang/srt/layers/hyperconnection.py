@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from sglang.srt.layers.hc_mix_triton import fused_hc_mix, fused_hc_mix_supported
 from sglang.srt.utils import is_hip
+from sglang.srt.utils.common import is_gfx90a_supported
 
 _is_hip = is_hip()
 
@@ -51,7 +52,7 @@ class GroupedGemmaRMSNorm(nn.Module):
         if (
             self._jit_group_size is not None
             and x.is_cuda
-            and not _is_hip
+            and (not _is_hip or is_gfx90a_supported())
             and x.dtype in (torch.bfloat16, torch.float16)
         ):
             from sglang.kernels.ops.layernorm.grouped_gemma_rmsnorm import (
