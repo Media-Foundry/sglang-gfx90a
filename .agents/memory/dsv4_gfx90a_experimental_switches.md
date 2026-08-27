@@ -2519,3 +2519,17 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   7轮ABBA、每letter 200 replay的rank-max中位：A三launch `40.561 us`，B两launch
   `39.146 us`，收益`3.49%`（14个A与14个B样本）。这是每层约`1.42 us`的小收益上限，
   未达到5%提交/production接线门槛，保留为独立oracle数据。
+
+### TP8 BS32 scheduler轮询间隔否证（2026-08-27）
+
+- 固定单模型TP8/EP1/no-A2A、1M pool、graph tiers1/32和11-token France IDs，仅把
+  `scheduler_recv_interval`从1改为4。B服务France在BS1/32为`33/33`逐tokenexact；
+  32请求各256-token六轮为`952.08/962.44/957.01/955.07/962.42/958.31 tok/s`，
+  中位约`957.66 tok/s`。
+- 回程A恢复interval=1后France仍`33/33` exact，六轮为
+  `989.88/969.01/969.57/968.88/969.41/965.29 tok/s`，去掉高态后中心约
+  `968--969 tok/s`。interval=4约退化1.1%，说明固定BS32的CPU request polling不是
+  当前critical bottleneck；增大间隔反而增加admission/response抖动。临时脚本入口已撤回。
+- `num_continuous_decode_steps`在当前仓库只有ServerArgs声明，代码中没有实际消费者；
+  在实现并证明每一步仍是单token AR、且逐step正确更新采样/cache之前，不能把该空参数
+  当作可用优化开关。
