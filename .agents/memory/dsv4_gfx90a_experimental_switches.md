@@ -2484,3 +2484,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 8 GCD拆成两个独立TP4副本可获得较高聚合吞吐，但重复权重导致KV容量近似四卡配置，
   只保留为短请求特例。需要长上下文和大并发时，正式结构必须是单副本TP8；PP不能冒充
   TP8容量/吞吐结果。
+
+### M32 dense INT8-weight/BF16-input A-tile原型（2026-08-27，未接正式路径）
+
+- 为`[32,4096] @ [1536,4096]^T`实现了独立两阶段gfx90a HIP micro：第一核按
+  token row做per-row symmetric INT8 activation quant，第二核由wave64 `sdot4`
+  消费per-output-row symmetric INT8 weight cache。每个wave在A4或A8 token tile内
+  只加载一次weight vector；module与benchmark没有接入production selector。
+- 真实layer20 attention-normalized input与`wqkv_a`权重上，A4 candidate相对同一
+  dequantized INT8 weight cache的BF16 `F.linear`为`35.423 -> 38.156 us`（`+7.71%`）；
+  A8因寄存器/occupancy压力退化至`52.285 us`（`+48.85%`）。两者重复执行均bitwise
+  稳定。synthetic A4十轮trimmed ABBA为`35.283 -> 38.302 us`（`+8.56%`）。
+- 真实tensor的candidate `max-abs=0.0610352`、relative-L2=`0.111968`；用纯Torch
+  对相同activation做per-row INT8量化得到relative-L2=`0.111944`，确认大误差来自
+  activation quant而不是HIP实现。synthetic随机输入误差较小（relative-L2=
+  `0.009449`），不足以代表真实DSV4分布。
+- 结论：A4/A8跨token weight reuse仍不足以抵消activation quant launch与sdot4路径，
+  且per-row A8量化不满足正式correctness门槛。该原型只保留为lower-bound micro，
+  不应接入M32 attention projection或服务启动脚本。
