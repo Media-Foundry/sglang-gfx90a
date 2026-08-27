@@ -3036,3 +3036,41 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - 结论：多CTA解决了独立peer pack固定成本，但完整graph中的跨卡publication、CU/cache
   竞争仍吞掉大部分oracle收益。production接线已撤掉；只保留独立oracle及其exact/性能
   证据，不把micro结果外推为模型吞吐。
+
+### TP8-attention + MLP-DP2/TP4 compute下界（2026-08-27）
+
+- 为避免重复完整attention/KV，单独评估只把MLP的32行分成两个并行16行组：现路径每GCD
+  是`M32/I256`专家shard，候选每个四GCD组是`M16/I512`。新增独立脚本
+  `scripts/rocm/bench_dsv4_tp8_mlp_dp2_lower_bound.py`，候选尚未计入每层必要的两组
+  `16x4096 BF16`输出交换，因此是对hybrid结构有利的compute-only下界。
+- 相同A4/R2/W8/LDS full routed stage，当前`M32/I256/B832`为`272.689 us`；候选扫描
+  gate/down blocks `416/624/832/1040`后最佳`M16/I512/B416`仍为`277.185 us`，已慢
+  `4.496 us`（`+1.65%`）。其他候选为`280.107--284.908 us`，慢`2.72--4.48%`。
+- 原因是TP4把每rank expert intermediate shard从256翻倍到512；两组并行虽把token行数
+  减半，但单GCD权重/算术工作并未下降，M16也不足以提高复用。加入跨组row exchange只会
+  更慢且额外复制约17GiB routed权重/GCD，因此不改scheduler/weight loader。
+
+### TP8 output-N复接、长轨迹与组合开关复核（2026-08-27）
+
+- 为核对旧1000 tok/s高点，重新以默认关闭开关接入C4/C128 M32 output-N：全部BF16
+  projection weight在quant postprocess完成后的graph warmup懒建N-shard cache，真正
+  capture内首次分配会fail-loud；每rank执行N520(C4)/N320(C128) full-K GEMM，再用已有
+  AIter custom AG恢复bundle。修复了最初在`post_load_weights`过早读取qkv FP8 raw
+  weight的问题。
+- graph tiers1/32稳定；France为BS1 `1/1`、BS32多轮`32/32`逐tokenexact。候选串行
+  512-token SHA256为
+  `d346ee6f8e3be250ec12cba660d0e9dfd0df2f1c0ef51a9d867dc2d6a0098ad7`；关闭候选的
+  独立服务得到完全相同512个token与同一SHA256。虽然独立projection中间tensor仍有
+  已知约1e-4 relative-L2差异，这次长greedy轨迹没有分叉。
+- 当前机器六轮BS32x256为`984.952/980.515/993.140/985.240/987.286/986.379 tok/s`，
+  中位约`985.8`；相对同日baseline约`944--962`有约2.5--4.4%收益，但未稳定破1000，
+  也未到5%正式checkpoint门槛。恢复完整graph tiers后六轮仅
+  `975.229/982.330/981.657/978.551/981.414/981.417`，不是缺失tier造成。
+- `SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING=1`与output-N组合的512-token输出逐token相同，
+  但六轮正常中心只有`981--984 tok/s`且一次落到`799.335`，没有收益。ROCm multistream
+  关闭后France仍32/32 exact，但六轮仅`894.693--902.125 tok/s`，约退化9%；bundle AG
+  后的q/core/index consumer仍必须保持多流。
+- 负载中八GCD均观测到1700MHz，DVFS不是约2%差距来源；固定HIGH需要sudo，当前账户无
+  passwordless权限。对M32/N320/K4096枚举2226个hipBLASLt solution，最快约`43.97 us`，
+  而当前`F.linear`已约`33.07 us`，显式定解无收益。output-N生产分支暂保持默认关闭，
+  只用于继续组合；当前证据不能报告为稳定破1k checkpoint。
