@@ -1,5 +1,41 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-28: post-49.7 tok/s decode probes rejected
+
+All service experiments below used native AR, TP4/EP4/no-A2A, decode graph
+BS1, and scanned `amd-smi process` before GPU work.  The restored control arm
+with routed MQ4G128 and Qwen-wide wave64 BF16 linears produced nine steady
+256-token rounds at `49.36--49.72 tok/s` (median about `49.57 tok/s`), all with
+one completion hash `815dba1b46a50050`.
+
+- An indexed MQ4 kernel computed two adjacent output rows per wave32 subgroup
+  and shared activation loads.  True-shape gate/up ABBA improved
+  `40.62 -> 34.35 us` (15.4%), while the short-K down projection regressed, so
+  the selector was restricted to gate/up.  Full-service B nevertheless measured
+  only about `49.65 tok/s` median versus `49.57 tok/s` A (about 0.16%).  B was
+  internally hash-stable but followed a different greedy trajectory because
+  interleaving two FP32 accumulators changes compiler FMA scheduling.  A
+  four-row variant reached about `32.75 us` once but did not survive repeated
+  timing.  The pair/quad kernels, selector, and environment flag were removed.
+- Qwen HC down rows-per-wave 2 -> 1 passed the dedicated oracle, but the whole
+  two-stage HC micro changed only `31.51 -> 31.08 us` (1.37%).  It was reverted
+  without a service run.
+- Reusing routed MQ4G128 for a dense `4096x2560` projection was slower than the
+  committed BF16 wave64 scan: `35.79 -> 48.79 us`.  Packed-weight bandwidth did
+  not repay affine nibble decode, so no dense MQ4 path was retained.
+- The existing per-row INT8 + dynamic activation `sdot4` GEMV was first extended
+  to Qwen shapes.  Its original form redundantly quantized the activation in
+  every output block.  A second prototype quantized once into a static device
+  workspace and launched a prequantized `sdot4` consumer.  It still regressed
+  `4096x2560` from `35.78 -> 48.08 us` and `1536x2560` from
+  `30.13 -> 44.50 us`, with roughly 1.2% relative L2 error.  Both variants and
+  their relaxed shape guards were removed.
+
+The unoptimized-FP8 startup observed during this audit was configuration error,
+not a regression: omitting `SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED=1` retained the
+43.80-GiB/GCD FP8 expert path and decoded at only about 17.4 tok/s after JIT.
+The routed-MQ4 service uses 34.38 GiB/GCD and restores the 49.6 tok/s baseline.
+
 ## 2026-08-28: two-stage wave64 Qwen HC mix
 
 The capture trace attributed about 4.90 ms/token to 97 Qwen hyperconnection
