@@ -2584,3 +2584,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 从BS32翻倍到BS64只增加约38% aggregate throughput，且step从约33.3ms增加到约
   48.2ms；因此1500 tok/s不是简单提高并发即可达到。BS64可作为容量/吞吐特例，但BS32
   目标仍需缩短attention与MoE critical path。探针服务测试后已停止。
+
+### TP8 C4 attention projection output-N分片oracle（2026-08-27）
+
+- 新增独立脚本`scripts/rocm/bench_dsv4_tp8_output_n_projection_ag.py`，不接production
+  selector。A使用真实layer20 M32输入分别执行wqkv-a/core-compressor/
+  index-compressor/index-weight四个BF16 GEMM（总N=4160）；B把全局输出N连续切成
+  8个N520 shard，每rank只做一个full-K GEMM，再用AIter registered all-gather和
+  graph内rank-major重排恢复`[32,4160]`。
+- AIter AG协议本身通过：8 rank的local GEMM结果与gathered对应slice均逐元素exact，
+  所有rank得到相同A/B hash。7轮rank-max ABBA复测为A=`123.858 us`、B=`64.491 us`，
+  局部减少`47.93%`；另一独立轮为`123.092 -> 63.897 us`（`-48.09%`）。这满足继续
+  production A/B的性能门槛。
+- B尚不满足中间tensor bitwise：四个原shape GEMM与合并后N520 GEMM选择不同BLAS归约，
+  1000/1000个变异输入存在差异，最大absolute=`0.03125`、relative-L2=
+  `1.126e-4`；初始差异主要在core-compressor（`0.0078125`）。通信和重排不是误差来源。
+- 保留四个投影边界、分别计算N192/N256/N64/N8 shard可让四段逐元素exact，但四个小GEMM
+  本地即`174.52 us`，已慢于A约`118.01 us`，加AG后更无收益。因此不能用多小GEMM换
+  bitwise；下一步应把单bundle方案做成默认关闭的端到端实验，以France、固定长token轨迹、
+  compressor cache/state和跨tier重复性作为correctness gate。通过前不得设为正式默认。
