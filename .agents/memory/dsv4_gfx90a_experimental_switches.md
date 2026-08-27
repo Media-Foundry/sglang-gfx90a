@@ -2557,3 +2557,15 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `662.54/662.73/662.82/662.74/647.83 tok/s`；相对安全Gloo lockstep约659.4仅
   `+0.5%`且仍有慢态，远不能解释与正式TP8约969的差距。device broadcast已撤回，
   保持已提交的CPU-group correctness路径。
+
+### TP8 BS32 full-K FP16 projection下界（2026-08-27，未接正式路径）
+
+- 使用真实layer20 attention-normalized输入`[32,4096]`与`wqkv_a`权重
+  `[1536,4096]`，比较ROCm BLAS BF16 `F.linear`与输入/权重均转FP16、输出再转
+  BF16的完整投影。该实验不修改production selector，也不改变服务配置。
+- 数值差异为`max-abs=0.00390625`、relative-L2=`0.00145310`、cosine=
+  `0.999998927`；虽然明显好于per-row INT8 activation quant，但仍不是逐元素exact，
+  若接入正式路径必须重新做逐token France与长序列correctness。
+- 多轮ABBA中位为BF16 `38.728 us`、FP16加输出cast `42.388 us`，FP16候选慢
+  `8.64%`。因此gfx90a/当前ROCm BLAS下，FP16并没有提供可利用的full-K projection
+  快路，额外cast还扩大了开销；不应接入正式路径。
