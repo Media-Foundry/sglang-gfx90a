@@ -2552,3 +2552,8 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   full-hidden TP8约`965--969 tok/s`。因此这是应保留的同步correctness/fail-loud修复，
   不是1500 tok/s性能checkpoint；复制attention与每poll full-TP CPU rendezvous的成本
   使该结构不再作为当前吞吐主线。
+- 为隔离CPU rendezvous，把split-only full-TP request broadcast改为device group、
+  `force_cpu_device=False`。France tiers仍`57/57` exact，五轮BS32为
+  `662.54/662.73/662.82/662.74/647.83 tok/s`；相对安全Gloo lockstep约659.4仅
+  `+0.5%`且仍有慢态，远不能解释与正式TP8约969的差距。device broadcast已撤回，
+  保持已提交的CPU-group correctness路径。
