@@ -11,6 +11,34 @@ if TYPE_CHECKING:
 
 
 @cache_once
+def _remap_module(m: int, t: int, e: int) -> Module:
+    args = make_cpp_args(m, t, e)
+    return load_jit(
+        "gfx90a_mq4g128_remap_topk",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[("run", f"sglang::Gfx90aMq4g128RemapTopk<{args}>::run")],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+def mq4g128_remap_topk(
+    expert_ids: torch.Tensor, local_expert_mapping: torch.Tensor
+) -> torch.Tensor:
+    m, t = expert_ids.shape
+    assert expert_ids.dtype == torch.int32 and expert_ids.is_contiguous()
+    assert (
+        local_expert_mapping.dtype == torch.int32
+        and local_expert_mapping.is_contiguous()
+    )
+    out = torch.empty_like(expert_ids)
+    _remap_module(m, t, local_expert_mapping.numel()).run(
+        expert_ids, local_expert_mapping, out
+    )
+    return out
+
+
+@cache_once
 def _indexed_module(e: int, m: int, t: int, n: int, k: int) -> Module:
     args = make_cpp_args(e, m, t, n, k)
     return load_jit(

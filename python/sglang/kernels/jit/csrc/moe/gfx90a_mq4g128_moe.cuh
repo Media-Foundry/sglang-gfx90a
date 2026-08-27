@@ -13,6 +13,39 @@ namespace sglang {
 
 using namespace device;
 
+template <uint32_t M, uint32_t T, uint32_t E>
+__global__ void mq4g128_remap_topk_kernel(
+    const int32_t* __restrict__ expert_ids,
+    const int32_t* __restrict__ local_expert_mapping,
+    int32_t* __restrict__ local_ids) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= M * T) return;
+  const int32_t expert = expert_ids[i];
+  local_ids[i] =
+      expert >= 0 && expert < static_cast<int32_t>(E)
+          ? local_expert_mapping[expert]
+          : -1;
+}
+
+template <uint32_t M, uint32_t T, uint32_t E>
+struct Gfx90aMq4g128RemapTopk {
+  static void run(const tvm::ffi::TensorView expert_ids,
+                  const tvm::ffi::TensorView local_expert_mapping,
+                  const tvm::ffi::TensorView local_ids) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({E}).with_dtype<int32_t>().with_device(device).verify(local_expert_mapping);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(local_ids);
+    LaunchKernel((M * T + 63) / 64, 64, expert_ids.device())(
+        mq4g128_remap_topk_kernel<M, T, E>,
+        static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<const int32_t*>(local_expert_mapping.data_ptr()),
+        static_cast<int32_t*>(local_ids.data_ptr()));
+  }
+};
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t A>
 __global__ void mq4g128_sorter_kernel(
     const int32_t* __restrict__ expert_ids,

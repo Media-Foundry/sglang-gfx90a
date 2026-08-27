@@ -50,6 +50,43 @@ not a regression: omitting `SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED=1` retained the
 43.80-GiB/GCD FP8 expert path and decoded at only about 17.4 tok/s after JIT.
 The routed-MQ4 service uses 34.38 GiB/GCD and restores the 49.6 tok/s baseline.
 
+## 2026-08-28: local-ID remap and LM-head tail
+
+After the K160/N24 wave64 checkpoint reached 53.27 tok/s, the graph still paid
+for generic advanced indexing to map each layer's ten global expert IDs onto
+the rank-local EP4 table.  The source IDs are int32, but the generic index path
+also introduced an internal int64/int32 copy.  A graph-safe 64-thread HIP
+lookup now reads the same mapping table and writes int32 directly; it is gated
+only by the routed MQ4G128 method flag and therefore does not change other MoE
+backends or assume contiguous expert placement.  The oracle covered valid,
+remote, negative, and out-of-range IDs exactly.  ABBA microbenchmarking gave
+25.99 us for advanced indexing and 13.33 us for the HIP lookup (1.95x).
+
+The TP4 local LM-head projection `[1,2560] x [2560,62080]` also bypassed the
+existing wave64 selector.  Calling the same guarded BF16 GEMV from the direct
+LM-head path reduced its ABBA median from 346.18 to 238.08 us (1.45x); the
+generic matmul remains the fallback for unsupported shapes/devices.
+
+Together these changes raised ten hot 256-token native-AR requests from a
+53.27 tok/s median to 55.02 tok/s (+3.3%).  All ten retained completion hash
+`bcc6f565ee3098ae`; the remap and routed-MQ4 oracles passed.  The cumulative
+gain over the 49.57 tok/s pre-K160 baseline is about 11.0%.
+
+Rejected follow-ups:
+
+- MQ4 indexed CTA64 -> CTA256 preserved the per-row oracle but did not improve
+  the dominant gate projection (40.78 vs 40.95 us); down improved only about
+  2.1%, so the change was fully reverted.
+- `--enable-single-batch-overlap` produced 54.70 tok/s versus 55.02 without
+  SBO while preserving the hash; it is not enabled.
+- A current runtime trace attributes roughly 4.2 ms/token to about 97 AIter
+  custom all-reduces.  The `[11,2560]` shape seen in CPU events belongs to the
+  11-token eager prefill, not BS1 graph replay; do not infer an 11x decode
+  payload from it.  AIter's `AITER_GFX90A_AR_SMALL_BLOCKS=1/2` variants were
+  faster in isolation but failed the four-rank numerical check.  SGLang's own
+  custom AR was slower than AIter for the 5-KiB message in the repository
+  comparison benchmark.  All temporary benchmark-source edits were restored.
+
 ## 2026-08-28: two-stage wave64 Qwen HC mix
 
 The capture trace attributed about 4.90 ms/token to 97 Qwen hyperconnection

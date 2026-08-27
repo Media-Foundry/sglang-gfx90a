@@ -757,9 +757,17 @@ class LogitsProcessor(nn.Module):
                     hidden_states.bfloat16(), lm_head.weight.T.bfloat16()
                 )
             else:
-                logits = torch.matmul(
-                    hidden_states.to(lm_head.weight.dtype), lm_head.weight.T
-                )
+                logits = None
+                if hidden_states.dtype == lm_head.weight.dtype == torch.bfloat16:
+                    from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                        gfx90a_wave64_bf16_gemv,
+                    )
+
+                    logits = gfx90a_wave64_bf16_gemv(hidden_states, lm_head.weight)
+                if logits is None:
+                    logits = torch.matmul(
+                        hidden_states.to(lm_head.weight.dtype), lm_head.weight.T
+                    )
         else:
             # GGUF models
             # TODO: use weight_packed_linear for GGUF models

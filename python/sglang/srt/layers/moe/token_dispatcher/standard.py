@@ -98,6 +98,7 @@ assert isinstance(StandardCombineInput, CombineInput)
 class StandardDispatcher(BaseDispatcher):
     def __init__(self, moe_runner_config: MoeRunnerConfig):
         super().__init__()
+        self.moe_runner_config = moe_runner_config
         self.moe_ep_size = get_parallel().moe_ep_size
         backend = get_moe_runner_backend()
         self.enable_flashinfer_cutlass_moe = backend.is_flashinfer_cutlass()
@@ -224,7 +225,26 @@ class StandardDispatcher(BaseDispatcher):
                 )
             elif not self.use_aiter_moe_runner:
                 if TopKOutputChecker.format_is_standard(topk_output):
-                    topk_ids_local = self.local_expert_mapping[topk_output.topk_ids]
+                    if (
+                        getattr(
+                            self.moe_runner_config,
+                            "gfx90a_mq4g128_routed",
+                            False,
+                        )
+                        and topk_output.topk_ids.dtype == torch.int32
+                    ):
+                        from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
+                            mq4g128_remap_topk,
+                        )
+
+                        topk_ids_local = mq4g128_remap_topk(
+                            topk_output.topk_ids.contiguous(),
+                            self.local_expert_mapping,
+                        )
+                    else:
+                        topk_ids_local = self.local_expert_mapping[
+                            topk_output.topk_ids
+                        ]
                     # Drop dp-attention MAX_LEN pad rows from the dispatch:
                     # pad rows carry stale hidden through the router and
                     # their expert outputs are discarded downstream — pure

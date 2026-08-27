@@ -167,6 +167,7 @@ class Mq4g128RoutedMoEMethod:
 
     def create_moe_runner(self, layer: Module, moe_runner_config) -> None:
         self.moe_runner_config = moe_runner_config
+        moe_runner_config.gfx90a_mq4g128_routed = True
         if moe_runner_config.hidden_size != 2560 or moe_runner_config.intermediate_size_per_partition != 640:
             raise ValueError("Qwen4 MQ4G128 currently requires H=2560 and I=640")
         if moe_runner_config.top_k != 10 or moe_runner_config.activation != "silu":

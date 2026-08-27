@@ -63,6 +63,9 @@ class MoeRunnerConfig:
     gate_up_interleaved: bool = True
     layer: Optional[torch.nn.Module] = None
     use_tp_all_gather_activation: bool = False
+    # Routed-only Qwen4 MQ4G128 uses a graph-safe HIP local-ID remap in the
+    # standard dispatcher instead of generic advanced indexing.
+    gfx90a_mq4g128_routed: bool = False
 
 
 @dataclass

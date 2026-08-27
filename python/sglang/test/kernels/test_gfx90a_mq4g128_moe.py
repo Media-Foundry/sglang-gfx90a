@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
     mq4g128_grouped,
     mq4g128_indexed,
+    mq4g128_remap_topk,
     mq4g128_weighted_reduce,
 )
 from sglang.kernels.ops.moe.gfx90a_qwen_topk import gfx90a_qwen_topk
@@ -17,6 +18,25 @@ from sglang.srt.layers.quantization.mq4g128 import (
     swiglu_fwht128,
 )
 from sglang.srt.utils import is_hip
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_mq4g128_remap_topk_matches_indexing():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    expert_ids = torch.tensor(
+        [[0, 3, 4, 7, -1], [2, 6, 1, 5, 9]],
+        dtype=torch.int32,
+        device="cuda",
+    )
+    mapping = torch.tensor(
+        [4, -1, 0, 7, 2, -1, 1, 3], device="cuda", dtype=torch.int32
+    )
+    expected = torch.full_like(expert_ids, -1)
+    valid = (expert_ids >= 0) & (expert_ids < mapping.numel())
+    expected[valid] = mapping[expert_ids[valid]]
+    actual = mq4g128_remap_topk(expert_ids, mapping)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
