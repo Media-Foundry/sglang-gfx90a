@@ -2763,3 +2763,29 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   ABBA约-0.13%。因此不能重复计算q_padded、dual或event收益。尚可做的局部oracle只有
   CK `wqkv_a + segmented RMSNorm`（真实目标约8--12us/layer）及M32 inverse-RoPE到
   wo_a（约8--15us/layer）；attention consumer fusion的40--70us净收益预算偏乐观。
+
+### TP8 多样请求A1/A2/A4 occupancy-bucket实测（2026-08-27）
+
+- 新多样请求dump `/tmp/expert_distribution_recorder_1787803355.1855972.pt` 有168个完整
+  BS32 decode pass。丢弃前32个warm pass后，128-pass窗口中hash层平均`118.52`个active
+  experts、A4 `122.98` scans；learned层平均`105.84`个active、A4 `112.65` scans。
+  这与旧重复prompt仅约38--40个active experts的分布差异很大，也解释了多样请求下
+  routed stage负担上升。
+- 新增独立、默认不接production selector的
+  `scripts/rocm/bench_dsv4_gfx90a_occupancy_bucket_oracle.py`。用代表性的pass37/layer34
+  （active=106、max occupancy=7、A4 scans=113）严格重构32x6无重复top-k；CPU一次生成
+  A1/A2/A4连续metadata（分别64/24/25 blocks）。三个gate producer共享`[M,T,I]`，三个
+  down producer共享同一FP32 partial，最后只执行一次现有固定slot reduction，避免把
+  reduction重复三次；CPU metadata构造约`1.826 ms`，未计入GPU stage，production GPU
+  sorter只会增加额外成本。
+- 五组合理block profile的gate BF16、down FP32 partial和最终BF16输出均逐元素exact、
+  `max_abs=0`；最佳profile再对100次变异quantized input replay，最终输出也全部
+  bitwise exact。7轮ABBA最佳bucket profile为gate `(624,208,208)`、down
+  `(832,416,416)`：完整stage `294.270 us`，相同输入统一A4/R2/W8/B832为
+  `257.434 us`，退化`14.31%`。分项为gate `154.491 vs 137.043 us`（+12.73%）、down
+  `122.180 vs 110.337 us`（+10.73%）、quant约`39.429 us`、唯一reduce约`4.427 us`；
+  其他bucket profile退化`15.87--26.00%`。
+- 新分布虽然singleton很多，但A1/A2/A4不减少weight scans；三次launch与三次1KiB LDS
+  LUT初始化的固定成本超过少量invalid-lane/VGPR节省。候选远未达到full-stage
+  `<=166 us`或至少15%收益门槛，因此不接selector、不启动服务；若重访必须让单launch
+  在不扩大常驻VGPR的前提下动态选择assignment width，不能继续做三bucket launch。

@@ -186,7 +186,15 @@ def _jit_down_grouped(
             (
                 "run",
                 f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::run",
-            )
+            ),
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::reduce",
+            ),
         ],
         extra_cuda_cflags=["-O3"],
     )
