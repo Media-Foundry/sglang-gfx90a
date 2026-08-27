@@ -1,5 +1,31 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-28: two-stage wave64 Qwen HC mix
+
+The capture trace attributed about 4.90 ms/token to 97 Qwen hyperconnection
+mix calls.  The existing Triton persistent kernel fused the full operation but
+paid for FP32 atomics and two software grid barriers.  A gfx90a HIP replacement
+splits at the natural 320-element low-rank boundary:
+
+1. four-wave workgroups compute the `10240 -> 320` BF16-weight projection into
+   FP32 without split-K atomics;
+2. a second wave64 kernel applies scaled SiLU, computes all four `320 -> 2560`
+   gates in registers, and fuses sigmoid, four-stream weighting, and the mean.
+
+For the exact production shape, the pair measured 29.36 us trimmed versus
+53.41 us for the persistent kernel, and was bitwise equal to both the old
+kernel and an eager mathematical oracle.  The dedicated gfx90a test passed.
+TP4/EP4 graph-BS1 native-AR ABBA (seven 128-token requests per arm) was:
+
+- A1 legacy HC (prior committed service): 37.282 tok/s trimmed;
+- B1 two-stage HIP HC: 42.436 tok/s trimmed;
+- A2 same code with `SGLANG_QWEN4_GFX90A_HC_MIX_HIP=0`: 37.334 tok/s;
+- B2 independent HIP HC service: 42.346 tok/s.
+
+The mean-to-mean gain is about 13.7%.  Both B services passed the fixed France
+oracle 10/10.  The exact-shape selector is default-on with a kill switch and
+does not affect prefill, larger batches, other hidden sizes, or non-HIP GPUs.
+
 ## 2026-08-27: enable portable QSA radix top-512 on gfx90a
 
 The decode capture trace showed that the QSA indexer still used the HIP

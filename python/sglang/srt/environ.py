@@ -316,6 +316,9 @@ class Envs:
     # Use the portable JIT radix-select top-512 for QSA on HIP. Disable only
     # for correctness/performance A/B against the legacy torch.topk chain.
     SGLANG_QWEN4_GFX90A_QSA_JIT_TOPK = EnvBool(True)
+    # Two-stage wave64 HIP HC mix for the exact Qwen4 decode shape. This
+    # removes persistent-grid atomics/barriers; set 0 for the legacy path.
+    SGLANG_QWEN4_GFX90A_HC_MIX_HIP = EnvBool(True)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)

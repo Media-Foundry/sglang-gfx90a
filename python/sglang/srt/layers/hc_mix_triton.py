@@ -212,6 +212,23 @@ def fused_hc_mix(
 ) -> torch.Tensor:
     rows, k = hyper_input_normed.shape
     lowrank = w_down.shape[0]
+    if (
+        rows == 1
+        and k == 10240
+        and lowrank == 320
+        and hc == 4
+        and hs == 2560
+        and hyper_input_normed.dtype == torch.bfloat16
+        and torch.version.hip
+    ):
+        from sglang.srt.environ import envs
+
+        if envs.SGLANG_QWEN4_GFX90A_HC_MIX_HIP.get():
+            from sglang.kernels.ops.hyperconnection.gfx90a_hc_mix import (
+                gfx90a_qwen_hc_mix,
+            )
+
+            return gfx90a_qwen_hc_mix(hyper_input_normed, w_down, w_up)
     rows_pad = 16
     device = hyper_input_normed.device
     props = torch.cuda.get_device_properties(device)
