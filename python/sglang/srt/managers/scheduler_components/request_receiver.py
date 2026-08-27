@@ -151,7 +151,28 @@ class SchedulerRequestReceiver:
         return recv_reqs
 
     def _broadcast_reqs_across_ranks(self, recv_reqs: Optional[List]) -> List:
-        if get_parallel().config.enable_dp_attention:
+        if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
+            # Both attention-DP replicas enter the same TP8 MoE collective, so
+            # their scheduler work stream must be identical, not merely sourced
+            # from duplicate controller sends.  Reuse the standard full-TP CPU
+            # object broadcast to make TP0's ordered work/control list
+            # authoritative for all eight ranks.  This also provides one
+            # scheduler-loop rendezvous before either replica plans a batch.
+            if self.tp_group.rank != 0 and recv_reqs:
+                work_reqs, _ = self._split_work_and_control_reqs(recv_reqs)
+                if work_reqs:
+                    raise RuntimeError(
+                        "Split-MoE received work on a non-authoritative DP "
+                        "scheduler; this would permit divergent batch plans"
+                    )
+            return broadcast_pyobj(
+                recv_reqs,
+                self.tp_group.rank,
+                self.tp_cpu_group,
+                src=self.tp_group.ranks[0],
+            )
+
+        if get_parallel().enable_dp_attention:
             if self.ps.attn_tp_rank == 0 and self.ps.attn_cp_rank == 0:
                 work_reqs, control_reqs = self._split_work_and_control_reqs(recv_reqs)
             else:
