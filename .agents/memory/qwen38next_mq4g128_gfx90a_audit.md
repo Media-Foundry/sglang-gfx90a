@@ -1,5 +1,41 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-27: enable portable QSA radix top-512 on gfx90a
+
+The decode capture trace showed that the QSA indexer still used the HIP
+`torch.topk` fallback.  Across the 12 QSA layers its mask, radix sort, gather,
+and associated elementwise chain cost about 1.30 ms/token.  The fallback was
+selected by a stale `_is_hip` guard whose comment claimed the packaged JIT
+kernel used PTX-only primitives.  In fact `fast_topk.cuh` uses SGLang portable
+device helpers and compiled directly with hipcc on gfx90a.
+
+For `[1,1024]` FP32 scores, length 769 and top-k 512, the JIT radix selector
+was 14.58 us trimmed versus 65.01 us for mask plus `torch.topk`, 4.46x faster.
+Candidate sets were exact.  The oracle covered B=1/4/8, L=512/513/1024/2048,
+zero and nonzero row starts, and valid lengths both below and above 512.  The
+QSA top-k/compressed tests passed 4/4; the larger suite passed its first 52
+tests before an unrelated pre-existing fixture failed because its fake
+metadata lacks `compress_member_rows`.
+
+`SGLANG_QWEN4_GFX90A_QSA_JIT_TOPK=1` is now default and can be disabled for
+same-code fallback comparisons.  TP4/EP4, AIter full attention, graph BS1,
+native AR, seven 128-token rounds gave:
+
+- prior old-path checkpoint: about 34.39 tok/s trimmed;
+- B1 JIT top-k: 37.380 tok/s trimmed;
+- A2 same code with the switch disabled: 34.637 tok/s trimmed;
+- B2 independent JIT-top-k service: 37.282 tok/s trimmed.
+
+The same-code A2/B2 gain is 7.64%; both B services passed the fixed France
+oracle 10/10.  The final B2 service remained running on GCD 0--3.
+
+The same investigation tested the full-attention backend.  This model has 12
+full-attention and 36 Gated-DeltaNet layers.  A Triton-attention service was
+correct (France 10/10) but measured 34.49 tok/s versus the then-current AIter
+34.39 tok/s, only about 0.3%.  AIter already calls AMD's fused
+`paged_attention_ragged`; NVIDIA FA3/FA4 is unavailable on gfx90a.  Full
+attention backend replacement is therefore not a decode priority.
+
 ## 2026-08-27: DSV4 in-block Q8 + `sdot4` transfer was negative
 
 The gfx90a DSV4 FP4 M=1 kernel's most relevant pattern was reproduced as an

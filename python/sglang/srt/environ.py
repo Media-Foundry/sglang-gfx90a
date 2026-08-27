@@ -313,6 +313,9 @@ class Envs:
     # Replace the HIP BS1 QSA PyTorch decomposition with the wave64 split-K
     # packed attention kernel for the validated Qwen4 local-head shape.
     SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE = EnvBool(True)
+    # Use the portable JIT radix-select top-512 for QSA on HIP. Disable only
+    # for correctness/performance A/B against the legacy torch.topk chain.
+    SGLANG_QWEN4_GFX90A_QSA_JIT_TOPK = EnvBool(True)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)

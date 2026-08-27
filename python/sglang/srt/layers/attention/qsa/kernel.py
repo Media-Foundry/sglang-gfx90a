@@ -8,6 +8,7 @@ import torch
 import triton
 import triton.language as tl
 
+from sglang.srt.environ import envs
 from sglang.srt.utils import is_hip
 
 _is_hip = is_hip()
@@ -34,13 +35,19 @@ def qsa_fast_topk(
 
     lengths = (row_ends - row_starts).to(device=logits.device, dtype=torch.int32)
     starts = row_starts.to(device=logits.device, dtype=torch.int32)
-    if logits.is_cuda and not _is_hip:
-        if topk == 512:
-            # Prefer the JIT kernel: it ships with the sglang python package,
-            # so top-k 512 works regardless of the installed sgl_kernel version.
-            from sglang.kernels.ops.elementwise.fast_topk import fast_topk
+    if (
+        logits.is_cuda
+        and topk == 512
+        and (not _is_hip or envs.SGLANG_QWEN4_GFX90A_QSA_JIT_TOPK.get())
+    ):
+        # The JIT kernel uses SGLang's portable device helpers and is valid on
+        # both CUDA and HIP.  Keeping gfx90a on torch.topk materialized a mask
+        # and invoked a radix sort/gather chain in every QSA decode layer.
+        from sglang.kernels.ops.elementwise.fast_topk import fast_topk
 
-            return fast_topk(logits, lengths, topk=512, row_starts=starts)
+        return fast_topk(logits, lengths, topk=512, row_starts=starts)
+
+    if logits.is_cuda and not _is_hip:
 
         from sgl_kernel import top_k as top_k_module
 
@@ -62,11 +69,7 @@ def qsa_fast_topk(
         return _rerank_qsa_topk_candidates(logits, candidates, starts, topk)
 
     if logits.is_cuda:
-        # ROCm tensors also report ``is_cuda``.  The packaged JIT top-k above
-        # contains CUDA/PTX-only primitives, so keep the first-day gfx90a path
-        # entirely on device with torch.topk rather than attempting to compile
-        # that kernel through hipcc.  Masking preserves the packed-row contract
-        # and invalid entries are returned as -1, matching fast_topk_v2.
+        # Other ROCm top-k widths retain the graph-safe torch fallback.
         columns = torch.arange(logits.shape[1], device=logits.device).unsqueeze(0)
         valid = (columns >= starts.unsqueeze(1)) & (
             columns < (starts + lengths).unsqueeze(1)
