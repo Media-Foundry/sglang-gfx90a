@@ -304,7 +304,7 @@ class GatedResidual(HyperConnectionBase):
         if (
             self._jit_combine_ok
             and block_output.is_cuda
-            and not _is_hip
+            and (not _is_hip or is_gfx90a_supported())
             and block_output.dtype in (torch.bfloat16, torch.float16)
             and hyper_input.dtype == block_output.dtype
             and hyper_input_normed.dtype == block_output.dtype

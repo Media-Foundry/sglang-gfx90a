@@ -226,22 +226,37 @@ kernel time from about 98.7 us to about 54.0 us with 100 CTAs, four warps, and
 `BLOCK_R=32`; sampled outputs were BF16 bitwise identical. This geometry is
 selected only on gfx90a, while other architectures retain the original grid.
 
-The larger omission was HC combine. Its existing fused C++ kernel was guarded
-by `not _is_hip`, although the implementation is portable through the SGLang
-device abstractions. On gfx90a the fused kernel measured about 15.7 us for the
-same Qwen shape versus about 145.1 us for the torch.compile chain, with bitwise
-equality to the eager BF16 reference. The HIP guard is now relaxed only for
-gfx90a.
+The first HIP guard relaxed in checkpoint `1398d7f714` belongs to the fused
+`GroupedGemmaRMSNorm`, not HC combine. A post-commit decode trace exposed this
+attribution error: the trace contained the grouped RMS kernel but still showed
+the torch.compile combine GEMM/elementwise chain. The performance result is
+valid, but its corrected ABBA attribution is:
 
-TP4/EP4, no-A2A, MQ4G128, PLE-on, graph-BS1 ABBA results for 128-token native
-AR were:
-
-- A1, tuned mix and old HIP combine: `22.99 tok/s`;
-- B1, tuned mix and fused gfx90a combine: `24.287 tok/s`;
+- A1, tuned mix and old HIP grouped RMSNorm: `22.99 tok/s`;
+- B1, tuned mix and fused gfx90a grouped RMSNorm: `24.287 tok/s`;
 - B2, independent service: `24.367 tok/s`;
-- A2, independent old-combine service: `22.937 tok/s`.
+- A2, independent old grouped-RMS service: `22.937 tok/s`.
 
-Thus fused combine contributes about 6.1%, and the final mix+combine checkpoint
-is about 8.9% faster than the earlier PLE-on 22.36 tok/s baseline. All four
-services returned the exact France sentence; the final B service passed 10/10
-France requests. The dedicated HC mix/combine tests passed 25/25 on gfx90a.
+Thus the gfx90a grouped RMSNorm path contributes about 6.1% on top of the tuned
+mix geometry.
+
+HC combine remained a second omission. Its existing fused C++ kernel was also
+guarded by `not _is_hip`, although the implementation is portable through the
+SGLang device abstractions. On gfx90a the fused kernel measured about 15.7 us
+for the production shape versus about 145.1 us for the torch.compile chain,
+with bitwise equality to the eager BF16 reference. Relaxing this separate guard
+only for gfx90a produced a second service-level ABBA:
+
+- A1, grouped RMSNorm on and old HIP combine: `24.367 tok/s`;
+- B1, fused gfx90a combine: `25.225 tok/s`;
+- B2, independent service: `25.290 tok/s`;
+- A2, independent old-combine service: `24.381 tok/s`.
+
+The real fused-combine gain is therefore about 3.6%. The final tuned-mix,
+grouped-RMS, and fused-combine stack is about 13.1% faster than the earlier
+PLE-on 22.36 tok/s baseline. Every service returned the exact France sentence;
+both final B services passed the correctness probe, and the dedicated HC
+mix/combine tests passed 25/25 on gfx90a. The combined kernel suite passed
+53/54; every production `H=10240, group=2560` grouped-RMS case passed, while
+one unrelated BF16 `M=1024, H=2048, group=1024` case exceeded the existing
+tolerance at 1 of 2,097,152 elements (`0.015625` absolute difference).
