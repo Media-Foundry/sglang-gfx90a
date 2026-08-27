@@ -815,3 +815,21 @@ Both arms produced the same completion hash `1a8c2dccd3a72692` in every
 round, so the retained default is a bitwise-safe ~0.87% service gain.  The
 `SGLANG_QWEN4_GFX90A_HC_ROWS=2` override remains available for exact same-code
 rollback/A-B checks; the default is one.
+
+### Rejected: AIter direct/naive small-message all-reduce
+
+A four-rank graph micro compared AIter `use_new=True` (shared-staging
+one-stage) with its legacy `use_new=False` direct peer-read kernel for the
+production 2560-element BF16 payload.  Eight-pair ABBA slowest-rank medians
+were 12.024 us and 10.795 us respectively; outputs were bitwise equal.  A
+temporary gfx90a/<=16-KiB selector then produced 55.6173 tok/s trimmed versus
+the same-day 55.4376 baseline, only +0.32%, with all 12 completion hashes
+equal to `1a8c2dccd3a72692`.
+
+Profiling exposed why the micro win did not transfer cleanly: direct mode
+shifted barrier waiting heavily between ranks (visible averages approximately
+169 us on rank 0, 40 us on rank 1, and 17 us on rank 2).  Rank 3 failed to
+write its DECODE trace; the profiler stop barrier then lost that peer and the
+scheduler performed its normal SIGABRT cleanup.  There was no ECC/RAS, GPU
+reset, VM fault, MCE, or EDAC evidence.  Given the negligible service gain and
+less robust synchronization/profiling behavior, the selector was removed.
