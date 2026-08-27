@@ -2502,3 +2502,20 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 结论：A4/A8跨token weight reuse仍不足以抵消activation quant launch与sdot4路径，
   且per-row A8量化不满足正式correctness门槛。该原型只保留为lower-bound micro，
   不应接入M32 attention projection或服务启动脚本。
+
+### TP8 M32 routed/shared finalize融合oracle（2026-08-27）
+
+- 新增隔离脚本`scripts/rocm/bench_dsv4_tp8_tile_finalize_oracle.py`，固定真实布局
+  `[M=32,T=6,N=4096]`。严格slot树为`((p0+p4)+(p1+p5))+p2+p3`，先舍入BF16，
+  再与shared BF16相加并再次舍入，最后调用现有TP8 custom all-reduce。实验只加载
+  `module_custom_all_reduce_mhc_m32.so`，没有覆盖正式`module_custom_all_reduce.so`，
+  也未接production selector。
+- 单launch中“本地finalize写registered scratch -> system-scope CTA barrier -> peer-read AR”
+  的原型不可用：本地scratch与reference全元素exact，但跨rank结果稳定有约7/8元素
+  不一致；增加system fence、分别模拟owner-rotation与固定rank顺序均不能修复。该协议
+  在现有RankData/Signal实现上不得接入production，需要独立的两阶段publication协议。
+- 安全fallback只融合本地严格slot reduce与shared add，继续复用现有custom AR。1000次
+  变异输入graph replay全部逐元素BF16 exact，首尾八rank SHA256一致，无stale/hang。
+  7轮ABBA、每letter 200 replay的rank-max中位：A三launch `40.561 us`，B两launch
+  `39.146 us`，收益`3.49%`（14个A与14个B样本）。这是每层约`1.42 us`的小收益上限，
+  未达到5%提交/production接线门槛，保留为独立oracle数据。
