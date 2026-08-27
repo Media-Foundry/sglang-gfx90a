@@ -36,6 +36,16 @@ correct (France 10/10) but measured 34.49 tok/s versus the then-current AIter
 `paged_attention_ragged`; NVIDIA FA3/FA4 is unavailable on gfx90a.  Full
 attention backend replacement is therefore not a decode priority.
 
+A selective BF16-shadow probe was also rejected.  Native wave64 BF16 GEMV was
+very fast in isolation for Qwen projection shapes (for example 20.43 us for
+4096x2560, 6.93 us for 1536x2560, and 4.65 us for 640x2560), but converting
+only the 36 GDN QKVZ weights from block-FP8 to BF16 and selecting the wave64
+kernel changed the service from 37.282 to 37.172 tok/s trimmed (-0.3%).  France
+remained correct 10/10.  The likely cause is loss of the existing FP8 QKVZ/BA
+dual-stream overlap; this again demonstrates that an isolated GEMV win is not
+a graph critical-path win.  The shadow selector and K=2560 probe geometry were
+removed.
+
 ## 2026-08-27: DSV4 in-block Q8 + `sdot4` transfer was negative
 
 The gfx90a DSV4 FP4 M=1 kernel's most relevant pattern was reproduced as an
