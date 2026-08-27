@@ -440,8 +440,34 @@ class AiterRunnerCore(MoeRunnerCore):
             )
 
             gate_prequant = None
+            fused_quant_sort = None
             if runner_input.hidden_states.shape[0] > 1:
                 if (
+                    envs.SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT.get()
+                    and runner_input.hidden_states.shape == (32, 4096)
+                    and runner_input.topk_ids.shape == (32, 6)
+                    and quant_info.w13_weight.shape[1] == 512
+                    and get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS", 8
+                    )
+                    == 4
+                ):
+                    from sglang.kernels.ops.moe.gfx90a_m32_quant_sort import (
+                        gfx90a_m32_quant_sort,
+                    )
+
+                    q, s, sorted_ids, sorted_expert_ids, num_valid_ids = (
+                        gfx90a_m32_quant_sort(
+                            runner_input.hidden_states, runner_input.topk_ids
+                        )
+                    )
+                    gate_prequant = (q, s)
+                    fused_quant_sort = (
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                    )
+                elif (
                     runner_input.hidden_states.shape[0] >= 1024
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 ):
@@ -470,6 +496,7 @@ class AiterRunnerCore(MoeRunnerCore):
                 from aiter.fused_moe import moe_sorting
 
                 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                    _jit_down_grouped,
                     gfx90a_fp4_expert_down_grouped,
                     gfx90a_fp4_expert_down_mfma32,
                     gfx90a_fp4_expert_gate_up_grouped,
@@ -521,20 +548,23 @@ class AiterRunnerCore(MoeRunnerCore):
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS "
                         f"must be a power-of-two sorter block, got {grouped_assignments}"
                     )
-                (
-                    sorted_ids,
-                    _sorted_weights,
-                    sorted_expert_ids,
-                    num_valid_ids,
-                    _moe_buf,
-                ) = moe_sorting(
-                    runner_input.topk_ids,
-                    runner_input.topk_weights,
-                    quant_info.w13_weight.shape[0],
-                    runner_input.hidden_states.shape[1],
-                    runner_input.hidden_states.dtype,
-                    block_size=grouped_assignments,
-                )
+                if fused_quant_sort is not None:
+                    sorted_ids, sorted_expert_ids, num_valid_ids = fused_quant_sort
+                else:
+                    (
+                        sorted_ids,
+                        _sorted_weights,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        _moe_buf,
+                    ) = moe_sorting(
+                        runner_input.topk_ids,
+                        runner_input.topk_weights,
+                        quant_info.w13_weight.shape[0],
+                        runner_input.hidden_states.shape[1],
+                        runner_input.hidden_states.dtype,
+                        block_size=grouped_assignments,
+                    )
                 gate_blocks = (
                     416
                     if use_mfma64_prefill
@@ -590,7 +620,16 @@ class AiterRunnerCore(MoeRunnerCore):
                     slot_end=slot_end,
                     rows=direct_rows,
                 )
-            if gate_prequant is None:
+            use_m32_down_consumer = (
+                use_grouped_prefill
+                and envs.SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER.get()
+                and runner_input.hidden_states.shape == (32, 4096)
+                and quant_info.w2_weight.shape == (256, 4096, 128)
+                and grouped_assignments == 4
+                and grouped_down_rows == 2
+                and use_lds_unpack
+            )
+            if gate_prequant is None or use_m32_down_consumer:
                 down_prequant = None
             elif use_grouped_prefill and use_mfma32_prefill:
                 down_prequant = gfx90a_int8_group32_quant(intermediate)
@@ -615,7 +654,40 @@ class AiterRunnerCore(MoeRunnerCore):
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS", 208
                     )
                 )
-                if use_mfma32_prefill:
+                if use_m32_down_consumer:
+                    from sglang.kernels.ops.moe.gfx90a_fp4_down_consumer_quant_oracle import (
+                        gfx90a_fp4_down_consumer_quant_oracle,
+                    )
+
+                    output = (
+                        direct_out
+                        if direct_out is not None
+                        else torch.empty(
+                            (32, 4096),
+                            dtype=torch.bfloat16,
+                            device=intermediate.device,
+                        )
+                    )
+                    partial = torch.empty(
+                        (32, 6, 4096),
+                        dtype=torch.float32,
+                        device=intermediate.device,
+                    )
+                    gfx90a_fp4_down_consumer_quant_oracle(
+                        intermediate,
+                        quant_info.w2_weight,
+                        quant_info.w2_scale,
+                        sorted_ids,
+                        sorted_expert_ids,
+                        num_valid_ids,
+                        runner_input.topk_weights,
+                        partial,
+                        ctas_per_expert=16,
+                    )
+                    _jit_down_grouped(
+                        256, 32, 6, 4096, 256, 4, 2, 8, down_blocks, 2
+                    ).reduce(partial, output)
+                elif use_mfma32_prefill:
                     output = gfx90a_fp4_expert_down_mfma32(
                         down_prequant[0],
                         down_prequant[1],

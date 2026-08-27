@@ -857,7 +857,12 @@ class C4IndexerBackendMixin:
         if TYPE_CHECKING:
             assert isinstance(self, CompressorBackendMixin)
 
-        weights = c4_indexer.compute_weights(x, skip_scale=True)
+        precomputed = getattr(forward_batch, "_dsv4_precomputed_index_weights", None)
+        weights = (
+            precomputed.pop(c4_indexer.layer_id)
+            if precomputed is not None and c4_indexer.layer_id in precomputed
+            else c4_indexer.compute_weights(x, skip_scale=True)
+        )
         q, weights = c4_indexer.compute_q(q_lora, positions, weights)
         if not skip_compressor:
             self.forward_indexer_compressor(

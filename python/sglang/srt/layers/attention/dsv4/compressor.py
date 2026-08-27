@@ -434,6 +434,12 @@ class Compressor(BaseFusedOp):
         )
 
     def compute_kv_score(self, x: torch.Tensor, forward_batch: ForwardBatch):
+        precomputed = getattr(forward_batch, "_dsv4_precomputed_kv_scores", None)
+        if precomputed is not None:
+            kv_score = precomputed.pop(self._pending_key(), None)
+            if kv_score is not None:
+                return kv_score
+
         if _is_hip:
             pending = getattr(forward_batch, "_cp_pending_gathers", None)
             handle = pending.pop(self._pending_key(), None) if pending else None
