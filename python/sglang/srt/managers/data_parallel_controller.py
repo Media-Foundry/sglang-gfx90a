@@ -238,6 +238,22 @@ class DataParallelController:
             if worker is not None and self.status[i]:
                 sock_send(worker, obj)
 
+    def send_to_authoritative_worker(self, obj):
+        """Send replicated split-MoE work through the DP0 scheduler only.
+
+        The split-MoE fast path joins both attention-DP replicas in the same
+        TP8 collectives.  Sending the request independently to both scheduler
+        sockets lets their non-blocking polls form different local batches.
+        DP0 is therefore the sole ingress; SchedulerRequestReceiver broadcasts
+        its ordered request stream over the full TP CPU group.
+        """
+        worker = self.workers[0]
+        if worker is None or not self.status[0]:
+            raise RuntimeError(
+                "The split-MoE authoritative DP0 scheduler is unavailable"
+            )
+        sock_send(worker, obj)
+
     def send_control_message(self, obj):
         for i in self._active_workers[:: self.control_message_step]:
             worker = self.workers[i]
@@ -341,7 +357,7 @@ class DataParallelController:
             envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
             and isinstance(req, TokenizedGenerateReqInput)
         ):
-            self.send_to_all_workers(req)
+            self.send_to_authoritative_worker(req)
         else:
             self.dispatching(req)
         req.time_stats = time_stats

@@ -2533,3 +2533,22 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - `num_continuous_decode_steps`在当前仓库只有ServerArgs声明，代码中没有实际消费者；
   在实现并证明每一步仍是单token AR、且逐step正确更新采样/cache之前，不能把该空参数
   当作可用优化开关。
+
+### split-MoE authoritative scheduler lockstep修复（2026-08-27）
+
+- `TP8/attention-DP2/attn-TP4/MoE-DP2/MoE-TP4`先前M>1并发挂死的直接日志证据是
+  同一步DP1形成prefill M22、DP0形成M33，随后共同进入TP8 collective而shape失配。
+  split fast path让`require_mlp_sync()`返回False，同时controller把generate分别发给
+  两个DP leader；两边独立nonblocking ZMQ drain/admission，因此相同请求集合不保证
+  同一poll、row order或batch tier。`dp_attention_local_control_broadcast`只同步control
+  fanout，不广播work plan，不能解决该问题。
+- 默认关闭的split env下，controller现只把generate发给authoritative DP0 scheduler；
+  TP rank0随后在完整TP8 CPU group广播同一ordered work/control list。非authoritative
+  DP socket若仍收到work会fail-loud，避免再次以设备端collective自旋表现。普通DP和正式
+  TP8/EP1路径完全不变。
+- 修复后graph tiers1/8/16/32全部捕获，France合计`57/57`逐tokenexact且每tier输出唯一；
+  32请求各256-token连续五轮全部完成，证明原M22/M33 hang已解除。性能为
+  `638.31/659.85/659.01/659.38/659.25 tok/s`，热态约`659.4 tok/s`，远低于正式
+  full-hidden TP8约`965--969 tok/s`。因此这是应保留的同步correctness/fail-loud修复，
+  不是1500 tok/s性能checkpoint；复制attention与每poll full-TP CPU rendezvous的成本
+  使该结构不再作为当前吞吐主线。
