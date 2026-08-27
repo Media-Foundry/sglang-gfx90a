@@ -308,6 +308,36 @@ Long greedy output hashes still drifted, as they did in the EP4 arm. The gain
 is below the 5% retention threshold and does not justify the padding and memory
 cost; the TP4/EP1 loader and compatibility exception were removed again.
 
+## Router-weighted down-projection experiments
+
+Two variants were rejected. A fully fused kernel that serially evaluated all
+ten selected experts inside one wave reduced the isolated chain from about
+72.1 us to 43.7 us, but destroyed assignment parallelism and reduced the full
+service to 9.39 tok/s. A second variant retained the existing
+`(N/2, assignment)` grid and only folded the router scalar multiply into each
+down-projection output. The production down shape improved from 60.64 us to
+50.08 us in isolation and its quantized-weight oracle passed, but the TP4/EP4
+service measured only 34.428--34.539 tok/s (trimmed 34.481) versus the committed
+34.329 tok/s checkpoint, about +0.44%. France was exact in 10/10 requests. The
+gain is below service noise and the 5% retention threshold, so both variants
+were removed. This confirms that the separate elementwise router multiply is
+not a material graph-critical-path bottleneck; future down fusion must also
+remove a larger producer/consumer boundary without reducing expert-slot
+parallelism.
+
+Two compute-format probes were also rejected. A packed G128 kernel converted
+affine nibbles and activations to FP16 pairs and used CDNA2
+`v_dot2_f32_f16` with FP32 accumulation. With pre-converted FP16 activations,
+gate/up improved only `56.64 -> 54.56 us` while down regressed
+`37.44 -> 37.76 us`; including the activation cast made both paths slower.
+Relative L2 error was about `6.5e-4--7.3e-4`. A full FP16 expert-shadow probe
+removed nibble decoding entirely but expanded weight traffic by 4x. The first
+8-row/block geometry changed gate/down from `52.96/37.28 us` to
+`73.44/52.48 us`; matching the dense FP16 kernel's 16-row geometry still gave
+`55.52 -> 68.48 us` for gate/up. Thus scalar FP32 FMA issue rate is not the
+dominant packed-kernel cost, and spending memory bandwidth on FP16 shadows is
+counterproductive on this BS1 route. Both prototypes were removed.
+
 ## Fused routed SwiGLU/FWHT and gfx90a QSA packed decode
 
 Two independent decode consumers were fused on the TP4/EP4 MQ4 graph. First,
