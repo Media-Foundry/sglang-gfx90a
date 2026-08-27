@@ -2993,3 +2993,46 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   的France tier1+32均`33/33` exact。保持性能更好的custom AR；后续decode优化必须继续
   使用固定token teacher-forced/layer oracle或大margin France oracle，不能要求不同
   prefill batching的长greedy hash天然一致。
+
+### TP8 M32 projection-owner通信oracle否证（2026-08-27）
+
+- 使用真实layer20 `attn_norm [32,4096]`和四个production逻辑BF16矩阵，新增独立
+  projection-owner oracle。reference A在每个rank仍串行执行原shape
+  `F.linear`：N=`1536/2048/512/64`；candidate只让rank0--3各执行其中一个完整
+  原shape GEMM，rank4--7不执行projection。没有修改production selector或模型代码。
+- 首版fixed `[M,2048]` registered all-gather保持输出bitwise exact，但candidate
+  critical path约`187.6 us`，padding传输和rank-major repack已超过收益预算，未通过
+  `>=30 us/layer`门槛。
+- 随后新增peer-read版本：owner将完整原shapeGEMM输出复制到AIter direct
+  `allocate_meta_buffer`注册槽，以system-scope release发布epoch；每个consumer等待
+  四个owner并使用gfx90a GLC peer loads只读取`1536/2048/512/64`有效宽度，直接pack
+  `[32,4160]`。每轮consumer ack后owner才允许覆盖，另有8-rank end epoch限制graph
+  replay漂移。实现位于`gfx90a_projection_owner_peer_oracle.cuh/.py`及
+  `scripts/rocm/bench_dsv4_tp8_projection_owner_ag.py`，均为独立oracle。
+- correctness通过：1000种真实输入mutation在8 rank上`0/1000` mismatch、最大误差
+  `0`；另做1000次固定输入graph replay同样`0/1000` mismatch。A/B在所有rank的SHA256
+  均为`49abcf56943d07a241cfe0ab6e8663af1f04930c1d61cc5ee3f2ba9045b7c88c`。
+- 7轮rank-max ABBA稳定判负：A1=`123.927 us`、B1=`135.451 us`、B2=`135.122 us`、
+  A2=`123.907 us`；paired mean为A=`123.917 us`、B=`135.286 us`，candidate反而慢
+  `11.370 us`（`+9.18%`）。owner-only约`40.656 us`，说明剩余publication、peer pack
+  和全rank epoch固定成本大于省掉的三个projection。
+- 结论：即使消除all-gather padding并保持原GEMM reduction tree，M32下按projection
+  owner分工仍没有收益；它未达到30us门槛，不接service/production，也不再继续调
+  peer pack几何。后续attention优化应保留各rank本地projection及现有异步分支。
+
+### TP8 projection-owner v2多CTA复核（2026-08-27）
+
+- 将peer pack从单CTA改成同stream的`wait(1 CTA) -> copy(65 CTA) -> ack(1 CTA)`，仍保留
+  owner overwrite和8-rank graph epoch协议。1000种输入mutation与1000次graph replay
+  在八rank均为bitwise exact，最大误差`0`且所有rank SHA256一致。
+- 7轮rank-max ABBA从reference `123.984 us`降到candidate `76.424 us`，oracle净省
+  `47.560 us/layer`（`-38.36%`），owner compute-only为`40.436 us`，因此通过了
+  `>=30 us/layer`的production试接门槛。
+- 默认关闭的临时production接线仅命中`gfx90a + TP8 + C4 + native decode M32`；只捕获
+  graph tiers `1/32`。graph捕获稳定，France为BS1 `1/1`、BS32 `32/32`逐tokenexact且
+  唯一。BS32x256候选前三轮为`956.018/954.419/959.472 tok/s`；同配置关闭候选的回程
+  首轮为`944.586 tok/s`。候选最多只有约`1--1.5%`服务收益，远低于5%保留门槛，也未
+  稳定突破1000；每个C4层还新增2MiB registered workspace。
+- 结论：多CTA解决了独立peer pack固定成本，但完整graph中的跨卡publication、CU/cache
+  竞争仍吞掉大部分oracle收益。production接线已撤掉；只保留独立oracle及其exact/性能
+  证据，不把micro结果外推为模型吞吐。
