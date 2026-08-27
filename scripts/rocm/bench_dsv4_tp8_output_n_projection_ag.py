@@ -6,9 +6,9 @@ the real layer-20 M32 dump and compares:
 
 * A: the four production-shaped BF16 ``F.linear`` calls, concatenated as
   ``[M, 4160]``;
-* B: one BF16 ``F.linear`` per rank with a contiguous 520-row output-weight
-  shard, followed by AIter registered all-gather and a rank-major-to-output-N
-  reorder.
+* B: one padded three-group ``torch._grouped_mm`` launch per rank for that
+  rank's contiguous global N=520 slice, followed by a tiny HIP pack kernel,
+  AIter registered all-gather, and a rank-major-to-output-N reorder.
 
 The installed AIter version exposes the original rank-major all-gather API, so
 the reorder is part of B's captured graph and timing.  No production module or
@@ -35,6 +35,9 @@ import torch.distributed as dist
 import torch.nn.functional as F
 
 from aiter.dist.device_communicators.custom_all_reduce import CustomAllreduce
+from sglang.kernels.ops.attention.dsv4.gfx90a_grouped_projection_pack import (
+    gfx90a_grouped_projection_pack,
+)
 
 
 PROJECTIONS = (
@@ -45,6 +48,17 @@ PROJECTIONS = (
 )
 HIDDEN = 4096
 TOTAL_OUTPUT = sum(width for _, width in PROJECTIONS)
+GROUP_N = 256
+
+
+def rank_chunk_widths(rank: int) -> tuple[int, int, int]:
+    if rank == 2:
+        return (256, 240, 24)
+    if rank == 6:
+        return (256, 208, 56)
+    if rank == 7:
+        return (256, 200, 64)
+    return (256, 256, 8)
 
 
 def parse_args() -> argparse.Namespace:
@@ -100,22 +114,25 @@ def reference_projection(
     return torch.cat([F.linear(x, weight) for weight in weights], dim=1).contiguous()
 
 
-def candidate_projection(
-    x: torch.Tensor,
-    weight_shard: torch.Tensor,
+def grouped_candidate_projection(
+    grouped_x: torch.Tensor,
+    grouped_weight: torch.Tensor,
+    rank: int,
     comm: CustomAllreduce,
     raw_gather: torch.Tensor,
+    local_out: torch.Tensor,
 ) -> torch.Tensor:
-    local = F.linear(x, weight_shard)
+    grouped = torch._grouped_mm(grouped_x, grouped_weight)
+    local = gfx90a_grouped_projection_pack(grouped, rank, local_out)
     comm.all_gather_reg(local, out=raw_gather)
     # Old AIter AG concatenates flattened rank buffers.  Convert
     # [rank, token, output_shard] to [token, rank * output_shard].  contiguous()
     # is intentionally captured and timed: consumers require physical N4160.
     return (
-        raw_gather.view(comm.world_size, x.shape[0], weight_shard.shape[0])
+        raw_gather.view(comm.world_size, grouped_x.shape[1], local.shape[1])
         .movedim(0, 1)
         .contiguous()
-        .view(x.shape[0], TOTAL_OUTPUT)
+        .view(grouped_x.shape[1], TOTAL_OUTPUT)
     )
 
 
@@ -228,10 +245,30 @@ def main() -> None:
         -1.0, 1.0, x.numel(), dtype=torch.float32, device="cuda"
     ).view_as(x).to(torch.bfloat16)
     weights = [weight.cuda(non_blocking=False) for weight in weights_cpu]
-    combined_weight = torch.cat(weights, dim=0).contiguous()
     shard_width = TOTAL_OUTPUT // world
     lo, hi = rank * shard_width, (rank + 1) * shard_width
-    weight_shard = combined_weight[lo:hi].contiguous()
+    chunk_widths = rank_chunk_widths(rank)
+    if sum(chunk_widths) != shard_width:
+        raise RuntimeError(f"invalid rank {rank} chunk widths {chunk_widths}")
+    # grouped_mm accepts this zero-stride group dimension, so all three GEMMs
+    # consume the live x buffer without a captured replication kernel.
+    grouped_x = x.unsqueeze(0).expand(len(chunk_widths), -1, -1)
+    combined_weight = torch.cat(weights, dim=0).contiguous()
+    local_weight = combined_weight[lo:hi]
+    padded_weight_shards = []
+    cursor = 0
+    for width in chunk_widths:
+        shard = local_weight[cursor : cursor + width]
+        padded = torch.zeros(
+            (GROUP_N, HIDDEN), dtype=torch.bfloat16, device=x.device
+        )
+        padded[:width].copy_(shard)
+        padded_weight_shards.append(padded)
+        cursor += width
+    # torch._grouped_mm consumes B as [groups, K, N].
+    grouped_weight = (
+        torch.stack(padded_weight_shards, dim=0).transpose(1, 2).contiguous()
+    )
 
     comm = CustomAllreduce(dist.group.WORLD, torch.device("cuda", local_rank))
     if comm.disabled:
@@ -248,15 +285,35 @@ def main() -> None:
         dtype=torch.bfloat16,
         device="cuda",
     )
+    local_out = torch.empty(
+        (x.shape[0], shard_width), dtype=torch.bfloat16, device="cuda"
+    )
     # Initialize hipBLAS and the unregistered AIter path before graph capture;
     # neither library is allowed to perform first-use allocation in capture.
     _ = reference_projection(x, weights)
-    local_warmup = F.linear(x, weight_shard)
+    grouped_warmup = torch._grouped_mm(grouped_x, grouped_weight)
+    local_reference = torch.cat(
+        [
+            grouped_warmup[index, :, :width]
+            for index, width in enumerate(chunk_widths)
+        ],
+        dim=1,
+    ).contiguous()
+    local_warmup = gfx90a_grouped_projection_pack(grouped_warmup, rank, local_out)
+    torch.testing.assert_close(local_warmup, local_reference, rtol=0, atol=0)
     comm.all_gather_unreg(local_warmup, out=raw_gather)
     torch.cuda.synchronize()
     graph_a, output_a = capture(lambda: reference_projection(x, weights))
     graph_b, output_b = capture(
-        lambda: candidate_projection(x, weight_shard, comm, raw_gather), comm
+        lambda: grouped_candidate_projection(
+            grouped_x,
+            grouped_weight,
+            rank,
+            comm,
+            raw_gather,
+            local_out,
+        ),
+        comm,
     )
 
     # Initial exactness and rank-order check before the longer mutation sweep.
