@@ -2978,3 +2978,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   服务级慢轮，局部memset节省明显低于端到端波动且没有净收益。
 - 已恢复`torch.zeros`，不提交production改动。以后不能把“不读取logits”直接折算成
   服务收益；除非能与整个sequential transform/metadata写入一起消除，否则不重做。
+
+### TP8并发hash漂移的prefill来源复核（2026-08-27）
+
+- 同一16-token显式`input_ids`、temperature 0下，串行BS1的前4个输出32/32均为
+  `[19,16,223,2619]`；32个同时提交的请求则常分成`[...455]`与`[...2619]`两条轨迹。
+  首次token-ID分叉在generated position 3，而不是SWA=128边界。
+- 但进一步抓`max_new_tokens=1`的首个输出top-5 logprobs时，32请求在prefill最后位置
+  已经有16种logit pattern；top候选虽然都为token 19，后续候选margin可相差约0.5--1.0。
+  因此长输出hash差异由并发prefill的不同batch/shape数值路径先产生，再被greedy自回归
+  放大，不能当作decode graph row race或SWA cache bug证据。
+- 单变量关闭custom all-reduce、改用RCCL后，串行BS1仍8/8稳定，而BS32仍按
+  `22/10`分成两条前4-token轨迹，排除AIter peer-read AR为该现象的根因。两种collective
+  的France tier1+32均`33/33` exact。保持性能更好的custom AR；后续decode优化必须继续
+  使用固定token teacher-forced/layer oracle或大margin France oracle，不能要求不同
+  prefill batching的长greedy hash天然一致。
