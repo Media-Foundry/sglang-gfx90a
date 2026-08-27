@@ -3074,3 +3074,20 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   passwordless权限。对M32/N320/K4096枚举2226个hipBLASLt solution，最快约`43.97 us`，
   而当前`F.linear`已约`33.07 us`，显式定解无收益。output-N生产分支暂保持默认关闭，
   只用于继续组合；当前证据不能报告为稳定破1k checkpoint。
+
+### output-N BS32 graph-replay marker复核（2026-08-27）
+
+- 在layer20启用默认关闭的`REALTIME_TRACE`，只捕获tiers1/32并每64 replay读回一次。
+  logger的跨八rank device-to-host同步将本轮HTTP吞吐压到`582.9 tok/s`，该数字仅为诊断
+  副作用，不能覆盖无marker的约986结果。
+- 多组完整M32 replay的最慢rank单层span约`718--727 us`。粗段中attention入口MHC约
+  `46--52 us`、attention prepare约`84--93 us`、后续attention/output约`69--74 us`，
+  FFN入口MHC/归一化合计约`205--220 us`，MoE区约`311--327 us`。
+- MoE细分明确为：router projection约`26--30 us`、top-k约`12--13 us`、routed experts
+  约`218--237 us`、join/add小段各约`4 us`、最终TP8 all-reduce/尾部约`31--44 us`。
+  因此下一项可叠加收益必须来自routed stage或router/topk/sort边界，而不是继续削已经
+  约10us级的attention小尾核。output-N从约986破1000只需约12us/layer，但1500仍需
+  结构性减少weight scan/collective固定成本。
+- 独立graph确认M32 router的`tgemm`与`F.linear`逐元素exact，二者均约`12.29 us`；
+  Python eager看到的`73 vs 36 us`只是dispatcher host overhead，不存在graph内替换收益。
+  2226个hipBLASLt solution也没有快于当前captured kernel的候选。
