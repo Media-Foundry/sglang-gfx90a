@@ -2603,3 +2603,27 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   本地即`174.52 us`，已慢于A约`118.01 us`，加AG后更无收益。因此不能用多小GEMM换
   bitwise；下一步应把单bundle方案做成默认关闭的端到端实验，以France、固定长token轨迹、
   compressor cache/state和跨tier重复性作为correctness gate。通过前不得设为正式默认。
+
+### TP8 output-N production A/B与回退结论（2026-08-27）
+
+- 为验证oracle上限，曾接入默认关闭、只命中gfx90a TP8 M32 native decode的临时
+  production路径：C4使用N4160/TP8=N520，C128使用N2560/TP8=N320；本rankfull-K
+  BF16 GEMM后由AIter registered AG恢复原tensor，并复用qkv/core/index现有precomputed
+  hooks。M1、prefill、dense层和其他拓扑全部保持旧路径。
+- 本机AIter已有正确的registered AG kernel，但旧Python类缺`should_custom_ag`且AG方法
+  不接受`dim`，导致SGLang此前静默回退RCCL。新增SGLang dispatch adapter，仅为旧类补
+  shape/alignment/workspace gate和`dim=0`接口；外部dirty AIter未修改。真实服务完成
+  tiers1/32 graph capture，证明capture warmup、graph buffer注册和replay协议可用。
+- C4+C128 B服务France连续三轮BS1/BS32全部逐tokenexact。BS32×256六轮为
+  `995.32/1004.55/1004.29/992.53/1004.11/1002.52 tok/s`；去掉一次BF16中间copy后为
+  `1000.58/1002.22/1003.25/1000.89/1003.22/994.94 tok/s`，没有进一步提高。
+  同机A回程为`962.88/966.31/967.89/970.60/970.65/969.89 tok/s`，稳定中心约
+  `969--971`；因此真实端到端收益只有约`3.3--3.6%`，远低于独立projection oracle的
+  约48%。
+- C4-only六轮为`986.58/992.62/987.95/990.04/991.16/992.32 tok/s`，仅约+2.2%；
+  C128确有增益，不能靠缩小作用面同时保留全部速度。B的256-token主hash与A有重叠，
+  France也正确，但次要greedy分叉集合改变；combined-N GEMM又已知1000/1000中间tensor
+  非bitwise。它既未达到5%收益门槛，也未达到长轨迹严格parity门槛。
+- 因此production模型接线和实验env已完整撤回，不留默认关闭的死分支；保留独立oracle、
+  本节数据和通用旧AIter AG兼容adapter。若未来有能保持原GEMM归约语义的单launch专核，
+  可复用oracle，但不应重新接当前combined-N hipBLAS方案。
