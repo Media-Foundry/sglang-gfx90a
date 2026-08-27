@@ -3819,7 +3819,7 @@ def require_mlp_sync():
 
     if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
         return False
-    return get_parallel().enable_dp_attention or require_gathered_buffer(server_args)
+    return get_parallel().config.enable_dp_attention or require_gathered_buffer()
 
 
 def get_cuda_graph_batch_size_alignment() -> int:
@@ -3828,7 +3828,7 @@ def get_cuda_graph_batch_size_alignment() -> int:
         alignment *= 2
     if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():
         return alignment
-    if require_gathered_buffer(server_args):
+    if require_gathered_buffer():
         alignment *= get_parallel().attn_tp_size
     if alignment % get_parallel().attn_cp_size != 0:
         alignment *= get_parallel().attn_cp_size

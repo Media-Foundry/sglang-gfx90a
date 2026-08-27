@@ -38,8 +38,11 @@ from sglang.srt.layers.attention.qsa.sparse_attn import (
     sparse_gqa_fwd_interface_triton_ck,
 )
 from sglang.srt.model_executor.forward_batch_info import ForwardMode
+from sglang.srt.utils import is_hip
 
 logger = logging.getLogger(__name__)
+
+_is_hip = is_hip()
 
 
 _TRTLLM_SPARSE_PAGE_SIZE = 64
@@ -93,6 +96,52 @@ def _resolve_flash_attn_varlen_func():
             "QSA decode requires flash_attn (FA2) or flash-attn-4 "
             "(FA4 cute) for its packed varlen fallback."
         ) from exc
+
+
+def _packed_varlen_attention_torch(
+    q: torch.Tensor,
+    packed_k: torch.Tensor,
+    packed_v: torch.Tensor,
+    cu_seqlens_k: torch.Tensor,
+    scale: float,
+) -> torch.Tensor:
+    """Correctness fallback for QSA decode on platforms without FA2/FA4.
+
+    QSA extraction has already removed invalid/future positions and compacted
+    each request's selected KV rows.  Decode has one query per request, so a
+    small per-request SDPA is mathematically equivalent to causal varlen FA.
+    This eager-only path intentionally favors portability and correctness; a
+    CK-style packed sparse kernel can replace it after the model is validated.
+    """
+    outputs = []
+    # Reading B+1 tiny offsets synchronizes in eager mode.  The HIP path starts
+    # with CUDA graphs disabled, and keeping the slice boundaries exact is more
+    # important than optimizing this temporary bring-up implementation.
+    offsets = cu_seqlens_k.detach().cpu().tolist()
+    for row, (start, end) in enumerate(zip(offsets[:-1], offsets[1:])):
+        if end <= start:
+            outputs.append(torch.zeros_like(q[row]))
+            continue
+        # q: [Hq,D], K/V: [L,Hkv,D].  Qwen QSA uses grouped-query attention.
+        q_row = q[row].float()
+        k_row = packed_k[start:end].float()
+        v_row = packed_v[start:end].float()
+        num_q_heads = q_row.shape[0]
+        num_kv_heads = k_row.shape[1]
+        if num_q_heads != num_kv_heads:
+            if num_q_heads % num_kv_heads != 0:
+                raise ValueError(
+                    f"QSA GQA heads are incompatible: Hq={num_q_heads}, "
+                    f"Hkv={num_kv_heads}"
+                )
+            repeat = num_q_heads // num_kv_heads
+            k_row = k_row.repeat_interleave(repeat, dim=1)
+            v_row = v_row.repeat_interleave(repeat, dim=1)
+        scores = torch.einsum("hd,lhd->hl", q_row, k_row) * scale
+        probabilities = torch.softmax(scores, dim=-1)
+        output = torch.einsum("hl,lhd->hd", probabilities, v_row)
+        outputs.append(output.to(q.dtype))
+    return torch.stack(outputs, dim=0)
 
 
 
@@ -1688,7 +1737,6 @@ class QwenSparseAttnBackend(AttentionBackend):
                 trtllm_decode,
             )
 
-        flash_attn_varlen_func = _resolve_flash_attn_varlen_func()
         batch, topk = topk_indices.shape
         sequence_lens = metadata.sequence_lengths
         if metadata.is_cuda_graph:
@@ -1738,17 +1786,23 @@ class QwenSparseAttnBackend(AttentionBackend):
             batch,
             topk,
         )
-        output = flash_attn_varlen_func(
-            q=q,
-            k=packed_k,
-            v=packed_v,
-            cu_seqlens_q=cu_seqlens_q,
-            cu_seqlens_k=cu_seqlens_k,
-            max_seqlen_q=1,
-            max_seqlen_k=topk,
-            softmax_scale=layer.scaling,
-            causal=True,
-        )
+        if _is_hip:
+            output = _packed_varlen_attention_torch(
+                q, packed_k, packed_v, cu_seqlens_k, layer.scaling
+            )
+        else:
+            flash_attn_varlen_func = _resolve_flash_attn_varlen_func()
+            output = flash_attn_varlen_func(
+                q=q,
+                k=packed_k,
+                v=packed_v,
+                cu_seqlens_q=cu_seqlens_q,
+                cu_seqlens_k=cu_seqlens_k,
+                max_seqlen_q=1,
+                max_seqlen_k=topk,
+                softmax_scale=layer.scaling,
+                causal=True,
+            )
         return output.reshape(q.shape[0], -1)
 
 

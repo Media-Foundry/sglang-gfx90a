@@ -22,6 +22,9 @@ from sglang.srt.layers.linear import ReplicatedLinear
 from sglang.srt.layers.rotary_embedding.utils import apply_rotary_emb
 from sglang.srt.layers.utils import MultiPlatformOp
 from sglang.srt.model_executor.runner import get_is_capture_mode
+from sglang.srt.utils import is_hip
+
+_is_hip = is_hip()
 
 
 # Bound the dominant FP32 [query_rows, compressed_keys] prefill workspace.
@@ -122,6 +125,7 @@ class QSAIndexer(MultiPlatformOp):
         """Whether the fused indexer-prep kernels support this configuration."""
         return (
             tensor.is_cuda
+            and not _is_hip
             and tensor.dtype in (torch.bfloat16, torch.float16)
             and self.index_head_dim in (64, 128, 256)
             and self.rotary_emb.rotary_dim % 2 == 0
@@ -507,7 +511,7 @@ class QSAIndexer(MultiPlatformOp):
             compressed_lengths,
             max_model_len,
         )
-        if logits.is_cuda and self.block_topk == 512:
+        if logits.is_cuda and not _is_hip and self.block_topk == 512:
             # Decode rows start at zero, so lengths are the compressed lengths
             # themselves; calling the JIT kernel directly skips the zeros_like
             # fill + subtract of the generic path.

@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from sglang.srt.layers.hc_mix_triton import fused_hc_mix, fused_hc_mix_supported
+from sglang.srt.utils import is_hip
+
+_is_hip = is_hip()
 
 
 class HyperConnectionConfig(msgspec.Struct, frozen=True):
@@ -48,6 +51,7 @@ class GroupedGemmaRMSNorm(nn.Module):
         if (
             self._jit_group_size is not None
             and x.is_cuda
+            and not _is_hip
             and x.dtype in (torch.bfloat16, torch.float16)
         ):
             from sglang.kernels.ops.layernorm.grouped_gemma_rmsnorm import (
@@ -247,6 +251,7 @@ class GatedResidual(HyperConnectionBase):
         if (
             self._jit_mix_ok
             and hyper_input_normed.is_cuda
+            and not _is_hip
             and hyper_input_normed.dtype in (torch.bfloat16, torch.float16)
             and hyper_input_normed.shape[0] <= 24
         ):
@@ -298,6 +303,7 @@ class GatedResidual(HyperConnectionBase):
         if (
             self._jit_combine_ok
             and block_output.is_cuda
+            and not _is_hip
             and block_output.dtype in (torch.bfloat16, torch.float16)
             and hyper_input.dtype == block_output.dtype
             and hyper_input_normed.dtype == block_output.dtype

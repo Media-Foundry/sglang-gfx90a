@@ -8,6 +8,10 @@ import torch
 import triton
 import triton.language as tl
 
+from sglang.srt.utils import is_hip
+
+_is_hip = is_hip()
+
 
 def average_pool_qsa_keys(key_groups: torch.Tensor) -> torch.Tensor:
     """FP32-average complete key groups shaped ``[groups, ratio, kv_heads, dim]``."""
@@ -30,7 +34,7 @@ def qsa_fast_topk(
 
     lengths = (row_ends - row_starts).to(device=logits.device, dtype=torch.int32)
     starts = row_starts.to(device=logits.device, dtype=torch.int32)
-    if logits.is_cuda:
+    if logits.is_cuda and not _is_hip:
         if topk == 512:
             # Prefer the JIT kernel: it ships with the sglang python package,
             # so top-k 512 works regardless of the installed sgl_kernel version.
@@ -57,7 +61,32 @@ def qsa_fast_topk(
         )
         return _rerank_qsa_topk_candidates(logits, candidates, starts, topk)
 
-    # CPU/reference path mirrors the CUDA operator's fixed-width, relative output.
+    if logits.is_cuda:
+        # ROCm tensors also report ``is_cuda``.  The packaged JIT top-k above
+        # contains CUDA/PTX-only primitives, so keep the first-day gfx90a path
+        # entirely on device with torch.topk rather than attempting to compile
+        # that kernel through hipcc.  Masking preserves the packed-row contract
+        # and invalid entries are returned as -1, matching fast_topk_v2.
+        columns = torch.arange(logits.shape[1], device=logits.device).unsqueeze(0)
+        valid = (columns >= starts.unsqueeze(1)) & (
+            columns < (starts + lengths).unsqueeze(1)
+        )
+        masked = logits.masked_fill(~valid, float("-inf"))
+        width = min(topk, logits.shape[1])
+        selected = torch.topk(masked, width, dim=1).indices
+        relative = selected.to(torch.int32) - starts.unsqueeze(1)
+        selected_valid = torch.gather(valid, 1, selected)
+        relative.masked_fill_(~selected_valid, -1)
+        if width == topk:
+            return relative
+        output = torch.full(
+            (logits.shape[0], topk), -1, dtype=torch.int32, device=logits.device
+        )
+        output[:, :width] = relative
+        return output
+
+    # CPU/reference path mirrors the accelerator operator's fixed-width,
+    # relative output.
     output = torch.full(
         (logits.shape[0], topk),
         -1,

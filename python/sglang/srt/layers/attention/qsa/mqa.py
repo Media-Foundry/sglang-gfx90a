@@ -10,6 +10,10 @@ from typing import Optional
 
 import torch
 
+from sglang.srt.utils import is_hip
+
+_is_hip = is_hip()
+
 try:
     import flashinfer.comm  # noqa: F401
 except ImportError:
@@ -393,7 +397,7 @@ def qsa_mqa_prefill(
     row_ends: torch.Tensor,
     score_scale: Optional[float] = None,
 ) -> torch.Tensor:
-    if q.is_cuda and HAS_TILELANG:
+    if q.is_cuda and not _is_hip and HAS_TILELANG:
         return tilelang_qsa_mqa_prefill(q, k, row_starts, row_ends, score_scale)
     return torch_qsa_mqa_prefill(q, k, row_starts, row_ends, score_scale)
 
@@ -406,7 +410,7 @@ def qsa_mqa_decode(
     max_model_len: int,
     score_scale: Optional[float] = None,
 ) -> torch.Tensor:
-    if q.is_cuda and HAS_TILELANG:
+    if q.is_cuda and not _is_hip and HAS_TILELANG:
         return tilelang_qsa_mqa_decode(
             q, k_cache, page_table, context_lens, max_model_len, score_scale
         )

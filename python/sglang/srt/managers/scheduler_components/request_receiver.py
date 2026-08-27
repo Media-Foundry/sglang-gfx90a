@@ -172,7 +172,7 @@ class SchedulerRequestReceiver:
                 src=self.tp_group.ranks[0],
             )
 
-        if get_parallel().enable_dp_attention:
+        if get_parallel().config.enable_dp_attention:
             if self.ps.attn_tp_rank == 0 and self.ps.attn_cp_rank == 0:
                 work_reqs, control_reqs = self._split_work_and_control_reqs(recv_reqs)
             else:
