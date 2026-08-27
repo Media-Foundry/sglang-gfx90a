@@ -260,3 +260,31 @@ mix/combine tests passed 25/25 on gfx90a. The combined kernel suite passed
 53/54; every production `H=10240, group=2560` grouped-RMS case passed, while
 one unrelated BF16 `M=1024, H=2048, group=1024` case exceeded the existing
 tolerance at 1 of 2,097,152 elements (`0.015625` absolute difference).
+
+## Single-kernel gfx90a FWHT128
+
+The MQ4 activation rotation was a hidden launch-count bottleneck. Each
+`fwht128()` used seven eager `torch.stack((left+right, left-right))` stages.
+Since every routed layer rotates once before gate/up and once before down, the
+old graph launched about 14 cat/copy kernels and 28 add/sub kernels per layer.
+The final decode trace's cat and add counts matched this construction.
+
+A gfx90a Triton kernel now keeps all 128 values in one program and performs the
+seven XOR-partner butterfly stages with `tl.gather`. It emits one graph-safe
+kernel per rotation and retains the eager implementation elsewhere. Across
+production shapes `[1,2560]`, `[10,640]`, `[32,2560]`, and `[320,640]`, output
+was bitwise identical to the old FP32 implementation. Representative micro
+times were `22.3 us` versus `262.3 us` for `[1,2560]`, and `22.5 us` versus
+`267.8 us` for `[10,640]`. The MQ4 gate/down oracle passed 3/3.
+
+TP4/EP4, no-A2A, MQ4G128, PLE-on, graph-BS1 128-token native-AR ABBA was:
+
+- A1, eager seven-stage FWHT: `25.290 tok/s`;
+- B1, fused FWHT: `30.470 tok/s`;
+- B2, independent fused service: `30.495 tok/s`;
+- A2, independent eager service: `25.288 tok/s`.
+
+The fused FWHT therefore improves single-request decode by about 20.5%. Both
+fused services passed the France correctness probe; B1 passed 10/10 exact
+France responses. Greedy long-output hash drift remained present in both A and
+B and is not introduced by the bitwise-exact FWHT kernel.

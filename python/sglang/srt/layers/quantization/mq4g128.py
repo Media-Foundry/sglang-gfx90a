@@ -6,17 +6,43 @@ import math
 
 import torch
 import torch.nn.functional as F
+import triton
+import triton.language as tl
 from torch.nn import Module
+
+from sglang.srt.utils.common import is_gfx90a_supported
 
 
 GROUP_SIZE = 128
 GROUP_BYTES = 72
 
 
+@triton.jit
+def _fwht128_gfx90a_kernel(x_ptr, out_ptr):
+    group = tl.program_id(0)
+    offsets = tl.arange(0, 128)
+    y = tl.load(x_ptr + group * 128 + offsets).to(tl.float32)
+    for log_width in tl.static_range(0, 7):
+        width = 1 << log_width
+        partner = tl.gather(y, offsets ^ width, axis=0)
+        y = tl.where((offsets & width) == 0, y + partner, partner - y)
+    tl.store(
+        out_ptr + group * 128 + offsets,
+        y * 0.08838834764831845,
+    )
+
+
 def fwht128(x: torch.Tensor) -> torch.Tensor:
     """Normalized group-local FWHT-128 over the final dimension."""
     if x.shape[-1] % GROUP_SIZE:
         raise ValueError(f"MQ4G128 requires K % 128 == 0, got {x.shape[-1]}")
+    if x.is_cuda and is_gfx90a_supported():
+        source = x.contiguous()
+        out = torch.empty_like(source, dtype=torch.float32)
+        num_groups = source.numel() // GROUP_SIZE
+        if num_groups:
+            _fwht128_gfx90a_kernel[(num_groups,)](source, out, num_warps=4)
+        return out
     original_shape = x.shape
     y = x.float().reshape(-1, GROUP_SIZE).contiguous()
     width = 1
