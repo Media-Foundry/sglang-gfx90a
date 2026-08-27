@@ -111,6 +111,29 @@ Operational note: rebuilding this conda ROCm extension requires
 `hipcc` wrapper otherwise misses `hipsparse/hipsparse.h` and
 `thrust/complex.h`.
 
+## 2026-08-28: native CDNA2 BF16 MFMA GEMV rejected for BS1
+
+An isolated HIP prototype mapped M=1 GEMV onto
+`v_mfma_f32_4x4x4bf16_1k`, populating only logical matrix row zero.  This is
+the smallest CDNA2 BF16 MFMA padding factor (4x), and the empirically derived
+lane mapping was correct: `(N,K)=(64,16),(320,2560),(4096,2560)` matched the
+BF16 reference exactly in the initial oracle.
+
+Preallocated-output, eight-pair ABBA showed why it must not replace the
+existing wave64 GEMV.  Representative medians in microseconds were:
+
+- `(320,2560)`: wave64 5.28, MFMA 146.69;
+- `(4096,2560)`: wave64 21.46, MFMA 181.57;
+- `(2560,160)`: wave64 5.53, MFMA 11.08;
+- `(2560,1536)`: wave64 6.55, MFMA 101.44;
+- `(1536,2560)`: wave64 6.77, MFMA 170.32.
+
+The M=1 tile requires a serial dependency chain of one MFMA per four K
+elements (640 instructions at K=2560), while the VALU wave64 kernel divides K
+across 64 lanes and reduces once.  MFMA remains appropriate for higher-M
+tiers, but direct BS1 substitution is structurally wrong.  The prototype was
+fully reverted before any model service run.
+
 ## 2026-08-28: two-stage wave64 Qwen HC mix
 
 The capture trace attributed about 4.90 ms/token to 97 Qwen hyperconnection
@@ -747,3 +770,27 @@ Python factorial, and binary-search prompts each returned identical answers in
 two repeats; two forced 1024-token generations had the same SHA-256
 `db5ef0d3cd530c26...` and ran at 51.80/51.82 tok/s.  Mode 0 remains the exact
 CK-order rollback.
+### Rejected: FP16-weight `v_dot2_f32_f16` BS1 GEMV (2026-08-28)
+
+An isolated wave64 HIP kernel converted the BF16 activation pairs to FP16 and
+used CDNA2 `v_dot2_f32_f16` against an FP16 copy of each weight matrix.  An
+eight-round preallocated ABBA comparison against the retained BF16 wave64
+kernel gave the following median launch times (microseconds):
+
+| `(N,K)` | BF16 wave64 | FP16 dot2 | dot2 / BF16 |
+|---|---:|---:|---:|
+| `(320,2560)` | 5.425 | 6.203 | 1.143 |
+| `(4096,2560)` | 21.579 | 21.484 | 0.996 |
+| `(2560,160)` | 5.344 | 5.769 | 1.080 |
+| `(2560,1536)` | 6.649 | 6.776 | 1.019 |
+| `(1536,2560)` | 6.894 | 6.501 | 0.943 |
+| `(512,2560)` | 4.699 | 4.925 | 1.048 |
+| `(640,2560)` | 5.300 | 5.388 | 1.017 |
+| `(24,2560)` | 5.234 | 6.746 | 1.289 |
+
+The only material micro win was the `1536x2560` shape (~5.7%); the large LM
+head was effectively tied and most projections regressed.  Some shapes also
+changed BF16-rounded output (`max_abs` up to 0.125) because BF16 weights are
+not generally represented exactly by FP16.  This does not justify a second
+FP16 weight cache or a model-level correctness risk, so the prototype was
+removed without service integration.
