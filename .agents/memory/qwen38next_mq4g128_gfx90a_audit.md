@@ -550,3 +550,30 @@ kill switches. Several startup attempts ended in scheduler SIGABRT, including
 an A arm with both new kernels disabled; clean retries captured and served.
 No contemporaneous AMD-SMI, MCE, EDAC, or GPU-reset evidence identified this
 as a hardware fault, so it remains an intermittent ROCm/JIT graph-startup issue.
+
+## Graph-safe QSA packed attention for Qwen4-Exp MTP verify
+
+The checkpoint contains one native Qwen4-Exp MTP layer, but a four-token
+target-verify graph originally failed before serving.  On HIP, a single request
+has four query rows during verification; the QSA selector therefore bypassed
+the gfx90a BS1 packed-attention kernel and entered the eager portability
+fallback.  That fallback executed
+`cu_seqlens_k.detach().cpu().tolist()` inside graph capture, which is an illegal
+device-to-host synchronization.  This was a software path-selection bug, not a
+GPU or host-memory failure.
+
+The gfx90a packed-QSA kernel now supports a static batch dimension.  Each
+`(batch, head, split)` CTA reads its compact row bounds directly from the
+device-side `cu_seqlens_k`; packed K/V remain compact rather than being padded
+per request.  The reduction keeps separate `(batch, head, split)` partials.
+Unit coverage now spans B=1/4 and valid lengths 1/64/193/512/1024/2048, plus a
+real HIP graph capture/replay oracle: 13/13 tests pass.  A full TP4/EP4 service
+then captured both the four-token target-verify graph and one-token draft graph.
+
+This enables measurement but does not make the current MTP mode an accepted
+performance checkpoint.  France passed 10/10 exactly, while fixed-input greedy
+256-token trials were only about 38--44 tok/s and produced multiple completion
+hashes.  Runtime logs reported average accepted lengths around 2.5--3.0 out of
+four.  Native AR remains the correctness/performance reference until the MTP
+metadata/sampling divergence is isolated; these numbers must not be reported as
+native-AR throughput or as progress toward a verified 120 tok/s result.

@@ -1822,34 +1822,34 @@ class QwenSparseAttnBackend(AttentionBackend):
             topk,
         )
         if _is_hip:
-            if batch == 1:
-                if (
-                    is_gfx90a_supported()
-                    and envs.SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE.get()
-                    and q.shape[1:] == (6, 256)
-                    and packed_k.shape == (topk, 1, 256)
-                    and packed_k.dtype == torch.bfloat16
-                ):
-                    from sglang.kernels.ops.attention.gfx90a_qsa_packed_decode import (
-                        gfx90a_qsa_packed_decode,
-                    )
+            if (
+                is_gfx90a_supported()
+                and envs.SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE.get()
+                and q.shape[1:] == (6, 256)
+                and packed_k.shape == (scratch_capacity, 1, 256)
+                and scratch_capacity == batch * topk
+                and packed_k.dtype == torch.bfloat16
+            ):
+                from sglang.kernels.ops.attention.gfx90a_qsa_packed_decode import (
+                    gfx90a_qsa_packed_decode,
+                )
 
-                    output = gfx90a_qsa_packed_decode(
-                        q,
-                        packed_k,
-                        packed_v,
-                        cu_seqlens_k,
-                        layer.scaling,
-                    )
-                else:
-                    output = _packed_single_attention_torch(
-                        q,
-                        packed_k,
-                        packed_v,
-                        cu_seqlens_k,
-                        topk,
-                        layer.scaling,
-                    )
+                output = gfx90a_qsa_packed_decode(
+                    q,
+                    packed_k,
+                    packed_v,
+                    cu_seqlens_k,
+                    layer.scaling,
+                )
+            elif batch == 1:
+                output = _packed_single_attention_torch(
+                    q,
+                    packed_k,
+                    packed_v,
+                    cu_seqlens_k,
+                    topk,
+                    layer.scaling,
+                )
             else:
                 output = _packed_varlen_attention_torch(
                     q, packed_k, packed_v, cu_seqlens_k, layer.scaling

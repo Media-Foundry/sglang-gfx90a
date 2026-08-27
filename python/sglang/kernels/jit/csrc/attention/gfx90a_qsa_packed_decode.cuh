@@ -103,7 +103,7 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_decode_kernel(
   out[head * D + tid] = __float2bfloat16(value);
 }
 
-template <uint32_t H, uint32_t TOPK, uint32_t SPLITS>
+template <uint32_t B, uint32_t H, uint32_t TOPK, uint32_t SPLITS>
 __global__ __launch_bounds__(256) void gfx90a_qsa_packed_split_kernel(
     const __hip_bfloat16* __restrict__ q,
     const __hip_bfloat16* __restrict__ packed_k,
@@ -117,10 +117,12 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_split_kernel(
   constexpr uint32_t MAX_CHUNK = (TOPK + SPLITS - 1) / SPLITS;
   const uint32_t head = blockIdx.x;
   const uint32_t split = blockIdx.y;
+  const uint32_t batch = blockIdx.z;
   const uint32_t tid = threadIdx.x;
   const uint32_t lane = tid & 63;
   const uint32_t wave = tid >> 6;
-  const int32_t count_raw = cu_seqlens_k[1] - cu_seqlens_k[0];
+  const int32_t packed_begin = cu_seqlens_k[batch];
+  const int32_t count_raw = cu_seqlens_k[batch + 1] - packed_begin;
   const uint32_t count =
       count_raw <= 0 ? 0u : min(static_cast<uint32_t>(count_raw), TOPK);
   const uint32_t chunk = (count + SPLITS - 1) / SPLITS;
@@ -132,7 +134,7 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_split_kernel(
   __shared__ float wave_partials[4];
   __shared__ float block_value;
 
-  const __hip_bfloat16* q_head = q + head * D;
+  const __hip_bfloat16* q_head = q + (batch * H + head) * D;
   for (uint32_t local = wave; local < local_count; local += 4) {
     const uint32_t pos = begin + local;
     float dot = 0.0f;
@@ -140,14 +142,15 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_split_kernel(
     for (uint32_t i = 0; i < 4; ++i) {
       const uint32_t d = lane * 4 + i;
       dot += __bfloat162float(q_head[d]) *
-             __bfloat162float(packed_k[pos * D + d]);
+             __bfloat162float(packed_k[(packed_begin + pos) * D + d]);
     }
     dot = qsa_wave_sum(dot);
     if (lane == 0) scores[local] = dot * scale;
   }
   __syncthreads();
 
-  const uint64_t partial_index = static_cast<uint64_t>(head) * SPLITS + split;
+  const uint64_t partial_index =
+      (static_cast<uint64_t>(batch) * H + head) * SPLITS + split;
   float local_max = -FLT_MAX;
   for (uint32_t local = tid; local < local_count; local += 256)
     local_max = fmaxf(local_max, scores[local]);
@@ -181,12 +184,13 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_split_kernel(
   for (uint32_t local = 0; local < local_count; ++local) {
     const float probability = expf(scores[local] - max_score);
     value += probability *
-             __bfloat162float(packed_v[(begin + local) * D + tid]);
+             __bfloat162float(
+                 packed_v[(packed_begin + begin + local) * D + tid]);
   }
   partial_out[(partial_index * D) + tid] = value;
 }
 
-template <uint32_t H, uint32_t SPLITS>
+template <uint32_t B, uint32_t H, uint32_t SPLITS>
 __global__ __launch_bounds__(256) void gfx90a_qsa_packed_reduce_kernel(
     const float* __restrict__ partial_out,
     const float* __restrict__ partial_max,
@@ -194,6 +198,7 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_reduce_kernel(
     __hip_bfloat16* __restrict__ out) {
   constexpr uint32_t D = 256;
   const uint32_t head = blockIdx.x;
+  const uint32_t batch = blockIdx.z;
   const uint32_t d = threadIdx.x;
   __shared__ float global_max;
   __shared__ float denominator;
@@ -201,11 +206,11 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_reduce_kernel(
     float m = -FLT_MAX;
 #pragma unroll
     for (uint32_t split = 0; split < SPLITS; ++split)
-      m = fmaxf(m, partial_max[head * SPLITS + split]);
+      m = fmaxf(m, partial_max[(batch * H + head) * SPLITS + split]);
     float l = 0.0f;
 #pragma unroll
     for (uint32_t split = 0; split < SPLITS; ++split) {
-      const uint32_t index = head * SPLITS + split;
+      const uint32_t index = (batch * H + head) * SPLITS + split;
       l += partial_sum[index] * expf(partial_max[index] - m);
     }
     global_max = m;
@@ -215,15 +220,15 @@ __global__ __launch_bounds__(256) void gfx90a_qsa_packed_reduce_kernel(
   float value = 0.0f;
 #pragma unroll
   for (uint32_t split = 0; split < SPLITS; ++split) {
-    const uint32_t index = head * SPLITS + split;
+    const uint32_t index = (batch * H + head) * SPLITS + split;
     value += partial_out[index * D + d] *
              expf(partial_max[index] - global_max);
   }
-  out[head * D + d] =
+  out[(batch * H + head) * D + d] =
       __float2bfloat16(denominator > 0.0f ? value / denominator : 0.0f);
 }
 
-template <uint32_t H, uint32_t TOPK>
+template <uint32_t B, uint32_t H, uint32_t TOPK>
 struct Gfx90aQsaPackedDecode {
   static void run(const tvm::ffi::TensorView q,
                   const tvm::ffi::TensorView packed_k,
@@ -238,16 +243,16 @@ struct Gfx90aQsaPackedDecode {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
-    TensorMatcher({1, H, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(q);
-    TensorMatcher({TOPK, 1, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(packed_k);
-    TensorMatcher({TOPK, 1, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(packed_v);
-    TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(cu_seqlens_k);
-    TensorMatcher({H, SPLITS, 256}).with_dtype<float>().with_device(device).verify(partial_out);
-    TensorMatcher({H, SPLITS}).with_dtype<float>().with_device(device).verify(partial_max);
-    TensorMatcher({H, SPLITS}).with_dtype<float>().with_device(device).verify(partial_sum);
-    TensorMatcher({1, H, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(out);
-    LaunchKernel(dim3(H, SPLITS), 256, q.device())(
-        gfx90a_qsa_packed_split_kernel<H, TOPK, SPLITS>,
+    TensorMatcher({B, H, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(q);
+    TensorMatcher({B * TOPK, 1, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(packed_k);
+    TensorMatcher({B * TOPK, 1, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(packed_v);
+    TensorMatcher({B + 1}).with_dtype<int32_t>().with_device(device).verify(cu_seqlens_k);
+    TensorMatcher({B, H, SPLITS, 256}).with_dtype<float>().with_device(device).verify(partial_out);
+    TensorMatcher({B, H, SPLITS}).with_dtype<float>().with_device(device).verify(partial_max);
+    TensorMatcher({B, H, SPLITS}).with_dtype<float>().with_device(device).verify(partial_sum);
+    TensorMatcher({B, H, 256}).with_dtype<__hip_bfloat16>().with_device(device).verify(out);
+    LaunchKernel(dim3(H, SPLITS, B), 256, q.device())(
+        gfx90a_qsa_packed_split_kernel<B, H, TOPK, SPLITS>,
         static_cast<const __hip_bfloat16*>(q.data_ptr()),
         static_cast<const __hip_bfloat16*>(packed_k.data_ptr()),
         static_cast<const __hip_bfloat16*>(packed_v.data_ptr()),
@@ -256,8 +261,8 @@ struct Gfx90aQsaPackedDecode {
         static_cast<float*>(partial_max.data_ptr()),
         static_cast<float*>(partial_sum.data_ptr()),
         static_cast<float>(scale));
-    LaunchKernel(H, 256, q.device())(
-        gfx90a_qsa_packed_reduce_kernel<H, SPLITS>,
+    LaunchKernel(dim3(H, 1, B), 256, q.device())(
+        gfx90a_qsa_packed_reduce_kernel<B, H, SPLITS>,
         static_cast<const float*>(partial_out.data_ptr()),
         static_cast<const float*>(partial_max.data_ptr()),
         static_cast<const float*>(partial_sum.data_ptr()),
