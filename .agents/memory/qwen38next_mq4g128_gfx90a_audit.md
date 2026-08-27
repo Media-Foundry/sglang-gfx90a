@@ -194,3 +194,25 @@ assignment-scan prototype preserved France correctness but remained about
 22.3 tok/s hot, so it was removed. Cross-rank reduce kernels show large
 rank-dependent wait time in the trace and must be analyzed as graph critical
 path rather than summed kernel duration.
+
+## TP4/EP1 non-aligned expert-shard experiment
+
+A real TP4/EP1/no-A2A MQ4G128 path was brought up experimentally for the
+`640 / 4 = 160` local expert intermediate. The generic block-FP8 loader cannot
+shard the checkpoint's five 128-row scale blocks correctly: ranks need
+overlapping source blocks `[0,1]`, `[1,2]`, `[2,3]`, and `[3,4]`. A temporary
+MQ4 loader retained the canonical local 160-row FP8 slice, loaded those two
+overlapping scale blocks, reconstructed scales with each rank's global
+`0/32/64/96` block offset, and padded the down input from 160 to 256 for G128.
+On the real layer-0/expert-0 checkpoint tensors, all four ranks' packed w13 and
+w2 bytes exactly matched full-FP8-dequantize, global-slice, then MQ4-quantize.
+
+The full service loaded at about 43.64 GiB/GCD, captured graph BS1, and returned
+`The capital of France is Paris.` exactly in 10/10 requests. Three hot
+128-token native-AR requests measured `22.73 / 22.64 / 22.64 tok/s`, median
+`22.64 tok/s`, versus the TP4/EP4 checkpoint's `22.18 tok/s`: only about 2.1%.
+The small expert-load-balance gain is largely offset by the 160-to-256 down
+padding, all ten expert shards executing on every rank, and TP reduction. One
+long greedy prompt also produced two completion hashes across three hot runs,
+so this branch did not meet the performance or strict-parity retention gate.
+The production changes were removed; TP4/EP4 remains the validated default.
