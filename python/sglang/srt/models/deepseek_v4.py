@@ -39,6 +39,7 @@ from sglang.srt.configs.deepseek_v4 import DeepSeekV4Config
 from sglang.srt.distributed import (
     get_pp_group,
     get_tp_group,
+    tensor_model_parallel_all_reduce,
 )
 from sglang.srt.distributed.device_communicators.pynccl_allocator import (
     use_symmetric_memory,
@@ -368,6 +369,24 @@ _compare_gfx90a_mhc_pre_mix = get_bool_env_var(
     "SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE"
 )
 _compare_gfx90a_mhc_pre_mix_done = False
+_use_gfx90a_tp8_hidden_shard = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD"
+)
+_use_gfx90a_tp8_hidden_shard_attn_row = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_ATTN_ROW"
+)
+_use_gfx90a_tp8_hidden_shard_router = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_ROUTER"
+)
+_use_gfx90a_tp8_hidden_shard_attn_ar_slice = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_ATTN_AR_SLICE"
+)
+_use_gfx90a_tp8_hidden_shard_moe_ar_slice = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD_MOE_AR_SLICE"
+)
+_use_gfx90a_tp8_output_n_projection = get_bool_env_var(
+    "SGLANG_DSV4_GFX90A_TP8_OUTPUT_N_PROJECTION"
+)
 # PoC: compute the (replicated TP1) shared expert on LOCAL hidden before the dp
 # gather instead of on the gathered global buffer. Requires
 # SGLANG_SHARED_EXPERT_TP1=1 (replicated shared expert). Default OFF.
@@ -1334,7 +1353,15 @@ class MQALayer(MqaAttentionBase):
         mark(9)
 
         x_linear = x_quant if x_quant is not None else x
-        if self.fuse_wqa_wkv:
+        precomputed_qkv = getattr(forward_batch, "_dsv4_precomputed_qkv_a", None)
+        qkv_a = (
+            precomputed_qkv.pop(self.layer_id, None)
+            if precomputed_qkv is not None
+            else None
+        )
+        if qkv_a is not None:
+            q_lora = qkv_a[..., : self.q_lora_rank]
+        elif self.fuse_wqa_wkv:
             qkv_a, _ = self.wqkv_a(x_linear)
             q_lora = qkv_a[..., : self.q_lora_rank]
         else:
@@ -1447,12 +1474,51 @@ class MQALayer(MqaAttentionBase):
                 self.indexer.compressor.prelaunch_kv_score(x, forward_batch)
         mark(9)
 
-        if self.fuse_wqa_wkv:
+        qkv_a = None
+        precomputed_qkv = getattr(forward_batch, "_dsv4_precomputed_qkv_a", None)
+        if precomputed_qkv is not None:
+            qkv_a = precomputed_qkv.pop(self.layer_id, None)
+        fused_attn_prep = (
+            _is_hip
+            and envs.SGLANG_DSV4_GFX90A_FUSED_ATTN_PREP_GEMV.get()
+            and forward_batch.forward_mode.is_decode_or_idle()
+            and x_linear.shape == (1, 4096)
+            and self.compress_ratio == 4
+            and self.fuse_wqa_wkv
+            and self.compressor is not None
+            and self.indexer is not None
+        )
+        if qkv_a is not None:
+            q_lora = qkv_a[..., : self.q_lora_rank]
+        elif fused_attn_prep:
+            from sglang.kernels.ops.attention.dsv4.gfx90a_attn_prepare_gemv import (
+                gfx90a_attn_prepare_gemv,
+            )
+
+            qkv_a, core_kv_score, index_kv_score, index_weights = (
+                gfx90a_attn_prepare_gemv(
+                    x_linear,
+                    self.wqkv_a.weight,
+                    self.compressor.wkv_gate.weight,
+                    self.indexer.compressor.wkv_gate.weight,
+                    self.indexer.weights_proj.weight,
+                )
+            )
+            precomputed = forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_kv_scores", {}
+            )
+            precomputed[self.compressor._pending_key()] = core_kv_score
+            precomputed[self.indexer.compressor._pending_key()] = index_kv_score
+            index_weights_by_layer = forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_index_weights", {}
+            )
+            index_weights_by_layer[self.layer_id] = index_weights
+            q_lora = qkv_a[..., : self.q_lora_rank]
+        elif self.fuse_wqa_wkv:
             qkv_a, _ = self.wqkv_a(x_linear)
             q_lora = qkv_a[..., : self.q_lora_rank]
         else:
             q_lora, _ = self.wq_a(x_linear)
-            qkv_a = None
         mark(10)
 
         use_cp = self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch)
@@ -1709,6 +1775,7 @@ class MQALayer(MqaAttentionBase):
         positions: torch.Tensor,
         forward_batch: ForwardBatch,
         x_quant=None,
+        tp8_hidden_shard_output: bool = False,
     ) -> torch.Tensor:
         realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
 
@@ -1722,17 +1789,28 @@ class MQALayer(MqaAttentionBase):
 
         debug_attn_dir = os.getenv("SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR")
         debug_attn_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
+        debug_attn_layer = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_LAYER", "0"))
+        debug_attn_rank = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_RANK", "0"))
+        debug_attn_rows = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_ROWS", "-1"))
+        debug_rank = get_tp_group().rank_in_group
         debug_attn = (
             debug_attn_dir
-            and self.layer_id == 0
-            and get_tp_group().rank_in_group == 0
+            and self.layer_id == debug_attn_layer
+            and (debug_attn_rank < 0 or debug_rank == debug_attn_rank)
+            and (debug_attn_rows < 0 or positions.numel() == debug_attn_rows)
             and (debug_attn_pos < 0 or bool((positions == debug_attn_pos).any().item()))
         )
 
         def dump_attn(name: str, value: torch.Tensor) -> None:
             if debug_attn:
                 os.makedirs(debug_attn_dir, exist_ok=True)
-                torch.save(value.detach().cpu(), os.path.join(debug_attn_dir, f"layer_0_{name}.pt"))
+                torch.save(
+                    value.detach().cpu(),
+                    os.path.join(
+                        debug_attn_dir,
+                        f"layer_{self.layer_id}_rank_{debug_rank}_{name}.pt",
+                    ),
+                )
 
         if not get_attn_tp_context().input_scattered and x.shape[0] == 0:
             return x
@@ -1982,7 +2060,24 @@ class MQALayer(MqaAttentionBase):
             )
         dump_attn("wo_a", o)
 
-        o, _ = self.wo_b(o.flatten(1))
+        if tp8_hidden_shard_output:
+            if self.attn_tp_size != 8 or get_tp_group().world_size != 8:
+                raise RuntimeError("TP8 hidden-shard attention requires TP=attnTP=8")
+            if _use_gfx90a_tp8_hidden_shard_attn_ar_slice:
+                o, _ = self.wo_b(o.flatten(1))
+                shard = o.shape[-1] // get_tp_group().world_size
+                lo = get_tp_group().rank_in_group * shard
+                o = o[..., lo : lo + shard].contiguous()
+            else:
+                o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
+                o = get_tp_group().reduce_scatter_along_dim(o, dim=-1).contiguous()
+        elif debug_attn:
+            o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
+            dump_attn("wo_b_partial", o)
+            if self.wo_b.reduce_results and self.wo_b.tp_size > 1:
+                o = tensor_model_parallel_all_reduce(o)
+        else:
+            o, _ = self.wo_b(o.flatten(1))
         dump_attn("wo_b", o)
         if self.attn_tp_size > 1 and self.attn_tp_size < get_parallel().tp_size:
             o = attn_tp_all_reduce(o)
@@ -2089,6 +2184,9 @@ class DeepseekV4DecoderLayer(nn.Module):
             self.mlp._gfx90a_realtime_trace = self._gfx90a_realtime_trace
         else:
             self._gfx90a_realtime_trace = None
+        self._tp8_output_n_projection_weight = None
+        self._tp8_output_n_projection_tags = None
+        self._tp8_output_n_projection_initialized = False
 
     def _build_self_attn(
         self,
@@ -2125,6 +2223,149 @@ class DeepseekV4DecoderLayer(nn.Module):
         if envs.SGLANG_DSV4_GFX90A_FP16_MHC_DOT.get():
             self._hc_attn_fn_fp16 = self.hc_attn_fn.data.half().contiguous()
             self._hc_ffn_fn_fp16 = self.hc_ffn_fn.data.half().contiguous()
+        if _use_gfx90a_tp8_hidden_shard:
+            from sglang.kernels.ops.layernorm.gfx90a_sharded_mhc import (
+                preload_gfx90a_sharded_mhc,
+            )
+
+            preload_gfx90a_sharded_mhc()
+            tp_group = get_tp_group()
+            if tp_group.world_size != 8:
+                raise RuntimeError(
+                    "SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD requires TP=8"
+                )
+            shard = self.self_attn.hidden_size // tp_group.world_size
+            lo = tp_group.rank_in_group * shard
+            hi = lo + shard
+
+            def shard_fn(fn: torch.Tensor) -> torch.Tensor:
+                return (
+                    fn.data.view(24, self.hc_mult, self.self_attn.hidden_size)[
+                        :, :, lo:hi
+                    ]
+                    .half()
+                    .reshape(24, -1)
+                    .contiguous()
+                )
+
+            self._tp8_hc_attn_fn_shard_fp16 = shard_fn(self.hc_attn_fn)
+            self._tp8_hc_ffn_fn_shard_fp16 = shard_fn(self.hc_ffn_fn)
+            self._tp8_attn_norm_shard_bf16 = (
+                self.input_layernorm.weight.data[lo:hi].bfloat16().contiguous()
+            )
+            self._tp8_ffn_norm_shard_bf16 = (
+                self.post_attention_layernorm.weight.data[lo:hi]
+                .bfloat16()
+                .contiguous()
+            )
+            if _use_gfx90a_tp8_hidden_shard_attn_row:
+                attn = self.self_attn
+                if not attn.fuse_wqa_wkv:
+                    raise RuntimeError(
+                        "TP8 row-sharded attention prepare requires fused wqkv_a"
+                    )
+                tagged_weights = [("qkv", attn.wqkv_a.weight.data)]
+                if attn.compressor is not None:
+                    tagged_weights.append(
+                        ("core", attn.compressor.wkv_gate.weight.data)
+                    )
+                if attn.indexer is not None:
+                    tagged_weights.extend(
+                        (
+                            ("index_kv", attn.indexer.compressor.wkv_gate.weight.data),
+                            ("index_weight", attn.indexer.weights_proj.weight.data),
+                        )
+                    )
+                self._tp8_attn_projection_tags = tuple(
+                    (tag, weight.shape[0]) for tag, weight in tagged_weights
+                )
+                self._tp8_attn_projection_weight_fp16 = torch.cat(
+                    [weight[:, lo:hi].half() for _, weight in tagged_weights], dim=0
+                ).contiguous()
+                if _use_gfx90a_tp8_hidden_shard_router:
+                    self._tp8_router_weight_shard_fp32 = (
+                        self.mlp.gate.weight.data[:, lo:hi].float().contiguous()
+                    )
+    def _init_tp8_output_n_projection(self) -> None:
+        if torch.cuda.is_current_stream_capturing():
+            raise RuntimeError(
+                "TP8 output-N cache must initialize during graph warmup"
+            )
+        attn = self.self_attn
+        tp_group = get_tp_group()
+        if not _is_hip or tp_group.world_size != 8:
+            raise RuntimeError("TP8 output-N projection requires HIP TP=8")
+        if not attn.fuse_wqa_wkv or attn.compressor is None:
+            self._tp8_output_n_projection_initialized = True
+            return
+        tagged = [
+            ("qkv", attn.wqkv_a.weight.data),
+            ("core", attn.compressor.wkv_gate.weight.data),
+        ]
+        if attn.indexer is not None:
+            tagged.extend(
+                (
+                    ("index_kv", attn.indexer.compressor.wkv_gate.weight.data),
+                    ("index_weight", attn.indexer.weights_proj.weight.data),
+                )
+            )
+        if any(weight.dtype != torch.bfloat16 for _, weight in tagged):
+            raise RuntimeError(
+                "TP8 output-N projection requires BF16 cached weights: "
+                + ", ".join(f"{name}={weight.dtype}" for name, weight in tagged)
+            )
+        tags = tuple((name, weight.shape[0]) for name, weight in tagged)
+        combined = torch.cat([weight for _, weight in tagged], dim=0)
+        if combined.shape[0] % tp_group.world_size:
+            raise RuntimeError(f"projection N={combined.shape[0]} is not divisible by TP8")
+        shard = combined.shape[0] // tp_group.world_size
+        lo = tp_group.rank_in_group * shard
+        self._tp8_output_n_projection_weight = combined[
+            lo : lo + shard
+        ].contiguous()
+        self._tp8_output_n_projection_tags = tags
+        self._tp8_output_n_projection_initialized = True
+
+    def _run_tp8_output_n_projection(
+        self, x: torch.Tensor, forward_batch: ForwardBatch
+    ) -> None:
+        if (
+            not _use_gfx90a_tp8_output_n_projection
+            or not forward_batch.forward_mode.is_decode()
+            or x.shape != (32, 4096)
+        ):
+            return
+        if not self._tp8_output_n_projection_initialized:
+            self._init_tp8_output_n_projection()
+        weight = self._tp8_output_n_projection_weight
+        if weight is None:
+            return
+        local = F.linear(x, weight)
+        projection = get_tp_group().all_gather(local, dim=-1)
+        values = projection.split(
+            [size for _, size in self._tp8_output_n_projection_tags], dim=-1
+        )
+        by_tag = {
+            tag: value
+            for (tag, _), value in zip(
+                self._tp8_output_n_projection_tags, values, strict=True
+            )
+        }
+        forward_batch.__dict__.setdefault(
+            "_dsv4_precomputed_qkv_a", {}
+        )[self.layer_id] = by_tag["qkv"]
+        scores = forward_batch.__dict__.setdefault(
+            "_dsv4_precomputed_kv_scores", {}
+        )
+        attn = self.self_attn
+        scores[attn.compressor._pending_key()] = by_tag["core"].float()
+        if "index_kv" in by_tag:
+            scores[attn.indexer.compressor._pending_key()] = by_tag[
+                "index_kv"
+            ].float()
+            forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_index_weights", {}
+            )[self.layer_id] = by_tag["index_weight"]
 
     def hc_pre(
         self,
@@ -2465,6 +2706,201 @@ class DeepseekV4DecoderLayer(nn.Module):
 
         return hc_post_torch_impl(x, residual, post, comb)
 
+    def _tp8_hidden_shard_pre(
+        self,
+        residual_shard: torch.Tensor,
+        fn_shard_fp16: torch.Tensor,
+        hc_scale: torch.Tensor,
+        hc_base: torch.Tensor,
+        norm_weight_shard: torch.Tensor,
+        norm_eps: float,
+        *,
+        x_shard: Optional[torch.Tensor] = None,
+        previous_post: Optional[torch.Tensor] = None,
+        previous_comb: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        from sglang.kernels.ops.layernorm.gfx90a_sharded_mhc import (
+            gfx90a_sharded_mhc_pre_stats,
+            gfx90a_sharded_mhc_stage1,
+            gfx90a_sharded_mhc_stage2,
+            gfx90a_sharded_mhc_stage3,
+        )
+
+        if x_shard is None:
+            local_stats = gfx90a_sharded_mhc_pre_stats(
+                residual_shard, fn_shard_fp16
+            )
+            current = residual_shard
+        else:
+            if previous_post is None or previous_comb is None:
+                raise RuntimeError("fused TP8 sharded MHC requires post and comb")
+            current, local_stats = gfx90a_sharded_mhc_stage1(
+                x_shard,
+                residual_shard,
+                previous_post,
+                previous_comb,
+                fn_shard_fp16,
+            )
+        stats = get_tp_group().all_reduce(local_stats)
+        post, comb, y_rounded, local_y_sumsq = gfx90a_sharded_mhc_stage2(
+            current,
+            stats,
+            hc_scale,
+            hc_base,
+            self.rms_norm_eps,
+            self.hc_eps,
+            _MHC_POST_MULT_VALUE,
+        )
+        global_y_sumsq = get_tp_group().all_reduce(local_y_sumsq)
+        layer_input_shard = gfx90a_sharded_mhc_stage3(
+            y_rounded,
+            global_y_sumsq,
+            norm_weight_shard,
+            norm_eps,
+        )
+        return current, post, comb, layer_input_shard
+
+    def forward_tp8_hidden_shard(
+        self,
+        positions: torch.Tensor,
+        hidden_states: torch.Tensor,
+        input_ids: torch.Tensor,
+        forward_batch: ForwardBatch,
+        input_ids_global: torch.Tensor,
+        prev_residual: Optional[torch.Tensor] = None,
+        prev_post: Optional[torch.Tensor] = None,
+        prev_comb: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        if prev_residual is None:
+            if hidden_states.ndim != 3 or hidden_states.shape[1:] != (4, 512):
+                raise RuntimeError(
+                    "initial TP8 hidden shard must have shape [tokens,4,512]"
+                )
+            residual, post, comb, attn_input_shard = self._tp8_hidden_shard_pre(
+                hidden_states,
+                self._tp8_hc_attn_fn_shard_fp16,
+                self.hc_attn_scale,
+                self.hc_attn_base,
+                self._tp8_attn_norm_shard_bf16,
+                self.input_layernorm.variance_epsilon,
+            )
+        else:
+            residual, post, comb, attn_input_shard = self._tp8_hidden_shard_pre(
+                prev_residual,
+                self._tp8_hc_attn_fn_shard_fp16,
+                self.hc_attn_scale,
+                self.hc_attn_base,
+                self._tp8_attn_norm_shard_bf16,
+                self.input_layernorm.variance_epsilon,
+                x_shard=hidden_states,
+                previous_post=prev_post,
+                previous_comb=prev_comb,
+            )
+
+        if _use_gfx90a_tp8_hidden_shard_attn_row:
+            from aiter.tuned_gemm import hipb_gemm
+
+            total_n = self._tp8_attn_projection_weight_fp16.shape[0]
+            solutions = {1536: 12183, 2560: 12008, 4160: 11948}
+            if total_n not in solutions:
+                raise RuntimeError(
+                    f"no TP8 row-sharded attention solution for N={total_n}"
+                )
+            projection_local = hipb_gemm(
+                attn_input_shard.half(),
+                self._tp8_attn_projection_weight_fp16,
+                solutions[total_n],
+                otype=torch.float16,
+            )
+            projection = get_tp_group().all_reduce(projection_local)
+            values = projection.split(
+                [size for _, size in self._tp8_attn_projection_tags], dim=-1
+            )
+            by_tag = {
+                tag: value
+                for (tag, _), value in zip(
+                    self._tp8_attn_projection_tags, values, strict=True
+                )
+            }
+            qkv_by_layer = forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_qkv_a", {}
+            )
+            qkv_by_layer[self.layer_id] = by_tag["qkv"].bfloat16()
+            precomputed_scores = forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_kv_scores", {}
+            )
+            attn = self.self_attn
+            if "core" in by_tag:
+                precomputed_scores[attn.compressor._pending_key()] = by_tag[
+                    "core"
+                ].float()
+            if "index_kv" in by_tag:
+                precomputed_scores[attn.indexer.compressor._pending_key()] = by_tag[
+                    "index_kv"
+                ].float()
+                index_weights = forward_batch.__dict__.setdefault(
+                    "_dsv4_precomputed_index_weights", {}
+                )
+                index_weights[self.layer_id] = by_tag["index_weight"].bfloat16()
+            # All mathematical consumers of x are precomputed above.  This
+            # local repeat supplies only the legacy shape/dtype carrier until
+            # the attention prepare API accepts a projection bundle directly.
+            attn_input = attn_input_shard.repeat(1, get_tp_group().world_size)
+        else:
+            attn_input = get_tp_group().all_gather(attn_input_shard, dim=-1)
+        attn_output_shard = self.self_attn(
+            x=attn_input,
+            positions=positions,
+            forward_batch=forward_batch,
+            x_quant=None,
+            tp8_hidden_shard_output=True,
+        )
+        residual, post, comb, ffn_input_shard = self._tp8_hidden_shard_pre(
+            residual,
+            self._tp8_hc_ffn_fn_shard_fp16,
+            self.hc_ffn_scale,
+            self.hc_ffn_base,
+            self._tp8_ffn_norm_shard_bf16,
+            self.post_attention_layernorm.variance_epsilon,
+            x_shard=attn_output_shard,
+            previous_post=post,
+            previous_comb=comb,
+        )
+        if _use_gfx90a_tp8_hidden_shard_router:
+            router_local = torch.matmul(
+                ffn_input_shard.float(), self._tp8_router_weight_shard_fp32.T
+            )
+            router_logits = get_tp_group().all_reduce(router_local)
+            router_by_layer = forward_batch.__dict__.setdefault(
+                "_dsv4_precomputed_router_logits", {}
+            )
+            router_by_layer[self.layer_id] = router_logits
+        ffn_input = get_tp_group().all_gather(ffn_input_shard, dim=-1)
+        if getattr(self.mlp, "_shared_expert_tp1", False):
+            raise RuntimeError("TP8 hidden-shard path requires TP-sharded shared expert")
+        if _use_gfx90a_tp8_hidden_shard_moe_ar_slice:
+            ffn_reduced = self.mlp(
+                ffn_input,
+                forward_batch,
+                input_ids=input_ids,
+                input_ids_global=input_ids_global,
+            )
+            shard = ffn_reduced.shape[-1] // get_tp_group().world_size
+            lo = get_tp_group().rank_in_group * shard
+            hidden_shard = ffn_reduced[..., lo : lo + shard].contiguous()
+        else:
+            with get_forward().scoped(mlp_reduce_scatter=True):
+                ffn_partial = self.mlp(
+                    ffn_input,
+                    forward_batch,
+                    input_ids=input_ids,
+                    input_ids_global=input_ids_global,
+                )
+            hidden_shard = get_tp_group().reduce_scatter_along_dim(
+                ffn_partial, dim=-1
+            ).contiguous()
+        return hidden_shard, residual, post, comb
+
     def forward(
         self,
         positions: torch.tensor,
@@ -2503,7 +2939,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         debug_stages = (
             debug_stage_dir
             and self.layer_id == debug_target_layer
-            and get_tp_group().rank_in_group == debug_target_rank
+            and (debug_target_rank < 0 or get_tp_group().rank_in_group == debug_target_rank)
             and (debug_target_rows < 0 or positions.numel() == debug_target_rows)
             and (debug_target_pos < 0 or bool((positions == debug_target_pos).any().item()))
         )
@@ -2514,7 +2950,8 @@ class DeepseekV4DecoderLayer(nn.Module):
             if debug_stages:
                 os.makedirs(debug_stage_dir, exist_ok=True)
                 path = os.path.join(
-                    debug_stage_dir, f"layer_{self.layer_id}_{name}.pt"
+                    debug_stage_dir,
+                    f"layer_{self.layer_id}_rank_{get_tp_group().rank_in_group}_{name}.pt",
                 )
                 if not once or not os.path.exists(path):
                     torch.save(value.detach().cpu(), path)
@@ -2668,6 +3105,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         dump_stage("attn_norm", hidden_states)
 
         mark(1)
+        self._run_tp8_output_n_projection(hidden_states, forward_batch)
         with self.self_attn.maybe_use_decode_attn_tp(forward_batch):
             hidden_states = self.self_attn(
                 x=hidden_states,
@@ -2676,6 +3114,16 @@ class DeepseekV4DecoderLayer(nn.Module):
                 x_quant=x_quant,
             )
         dump_stage("attn_out", hidden_states)
+        dump_stage("ffn_mhc_residual", residual)
+        dump_stage("ffn_mhc_post", post)
+        dump_stage("ffn_mhc_comb", comb)
+        dump_stage("hc_ffn_fn", self.hc_ffn_fn, once=True)
+        dump_stage("hc_ffn_scale", self.hc_ffn_scale, once=True)
+        dump_stage("hc_ffn_base", self.hc_ffn_base, once=True)
+        dump_stage(
+            "ffn_norm_weight", self.post_attention_layernorm.weight, once=True
+        )
+        dump_stage("router_weight", self.mlp.gate.weight, once=True)
 
         if use_fused:
             post_attn_norm_weight = (
@@ -3755,11 +4203,64 @@ class DeepseekV4Model(nn.Module):
                 input_ids = cp_round_robin_input_ids(input_ids)
             input_ids_global = input_ids
 
+        use_tp8_hidden_shard = (
+            _use_gfx90a_tp8_hidden_shard
+            and _is_hip
+            and is_gfx90a_supported()
+            and forward_batch.forward_mode.is_decode()
+            and not capture_dspark
+            and not use_prefill_cp
+            and not run_tbo
+            and self.pp_group.world_size == 1
+            and self.use_fused_mhc_post_pre
+            and get_moe_a2a_backend().is_none()
+            and get_parallel().tp_size == 8
+            and get_parallel().attn_tp_size == 8
+            and get_parallel().moe_tp_size == 8
+            and get_parallel().moe_ep_size == 1
+            and get_parallel().attn_dp_size == 1
+        )
+
         # Reset Compressor's per-step freqs_cis cache from any previous step.
         for _attr in ("freqs_cis_c4", "freqs_cis_c128"):
             if hasattr(forward_batch, _attr):
                 delattr(forward_batch, _attr)
-        if run_tbo:
+        if use_tp8_hidden_shard:
+            tp_group = get_tp_group()
+            shard = self.hidden_size // tp_group.world_size
+            lo = tp_group.rank_in_group * shard
+            hi = lo + shard
+            hidden_states = hidden_states[:, :, lo:hi].contiguous()
+            prev_residual, prev_post, prev_comb = None, None, None
+            last_layer = None
+            for i in range(self.start_layer, self.end_layer):
+                layer = self.layers[i]
+                last_layer = layer
+                with get_global_expert_distribution_recorder().with_current_layer(i):
+                    hidden_states, prev_residual, prev_post, prev_comb = (
+                        layer.forward_tp8_hidden_shard(
+                            positions=positions,
+                            hidden_states=hidden_states,
+                            forward_batch=forward_batch,
+                            input_ids=input_ids,
+                            input_ids_global=input_ids_global,
+                            prev_residual=prev_residual,
+                            prev_post=prev_post,
+                            prev_comb=prev_comb,
+                        )
+                    )
+            if last_layer is not None:
+                from sglang.kernels.ops.layernorm.mhc import (
+                    mhc_post_combine_triton,
+                )
+
+                completed = mhc_post_combine_triton(
+                    hidden_states, prev_residual, prev_post, prev_comb
+                )
+                if completed is None:
+                    raise RuntimeError("TP8 hidden-shard final hc_post unavailable")
+                hidden_states = tp_group.all_gather(completed, dim=-1)
+        elif run_tbo:
             # Two-batch-overlap prefill (EP / mori). Cross-layer mHC fusion is
             # disabled here (each layer self-contained), so no trailing hc_post.
             hidden_states = self._forward_layers_tbo(

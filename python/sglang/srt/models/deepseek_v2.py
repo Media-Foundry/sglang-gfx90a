@@ -1110,6 +1110,7 @@ class DeepseekV2MoE(nn.Module):
                     gemm_output_zero_allocator,
                     input_ids,
                     input_ids_global=input_ids_global,
+                    forward_batch=forward_batch,
                 )
             else:
                 return self.forward_normal(
@@ -1118,6 +1119,7 @@ class DeepseekV2MoE(nn.Module):
                     input_ids,
                     input_ids_global=input_ids_global,
                     skip_shared_experts=skip_shared_experts,
+                    forward_batch=forward_batch,
                 )
         else:
             return self.forward_deepep(
@@ -1133,6 +1135,7 @@ class DeepseekV2MoE(nn.Module):
         gemm_output_zero_allocator: BumpAllocator = None,
         input_ids: Optional[torch.Tensor] = None,
         input_ids_global: Optional[torch.Tensor] = None,
+        forward_batch: Optional[ForwardBatch] = None,
     ) -> torch.Tensor:
         realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
 
@@ -1169,7 +1172,14 @@ class DeepseekV2MoE(nn.Module):
             else None
         )
         # router_logits: (num_tokens, n_experts)
-        router_logits = self.gate(hidden_states, gemm_output_zero_allocator)
+        precomputed_router = getattr(
+            forward_batch, "_dsv4_precomputed_router_logits", None
+        )
+        router_logits = (
+            precomputed_router.pop(self.layer_id)
+            if precomputed_router is not None and self.layer_id in precomputed_router
+            else self.gate(hidden_states, gemm_output_zero_allocator)
+        )
         mark(17)
         if use_flashinfer_trtllm_bypass:
             topk_output = BypassedTopKOutput(
@@ -1204,7 +1214,9 @@ class DeepseekV2MoE(nn.Module):
             final_hidden_states = self.experts.forward_impl(hidden_states, topk_output)
         elif pre_quant_input is not None:
             final_hidden_states = self.experts(
-                hidden_states, topk_output, pre_quant_input=pre_quant_input
+                hidden_states,
+                topk_output,
+                pre_quant_input=pre_quant_input,
             )
         else:
             final_hidden_states = self.experts(hidden_states, topk_output)
@@ -1268,6 +1280,7 @@ class DeepseekV2MoE(nn.Module):
         input_ids: Optional[torch.Tensor] = None,
         input_ids_global: Optional[torch.Tensor] = None,
         skip_shared_experts: bool = False,
+        forward_batch: Optional[ForwardBatch] = None,
     ) -> torch.Tensor:
         realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
 
@@ -1319,7 +1332,15 @@ class DeepseekV2MoE(nn.Module):
                 )
             mark(17)
             # router_logits: (num_tokens, n_experts)
-            router_logits = self.gate(hidden_states, gemm_output_zero_allocator)
+            precomputed_router = getattr(
+                forward_batch, "_dsv4_precomputed_router_logits", None
+            )
+            router_logits = (
+                precomputed_router.pop(self.layer_id)
+                if precomputed_router is not None
+                and self.layer_id in precomputed_router
+                else self.gate(hidden_states, gemm_output_zero_allocator)
+            )
             mark(18)
             topk_kwargs = (
                 {"input_ids": input_ids_global}

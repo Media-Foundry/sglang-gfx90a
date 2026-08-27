@@ -1324,6 +1324,12 @@ class Envs:
     # Cache DSV4 attention's block-FP8 projection weights as BF16 on gfx90a.
     # This targets decode GEMV and trades roughly 1 GiB/GPU for lower latency.
     SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR = EnvBool(False)
+    # TP8/M32 decode experiment: shard the replicated DSV4 attention-prepare
+    # projection bundle along output N and reconstruct it with custom AG.
+    SGLANG_DSV4_GFX90A_TP8_OUTPUT_N_PROJECTION = EnvBool(False)
+    # Fuse the M=1 C4 wqkv_a, core-compressor and indexer-compressor BF16
+    # projections into one mixed-output wave64 launch.
+    SGLANG_DSV4_GFX90A_FUSED_ATTN_PREP_GEMV = EnvBool(False)
     # Replicate the input embedding on every TP rank. This trades roughly
     # 0.75 GiB/GPU for removing the first per-token TP all-reduce, allowing
     # scheduler overlap to hide rank launch skew behind early layer compute.
@@ -1409,6 +1415,12 @@ class Envs:
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
+    # TP8 M32 decode: run exact group32 activation quant and A4 expert sorting
+    # as independent CTAs in one HIP launch.
+    SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT = EnvBool(False)
+    # TP8 M32 decode: quantize each A4 intermediate tile in LDS and consume it
+    # directly in the FP4 down projection, avoiding the global quant tensor.
+    SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER = EnvBool(False)
     # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K
     # split. This reduces repeated FP4 weight scans for large prefill chunks.
     SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL = EnvBool(False)
