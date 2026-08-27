@@ -447,6 +447,19 @@ class Fp8Config(QuantizationConfig):
 
             fp8_method = Fp8MoEMethod(self)
 
+            if (
+                _is_hip
+                and envs.SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED.get()
+                and layer.moe_runner_config.hidden_size == 2560
+                and layer.moe_runner_config.intermediate_size_per_partition == 640
+                and layer.moe_runner_config.top_k == 10
+            ):
+                from sglang.srt.layers.quantization.mq4g128 import (
+                    Mq4g128RoutedMoEMethod,
+                )
+
+                return Mq4g128RoutedMoEMethod(fp8_method, prefix)
+
             if self.is_fp4_experts and self.dequant_fp4_to_fp8:
                 assert (
                     get_moe_runner_backend().is_auto()

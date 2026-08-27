@@ -88,3 +88,48 @@ reuse weights across token assignments.
 6. Use indexed wave64 for BS1/sparse occupancy and grouped G128 MMQ for higher
    occupancy; do not use the current per-token GEMV as the BS8/BS16 endpoint.
 
+## SGLang integration checkpoint
+
+Implemented on 2026-08-27 as an opt-in routed-expert-only method selected by:
+
+```text
+SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED=1
+```
+
+Selection fails closed unless the FusedMoE shape is exactly H=2560, I=640,
+top-k=10 on HIP. The original block-FP8 loader remains responsible for reading
+the checkpoint. Post-load processing streams four experts at a time through
+FP8 dequantization, FWHT-128 and affine G128 packing, then rebinds the existing
+Parameter's `.data` so loader-held Parameter references do not retain the old
+FP8 storage.
+
+Two execution tiers are present:
+
+- wave64 indexed: two output rows per physical wave, used for low occupancy;
+- expert-sorted A4 grouped: loads each weight group once for up to four token
+  assignments, selected when mean live assignments/expert reaches the explicit
+  occupancy threshold.
+
+Correctness gates passed on gfx90a:
+
+1. indexed and grouped kernels independently match a dequantized FP32 matrix
+   oracle (`rtol=atol=2e-5`);
+2. streamed FP8-to-MQ4G128 conversion is bitwise identical to whole-tensor
+   conversion;
+3. Qwen true-shape gate/up -> SwiGLU -> down -> router-weighted sum matches the
+   dequantized FP32 oracle;
+4. a real TP4+EP4 service returned exactly "The capital of France is Paris."
+   twice, 8 completion tokens and normal stop each time.
+
+Real TP4+EP4 model memory changed from 43.80 GiB/GCD (FP8) to 34.38 GiB/GCD
+(MQ4G128), saving 9.42 GiB/GCD. At `mem_fraction_static=0.65`, the server still
+allocated 276,096 BF16 KV tokens and retained about 22.2 GiB/GCD after memory
+pool setup. Initial whole-layer FP32 conversion OOMed at ~62 GiB; four-expert
+streaming removed that peak. Replacing the Parameter object also temporarily
+retained both FP8 and packed weights (59.75 GiB); preserving Parameter identity
+via `.data` rebinding fixed it.
+
+The current A4 sorter is a correctness-first PyTorch implementation and reads
+occupancy to the host. It is not CUDA-Graph-safe and is not the final BS8/BS16
+path. Replace it with a static-buffer HIP histogram/scan sorter before claiming
+high-concurrency performance.

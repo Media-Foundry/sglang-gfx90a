@@ -299,6 +299,12 @@ class Envs:
     # Bitwise-exact, shape-guarded Qwen4 PLE decode fusion. Unsupported inputs
     # and phases fall back to the original implementation.
     SGLANG_ENABLE_QWEN4_PLE_FUSION = EnvBool(True)
+    # Requantize only Qwen4Exp routed experts from checkpoint FP8 to the
+    # experimental gfx90a MagnumQuant G128 format. Fail-loud shape guards and
+    # correctness-first eager execution; disabled by default.
+    SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED = EnvBool(False)
+    # Minimum mean assignments per live expert for the A4 grouped kernel.
+    SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_OCCUPANCY = EnvFloat(2.0)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)
