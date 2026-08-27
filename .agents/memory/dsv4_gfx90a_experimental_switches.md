@@ -2016,6 +2016,28 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   证实即使移除MFMA32的split-K/LDS partial税，16-row固定M tile在真实A8 occupancy下
   仍无法战胜当前wave64 LDS-sdot；下一步不再沿用固定16-row MFMA做BS32 routed MoE。
 
+### TP8 BS32多样输入occupancy采集工具（2026-08-27）
+
+- 旧的768-pass recorder来自32份相同prompt加独立cache salt，能精确描述固定France类
+  benchmark，却不能代表32条自然请求。新增固定语料
+  `.agents/memory/dsv4_tp8_diverse_32_input_ids.json`：32条中英文、数学、代码、系统与
+  科学问题均保存为官方DSV4 chat格式的固定`input_ids`，同时保存tokenizer JSON SHA256，
+  避免后续tokenizer或wrapper变化污染路由比较。
+- 独立client `scripts/rocm/collect_dsv4_tp8_expert_occupancy.py`通过record endpoint启动
+  `stat`记录，统一barrier发出32条请求，生成`32 warm + 128 window + 8 tail`个原生AR
+  token，停止并dump recorder；它强制检查每请求长度，并用第0条请求的France首9 token
+  oracle做correctness gate。服务需以`EXPERT_DISTRIBUTION_RECORDER_MODE=stat`和至少
+  约170-pass buffer启动。
+- `analyze_tp8_bs32_expert_occupancy.py`现按mtime选择最新dump，只保留checksum严格等于
+  `BS32*topk6*43*TP8`的完整decode pass，丢弃前32个warm pass并分析后128个。CSV/JSON
+  同时输出hash layers 0--2、learned layers 3--42、全层及可选逐层的occupancy histogram，
+  A1/A2/A4/A8 scan、padding、capacity utilization，以及按当前H4096/I256/group32推导
+  的逻辑weight bytes与bytes/useful-assignment。该bytes是kernel逻辑读取估计，不冒充
+  hardware-counter测得的HBM traffic。
+- 现有同prompt dump已通过CPU验证：128-pass窗口的每pass严格恢复`32*6*43`
+  assignments，CSV/JSON可生成、脚本可编译。多样输入正式数据尚需下次TP8 recorder服务
+  运行后产生，不能用旧dump替代。
+
 ### TP8 BS32 benchmark口径与HIP attention多流接线（2026-08-27）
 
 - 历史`969.82 tok/s`与后来约`947 tok/s`并不是同一输入：scheduler日志的pending-token
