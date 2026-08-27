@@ -288,3 +288,22 @@ The fused FWHT therefore improves single-request decode by about 20.5%. Both
 fused services passed the France correctness probe; B1 passed 10/10 exact
 France responses. Greedy long-output hash drift remained present in both A and
 B and is not introduced by the bitwise-exact FWHT kernel.
+
+## TP4/EP1 retest after FWHT and HC optimization
+
+The earlier non-aligned TP shard loader was restored temporarily on top of the
+final FWHT/HC stack. It loaded the overlapping FP8 scale blocks for each
+160-row TP shard and zero-padded the down-projection input to 256 for G128. A
+new generic quantized-MoE compatibility check also required a narrowly scoped
+exception for this explicit padded path. The service captured graph BS1 and
+returned `The capital of France is **Paris**.` with the same 9-token sequence
+and normal stop in 10/10 requests.
+
+With identical PLE and GDN/QK alternate-stream switches, TP4/EP4 measured
+`31.390 tok/s` trimmed over seven 128-token requests. TP4/EP1 hot requests were
+`31.634--31.706 tok/s` (about `31.67 tok/s` representative), only about 0.9%
+faster. EP1 used 43.64 GiB/GCD for weights and required
+`mem_fraction_static >= 0.695`, versus the materially smaller EP4 footprint.
+Long greedy output hashes still drifted, as they did in the EP4 arm. The gain
+is below the 5% retention threshold and does not justify the padding and memory
+cost; the TP4/EP1 loader and compatibility exception were removed again.
