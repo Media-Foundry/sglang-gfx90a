@@ -2423,3 +2423,26 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   收益或生成correctness。production必须整次forward严格gate为gfx90a/TP8/EP1/no-A2A/
   PP1/decode，并依次验证单层partial、43层eager France、全graph tier France、固定
   continuation teacher-forced logits和1000 replay稳定性，之后才允许测速。
+
+### TP8 persistent hidden-shard Phase1完整模型bring-up（2026-08-27）
+
+- 新增默认关闭的`SGLANG_DSV4_GFX90A_TP8_HIDDEN_SHARD`整次forward分支，只在
+  gfx90a/TP8/attnTP8/moeTP8/EP1/no-A2A/PP1/attnDP1/native decode全部满足时进入。
+  层间状态固定为H512 shard；attention `wo_b`和TP-sharded routed+shared MoE输出以
+  last-dim reduce-scatter结束。Phase1仍在attention与expert入口各AG一次，目的是先验证
+  43层状态/collective协议，不作为最终性能设计。
+- 补齐首层pre-only native HIP stats kernel。真实layer20输入相对full-H FP16-fn reference
+  的global stats max-abs=`9.765625e-4`、relative-L2=`5.891e-8`。完整43层eager固定
+  France oracle逐tokenexact，输出`[671,6102,294,8760,344,2619,51119,42499,1]`。
+- 首次M32 graph capture暴露`reduce_scatter_along_dim(dim=-1)`返回movedim非连续view；
+  M1 eager因退化shape掩盖该问题。在attention/MoE RS出口显式contiguous后，tiers
+  `1/8/16/32`全部capture成功；固定France合计`57/57`逐tokenexact且每tier唯一。
+- 未开启`SGLANG_DP_USE_REDUCE_SCATTER=1`时，RS回退通用collective，当前8192-token
+  小池的32-request×128-token初筛仅`139.01 tok/s`。开启AIter custom RS并重新通过
+  tiers correctness后为`234.17/235.92 tok/s`；从per-request wall可见小池只同时admit
+  约16请求，所以这不是正式BS32，但即使按BS16也远低于既有约630 tok/s。
+- Phase1性能失败不否定native sharded-MHC本身的117us oracle；它说明每层两次AG、两次
+  RS、四次小AR及当前串行顺序远超局部MHC节省。内置stage profiler与custom-collective
+  graph组合还会卡在ROCm queue-interposition signal，只产出EXTEND trace，故不采用其
+  失真数据。下一步须直接进入Phase2：移除attention前AG，把replicated attention prepare
+  projections改为K512 row-shard+output AR；在此之前Phase1保持默认关闭且不得报告为收益。

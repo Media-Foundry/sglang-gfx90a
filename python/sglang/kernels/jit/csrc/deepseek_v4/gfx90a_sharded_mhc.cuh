@@ -57,6 +57,64 @@ __device__ __forceinline__ float sharded_mhc_row_max(float value) {
   return value;
 }
 
+// Initial hc_pre has no preceding hc_post transform.  Compute the same local
+// sufficient statistics directly from an already-sharded BF16 residual.
+__global__ void __launch_bounds__(kShardedMhcThreads, 1)
+    gfx90a_sharded_mhc_pre_stats_kernel(
+        const bf16_t* __restrict__ residual,
+        const half* __restrict__ fn_shard,
+        float* __restrict__ stats_out) {
+  __shared__ bf16_t current[kShardedMhcK];
+  __shared__ float wave_partial[kShardedMhcWaves];
+
+  const uint32_t token = blockIdx.x;
+  const uint32_t tid = threadIdx.x;
+  const uint32_t wave = tid / kShardedMhcWave;
+  const uint32_t lane = tid % kShardedMhcWave;
+  const size_t residual_base = static_cast<size_t>(token) * kShardedMhcK;
+  const size_t stats_base = static_cast<size_t>(token) * kShardedMhcStats;
+
+  float local_sq = 0.0f;
+#pragma unroll
+  for (uint32_t i = 0; i < kShardedMhcK / kShardedMhcThreads; ++i) {
+    const uint32_t idx = tid + i * kShardedMhcThreads;
+    const bf16_t value = residual[residual_base + idx];
+    current[idx] = value;
+    const float value_f = cast<float>(value);
+    local_sq = fmaf(value_f, value_f, local_sq);
+  }
+  local_sq = sharded_mhc_wave_sum(local_sq);
+  if (lane == 0) wave_partial[wave] = local_sq;
+  __syncthreads();
+  if (tid == 0) {
+    float total = 0.0f;
+#pragma unroll
+    for (uint32_t i = 0; i < kShardedMhcWaves; ++i) total += wave_partial[i];
+    stats_out[stats_base + kShardedMhcMix] = total;
+  }
+  __syncthreads();
+
+  const uint32_t row0 = wave * 3;
+  float acc0 = 0.0f, acc1 = 0.0f, acc2 = 0.0f;
+  for (uint32_t k = lane; k < kShardedMhcK; k += kShardedMhcWave) {
+    const float value = cast<float>(current[k]);
+    acc0 = fmaf(cast<float>(fn_shard[static_cast<size_t>(row0 + 0) * kShardedMhcK + k]),
+                value, acc0);
+    acc1 = fmaf(cast<float>(fn_shard[static_cast<size_t>(row0 + 1) * kShardedMhcK + k]),
+                value, acc1);
+    acc2 = fmaf(cast<float>(fn_shard[static_cast<size_t>(row0 + 2) * kShardedMhcK + k]),
+                value, acc2);
+  }
+  acc0 = sharded_mhc_wave_sum(acc0);
+  acc1 = sharded_mhc_wave_sum(acc1);
+  acc2 = sharded_mhc_wave_sum(acc2);
+  if (lane == 0) {
+    stats_out[stats_base + row0 + 0] = acc0;
+    stats_out[stats_base + row0 + 1] = acc1;
+    stats_out[stats_base + row0 + 2] = acc2;
+  }
+}
+
 // Materialize the same BF16 hc_post boundary as the replicated reference,
 // then produce rank-local contributions to [24 dot products, residual ss].
 __global__ void __launch_bounds__(kShardedMhcThreads, 1)
@@ -237,6 +295,26 @@ __global__ void __launch_bounds__(kShardedMhcThreads, 2)
       cast<float>(y_rounded[base + h]) * inv_rms *
       cast<float>(norm_weight_shard[h]));
 }
+
+struct Gfx90aShardedMhcPreStatsKernel {
+  static void run(const tvm::ffi::TensorView residual,
+                  const tvm::ffi::TensorView fn_shard,
+                  const tvm::ffi::TensorView stats_out) {
+    using namespace host;
+    auto T = SymbolicSize{"num_tokens"};
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({T, 4, 512}).with_dtype<bf16_t>().with_device(device).verify(residual);
+    TensorMatcher({24, 2048}).with_dtype<half>().with_device(device).verify(fn_shard);
+    TensorMatcher({T, 25}).with_dtype<float>().with_device(device).verify(stats_out);
+    LaunchKernel(static_cast<uint32_t>(T.unwrap()), kShardedMhcThreads,
+                 device.unwrap())(
+        gfx90a_sharded_mhc_pre_stats_kernel,
+        static_cast<const bf16_t*>(residual.data_ptr()),
+        static_cast<const half*>(fn_shard.data_ptr()),
+        static_cast<float*>(stats_out.data_ptr()));
+  }
+};
 
 struct Gfx90aShardedMhcStage1Kernel {
   static void run(const tvm::ffi::TensorView x,

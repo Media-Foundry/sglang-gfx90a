@@ -23,6 +23,7 @@ def _jit_gfx90a_sharded_mhc_module(iters: int) -> Module:
         f"gfx90a_sharded_mhc_tp8_v1_i{iters}_{'fast' if fast_math else 'precise'}",
         cuda_files=["deepseek_v4/gfx90a_sharded_mhc.cuh"],
         cuda_wrappers=[
+            ("pre_stats", "sglang::Gfx90aShardedMhcPreStatsKernel::run"),
             ("stage1", "sglang::Gfx90aShardedMhcStage1Kernel::run"),
             ("stage2", "sglang::Gfx90aShardedMhcStage2Kernel::run"),
             ("stage3", "sglang::Gfx90aShardedMhcStage3Kernel::run"),
@@ -73,6 +74,40 @@ def _expect(
 
 def preload_gfx90a_sharded_mhc() -> None:
     _jit_gfx90a_sharded_mhc_module(_get_sinkhorn_iters())
+
+
+def gfx90a_sharded_mhc_pre_stats(
+    residual_shard: torch.Tensor,
+    fn_shard: torch.Tensor,
+) -> torch.Tensor:
+    """Return initial-hc-pre local ``[24 dot products, residual ss]`` stats.
+
+    The caller must sum-reduce the returned FP32 tensor over the TP8 group
+    before passing it to :func:`gfx90a_sharded_mhc_stage2`.
+    """
+
+    tensors = (residual_shard, fn_shard)
+    _check_gfx90a(tensors)
+    m = residual_shard.shape[0] if residual_shard.ndim == 3 else -1
+    if m <= 0:
+        raise ValueError("residual_shard must contain at least one token")
+    _expect(
+        residual_shard,
+        "residual_shard",
+        (m, _HC, _HIDDEN_SHARD),
+        torch.bfloat16,
+    )
+    _expect(fn_shard, "fn_shard", (_MIX, _HC * _HIDDEN_SHARD), torch.float16)
+
+    local_stats = torch.empty(
+        (m, _MIX + 1), dtype=torch.float32, device=residual_shard.device
+    )
+    _jit_gfx90a_sharded_mhc_module(_get_sinkhorn_iters()).pre_stats(
+        residual_shard,
+        fn_shard,
+        local_stats,
+    )
+    return local_stats
 
 
 def gfx90a_sharded_mhc_stage1(
