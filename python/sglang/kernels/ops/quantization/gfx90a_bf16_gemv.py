@@ -15,6 +15,12 @@ def _config(n: int, k: int) -> tuple[int, int, int]:
     # leaves measurable bandwidth on the table. Values are (rows per wave,
     # vector unroll, waves per workgroup), tuned against the graph's three DSV4
     # projection shapes. Keep the conservative geometry for unknown shapes.
+    if (n, k) == (2560, 160):
+        return 2, 1, 8
+    # Qwen4 full-attention PLE projection.  Eight waves each own three rows,
+    # so the complete 24-row GEMV fits in one workgroup while sharing x once.
+    if (n, k) == (24, 2560):
+        return 3, 1, 8
     rows, unroll, waves = {
         256: (1, 2, 8),
         8192: (2, 1, 4),
@@ -88,8 +94,11 @@ def gfx90a_wave64_bf16_gemv(
         or weight.dtype != torch.bfloat16
         or not x.is_contiguous()
         or not weight.is_contiguous()
-        or weight.shape[0] % 16 != 0
-        or weight.shape[1] % 512 != 0
+        # The Qwen4 PLE projection has 24 output rows.  The kernel already
+        # guards tail rows, and eight-row alignment preserves vector output
+        # tiers without excluding this latency-critical shape.
+        or weight.shape[0] % 8 != 0
+        or (weight.shape[1] % 512 != 0 and weight.shape[1] != 160)
         or getattr(torch.cuda.get_device_properties(x.device), "gcnArchName", "").split(
             ":", 1
         )[0]

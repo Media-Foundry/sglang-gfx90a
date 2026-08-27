@@ -107,8 +107,8 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
 template <uint32_t M, uint32_t N, uint32_t K, uint32_t kRows,
           uint32_t kUnroll, uint32_t kNumWaves>
 struct Gfx90aBf16GemvKernel {
-  static_assert(K % (kGfx90aWave * kGfx90aGemvVec * kUnroll) == 0,
-                "K must cover complete wave64 vector strides");
+  static_assert(K % kGfx90aGemvVec == 0,
+                "K must cover complete 16-byte BF16 vectors");
 
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView weight,

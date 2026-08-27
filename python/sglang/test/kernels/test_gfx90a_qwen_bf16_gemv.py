@@ -18,6 +18,8 @@ from sglang.srt.utils import is_hip
         (3584, 2560),
         (640, 2560),
         (320, 2560),
+        (24, 2560),
+        (2560, 160),
     ],
 )
 def test_qwen_bf16_gemv_matches_torch(n, k):

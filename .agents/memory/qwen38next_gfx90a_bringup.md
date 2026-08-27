@@ -85,3 +85,47 @@ Both completed with 8 generated tokens and the model stop token. Local curl
 must use `--noproxy '*'` because the host's `http_proxy` otherwise routes even
 127.0.0.1 through port 7897 and produces a misleading empty 502 response.
 
+## 2026-08-28 BS1 wave64 decode checkpoint
+
+The native-AR TP4/EP4/no-A2A BS1 baseline at `fd3d5dccdf`, with routed-only
+MQ4G128 enabled, was approximately 49.57 tok/s (256-token HTTP wall time,
+excluding the first JIT request). Two BF16 projection shapes were still
+falling through to CK despite being latency-oriented GEMVs:
+
+- shared-expert down projection: `[1,160] x [160,2560]`;
+- full-attention PLE projection: `[1,2560] x [2560,24]` (48 launches/token).
+
+The gfx90a wave64 kernel now accepts complete 16-byte BF16 K vectors rather
+than requiring a complete 512-element wave stride.  K=160 uses 8 waves with
+two rows/wave.  N=24,K=2560 uses one workgroup: 8 waves with three rows/wave.
+The latter replaces a CK launch whose traced grid had 256 blocks for only 24
+outputs.
+
+Results:
+
+| Configuration | Steady median tok/s | Relative to 49.57 |
+|---|---:|---:|
+| Clean CK baseline | 49.57 | baseline |
+| K160 wave64 only | 50.58 | +2.0% |
+| K160 + N24 wave64 | 53.27 | +7.5% |
+
+The N24 ABBA microbenchmark (8 alternating pairs, 1000 iterations/pair) gave
+52.57 us for CK versus 28.50 us for wave64, a 1.84x kernel speedup.  The
+standalone numerical oracle reported `max_abs=0`, and the expanded kernel test
+suite passed 9/9 shapes.  Ten end-to-end 256-token runs produced the same
+completion hash (`bcc6f565ee3098ae`) before and after the N24 change.  OpenAI
+chat semantic checks returned Paris, 391, a correct Chinese Rayleigh-scattering
+explanation, and a correct iterative binary-search implementation.
+
+`SGLANG_HC_COMBINE_SPLIT=0` is rejected: although the single combine kernel is
+faster in isolation, the K160 + HC-single service fell to about 47.32 tok/s
+from 50.58 tok/s while preserving the output hash.  Keep the split default.
+
+An apparent scheduler hang during correctness testing was induced by the test
+harness: eight curl processes outlived a short tool timeout and concurrently
+entered a service whose graph captured only BS1.  Three TP ranks blocked while
+one continued polling, and the detokenizer heartbeat stopped.  Kernel logs and
+the host journal contained no GPU reset, RAS/ECC, MCE, EDAC, or OOM evidence.
+Treat this as an uncaptured-batch scheduler/collective liveness bug, not a
+hardware fault; correctness probes for a BS1-only service must be serialized
+and allowed to complete.
