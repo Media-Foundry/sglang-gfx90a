@@ -30,6 +30,20 @@ one completion hash `815dba1b46a50050`.
   `4096x2560` from `35.78 -> 48.08 us` and `1536x2560` from
   `30.13 -> 44.50 us`, with roughly 1.2% relative L2 error.  Both variants and
   their relaxed shape guards were removed.
+- A clean routed-MQ4 graph trace proved that the default-on Qwen Top-10 switch
+  does not select its single-wave kernel unless import-time `SGLANG_USE_AITER`
+  is enabled; the 49.6 tok/s service therefore still used AOT
+  `topkGatingSoftmax` for about 1.05 ms/token.  Moving the Qwen selector ahead
+  of the backend branch passed a dedicated `_use_aiter=False` wiring test and
+  preserved the control completion hash exactly, but full-service throughput
+  regressed to `47.32--47.55 tok/s` from about `49.57 tok/s` (-4.4%).  The
+  smaller single-wave Top-10 changes graph scheduling and lengthens the exposed
+  router/MoE critical path even though its standalone work is lower.  The
+  hypothesis that its 64-thread CTA footprint caused the loss was tested by
+  launching the exact same wave0 math in a 256-thread/four-wave CTA, matching
+  the old AOT block footprint; it still measured only `47.45--47.64 tok/s`.
+  Both selector variants were reverted; this is intentionally not treated as
+  a configuration bug to fix again without a new scheduling design.
 
 The unoptimized-FP8 startup observed during this audit was configuration error,
 not a regression: omitting `SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED=1` retained the
