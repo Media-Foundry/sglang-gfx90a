@@ -2922,3 +2922,59 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - 代码审计仍确认当前AIter/StandardDispatcher的SBO并不会把M32拆成2xM16，脚本中
   “直接重叠shared/routed”的注释也不准确；但其周边调度/stream行为在完整profile中
   有微小正效应。因此保留现默认，不做配置清理，也不能把该0.43%写成主要优化成果。
+
+### TP8 M32 MHC split-K geometry全扫（2026-08-27）
+
+- 新增独立、默认不接production的
+  `scripts/rocm/bench_dsv4_gfx90a_mhc_splitk_geometry.py`，使用真实rank0/layer20
+  `residual [32,4,4096]`、FP32 `fn [24,16384]`、HC scale/base和FFN norm weight。
+  stage0严格复用production `_gfx90a_mhc_mix_splitk_stage0_kernel`；fused tail只把原来
+  硬编码的8-way reduction参数化，Sinkhorn、BF16 round-trip、weighted residual和
+  RMSNorm数学顺序不变。
+- 全扫`BLOCK_N=1/2/4/8`、`SPLITS=4/8/16`、`BLOCK_K=512/1024/2048`，每组7轮
+  CUDA graph ABBA。production `N4/S8/K1024`稳定约`26.04 us`。最快的有效候选
+  `N4/S16/K1024`为`24.906 us`，仅省`1.152 us/layer`（4.42%）；其post/comb因split
+  reduction次序变化分别只有`8.94e-8/7.15e-7`最大误差，最终BF16 out仍bitwise exact。
+  `N4/S8/K2048`约`25.035 us`，仅省`1.018 us`，最终out同样exact。两者都远低于
+  `>=10 us/layer`门槛，不进入service A/B或production。
+- `SPLITS=16/BLOCK_K=2048`是非法组合：每split的`CHUNK_K=1024`小于tile，stage0会跨
+  split边界读取，产生约`1.62`的post最大误差和明显退化，不能误当geometry结果。
+  `BLOCK_N=1/2`普遍更慢，说明M32下当前row并行度已经足够，继续扩大CTA数量没有收益。
+  结论是M32 MHC pre-mix geometry已接近局部最优，attention/MHC的后续预算必须来自
+  真正的producer-consumer中间态/同步消除，而不是继续扫split-K参数。
+
+### TP8 diverse A1 wave-owned down oracle否证（2026-08-27）
+
+- 新增完全独立、默认不接production的A1 short-run oracle：
+  `gfx90a_fp4_a1_wave_owned_oracle.cuh/.py`及
+  `scripts/rocm/bench_dsv4_gfx90a_a1_wave_owned_down_oracle.py`。保持TP8
+  `K=256`的8-lane subgroup、group32向量load、SDOT4累加和shuffle reduction树不变；
+  每个wave的8个subgroup共同处理同一个singleton expert的连续16个output rows，并把
+  相邻wave映射到不同A1 expert。输出仍写原`[M,T,N]` FP32 slot，未改变最终fixed-order
+  reduction。
+- 使用diverse recorder pass37/layer34的真实路由分布：106个active experts、最大
+  occupancy 7，其中64个A1 experts。blocks 104/208/416/832下candidate partial均相对
+  现有A1 grouped kernel逐元素bitwise exact、`max_abs=0`；832 blocks再做100次变异
+  INT8 input也全部exact。
+- 7轮CUDA graph ABBA全部明显退化：104 blocks `72.590 -> 102.129 us`（+40.69%），
+  208 blocks `58.141 -> 85.016 us`（+46.22%），416 blocks
+  `53.173 -> 81.005 us`（+52.34%），832 blocks `52.139 -> 87.382 us`
+  （+67.59%）。现kernel让相邻subgroup处理同expert的连续rows，天然保留连续weight
+  stream/L2 locality；强制相邻wave跨expert反而把这些访问打散，且expert-minor映射还
+  引入runtime quotient/remainder。候选不仅未省10us，最佳也倒退26.875us，因此按门槛
+  停止，不再做gate版本、不接selector/service/production。
+
+### C4短上下文sequential top-k zero-fill删除反例（2026-08-27）
+
+- `seq_len <= index_topk=512`时，ROCm的SGL top-k transform进入
+  `naive_paged_transform`，不读取score tensor。以`torch.empty`替换仅限
+  `sgl-kernel` backend的`torch.zeros([B,512])`后，BS1--32、page-size
+  1/4/16/64/256共30组physical/raw indices均逐元素exact。
+- BS32 CUDA-graph component ABBA从`zero_ + sequential transform=6.460 us`
+  降至`empty + transform=5.269 us`，局部省`1.191 us/C4 layer`。
+- 但同代码/同启动参数（TP8/EP1、graph tiers 1/32）的两次独立服务均通过France
+  tier1+32合计`33/33` exact后，128-token、32并发多轮结果为：baseline正常轮中位约
+  `877.7 tok/s`，empty候选正常轮中位约`875.6 tok/s`，候选约`-0.24%`。两边各有
+  服务级慢轮，局部memset节省明显低于端到端波动且没有净收益。
+- 已恢复`torch.zeros`，不提交production改动。以后不能把“不读取logits”直接折算成
+  服务收益；除非能与整个sequential transform/metadata写入一起消除，否则不重做。
