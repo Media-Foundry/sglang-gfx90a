@@ -87,6 +87,30 @@ Rejected follow-ups:
   custom AR was slower than AIter for the 5-KiB message in the repository
   comparison benchmark.  All temporary benchmark-source edits were restored.
 
+## 2026-08-28: Qwen HC peer-reduce epilogue fusion rejected
+
+A Qwen-specific prototype reused AIter's one-stage peer-read all-reduce and
+folded the attention HyperConnection apply into its epilogue.  The existing
+eight FP32 gate-dot partials were consumed directly, reducing the graph from
+`gate + all-reduce + HC apply` to `gate + fused all-reduce/apply`.  A TP4 eager
+oracle was exact against the separately reduced mathematical reference on all
+four ranks, and host-synchronized micro latency appeared promising (about
+246.6 us to 159.3 us without an end barrier).
+
+The actual graph/service gate rejected it.  The initial kernel inherited the
+DSV fused epilogue's missing end barrier and produced a stable but different
+256-token hash (`1a8c2dccd3a72692` rather than the retained
+`bcc6f565ee3098ae`) at about 54.44 tok/s trimmed.  Adding the ordinary AIter
+one-stage `end_sync` lifetime rule and matching the normal H=2560 launch
+geometry (three CTAs instead of four) kept graph capture stable, but measured
+only 54.12 tok/s trimmed and retained the different hash.  This is below the
+55.02 tok/s checkpoint, so the SGLang and AIter prototype was fully reverted.
+
+Operational note: rebuilding this conda ROCm extension requires
+`PATH=/opt/rocm/bin:...` and `CPATH=/opt/rocm/core-7.14/include`; the base-conda
+`hipcc` wrapper otherwise misses `hipsparse/hipsparse.h` and
+`thrust/complex.h`.
+
 ## 2026-08-28: two-stage wave64 Qwen HC mix
 
 The capture trace attributed about 4.90 ms/token to 97 Qwen hyperconnection
