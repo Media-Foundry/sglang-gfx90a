@@ -9,7 +9,7 @@
 每次启动性能 probe、服务 A/B 或 profiler 之前，先运行：
 
 ```bash
-amd-smi process --general --sort-by-pid -g 4 5 6 7
+amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 ```
 
 必须核对可见 GPU 上的 PID、进程名和 VRAM 占用都符合本轮实验预期。尤其检查：
@@ -2645,3 +2645,99 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
   `0.03125`、最大relative-L2=`1.1033e-4`。误差来自`_grouped_mm`选择的MFMA归约，
   不是pack/AG；它只比combined-N的1000/1000分叉略好。预计端到端收益也低于已测
   combined-N约3.3--3.6%，不足以抵消长轨迹风险，因此只保留oracle，不接production。
+### TP8 M64 grouped-FP4 A8几何否证（2026-08-27）
+
+- 为解释BS64从约`1326.6 tok/s`继续扩展受限，先用现有generic grouped-FP4
+  kernel在单GCD构造M64 oracle；没有修改production selector。M32 recorder推导的
+  M64 surrogate中，A8相对A4理论可减少约`32.7--41.0%` weight scans，因此继续门槛
+  预先设为full routed stage至少快`15%`。
+- 固定随机种子、相同FP4 weight/scale与LDS LUT，A4/R2/W8/B832五轮中位为
+  `488.484 us`（`487.668/488.004/488.484/489.772/491.132`）。A8扫R1、W4/W8与
+  B832/1248/1664/2080时，最好是R1/W4/B1664的`483.340 us`，仅快约`1.05%`；
+  其余R1约`490--505 us`，R2已退化到`519--527 us`。所有已完成几何输出均为finite，
+  同assignment内逐元素exact。
+- 结果远低于15%门槛，说明减少weight scans仍不足以抵消A8的寄存器/控制开销与有效
+  并行度损失；停止剩余R2/R4 sweep，不启动完整服务、不修改selector。M64不能简单靠
+  把当前A4静态改为A8得到5%收益。
+
+### TP8 tile-epoch producer/reduce流水首轮smoke（2026-08-27，未接生产）
+
+- 为修复旧single-launch tile-finalize约7/8元素错误，新增过隔离JIT oracle，使用独立
+  produced/consumed/end epoch inbox、system-scope release/acquire、P/C双stream和严格
+  rank0到rank7 FP32求和；没有修改production或外部AIter。JIT扩展可成功编译、加载并
+  注册8-rank IPC buffer。
+- 首次2-replay smoke在epoch handshake阶段出现八卡设备端同步自旋，已立即终止全部
+  torchrun进程并用`amd-smi process`确认资源释放；因此尚无correctness或latency结果，
+  不能宣称协议有效。下一步必须按eager P->C单轮、各自capture、首次replay三段加入
+  host/device marker定位；在1000 replay exact前不得接真实`wo_b`或production selector。
+- 分段eager已经把首故障定位清楚：producer完成后每个rank的`[16,8]` produced inbox
+  只有自身rank一列为1，其余七列仍为0。也就是对普通AIter registered Torch tensor做
+  peer system-scope atomic store没有形成可见写入，旧consumer因此必然自旋。后续协议
+  改为每个rank只release-store本地epoch，等待方经`RankData`直接peer-load八个rank；
+  consumed/end也采用同一local-store/peer-load模型。
+- 更深的根因不是system-scope原语本身，而是本机AIter ROCm
+  `CustomAllreduce._get_ipc_meta()`对普通Torch caching-allocator tensor取得IPC handle后
+  把offset硬编码为0。子分配tensor的peer `RankData`因此可能指向allocation base而非
+  tensor地址；改变allocation尺寸后会表现为wait自旋或epoch2混代。`comm.buffer`同样是
+  caching tensor，不能作为offset oracle。改用`aiter.allocate_meta_buffer()`获得direct
+  HIP allocation，并只注册一次base、以固定offset访问data/produced/consumed/end后，
+  wait-only、load-only及完整eager/end均通过。
+- 修正后的single-slot双stream graph依次通过2、10、100、1000 replay；每轮8 rank输出
+  逐元素bitwise exact且rank hash唯一，epoch1000 SHA256前缀为`19276e78fe58`。这证明
+  local release-store + peer system-acquire load + GLC payload load协议可稳定复用，不再
+  有stale/mixed epoch。当前仍是独立oracle、没有接production；下一门槛是与“相同
+  producer + 现有AIter AR”做slowest-rank ABBA，收益不足5%就不接真实`wo_b`。
+- 公平性能门槛随后完成：A与B都包含相同synthetic producer、wait/ack/end和严格
+  correctness；A使用现有AIter registered AR，B使用tile publication/reduce。7轮
+  ABBA、每段200 replay、取8-rank slowest后，B为`83.107 us`，A为`65.480 us`，B反而
+  慢`21.21%`；14个B样本仅`82.748--83.866 us`，14个A样本为
+  `64.840--65.955 us`，AR-only为`27.037 us`。两路均8 rank exact、max-abs=0。
+  因此不接真实`wo_b`；保留oracle用于复现IPC offset bug与system-scope协议，但不能将
+  tile流水列为性能成果。
+
+### CDNA2 packed-MXFP4 UDOT8 routed-MoE反例（2026-08-27）
+
+- ISA审计确认gfx90a具有`V_DOT8_U32_U4`，Clang builtin为
+  `__builtin_amdgcn_udot8(a,b,acc,false)`。E2M1 magnitude可用nibble-SWAR精确映射为
+  `{0,1,2,3,4,6,8,12}`；符号分离后每8项使用
+  `all=udot8(|x|,|w|)`、`opposite=udot8(|x|,|w|&sign_xor)`、
+  `signed=all-2*opposite`。CPU对全部16x16 code pair（含正负零）及10万组随机8-lane
+  向量均逐项exact。
+- AIter HIP `per_1x32_f4_quant_hip`当前在gfx90a并非可用依赖：conda host hipcc先因缺
+  `thrust/complex.h`失败；显式切到`/opt/rocm/core-7.14/bin/hipcc`后，`module_quant`
+  又为gfx90a实例化gfx942/950专用`v_cvt_pk_fp8_f32`并被assembler拒绝。oracle因此仅用
+  AIter纯位运算Triton MXFP4 quant作前端；核心gate/down仍为HIP UDOT8。这是AIter
+  module级架构guard bug，不能被误写成UDOT8 kernel correctness问题。
+- standalone `kPrepacked=3` oracle复用真实recorder pass47/layer20路由（M32、40个active
+  experts、最大occupancy16）及A4/R2/W8/B832几何。量化后数学reference把MXFP4
+  activation code无损展开成现DOT4所用signed INT8 code，并复用相同E8M0 group scale。
+  UDOT8最终BF16相对该reference逐元素exact，`max_abs=0`、`relative-L2=0`，证明value
+  nibble顺序、activation scale、weight shuffled-scale offset及符号公式全部正确。
+- 但full routed stage两轮短smoke中，现LDS-DOT4为`203.202/201.346 us`、median
+  `202.274 us`；MXFP4+UDOT8为`339.652/338.916 us`、median`339.284 us`，退化
+  `67.7%`，远高于预设`<=125 us`继续门槛。SWAR、双unsigned dot和MXFP4 quant成本
+  压倒省掉的LDS decode；不接production selector、不启动服务。该结果也说明不能只凭
+  “DOT8每指令八元素”推断CDNA2 FP4收益，必须计入E2M1 sign-magnitude展开。
+
+### TP8 occupancy bucket与attention consumer-fusion静态复核（2026-08-27）
+
+- 现有768个完整BS32 pass仍来自同一prompt加不同salt，不能代表32条自然请求。按现dump，
+  hash层0--2平均`52.62`个active experts，occupancy 1/2/3--4/5--8/9--16/17--32
+  承载assignments为`5.96/8.83/44.16/24.77/9.03/7.24%`；learned层3--42平均
+  `38.05`个active，分别为`3.53/5.49/26.87/23.18/20.93/20.00%`。
+- 全43层A4平均`61.463` scans、`78.10%`利用率、padding `53.85` assignments/层。
+  仅将run 1/2/3--4分成A1/A2/A4不会减少scan或weight bytes，只把padding降至约
+  `21.56`；现kernel对invalid assignment已经continue，A1/A2块又只占约20.5%的A4
+  scans，因此gross上限约4% routed stage（约8us/layer），新增launch后预计净0--2%，
+  不能按35--70us/layer立项。
+- run>4使用A8虽可把scan降到约`46.001`（-25.15%），但真实A8、sort8 light/heavy
+  双核和paired-A4单核均已exact但端到端/完整stage退化。下一步只先采32条不同固定
+  input IDs、至少128-token warm window并分hash/learned层输出直方图；理论scan下降
+  不足20%立即停。若继续，独立bucket oracle必须把full stage压到不高于`166 us`
+  （相对195--196us至少15%）且逐元素exact，才允许接selector。
+- attention侧unified-KV已经只为local heads分配q_out，legacy才创建/zero 64-head
+  q_padded；Q/indexer的RMS/RoPE/Hadamard/quant consumer fusion也已存在。dual
+  compressor postprocess虽micro省23--25us/C4层，E2E仅+0.026%；HIP multistream
+  ABBA约-0.13%。因此不能重复计算q_padded、dual或event收益。尚可做的局部oracle只有
+  CK `wqkv_a + segmented RMSNorm`（真实目标约8--12us/layer）及M32 inverse-RoPE到
+  wo_a（约8--15us/layer）；attention consumer fusion的40--70us净收益预算偏乐观。
