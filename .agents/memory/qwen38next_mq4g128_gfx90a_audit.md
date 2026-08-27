@@ -1,5 +1,29 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-27: DSV4 in-block Q8 + `sdot4` transfer was negative
+
+The gfx90a DSV4 FP4 M=1 kernel's most relevant pattern was reproduced as an
+isolated MQ4G128 indexed oracle: each consumer block quantized the FP32
+activation to symmetric Q8 in LDS, shifted the affine MQ4 nibble to `q-8`, and
+used `__builtin_amdgcn_sdot4`.  The affine correction was
+`sw*sx*dot(qw-8,qx) + (zero+8*sw)*sx*sum(qx)`.  The implementation matched the
+FP32-activation indexed path within about 0.55% relative L2 (gate/up) and 0.51%
+(down).
+
+With the original two-output-row block, repeated activation quantization made
+the kernels 81.20 vs 41.11 us (gate/up) and 51.60 vs 21.07 us (down).  Expanding
+to 256 threads/eight output rows amortized the quantization, but remained
+negative in nine-round trimmed timing:
+
+- gate/up (`T=10,N=1280,K=2560`): 44.14 vs 41.07 us, 0.930x;
+- down (`T=10,N=2560,K=640`): 29.10 vs 21.37 us, 0.734x.
+
+This DSV4 optimization does not transfer directly.  DSV4 avoids expensive
+nonlinear E2M1 codebook decoding, while MQ4G128 already has a cheap affine
+nibble decode; Q8 conversion, LDS synchronization, and zero-point correction
+cost more than `sdot4` saves.  The experimental entry point was removed and was
+never wired into the production selector.
+
 Date: 2026-08-27
 
 ## Format identity
