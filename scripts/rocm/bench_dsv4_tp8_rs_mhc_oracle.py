@@ -454,6 +454,48 @@ def main() -> None:
     if comm.disabled:
         raise RuntimeError("AIter custom collectives did not initialize")
 
+    if args.native_sharded_mhc:
+        from sglang.kernels.ops.layernorm.gfx90a_sharded_mhc import (
+            gfx90a_sharded_mhc_pre_stats,
+        )
+
+        pre_local = gfx90a_sharded_mhc_pre_stats(
+            inp.residual_shard, inp.fn_shard_fp16
+        )
+        residual_local_f = inp.residual_shard.float()
+        pre_local_ref = torch.cat(
+            (
+                torch.einsum(
+                    "mch,kch->mk",
+                    residual_local_f,
+                    inp.fn_shard_fp16.view(args.mixes, args.hc, -1).float(),
+                ),
+                residual_local_f.square().sum((1, 2)).unsqueeze(1),
+            ),
+            dim=1,
+        )
+        torch.testing.assert_close(pre_local, pre_local_ref, rtol=3e-3, atol=5e-2)
+        pre_global = comm.all_reduce(pre_local, registered=False)
+        pre_global_ref = torch.cat(
+            (
+                torch.einsum(
+                    "mch,kch->mk", inp.residual_full.float(), inp.fn_full.half().float()
+                ),
+                inp.residual_full.float().square().sum((1, 2)).unsqueeze(1),
+            ),
+            dim=1,
+        )
+        pre_delta = (pre_global - pre_global_ref).abs()
+        pre_rel_l2 = torch.linalg.vector_norm(pre_global - pre_global_ref) / (
+            torch.linalg.vector_norm(pre_global_ref).clamp_min(1e-12)
+        )
+        if rank == 0:
+            print(
+                f"native_pre_stats_max_abs={pre_delta.max().item():.8g} "
+                f"native_pre_stats_rel_l2={pre_rel_l2.item():.8g}",
+                flush=True,
+            )
+
     dist.barrier()
     ref_residual, ref_layer_input, ref_qkv, ref_expert_input = full_reference(
         args, inp, comm, registered=False
