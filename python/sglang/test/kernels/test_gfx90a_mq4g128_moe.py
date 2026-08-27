@@ -11,6 +11,7 @@ from sglang.srt.layers.quantization.mq4g128 import (
     dequantize_mq4g128,
     fwht128,
     quantize_mq4g128,
+    swiglu_fwht128,
 )
 from sglang.srt.utils import is_hip
 
@@ -60,6 +61,20 @@ def test_streamed_fp8_requant_matches_whole_tensor():
     )
     streamed = _requantize_checkpoint_fp8_mq4g128(weight, scale, expert_chunk=2)
     torch.testing.assert_close(streamed, reference, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+@pytest.mark.parametrize("shape", [(1, 10, 1280), (4, 10, 1280), (16, 10, 1280)])
+def test_swiglu_fwht128_matches_unfused(shape):
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    torch.manual_seed(10)
+    gate_up = torch.randn(shape, dtype=torch.float32, device="cuda") * 0.7
+    expected = fwht128(
+        torch.nn.functional.silu(gate_up[..., :640]) * gate_up[..., 640:]
+    )
+    actual = swiglu_fwht128(gate_up)
+    torch.testing.assert_close(actual, expected, rtol=2e-6, atol=2e-6)
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")

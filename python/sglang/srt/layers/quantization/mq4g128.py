@@ -32,6 +32,25 @@ def _fwht128_gfx90a_kernel(x_ptr, out_ptr):
     )
 
 
+@triton.jit
+def _swiglu_fwht128_gfx90a_kernel(gate_up_ptr, out_ptr):
+    assignment = tl.program_id(0)
+    group = tl.program_id(1)
+    offsets = tl.arange(0, 128)
+    base = assignment * 1280 + group * 128 + offsets
+    gate = tl.load(gate_up_ptr + base).to(tl.float32)
+    up = tl.load(gate_up_ptr + base + 640).to(tl.float32)
+    y = (gate * tl.sigmoid(gate)) * up
+    for log_width in tl.static_range(0, 7):
+        width = 1 << log_width
+        partner = tl.gather(y, offsets ^ width, axis=0)
+        y = tl.where((offsets & width) == 0, y + partner, partner - y)
+    tl.store(
+        out_ptr + assignment * 640 + group * 128 + offsets,
+        y * 0.08838834764831845,
+    )
+
+
 def fwht128(x: torch.Tensor) -> torch.Tensor:
     """Normalized group-local FWHT-128 over the final dimension."""
     if x.shape[-1] % GROUP_SIZE:
@@ -52,6 +71,25 @@ def fwht128(x: torch.Tensor) -> torch.Tensor:
         y = torch.stack((left + right, left - right), dim=2).reshape(-1, GROUP_SIZE)
         width *= 2
     return (y * (1.0 / math.sqrt(GROUP_SIZE))).reshape(original_shape)
+
+
+def swiglu_fwht128(gate_up: torch.Tensor) -> torch.Tensor:
+    """Fuse FP32 SwiGLU with the following group-local FWHT-128 on gfx90a."""
+    if gate_up.shape[-1] != 1280:
+        raise ValueError(f"Qwen MQ4 SwiGLU expects 1280 columns, got {gate_up.shape[-1]}")
+    if gate_up.is_cuda and is_gfx90a_supported():
+        source = gate_up.contiguous()
+        assignments = source.numel() // 1280
+        out = torch.empty(
+            (*source.shape[:-1], 640), dtype=torch.float32, device=source.device
+        )
+        if assignments:
+            _swiglu_fwht128_gfx90a_kernel[(assignments, 5)](
+                source, out, num_warps=4
+            )
+        return out
+    intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
+    return fwht128(intermediate)
 
 
 def quantize_mq4g128(weight: torch.Tensor) -> torch.Tensor:
@@ -172,12 +210,13 @@ class Mq4g128RoutedMoEMethod:
         weight: torch.Tensor,
         ids: torch.Tensor,
         use_grouped: bool,
+        already_rotated: bool = False,
     ) -> torch.Tensor:
         from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
             mq4g128_grouped,
             mq4g128_indexed,
         )
-        x_rot = fwht128(x).contiguous()
+        x_rot = x.contiguous() if already_rotated else fwht128(x).contiguous()
         if use_grouped:
             return mq4g128_grouped(x_rot, weight, ids)
         return mq4g128_indexed(x_rot, weight, ids)
@@ -200,12 +239,28 @@ class Mq4g128RoutedMoEMethod:
             >= envs.SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS.get()
         )
         gate_up = self._project(
-            x.float().contiguous(), layer.w13_weight, ids, use_grouped
+            x.contiguous(), layer.w13_weight, ids, use_grouped
         )
-        intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
-        flat_intermediate = intermediate.reshape(-1, 640).contiguous()
+        fused_swiglu_fwht = (
+            envs.SGLANG_QWEN4_GFX90A_SWIGLU_FWHT.get()
+            and gate_up.is_cuda
+            and is_gfx90a_supported()
+        )
+        if fused_swiglu_fwht:
+            flat_intermediate = (
+                swiglu_fwht128(gate_up).reshape(-1, 640).contiguous()
+            )
+        else:
+            intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
+            flat_intermediate = intermediate.reshape(-1, 640).contiguous()
         flat_ids = ids.reshape(-1, 1).contiguous()
-        down = self._project(flat_intermediate, layer.w2_weight, flat_ids, use_grouped)
+        down = self._project(
+            flat_intermediate,
+            layer.w2_weight,
+            flat_ids,
+            use_grouped,
+            already_rotated=fused_swiglu_fwht,
+        )
         down = down.reshape(x.shape[0], ids.shape[1], 2560)
         output = (down * topk.topk_weights.float().unsqueeze(-1)).sum(dim=1)
         return StandardCombineInput(hidden_states=output.to(x.dtype))

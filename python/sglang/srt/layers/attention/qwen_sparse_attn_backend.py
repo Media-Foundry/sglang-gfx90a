@@ -16,6 +16,7 @@ import msgspec
 import torch
 import torch.nn.functional as F
 
+from sglang.srt.environ import envs
 from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
 from sglang.srt.layers.attention.qsa.config import (
     QSA_VARIANT_COMPRESSED,
@@ -39,6 +40,7 @@ from sglang.srt.layers.attention.qsa.sparse_attn import (
 )
 from sglang.srt.model_executor.forward_batch_info import ForwardMode
 from sglang.srt.utils import is_hip
+from sglang.srt.utils.common import is_gfx90a_supported
 
 logger = logging.getLogger(__name__)
 
@@ -1821,14 +1823,33 @@ class QwenSparseAttnBackend(AttentionBackend):
         )
         if _is_hip:
             if batch == 1:
-                output = _packed_single_attention_torch(
-                    q,
-                    packed_k,
-                    packed_v,
-                    cu_seqlens_k,
-                    topk,
-                    layer.scaling,
-                )
+                if (
+                    is_gfx90a_supported()
+                    and envs.SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE.get()
+                    and q.shape[1:] == (6, 256)
+                    and packed_k.shape == (topk, 1, 256)
+                    and packed_k.dtype == torch.bfloat16
+                ):
+                    from sglang.kernels.ops.attention.gfx90a_qsa_packed_decode import (
+                        gfx90a_qsa_packed_decode,
+                    )
+
+                    output = gfx90a_qsa_packed_decode(
+                        q,
+                        packed_k,
+                        packed_v,
+                        cu_seqlens_k,
+                        layer.scaling,
+                    )
+                else:
+                    output = _packed_single_attention_torch(
+                        q,
+                        packed_k,
+                        packed_v,
+                        cu_seqlens_k,
+                        topk,
+                        layer.scaling,
+                    )
             else:
                 output = _packed_varlen_attention_torch(
                     q, packed_k, packed_v, cu_seqlens_k, layer.scaling

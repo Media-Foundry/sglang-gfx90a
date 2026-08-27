@@ -307,3 +307,48 @@ faster. EP1 used 43.64 GiB/GCD for weights and required
 Long greedy output hashes still drifted, as they did in the EP4 arm. The gain
 is below the 5% retention threshold and does not justify the padding and memory
 cost; the TP4/EP1 loader and compatibility exception were removed again.
+
+## Fused routed SwiGLU/FWHT and gfx90a QSA packed decode
+
+Two independent decode consumers were fused on the TP4/EP4 MQ4 graph. First,
+the routed gate/up epilogue now feeds one Triton kernel that computes FP32
+SwiGLU and the following five FWHT128 groups without materializing the
+intermediate `[M,T,640]` tensor. The redundant BF16-to-FP32 cast before the
+first FWHT was also removed. Standalone `[1,10,1280]` latency changed from
+about 100 us for the old pointwise-plus-FWHT pair to 52.5 us; maximum FP32
+difference was `1.79e-7`. Service hot decode increased from 31.39 to about
+31.85 tok/s, roughly 1.5% alone.
+
+Second, the HIP BS1 QSA fallback previously converted the fixed 2048-row
+packed K/V scratch to FP32, materialized scores and probabilities, and launched
+two einsums plus softmax. A gfx90a HIP wave64 kernel now handles the validated
+local shape `q=[1,6,256]`, `K/V=[2048,1,256]`. Eight dynamic KV splits produce
+FP32 `(max,sum,numerator)` partials with 48 CTAs; six reduction CTAs merge them
+and emit BF16 output. This keeps all valid KV lengths on the fast path rather
+than optimizing only short contexts. Representative micro latency versus the
+old roughly 381--384 us fallback was:
+
+| valid KV | old PyTorch | gfx90a split-K |
+|---:|---:|---:|
+| 193 | 383.5 us | 44.8 us |
+| 512 | 382.7 us | 55.7 us |
+| 1024 | 381.0 us | 73.4 us |
+| 2048 | 381.1 us | 113.1 us |
+
+The QSA oracle covered valid lengths `1/64/193/512/1024/2048`; maximum error
+was `1.22e-4` before BF16 output comparison, with several lengths bitwise
+equal. The combined MQ4/QSA suite passed 12/12. Decode graph BS1 captured and
+France returned exactly `The capital of France is **Paris**.` in 10/10 calls.
+
+Formal same-code ABBA used identical PLE, MQ4 and GDN/QK alternate-stream
+settings, seven 128-token native-AR requests per main arm, and explicit switches
+for both new consumers:
+
+- A1 old consumers: trimmed `31.390 tok/s`;
+- B1 fused SwiGLU/FWHT plus single-CTA QSA: trimmed `34.141 tok/s`;
+- B2 fused SwiGLU/FWHT plus 8-way QSA: trimmed `34.329 tok/s`;
+- A2 old consumers: trimmed `31.431 tok/s`.
+
+B2 is about 9.2% above the A1/A2 mean. Long greedy hashes continue to drift in
+both old and new arms; this known baseline issue is not introduced by the QSA
+kernel, while the fixed France oracle remains exact.

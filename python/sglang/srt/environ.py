@@ -308,6 +308,11 @@ class Envs:
     # BS1/4/8/16 ABBA found no end-to-end A4 benefit under EP4.  Keep the
     # device-sorted grouped path available for genuinely higher occupancy.
     SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS = EnvInt(32)
+    # Fuse routed-expert SwiGLU with its following FWHT128 on gfx90a.
+    SGLANG_QWEN4_GFX90A_SWIGLU_FWHT = EnvBool(True)
+    # Replace the HIP BS1 QSA PyTorch decomposition with the wave64 split-K
+    # packed attention kernel for the validated Qwen4 local-head shape.
+    SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE = EnvBool(True)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)
