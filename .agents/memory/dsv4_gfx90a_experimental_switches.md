@@ -2569,3 +2569,18 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 多轮ABBA中位为BF16 `38.728 us`、FP16加输出cast `42.388 us`，FP16候选慢
   `8.64%`。因此gfx90a/当前ROCm BLAS下，FP16并没有提供可利用的full-K projection
   快路，额外cast还扩大了开销；不应接入正式路径。
+
+### TP8 BS64批量扩展探针（2026-08-27）
+
+- 固定单模型`TP8/EP1/no-A2A`、1M token pool与France 11-ID输入，只捕获graph
+  tiers `1/32/64`；为tier64把静态MXFP4 quant row上限提高到384。该实验没有改权重、
+  kernel数学或speculative配置。
+- 9-token France oracle为BS1=`1/1`、BS32=`32/32`、BS64=`64/64`逐tokenexact，且每个
+  tier只有一个输出hash，证明新增tier64 capture/cached-decode路径正确。
+- 同服务32请求各256-token四轮为`955.73/959.70/964.75/954.82 tok/s`；64请求四轮为
+  `1324.99/1327.94/1326.93/1299.71 tok/s`，前三轮稳定中心约`1326.6 tok/s`。每个请求
+  都实际输出256 tokens；长completion仍出现仓库已记录的跨slot greedy hash漂移，
+  没有出现新的长度或完成错误。
+- 从BS32翻倍到BS64只增加约38% aggregate throughput，且step从约33.3ms增加到约
+  48.2ms；因此1500 tok/s不是简单提高并发即可达到。BS64可作为容量/吞吐特例，但BS32
+  目标仍需缩短attention与MoE critical path。探针服务测试后已停止。
