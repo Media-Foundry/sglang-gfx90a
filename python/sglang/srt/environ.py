@@ -308,6 +308,11 @@ class Envs:
     # BS1/4/8/16 ABBA found no end-to-end A4 benefit under EP4.  Keep the
     # device-sorted grouped path available for genuinely higher occupancy.
     SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS = EnvInt(32)
+    # Fuse the BS1 MQ4 router-weight multiply, slot reduction and BF16 cast.
+    # This preserves the original expert-dot output and ATen reduction order.
+    SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE = EnvBool(True)
+    # Single-wave, exact-order softmax Top-10 for the Qwen BS1/E512 router.
+    SGLANG_QWEN4_GFX90A_ROUTER_TOPK = EnvBool(True)
     # Fuse routed-expert SwiGLU with its following FWHT128 on gfx90a.
     SGLANG_QWEN4_GFX90A_SWIGLU_FWHT = EnvBool(True)
     # Replace the HIP BS1 QSA PyTorch decomposition with the wave64 split-K

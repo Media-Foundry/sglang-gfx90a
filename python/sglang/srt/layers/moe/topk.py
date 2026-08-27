@@ -859,16 +859,32 @@ def fused_topk(
 
     if scoring_func == "softmax":
         if _use_aiter:
-
-            # Use fused_topk instead of topk_softmax to auto dispatch to the correct kernel
-            topk_weights, topk_ids = aiter_fused_topk(
-                hidden_states,
-                gating_output,
-                topk,
-                renormalize,
-                topk_ids=topk_ids,
-                topk_weights=topk_weights,
+            use_qwen_gfx90a_topk = (
+                envs.SGLANG_QWEN4_GFX90A_ROUTER_TOPK.get()
+                and gating_output.shape == (1, 512)
+                and gating_output.dtype == torch.bfloat16
+                and topk == 10
+                and renormalize
+                and correction_bias is None
+                and routed_scaling_factor is None
+                and num_fused_shared_experts == 0
             )
+            if use_qwen_gfx90a_topk:
+                from sglang.kernels.ops.moe.gfx90a_qwen_topk import (
+                    gfx90a_qwen_topk,
+                )
+
+                gfx90a_qwen_topk(gating_output, topk_weights, topk_ids)
+            else:
+                # Use fused_topk instead of topk_softmax to auto dispatch to the correct kernel
+                topk_weights, topk_ids = aiter_fused_topk(
+                    hidden_states,
+                    gating_output,
+                    topk,
+                    renormalize,
+                    topk_ids=topk_ids,
+                    topk_weights=topk_weights,
+                )
         # ===== TO BE REFACTORED ====
         elif packed_out is not None:
             # Fused gating + routed pack (SGLANG_OPT_LORA_FUSED_TOPK_PACK): one JIT kernel

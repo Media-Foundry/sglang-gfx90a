@@ -514,3 +514,39 @@ for both new consumers:
 B2 is about 9.2% above the A1/A2 mean. Long greedy hashes continue to drift in
 both old and new arms; this known baseline issue is not introduced by the QSA
 kernel, while the fixed France oracle remains exact.
+
+## Bitwise MQ4 consumer reduction and Qwen router Top-10
+
+The post-HC/QSA graph trace showed that the routed-MQ4 tail was larger than the
+two projection kernels alone: indexed gate/up was about 40.0 us/layer, indexed
+down 21.8 us/layer, and the separate FP32 router multiply/reduction/cast chain
+about 25--30 us/layer. Invalid EP4 assignments already return before weight
+decode, so compacting remote slots was not the missing BS1 optimization.
+
+An initial kernel fused the down projection itself with router weighting and
+reduction. It changed the old 53.35 us standalone chain to 12.32 us and reached
+45.41 tok/s, but rare expert-dot accumulation changes produced one-BF16-LSB
+differences and changed the deterministic 256-token completion hash. It was
+removed rather than accepted on the France-only oracle.
+
+The retained kernel leaves the existing indexed down projection untouched and
+only fuses its consumers. It reproduces ATen `Reduce.cuh`'s `vt0=4` order for
+top-k 10: accumulators consume slots `0/4/8`, `1/5/9`, `2/6`, and `3/7`, then
+combine in that order. A 1000-seed random oracle was BF16 bitwise exact. A
+second wave64 kernel specializes the Qwen `[1,512]` BF16 softmax Top-10; it was
+bitwise identical to the AIter/AOT kernel for 1000 random seeds and reduced the
+standalone launch from about 14.85 to 11.84 us.
+
+Service ABBA used TP4/EP4/no-A2A, native AR, graph BS1, 256 generated tokens:
+
+- A2, both consumers disabled: trimmed `42.549 tok/s`;
+- B2, exact weighted reduction only: trimmed `44.512 tok/s`;
+- B3, exact weighted reduction plus wave64 Top-10: trimmed `44.609 tok/s`.
+
+B3 is about 4.84% above A2. France was exact in 10/10 B3 requests, and every
+A2/B2/B3 256-token completion had the same SHA-256 prefix `ca1ee446c43da638`.
+The full MQ4 kernel test file passed 8/8. Both switches default on with explicit
+kill switches. Several startup attempts ended in scheduler SIGABRT, including
+an A arm with both new kernels disabled; clean retries captured and served.
+No contemporaneous AMD-SMI, MCE, EDAC, or GPU-reset evidence identified this
+as a hardware fault, so it remains an intermittent ROCm/JIT graph-startup issue.

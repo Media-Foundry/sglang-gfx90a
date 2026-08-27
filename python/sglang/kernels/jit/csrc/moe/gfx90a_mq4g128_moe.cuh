@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sgl_kernel/tensor.h>
+#include <sgl_kernel/type.cuh>
 #include <sgl_kernel/utils.h>
 
 #include <hip/hip_runtime.h>
@@ -9,6 +10,8 @@
 #include <cstdint>
 
 namespace sglang {
+
+using namespace device;
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t A>
 __global__ void mq4g128_sorter_kernel(
@@ -224,6 +227,51 @@ struct Gfx90aMq4g128Indexed {
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()),
         static_cast<float*>(out.data_ptr()));
+  }
+};
+
+template <uint32_t T, uint32_t N>
+__global__ void mq4g128_weighted_reduce_kernel(
+    const float* __restrict__ partials,
+    const float* __restrict__ router_weights,
+    bf16_t* __restrict__ out) {
+  const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+  if (row >= N) return;
+  float values[T];
+#pragma unroll
+  for (uint32_t slot = 0; slot < T; ++slot) {
+    volatile float weighted = partials[static_cast<uint64_t>(slot) * N + row] *
+                              router_weights[slot];
+    values[slot] = weighted;
+  }
+  static_assert(T == 10, "Qwen routed reduction requires top-k 10");
+  // Match ATen Reduce.cuh's vt0=4 thread_reduce_impl exactly. Four independent
+  // accumulators consume slots with stride four, then combine in lane order.
+  float acc0 = 0.0f, acc1 = 0.0f, acc2 = 0.0f, acc3 = 0.0f;
+  acc0 += values[0]; acc1 += values[1]; acc2 += values[2]; acc3 += values[3];
+  acc0 += values[4]; acc1 += values[5]; acc2 += values[6]; acc3 += values[7];
+  acc0 += values[8]; acc1 += values[9];
+  float sum = acc0 + acc1;
+  sum += acc2;
+  sum += acc3;
+  out[row] = cast<bf16_t>(sum);
+}
+
+template <uint32_t T, uint32_t N>
+struct Gfx90aMq4g128WeightedReduce {
+  static void run(const tvm::ffi::TensorView partials,
+                  const tvm::ffi::TensorView router_weights,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({1, T, N}).with_dtype<float>().with_device(device).verify(partials);
+    TensorMatcher({1, T}).with_dtype<float>().with_device(device).verify(router_weights);
+    TensorMatcher({1, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    LaunchKernel((N + 255) / 256, 256, partials.device())(
+        mq4g128_weighted_reduce_kernel<T, N>,
+        static_cast<const float*>(partials.data_ptr()),
+        static_cast<const float*>(router_weights.data_ptr()),
+        static_cast<bf16_t*>(out.data_ptr()));
   }
 };
 

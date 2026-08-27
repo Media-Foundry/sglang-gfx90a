@@ -5,7 +5,10 @@ from types import SimpleNamespace
 from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
     mq4g128_grouped,
     mq4g128_indexed,
+    mq4g128_weighted_reduce,
 )
+from sglang.kernels.ops.moe.gfx90a_qwen_topk import gfx90a_qwen_topk
+from sglang.kernels.ops.moe import topk_softmax
 from sglang.srt.layers.quantization.mq4g128 import (
     _requantize_checkpoint_fp8_mq4g128,
     dequantize_mq4g128,
@@ -49,6 +52,36 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
     # oracle; keep the cross-path bound explicit instead of claiming bitwise
     # identity.
     torch.testing.assert_close(grouped, indexed, rtol=2e-5, atol=2e-5)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_weighted_reduce_matches_aten_bitwise():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    for seed in range(32):
+        torch.manual_seed(seed)
+        partials = torch.randn(1, 10, 2560, device="cuda")
+        weights = torch.softmax(torch.randn(1, 10, device="cuda"), dim=-1)
+        expected = (partials * weights.unsqueeze(-1)).sum(1).to(torch.bfloat16)
+        actual = mq4g128_weighted_reduce(partials, weights)
+        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_router_topk_matches_aiter_bitwise():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    for seed in range(32):
+        torch.manual_seed(seed)
+        logits = torch.randn(1, 512, device="cuda", dtype=torch.bfloat16)
+        expected_weights = torch.empty(1, 10, device="cuda")
+        expected_ids = torch.empty(1, 10, device="cuda", dtype=torch.int32)
+        actual_weights = torch.empty_like(expected_weights)
+        actual_ids = torch.empty_like(expected_ids)
+        topk_softmax(expected_weights, expected_ids, logits, True)
+        gfx90a_qwen_topk(logits, actual_weights, actual_ids)
+        torch.testing.assert_close(actual_ids, expected_ids, rtol=0, atol=0)
+        torch.testing.assert_close(actual_weights, expected_weights, rtol=0, atol=0)
 
 
 @pytest.mark.skipif(not is_hip(), reason="HIP-only FP8 conversion")

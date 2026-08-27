@@ -262,5 +262,16 @@ class Mq4g128RoutedMoEMethod:
             already_rotated=fused_swiglu_fwht,
         )
         down = down.reshape(x.shape[0], ids.shape[1], 2560)
+        if (
+            envs.SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE.get()
+            and x.shape[0] == 1
+            and not use_grouped
+        ):
+            from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
+                mq4g128_weighted_reduce,
+            )
+
+            output = mq4g128_weighted_reduce(down, topk.topk_weights)
+            return StandardCombineInput(hidden_states=output)
         output = (down * topk.topk_weights.float().unsqueeze(-1)).sum(dim=1)
         return StandardCombineInput(hidden_states=output.to(x.dtype))

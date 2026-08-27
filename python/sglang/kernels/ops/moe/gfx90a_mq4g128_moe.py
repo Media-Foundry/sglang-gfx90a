@@ -48,6 +48,20 @@ def _sorter_module(e: int, m: int, t: int, assignments: int) -> Module:
     )
 
 
+@cache_once
+def _weighted_reduce_module(t: int, n: int) -> Module:
+    args = make_cpp_args(t, n)
+    return load_jit(
+        "gfx90a_mq4g128_weighted_reduce",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128WeightedReduce<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
 def mq4g128_indexed(
     x: torch.Tensor, weight: torch.Tensor, expert_ids: torch.Tensor
 ) -> torch.Tensor:
@@ -60,6 +74,17 @@ def mq4g128_indexed(
     t = expert_ids.shape[1]
     out = torch.empty((m, t, n), dtype=torch.float32, device=x.device)
     _indexed_module(e, m, t, n, k).run(x, weight, expert_ids, out)
+    return out
+
+
+def mq4g128_weighted_reduce(
+    partials: torch.Tensor, router_weights: torch.Tensor
+) -> torch.Tensor:
+    m, t, n = partials.shape
+    assert m == 1 and partials.dtype == torch.float32 and partials.is_contiguous()
+    router_weights = router_weights.float().contiguous()
+    out = torch.empty((1, n), dtype=torch.bfloat16, device=partials.device)
+    _weighted_reduce_module(t, n).run(partials, router_weights, out)
     return out
 
 
