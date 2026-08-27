@@ -794,3 +794,24 @@ changed BF16-rounded output (`max_abs` up to 0.125) because BF16 weights are
 not generally represented exactly by FP16.  This does not justify a second
 FP16 weight cache or a model-level correctness risk, so the prototype was
 removed without service integration.
+
+## 2026-08-28: Qwen HC one-row wave geometry
+
+The retained two-stage HIP HC kernel originally assigned two independent
+output rows to each wave in both projections.  A complete `down_rows x
+up_rows` scan over `{1,2,4,8}^2`, using preallocated outputs and eight timing
+rounds, found that one row per wave minimized VGPR/independent-accumulator
+pressure despite launching more CTAs.  All 16 variants were bitwise equal.
+The combined standalone median improved from 28.587 us at `(2,2)` to 26.341
+us at `(1,1)` (7.9%).  The dedicated gfx90a HC test also passed.
+
+Two independent TP4/EP4 graph-BS1 services using the same AIter all-reduce
+binary gave:
+
+- `(1,1)`: 55.4376 tok/s trimmed over 12 256-token requests;
+- `(2,2)`: 54.9573 tok/s trimmed over 12 256-token requests.
+
+Both arms produced the same completion hash `1a8c2dccd3a72692` in every
+round, so the retained default is a bitwise-safe ~0.87% service gain.  The
+`SGLANG_QWEN4_GFX90A_HC_ROWS=2` override remains available for exact same-code
+rollback/A-B checks; the default is one.

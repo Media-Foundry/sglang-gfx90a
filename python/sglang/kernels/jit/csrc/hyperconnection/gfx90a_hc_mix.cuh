@@ -31,12 +31,12 @@ __device__ __forceinline__ float qwen_hc_dot8(const float4 wv, const float4 xv) 
 // Qwen4 HC down projection: [1,10240] x [320,10240]^T -> FP32 [1,320].
 // Four wave64s per block, two output rows per wave.  Unlike the persistent
 // Triton path this needs neither atomics nor a software grid barrier.
+template <uint32_t kRows>
 __global__ __launch_bounds__(256) void qwen_hc_down_kernel(
     const bf16_t* __restrict__ x, const bf16_t* __restrict__ weight,
     float* __restrict__ out) {
   constexpr uint32_t K = 10240;
   constexpr uint32_t N = 320;
-  constexpr uint32_t kRows = 2;
   __shared__ bf16_t sx[K];
   const uint32_t tid = threadIdx.x;
   for (uint32_t k = tid * kQwenHcVec; k < K;
@@ -74,13 +74,13 @@ __global__ __launch_bounds__(256) void qwen_hc_down_kernel(
 
 // HC up projection plus sigmoid gate and four-stream weighted mean.
 // A wave computes two hidden columns and keeps all four gates in registers.
+template <uint32_t kRows>
 __global__ __launch_bounds__(256) void qwen_hc_up_mix_kernel(
     const bf16_t* __restrict__ x, const float* __restrict__ down,
     const bf16_t* __restrict__ weight, bf16_t* __restrict__ out) {
   constexpr uint32_t HC = 4;
   constexpr uint32_t HS = 2560;
   constexpr uint32_t R = 320;
-  constexpr uint32_t kRows = 2;
   __shared__ bf16_t st[R];
   const uint32_t tid = threadIdx.x;
   for (uint32_t r = tid; r < R; r += blockDim.x) {
@@ -132,6 +132,7 @@ __global__ __launch_bounds__(256) void qwen_hc_up_mix_kernel(
   }
 }
 
+template <uint32_t kDownRows, uint32_t kUpRows>
 struct Gfx90aQwenHcMix {
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView w_down,
@@ -145,12 +146,12 @@ struct Gfx90aQwenHcMix {
     TensorMatcher({10240, 320}).with_dtype<bf16_t>().with_device(device).verify(w_up);
     TensorMatcher({1, 320}).with_dtype<float>().with_device(device).verify(workspace);
     TensorMatcher({1, 2560}).with_dtype<bf16_t>().with_device(device).verify(out);
-    LaunchKernel(40, 256, x.device())(
-        qwen_hc_down_kernel, static_cast<const bf16_t*>(x.data_ptr()),
+    LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
+        qwen_hc_down_kernel<kDownRows>, static_cast<const bf16_t*>(x.data_ptr()),
         static_cast<const bf16_t*>(w_down.data_ptr()),
         static_cast<float*>(workspace.data_ptr()));
-    LaunchKernel(320, 256, x.device())(
-        qwen_hc_up_mix_kernel, static_cast<const bf16_t*>(x.data_ptr()),
+    LaunchKernel((2560 + 4 * kUpRows - 1) / (4 * kUpRows), 256, x.device())(
+        qwen_hc_up_mix_kernel<kUpRows>, static_cast<const bf16_t*>(x.data_ptr()),
         static_cast<const float*>(workspace.data_ptr()),
         static_cast<const bf16_t*>(w_up.data_ptr()),
         static_cast<bf16_t*>(out.data_ptr()));
