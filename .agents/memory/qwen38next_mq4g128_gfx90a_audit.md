@@ -577,3 +577,22 @@ hashes.  Runtime logs reported average accepted lengths around 2.5--3.0 out of
 four.  Native AR remains the correctness/performance reference until the MTP
 metadata/sampling divergence is isolated; these numbers must not be reported as
 native-AR throughput or as progress toward a verified 120 tok/s result.
+
+A follow-up isolation found that
+`--json-model-override-args '{"index_share_for_mtp_iteration":false}'` did not
+actually disable QSA index sharing.  `_qsa_index_share_requested()` read the
+nested checkpoint `text_config=true` before the explicit top-level override.
+The precedence is now top-level override first, nested checkpoint default
+second, with a unit test for `nested=true, explicit=false`.  With the override
+really active, fixed-input MTP still produced 6/6 distinct 256-token hashes and
+about 42 tok/s, so QSA IndexShare is not the root cause of MTP divergence.
+
+Further conservative isolation also failed to make the current MTP path an
+acceptable checkpoint: ReplaySSM alone gave 6/6 hashes; disabling the three
+Qwen alternate-stream paths reduced but did not eliminate the variants; using
+RCCL instead of AIter custom all-reduce produced one dominant 64-token hash in
+7/8 trials but still one divergent trial and fell to about 26 tok/s.  A runtime
+Torch profiler combined with RCCL entered ROCm async-signal wait, so that trace
+was discarded and the service was stopped cleanly.  In contrast, the native
+AR control after the batched-QSA change was 5/5 hash-stable at 44.615 tok/s
+trimmed, matching the pre-change 44.609 tok/s checkpoint.

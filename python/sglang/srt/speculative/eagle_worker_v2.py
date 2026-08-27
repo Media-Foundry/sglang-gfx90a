@@ -131,14 +131,14 @@ logger = logging.getLogger(__name__)
 def _qsa_index_share_requested(hf_config) -> bool:
     """--json-model-override-args writes top-level hf_config attributes, while
     checkpoint configs carry the flag on the nested text_config; read both."""
+    # An explicit top-level value is the runtime override and must win over
+    # the checkpoint's nested text_config default.  Reading the nested field
+    # first made `{"index_share_for_mtp_iteration": false}` impossible to use.
+    explicit = getattr(hf_config, "index_share_for_mtp_iteration", None)
+    if explicit is not None:
+        return bool(explicit)
     text_config = getattr(hf_config, "text_config", hf_config)
-    return bool(
-        getattr(
-            text_config,
-            "index_share_for_mtp_iteration",
-            getattr(hf_config, "index_share_for_mtp_iteration", False),
-        )
-    )
+    return bool(getattr(text_config, "index_share_for_mtp_iteration", False))
 
 
 class EagleDraftWorker(EagleDraftWorkerBase):

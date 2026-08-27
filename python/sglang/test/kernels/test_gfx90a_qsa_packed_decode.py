@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 import torch
 
@@ -8,6 +10,19 @@ from sglang.srt.layers.attention.qwen_sparse_attn_backend import (
     _packed_single_attention_torch,
 )
 from sglang.srt.utils import is_hip
+
+
+def test_qwen_qsa_mtp_index_share_override_precedence():
+    from sglang.srt.speculative.eagle_worker_v2 import _qsa_index_share_requested
+
+    nested_on = SimpleNamespace(index_share_for_mtp_iteration=True)
+    assert _qsa_index_share_requested(SimpleNamespace(text_config=nested_on))
+    assert not _qsa_index_share_requested(
+        SimpleNamespace(
+            text_config=nested_on,
+            index_share_for_mtp_iteration=False,
+        )
+    )
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
