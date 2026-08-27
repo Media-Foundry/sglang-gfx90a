@@ -358,6 +358,22 @@ AR requests measured `34.350--34.413 tok/s`, median `34.383` and trimmed
 first-replay crash and the fallback small-kernel chain. This is a correctness
 fix rather than a claimed 5% performance checkpoint.
 
+The same stale HIP guard also made the exact PLE gate/value and short-conv
+state fusions unreachable. After enabling them, B=1/4/16 gate/value outputs
+were BF16 bitwise equal to the eager chain; BF16 and FP16 short-conv inputs and
+in-place state updates were bitwise equal for B=1/4/16. The full service again
+passed France 10/10. A (hash only) trimmed `34.3885 tok/s` and B (all three
+fusions) trimmed `34.3875 tok/s`, so the extra launch removal is neutral on the
+current graph critical path. It is retained as exact graph simplification, not
+as a performance claim.
+
+An actual packed-weight MFMA prototype mapped 16 GEMV output rows to MFMA M
+and used only output column zero. It ran correctly on gfx90a with relative L2
+about `8.0e-4` for gate/up and `6.8e-4` for down, but the 15/16 unused MFMA N
+columns plus nibble-to-FP16 construction made gate/up `55.68 -> 110.40 us` and
+down `36.48 -> 45.76 us`. The prototype was removed. MFMA is not a viable BS1
+drop-in until multiple useful columns can share one expert weight tile.
+
 ## Fused routed SwiGLU/FWHT and gfx90a QSA packed decode
 
 Two independent decode consumers were fused on the TP4/EP4 MQ4 graph. First,

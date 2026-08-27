@@ -3,7 +3,9 @@ import torch
 
 from sglang.kernels.ops.qwen4_ple import (
     can_fuse_qwen4_ngram_hash,
+    fused_qwen4_gate_value,
     fused_qwen4_ngram_hash,
+    fused_qwen4_short_conv_state,
 )
 
 
@@ -78,3 +80,40 @@ def test_qwen4_ngram_hash_matches_eager_with_eos(batch):
         contexts, multipliers, vocab_sizes, offsets, eos
     )
     torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU")
+@pytest.mark.parametrize("batch", [1, 4, 16])
+def test_qwen4_gate_value_matches_bf16_eager(batch):
+    torch.manual_seed(22)
+    gate = torch.randn(
+        batch, 4, 1, dtype=torch.bfloat16, device="cuda"
+    ).contiguous()
+    value = torch.randn(
+        batch, 2560, dtype=torch.bfloat16, device="cuda"
+    ).contiguous()
+    transformed = gate.abs().clamp_min(1e-6).sqrt() * gate.sign()
+    expected = torch.sigmoid(transformed) * value.unsqueeze(-2)
+    actual = fused_qwen4_gate_value(gate, value)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU")
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16])
+@pytest.mark.parametrize("batch", [1, 4, 16])
+def test_qwen4_short_conv_state_matches_eager(dtype, batch):
+    torch.manual_seed(23)
+    slots, channels, state_len = 40, 640, 3
+    state = torch.randn(
+        slots, channels, state_len, dtype=dtype, device="cuda"
+    )
+    reference_state = state.clone()
+    indices = torch.arange(1, batch + 1, dtype=torch.long, device="cuda")
+    x = torch.randn(batch, channels, dtype=dtype, device="cuda")
+    expected = torch.cat(
+        [reference_state.index_select(0, indices), x.unsqueeze(-1)], dim=-1
+    )
+    reference_state[indices] = expected[:, :, 1:]
+    actual = fused_qwen4_short_conv_state(state, indices, x)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    torch.testing.assert_close(state, reference_state, rtol=0, atol=0)

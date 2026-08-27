@@ -172,7 +172,6 @@ def can_fuse_qwen4_gate_value(gate: torch.Tensor, value: torch.Tensor) -> bool:
 
     return (
         gate.is_cuda
-        and not _is_hip
         and gate.dtype == torch.bfloat16
         and gate.dim() == 3
         and gate.shape[1:] == (_QWEN4_HC_COUNT, 1)
@@ -268,7 +267,6 @@ def can_fuse_qwen4_short_conv_state(
 
     return (
         state.is_cuda
-        and not _is_hip
         and state.dtype in (torch.bfloat16, torch.float16)
         and state.dim() == 3
         and state.is_contiguous()
