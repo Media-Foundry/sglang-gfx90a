@@ -2789,3 +2789,136 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   LUT初始化的固定成本超过少量invalid-lane/VGPR节省。候选远未达到full-stage
   `<=166 us`或至少15%收益门槛，因此不接selector、不启动服务；若重访必须让单launch
   在不扩大常驻VGPR的前提下动态选择assignment width，不能继续做三bucket launch。
+
+### TP8 down-consumer INT8 quant融合oracle（2026-08-27）
+
+- M32两次generic Triton group32 INT8 quant的单GCD 7轮ABBA分别为：gate输入
+  `[32,4096]`约`37.080 us`，gate输出`[32,6,256]`约`37.428 us`，standalone合计约
+  `74.5 us`。已有HIP wave64专核分别为`16.393/16.749 us`，两shape的INT8值与FP32
+  scale均相对Triton逐元素bitwise exact；但历史service A/B已表明单独换quant launch
+  会被graph并行隐藏，不能据此推断约41us E2E收益。
+- 现R2 gate epilogue无法直接量化：一个group32由16个独立wave task、可能跨CTA完成。
+  历史R4/8-wave协作原型虽intermediate/INT8/final BF16 exact，scale最大差`7.9e-13`，
+  但LDS与barrier让stage约`501 -> 620 us`。本轮改做独立down-consumer oracle：每个
+  expert-block复制若干CTA；CTA从已舍入BF16 intermediate用32个16-lane subgroup生成
+  A4x8组INT8/scale到LDS，随即循环自己的N-row shard，写原FP32 partial，最后复用同一
+  fixed-slot reduction。没有production selector。
+- 多样请求pass37/layer34（active106、A4 blocks113）下，CTA1/2/4明显退化；消除一次
+  无依赖的block barrier后，扫描CTA4/6/7/8/9/10/11/12/13/14/15/16。7轮ABBA最佳
+  CTA16为完整stage `257.536 -> 237.691 us`，节省`19.845 us`、`7.71%`；quant+down
+  子链`115.458 -> 95.655 us`，节省`17.15%`。CTA11/12/13/14/15也分别省
+  `6.60/6.12/5.82/6.08/6.57%`，说明收益不是单点噪声。
+- CTA4--16所有测试点的FP32 partial和最终BF16均逐元素exact/max-abs0；CTA12和CTA16
+  各通过100次变异输入，CTA16进一步通过1000次CUDA graph replay，每轮partial/output
+  exact，无stale或hang。该局部积木超过5% micro门槛，但只省约20us/layer，尚低于当前
+  E2E结构候选约39us/layer门槛；在wave-owned gate producer组合oracle达到`<=218 us`
+  前不接service/production。
+
+### TP8 wave-owned gate+SwiGLU+quant反例（2026-08-27）
+
+- 为避免旧R4协作原型的跨wave/CTA group32同步，新建完全独立的wave-owned producer：
+  每个A4 expert block固定2 CTA、每CTA 4 waves，每wave独占连续32个I rows；每行仍按
+  原wave64顺序扫描K4096、使用相同shuffle归约、bounded SwiGLU并先舍入BF16。随后wave
+  自己从LDS重读32个BF16值，严格复用HIP group32 quant的16-lane max/divide/cast次序，
+  输出global INT8/scale给现A4 down与fixed reduction。没有production selector。
+- 多样请求pass37/layer34中，intermediate BF16、INT8、FP32 scale、down FP32 partial和
+  最终BF16全部逐元素bitwise exact，100次变异输入也exact。但7轮ABBA的gate+quant为
+  `140.316 -> 395.165 us`（退化181.62%），完整stage `257.265 -> 513.167 us`
+  （退化99.47%）。
+- 旧重复prompt pass47/layer20（active40、max occupancy16、A4 blocks64）也通过相同全链
+  exact和100次变异；gate+quant `109.306 -> 261.859 us`（退化139.57%），完整stage
+  `195.401 -> 348.131 us`（退化78.16%）。根因是2 CTA x 4 waves把多样/重复分布的gate
+  并行wave数压到约904/512，而每wave串行32行；省掉quant launch完全无法补偿并行度
+  损失。候选远高于`<=218 us`组合门槛，停止该映射，不接service/production。
+
+### TP8 MHC FFN-RMS quant producer与组合链门槛（2026-08-27）
+
+- BS32正式路径已静态确认不是BS1-only native/fused tail，而是
+  `mhc_post_combine_rms -> splitk pre-mix -> sinkhorn -> mhc_weighted_sum_triton ->
+  _gfx90a_mhc_rmsnorm_kernel`。最后的RMS kernel是一token一program、H4096/8-warps，
+  因此新增独立Triton oracle：保留原BF16 `ffn_input`给router/shared expert，并在同一
+  program显式BF16 round-trip后reshape成128x32，输出routed gate所需INT8/FP32 scale。
+  没有production接线。
+- 使用真实rank0/layer20 residual与norm weight构造M32 weighted-sum输入，candidate的
+  BF16 hidden、INT8和scale相对现Triton quant及HIP wave64 quant均逐元素bitwise exact、
+  `max_scale=0`，100次变异也全部exact。7轮direct ABBA为现RMS+Triton quant
+  `60.556 us`、RMS+HIP quant `50.900 us`、fused `23.900 us`，分别局部节省
+  `36.656/27.000 us`，超过15us局部门槛。
+- 随后按真实边界组合完整链：A=`weighted/RMS + Triton gate quant + A4 gate + Triton
+  down quant + A4 down/reduce`；B=`weighted + fused RMS/quant + A4 gate + CTA16
+  down-consumer/reduce`。多样pass37/layer34下hidden、gate q/scale、intermediate、FP32
+  partial与final BF16全链bitwise exact；100变异与1000 CUDA graph replay也全部exact、
+  无stale/hang。
+- 但两个局部micro收益在完整链中不加和。两次正式7轮direct ABBA分别仅省
+  `20.576 us`（`272.625 -> 252.049 us`, 7.55%）和`20.880 us`
+  （`272.651 -> 251.772 us`, 7.66%）；同一已捕获graph的7轮ABBA为
+  `267.443 -> 249.364 us`，只省`18.080 us`（6.76%）。这低于预设净省40us门槛，
+  因此尽管局部producer很快，暂不增加AiterRunnerInput sidecar或production selector；
+  后续若重访必须先证明graph内单项收益，而不能相加direct standalone数字。
+
+- 为排除独立graph oracle低估service调度收益，曾用单一默认关闭开关临时接入严格
+  `gfx90a + TP8/EP1/DP1 + no-A2A + native decode M32 + A4/R2/W8/B832/LDS`路径：MHC
+  RMS producer经layer-key sidecar向AIter传gate q/scale，并以CTA16 down-consumer替换
+  第二次quant+down。France全tier/候选合计`33/33`逐tokenexact。
+- 正式service A/B仍未转化为可观收益：baseline中位`947.925 tok/s`，candidate正常轮
+  中位约`958.7 tok/s`，仅约`+1.1%`，且candidate出现一次`873.4 tok/s`慢轮。该结果远低
+  于5%提交门槛，并再次证明isolated kernel/graph节省会被完整scheduler与并行支路隐藏。
+  production env、MHC可选输出、forward-batch sidecar、AIter透传及consumer便捷入口已逐
+  hunk精确撤销；独立oracle header/wrapper/scripts与本实验记录保留。
+
+### gfx90a M32 wqkv_a + segmented RMSNorm CK可行性否证（2026-08-27）
+
+- 新增独立、默认不接production的
+  `scripts/rocm/bench_dsv4_wqkv_segmented_rms_oracle.py`，复用真实layer20/rank0
+  `attn_norm [32,4096]`、`wqkv_a [1536,4096]`及checkpoint中的q-norm weight。
+  A严格保持production shape：单个N1536 BF16 projection后，仅对前1024维q-lora执行
+  AIter RMSNorm；后512维为KV passthrough。B是对CK现有接口最乐观的lower bound：把
+  projection拆成N1024/N512两个BLAS调用，再对q执行同一RMSNorm，尚未计入CK workspace、
+  跨N-block finalize或额外layout成本。
+- q raw、KV raw和normalized q三段在B中均相对A逐元素bitwise exact、`max_abs=0`，20次
+  graph replay也保持bitwise稳定。7轮ABBA、每腿500 replay结果为A median
+  `39.858 us`、B median `67.748 us`，拆分lower bound退化`41.17%`，未通过预设至少
+  10%的继续门槛。
+- component graph中原N1536 projection median为`36.762 us`，独立RMSNorm为
+  `6.998 us`。即使把RMSNorm完全免费删除，full producer+consumer的理想收益也只有
+  `8.42%`，仍低于门槛。CK现成单kernel `DeviceGemmLayerNorm_Xdl_CShuffle`又要求整个
+  N由单workgroup覆盖（N<=NPerBlock）、实现标准LayerNorm而非RMSNorm，且不能表达
+  “前1024 normalize、后512 passthrough”；跨N-block接口需要workspace和第二阶段。
+  因此不再写CK segmented专核、不接服务；该方向的现实实现不可能超过已经不足10%的
+  免费RMSNorm上限。
+
+### gfx90a M32 inverse-RoPE→wo_a lower-bound否证（2026-08-27）
+
+- 新增独立、默认不接production的
+  `scripts/rocm/bench_dsv4_inverse_rope_woa_lower_bound.py`。真实layer20/TP8 rank0
+  attention输出为BF16 contiguous `[32,8,512]`；TP8下仅一个local output group，
+  所以`view [32,1,4096]`没有copy或layout transform。当前M32 `wo_a`为BF16
+  `[32,1,4096] x [1,1024,4096] -> [32,1,1024]` einsum，不走仅支持M<=8的
+  gfx90a wave64 grouped GEMV，也不需要FP8/quant输出布局。
+- oracle从checkpoint读取layer20 FP8 `wo_a [8192,4096]`及E8M0 scale，严格按runtime
+  128x128 block公式解量化为BF16并取rank0的1024-row shard。当前inverse-RoPE用模型
+  compressed-YaRN config重建freqs。raw+inverse相对dumped inverse、重建weight的einsum
+  相对dumped wo_a、完整A相对预旋转G均逐元素bitwise exact、`max_abs=0`；positions
+  `0/4/127/128/512`重复执行也exact且finite，graph replay保持相同结果。
+- A/G都计入相同的256KiB input copy以重置原位graph replay。7轮A/G/G/A、每腿500
+  replay中，A=`copy raw + inverse + wo_a` median `37.312 us`，G=
+  `copy pre-rotated + wo_a` median `35.030 us`；即使未来融合核完全免费消除inverse，
+  理想也只省`2.282 us`、提升`6.12%`，远低于预设绝对至少`10 us`继续门槛。独立
+  R=`copy+inverse`为`7.782 us`，C=`copy`为`7.036 us`，净rope kernel仅约
+  `0.746 us`。
+- 因此不实现CK/HIP MFMA A-load transform、不接服务。BS32已有正确选择：不把inverse
+  epilogue塞进attention core，避免VGPR/occupancy损失；该局部consumer fusion的可删
+  工作量本身不足，而不是缺少group-major或quant布局优化。
+
+### TP8 BS32 SBO on/off配置复核（2026-08-27）
+
+- 在同一commit、TP8/EP1/no-A2A、1M-token pool、仅捕获graph tiers 1/32且保持ROCm
+  multistream开启的条件下，只切换`--enable-single-batch-overlap`。两边France BS1与
+  BS32合计均为`33/33`逐tokenexact。
+- SBO-on剔除首轮JIT后七轮为`947.842/948.687/948.853/946.821/947.925/948.714/
+  946.260 tok/s`，median=`947.925`。SBO-off剔除首轮并单列一次`394.431`慢轮后，
+  六轮为`943.773/943.900/943.976/947.869/943.381/943.501 tok/s`，median=
+  `943.837`。SBO-on中心约快`0.43%`，关闭没有收益且稳定性更差。
+- 代码审计仍确认当前AIter/StandardDispatcher的SBO并不会把M32拆成2xM16，脚本中
+  “直接重叠shared/routed”的注释也不准确；但其周边调度/stream行为在完整profile中
+  有微小正效应。因此保留现默认，不做配置清理，也不能把该0.43%写成主要优化成果。
