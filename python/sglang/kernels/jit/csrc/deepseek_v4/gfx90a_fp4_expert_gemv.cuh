@@ -1223,16 +1223,18 @@ template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
           uint32_t kBlocks, uint32_t kPrepacked = 0>
 struct Gfx90aFp4ExpertDownGroupedKernel {
-  static void run(const tvm::ffi::TensorView xq,
-                  const tvm::ffi::TensorView x_scale,
-                  const tvm::ffi::TensorView weight,
-                  const tvm::ffi::TensorView weight_scale,
-                  const tvm::ffi::TensorView sorted_ids,
-                  const tvm::ffi::TensorView sorted_expert_ids,
-                  const tvm::ffi::TensorView num_valid_ids,
-                  const tvm::ffi::TensorView topk_weights,
-                  const tvm::ffi::TensorView partial,
-                  const tvm::ffi::TensorView out) {
+  // Expose the producer and fixed-slot reduction separately for standalone
+  // occupancy-bucket experiments.  The normal `run` entry point below keeps
+  // the production launch sequence unchanged.
+  static void run_partial(const tvm::ffi::TensorView xq,
+                          const tvm::ffi::TensorView x_scale,
+                          const tvm::ffi::TensorView weight,
+                          const tvm::ffi::TensorView weight_scale,
+                          const tvm::ffi::TensorView sorted_ids,
+                          const tvm::ffi::TensorView sorted_expert_ids,
+                          const tvm::ffi::TensorView num_valid_ids,
+                          const tvm::ffi::TensorView topk_weights,
+                          const tvm::ffi::TensorView partial) {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
@@ -1247,7 +1249,6 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
     TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid_ids);
     TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(topk_weights);
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
-    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_grouped_kernel<
             E, M, T, N, K, kAssignments, kRows, kNumWaves, kPrepacked>,
@@ -1260,11 +1261,35 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
         static_cast<const int32_t*>(sorted_expert_ids.data_ptr()),
         static_cast<const int32_t*>(num_valid_ids.data_ptr()),
         static_cast<const float*>(topk_weights.data_ptr()));
+  }
+
+  static void reduce(const tvm::ffi::TensorView partial,
+                     const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     constexpr uint32_t kThreads = 256;
-    LaunchKernel((M * N + kThreads - 1) / kThreads, kThreads, xq.device())(
+    LaunchKernel((M * N + kThreads - 1) / kThreads, kThreads, out.device())(
         gfx90a_fp4_expert_down_reduce_kernel<M, T, N>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const float*>(partial.data_ptr()));
+  }
+
+  static void run(const tvm::ffi::TensorView xq,
+                  const tvm::ffi::TensorView x_scale,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView weight_scale,
+                  const tvm::ffi::TensorView sorted_ids,
+                  const tvm::ffi::TensorView sorted_expert_ids,
+                  const tvm::ffi::TensorView num_valid_ids,
+                  const tvm::ffi::TensorView topk_weights,
+                  const tvm::ffi::TensorView partial,
+                  const tvm::ffi::TensorView out) {
+    run_partial(xq, x_scale, weight, weight_scale, sorted_ids,
+                sorted_expert_ids, num_valid_ids, topk_weights, partial);
+    reduce(partial, out);
   }
 };
 

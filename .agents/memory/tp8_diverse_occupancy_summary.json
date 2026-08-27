@@ -1,0 +1,65 @@
+{
+  "date": "2026-08-27",
+  "profile": "TP8 EP1 no-A2A native AR, BS32, 32 distinct official-chat input-id sequences",
+  "window": {
+    "warmup_complete_passes": 32,
+    "measured_complete_passes": 128,
+    "assignments_per_layer": 192
+  },
+  "correctness": {
+    "all_requests_completion_tokens": 168,
+    "france_first_9_exact": true,
+    "rank_logical_count_sha256": "e222471e0d51e3831aa34f6a39a3bf0ec6b149e0ed28aac6f78c159e714abbf8"
+  },
+  "all_layers": {
+    "active_experts_mean": 106.7227,
+    "max_occupancy_mean": 9.3915,
+    "max_occupancy_p50": 9,
+    "max_occupancy_p95": 16,
+    "assignment_percent_by_occupancy": {
+      "1": 33.7184,
+      "2": 24.6754,
+      "3_to_4": 21.8590,
+      "5_to_8": 14.8068,
+      "9_to_16": 4.4833,
+      "17_to_32": 0.4571
+    },
+    "a4": {
+      "scan_blocks_mean": 113.3728,
+      "padding_assignments_mean": 261.4913,
+      "assignment_utilization_percent": 42.3382
+    },
+    "a8_scan_blocks_mean": 107.6394,
+    "adaptive_a1_a2_a4": {
+      "scan_blocks_mean": 113.3728,
+      "padding_assignments_mean": 19.8966,
+      "assignment_utilization_percent": 90.6102
+    }
+  },
+  "hash_layers_0_to_2": {
+    "active_experts_mean": 118.5208,
+    "max_occupancy_mean": 6.6406,
+    "a4_scan_blocks_mean": 122.9792,
+    "a4_padding_assignments_mean": 299.9167,
+    "a4_assignment_utilization_percent": 39.0310,
+    "a8_scan_blocks_mean": 118.7083,
+    "adaptive_padding_assignments_mean": 16.5208,
+    "adaptive_assignment_utilization_percent": 92.0771
+  },
+  "learned_layers_3_to_42": {
+    "active_experts_mean": 105.8379,
+    "max_occupancy_mean": 9.5979,
+    "a4_scan_blocks_mean": 112.6523,
+    "a4_padding_assignments_mean": 258.6094,
+    "a4_assignment_utilization_percent": 42.6090,
+    "a8_scan_blocks_mean": 106.8092,
+    "adaptive_padding_assignments_mean": 20.1498,
+    "adaptive_assignment_utilization_percent": 90.5021
+  },
+  "interpretation": [
+    "Diverse requests reverse the repeated-prompt concentration result: occupancy-1/2 experts account for about 78 percent of A4 scan blocks.",
+    "A8 reduces scan blocks by only about 5.06 percent and should not be pursued globally.",
+    "A1/A2/A4 bucketing does not reduce theoretical weight scans; it is promising only if specialized short-run kernels reduce padding work, control flow, or register pressure enough to overcome sorter and launch costs.",
+    "The raw recorder dump is intentionally not committed because it is about 180 MiB."
+  ]
+}
