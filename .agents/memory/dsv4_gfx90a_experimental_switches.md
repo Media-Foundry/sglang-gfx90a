@@ -2627,3 +2627,21 @@ amd-smi process --general --sort-by-pid -g 4 5 6 7
 - 因此production模型接线和实验env已完整撤回，不留默认关闭的死分支；保留独立oracle、
   本节数据和通用旧AIter AG兼容adapter。若未来有能保持原GEMM归约语义的单launch专核，
   可复用oracle，但不应重新接当前combined-N hipBLAS方案。
+
+### TP8 segmented grouped-MM + HIP pack oracle（2026-08-27）
+
+- 为避免combined-N跨投影改变shape，扩展output-N oracle使用ROCm Torch原生
+  `torch._grouped_mm`。每rank取全局连续N520 slice，并按原projection边界切成三个
+  不跨边界、最大N256的group；八rank布局分别为`256/256/8`、`256/240/24`、
+  `256/208/56`或`256/200/64`。输入用zero-stride expand复用同一`[32,4096]`，
+  不产生activation复制。
+- 新增独立HIP pack kernel，将`[3,32,256]`的valid rows按rank布局打包为连续
+  `[32,520]`，然后复用AIter registered AG。pack对四种布局均逐元素exact。单GCD
+  grouped GEMM本身约`32.9--33.1 us`；相比四个local小GEMM约`167.9 us`显著更快。
+- 8-rank graph oracle的7轮ABBA rank-max为A=`123.951 us`、B=`75.818 us`，局部减少
+  `38.83%`。真实未扰动layer20输入的完整N4160输出、四个segment、local AG slice及
+  八rank hash全部exact，说明连续rank slice、pack和AG顺序正确。
+- 但1000个确定性输入扰动中仍有812次与四个原shape F.linear不bitwise，最大absolute
+  `0.03125`、最大relative-L2=`1.1033e-4`。误差来自`_grouped_mm`选择的MFMA归约，
+  不是pack/AG；它只比combined-N的1000/1000分叉略好。预计端到端收益也低于已测
+  combined-N约3.3--3.6%，不足以抵消长轨迹风险，因此只保留oracle，不接production。
