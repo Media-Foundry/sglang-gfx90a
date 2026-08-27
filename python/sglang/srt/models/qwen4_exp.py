@@ -62,6 +62,7 @@ from sglang.srt.models.qwen3_5 import (
 from sglang.srt.models.qwen3_vl import Qwen3VLForConditionalGeneration
 from sglang.srt.runtime_context import get_parallel
 from sglang.srt.utils import is_hip, logger
+from sglang.srt.utils.common import is_gfx90a_supported
 
 _is_hip = is_hip()
 
@@ -1275,6 +1276,38 @@ class Qwen4ExpLayerExtensionMixin:
             use_mix=True,
             use_combine=True,
         )
+
+        wave64_linear_mode = envs.SGLANG_QWEN4_GFX90A_WAVE64_BF16_LINEAR.get()
+        if _is_hip and is_gfx90a_supported() and wave64_linear_mode:
+            for name, module in self.named_modules():
+                quant_method = getattr(module, "quant_method", None)
+                is_unquantized = quant_method is not None and (
+                    quant_method.__class__.__name__ == "UnquantizedLinearMethod"
+                )
+                selected = wave64_linear_mode == 1 or (
+                    wave64_linear_mode == 2
+                    and (name.endswith("out_proj") or name.endswith("o_proj"))
+                ) or (
+                    wave64_linear_mode == 3
+                    and (
+                        "in_proj" in name
+                        or name.endswith("qkv_proj")
+                        or name.endswith("q_proj")
+                        or name.endswith("k_proj")
+                        or name.endswith("v_proj")
+                    )
+                ) or (
+                    wave64_linear_mode == 4 and "shared_expert" in name
+                ) or (
+                    wave64_linear_mode == 5
+                    and (name.endswith("mlp.gate") or name.endswith("expert_gate"))
+                ) or (
+                    wave64_linear_mode == 6
+                    and (".ple." in f".{name}." or "indexer" in name)
+                )
+                if is_unquantized and selected:
+                    module._qwen4_gfx90a_wave64_bf16 = True
+
 
     def _prepare_qwen4_exp_attn(
         self,

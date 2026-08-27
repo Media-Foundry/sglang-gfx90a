@@ -596,3 +596,43 @@ Torch profiler combined with RCCL entered ROCm async-signal wait, so that trace
 was discarded and the service was stopped cleanly.  In contrast, the native
 AR control after the batched-QSA change was 5/5 hash-stable at 44.615 tok/s
 trimmed, matching the pre-change 44.609 tok/s checkpoint.
+
+## Qwen-wide wave64 BF16 decode linears
+
+The native-AR graph trace was initially misclassified as FP8 from its CK kernel
+name.  Correlating each dispatch to its CPU op showed BF16 inputs and weights;
+for example `[1,2560] @ [4096,2560]^T`.  The checkpoint's
+`modules_to_not_convert` also excludes ordinary attention, GDN, router, shared
+expert, PLE, and indexer linears from FP8.  A proposed BF16 shadow cache was
+therefore a no-op (unchanged 34.38 GiB model memory and 44.71 tok/s) and was
+removed before commit.
+
+The existing native wave64 BF16 GEMV was instead extended from `K % 1024 == 0`
+to the actual wave-stride requirement.  Qwen widths `K=2560/1536` use
+`unroll=1` and satisfy `K % 512 == 0`; older divisible-by-1024 shapes keep their
+tuned unroll.  A Qwen-only marker routes unquantized, shape-compatible M<=4
+linears before generic AIter/CK dispatch.  The selector supports diagnostic
+modes 0=off, 1=all, 2=attention output, 3=attention input, 4=shared expert,
+5=router, and 6=PLE/indexer; mode 1 is the validated default.
+
+Six real Qwen shapes showed about 37--45% lower standalone wrapper latency.
+The GPU oracle covered `(N,K)=(4096,2560),(512,2560),(2560,1536),`
+`(3584,2560),(640,2560),(320,2560)` plus HIP graph replay: 7/7 passed at
+BF16-appropriate `rtol=atol=2e-2`.
+
+Native-AR service ABBA, fixed input IDs, 256 forced tokens:
+
+- A1 (wave64 off): 44.615 tok/s trimmed;
+- B1 (all compatible linears): 49.885 tok/s trimmed;
+- A2 independent restart: 44.573 tok/s trimmed;
+- B2 independent restart: 49.709 tok/s trimmed.
+
+The mean-to-mean improvement is about 11.6%.  B1/B2 each had one unique hash
+within every repeated 256-token run, although the hash differs from CK because
+the wave reduction and MFMA reduction order are not bitwise identical.  This
+was accepted under the explicitly allowed FP16/BF16 numerical-equivalence
+criterion only after broader validation: France, 17x23, Chinese explanation,
+Python factorial, and binary-search prompts each returned identical answers in
+two repeats; two forced 1024-token generations had the same SHA-256
+`db5ef0d3cd530c26...` and ran at 51.80/51.82 tok/s.  Mode 0 remains the exact
+CK-order rollback.

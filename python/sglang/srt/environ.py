@@ -324,6 +324,10 @@ class Envs:
     # Two-stage wave64 HIP HC mix for the exact Qwen4 decode shape. This
     # removes persistent-grid atomics/barriers; set 0 for the legacy path.
     SGLANG_QWEN4_GFX90A_HC_MIX_HIP = EnvBool(True)
+    # Route selected, shape-compatible Qwen4 BF16 decode linears through the
+    # native gfx90a wave64 GEMV.  0=off, 1=all, 2=attention output, 3=attention
+    # input, 4=shared expert, 5=router, 6=PLE/indexer (A/B isolation modes).
+    SGLANG_QWEN4_GFX90A_WAVE64_BF16_LINEAR = EnvInt(1)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)

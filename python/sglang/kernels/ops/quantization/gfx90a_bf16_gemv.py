@@ -10,22 +10,27 @@ if TYPE_CHECKING:
     from tvm_ffi.module import Module
 
 
-def _config(n: int) -> tuple[int, int, int]:
+def _config(n: int, k: int) -> tuple[int, int, int]:
     # MI250X decode shapes are sufficiently different that one launch geometry
     # leaves measurable bandwidth on the table. Values are (rows per wave,
     # vector unroll, waves per workgroup), tuned against the graph's three DSV4
     # projection shapes. Keep the conservative geometry for unknown shapes.
-    return {
+    rows, unroll, waves = {
         256: (1, 2, 8),
         8192: (2, 1, 4),
         4096: (1, 2, 4),
         1536: (1, 2, 8),
     }.get(n, (2, 2, 8))
+    # Qwen4's hidden-width projections use K=2560/1536.  They cover complete
+    # wave64 vector strides at unroll=1 (512 BF16 elements) but not unroll=2.
+    if k % (64 * 8 * unroll) != 0:
+        unroll = 1
+    return rows, unroll, waves
 
 
 @cache_once
 def _jit_gfx90a_bf16_gemv_module(m: int, n: int, k: int) -> Module:
-    rows, unroll, waves = _config(n)
+    rows, unroll, waves = _config(n, k)
     args = make_cpp_args(m, n, k, rows, unroll, waves)
     return load_jit(
         "gfx90a_bf16_gemv",
@@ -84,7 +89,7 @@ def gfx90a_wave64_bf16_gemv(
         or not x.is_contiguous()
         or not weight.is_contiguous()
         or weight.shape[0] % 16 != 0
-        or weight.shape[1] % 1024 != 0
+        or weight.shape[1] % 512 != 0
         or getattr(torch.cuda.get_device_properties(x.device), "gcnArchName", "").split(
             ":", 1
         )[0]

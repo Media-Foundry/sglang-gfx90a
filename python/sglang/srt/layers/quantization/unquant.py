@@ -370,6 +370,22 @@ class UnquantizedLinearMethod(LinearMethodBase):
         x: torch.Tensor,
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        if (
+            getattr(layer, "_qwen4_gfx90a_wave64_bf16", False)
+            and bias is None
+            and isinstance(x, torch.Tensor)
+        ):
+            from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                gfx90a_wave64_bf16_gemv,
+            )
+
+            x_shape = x.shape
+            output = gfx90a_wave64_bf16_gemv(
+                x.reshape(-1, x.shape[-1]), layer.weight
+            )
+            if output is not None:
+                return output.view(*x_shape[:-1], output.shape[-1])
+
         if use_intel_amx_backend(layer):
             x_shapes = x.shape
             if len(x_shapes) == 3:
