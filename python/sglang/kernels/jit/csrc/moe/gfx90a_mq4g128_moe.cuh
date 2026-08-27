@@ -10,6 +10,80 @@
 
 namespace sglang {
 
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t A>
+__global__ void mq4g128_sorter_kernel(
+    const int32_t* __restrict__ expert_ids,
+    int32_t* __restrict__ sorted_assignments,
+    int32_t* __restrict__ sorted_experts) {
+  static_assert((E & (E - 1)) == 0, "expert count must be a power of two");
+  constexpr uint32_t kTotal = M * T;
+  __shared__ int32_t counts[E];
+  __shared__ int32_t scan[E];
+  __shared__ int32_t cursors[E];
+  __shared__ int32_t next_group;
+  const uint32_t tid = threadIdx.x;
+  for (uint32_t i = tid; i < E; i += blockDim.x) {
+    counts[i] = 0;
+    scan[i] = 0;
+  }
+  for (uint32_t i = tid; i < kTotal * A; i += blockDim.x)
+    sorted_assignments[i] = -1;
+  for (uint32_t i = tid; i < kTotal; i += blockDim.x)
+    sorted_experts[i] = -1;
+  __syncthreads();
+
+  for (uint32_t assignment = tid; assignment < kTotal; assignment += blockDim.x) {
+    const int32_t expert = expert_ids[assignment];
+    if (expert >= 0 && expert < static_cast<int32_t>(E))
+      atomicAdd(counts + expert, 1);
+  }
+  __syncthreads();
+  for (uint32_t i = tid; i < E; i += blockDim.x)
+    scan[i] = (counts[i] + A - 1) / A;
+  __syncthreads();
+
+  // Work-efficient exclusive Blelloch scan over per-expert A4 group counts.
+  for (uint32_t offset = 1; offset < E; offset <<= 1) {
+    const uint32_t index = (tid + 1) * offset * 2 - 1;
+    if (index < E) scan[index] += scan[index - offset];
+    __syncthreads();
+  }
+  if (tid == 0) scan[E - 1] = 0;
+  __syncthreads();
+  for (uint32_t offset = E / 2; offset >= 1; offset >>= 1) {
+    const uint32_t index = (tid + 1) * offset * 2 - 1;
+    if (index < E) {
+      const int32_t left = scan[index - offset];
+      scan[index - offset] = scan[index];
+      scan[index] += left;
+    }
+    __syncthreads();
+  }
+  for (uint32_t expert = tid; expert < E; expert += blockDim.x) {
+    cursors[expert] = scan[expert] * A;
+    const uint32_t groups = (counts[expert] + A - 1) / A;
+    for (uint32_t group = 0; group < groups; ++group)
+      sorted_experts[scan[expert] + group] = expert;
+  }
+  __syncthreads();
+  if (tid == 0)
+    next_group = scan[E - 1] + (counts[E - 1] + A - 1) / A;
+  __syncthreads();
+  for (uint32_t assignment = tid; assignment < kTotal; assignment += blockDim.x) {
+    const int32_t expert = expert_ids[assignment];
+    if (expert >= 0 && expert < static_cast<int32_t>(E)) {
+      const uint32_t write = atomicAdd(cursors + expert, 1);
+      sorted_assignments[write] = assignment;
+    } else {
+      // Preserve invalid/remote assignments as explicit zero-fill work.  The
+      // grouped projection returns a dense [M,T,N] tensor, just like indexed;
+      // leaving these slots uninitialized corrupts the subsequent EP sum.
+      const uint32_t group = atomicAdd(&next_group, 1);
+      sorted_assignments[group * A] = assignment;
+    }
+  }
+}
+
 template <uint32_t K>
 __device__ __forceinline__ float mq4g128_dot_row(
     const uint8_t* __restrict__ row, const float* __restrict__ x,
@@ -105,7 +179,12 @@ __global__ __launch_bounds__(64) void mq4g128_grouped_kernel(
   const uint32_t group = blockIdx.y;
   if (row >= N) return;
   const int32_t expert = sorted_experts[group];
-  if (expert < 0 || expert >= static_cast<int32_t>(E)) return;
+  if (expert < 0 || expert >= static_cast<int32_t>(E)) {
+    const int32_t assignment = sorted_assignments[group * A];
+    if (lane == 0 && assignment >= 0)
+      out[static_cast<uint64_t>(assignment) * N + row] = 0.0f;
+    return;
+  }
   const float* inputs[A];
   int32_t assignments[A];
 #pragma unroll
@@ -145,6 +224,24 @@ struct Gfx90aMq4g128Indexed {
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()),
         static_cast<float*>(out.data_ptr()));
+  }
+};
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t A>
+struct Gfx90aMq4g128Sorter {
+  static void run(const tvm::ffi::TensorView expert_ids,
+                  const tvm::ffi::TensorView sorted_assignments,
+                  const tvm::ffi::TensorView sorted_experts) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M * T * A}).with_dtype<int32_t>().with_device(device).verify(sorted_assignments);
+    TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(sorted_experts);
+    LaunchKernel(1, 256, expert_ids.device())(
+        mq4g128_sorter_kernel<E, M, T, A>,
+        static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<int32_t*>(sorted_assignments.data_ptr()),
+        static_cast<int32_t*>(sorted_experts.data_ptr()));
   }
 };
 

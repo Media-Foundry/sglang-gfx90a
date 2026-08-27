@@ -20,13 +20,15 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
     if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
         pytest.skip("requires gfx90a")
     torch.manual_seed(7)
-    e, m, topk, n, k = 3, 5, 2, 64, 256
+    # The production Qwen4 shard has 128 local experts.  Keep the unit shape
+    # power-of-two as required by the sorter scan while exercising every ID.
+    e, m, topk, n, k = 4, 5, 2, 64, 256
     weight = torch.randn(e, n, k, device="cuda", dtype=torch.float32) * 0.1
     packed = quantize_mq4g128(weight)
     x = torch.randn(m, k, device="cuda", dtype=torch.float32)
     x_rot = fwht128(x).contiguous()
     expert_ids = torch.tensor(
-        [[0, 1], [0, 2], [1, 0], [2, 1], [0, 2]],
+        [[0, 1], [0, 2], [1, -1], [2, 1], [3, 7]],
         dtype=torch.int32,
         device="cuda",
     )
@@ -34,7 +36,11 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
     expected = torch.empty(m, topk, n, dtype=torch.float32, device="cuda")
     for token in range(m):
         for slot in range(topk):
-            expected[token, slot] = dequant[expert_ids[token, slot].item()] @ x_rot[token]
+            expert = expert_ids[token, slot].item()
+            if 0 <= expert < e:
+                expected[token, slot] = dequant[expert] @ x_rot[token]
+            else:
+                expected[token, slot].zero_()
     indexed = mq4g128_indexed(x_rot, packed, expert_ids)
     grouped = mq4g128_grouped(x_rot, packed, expert_ids)
     torch.testing.assert_close(indexed, expected, rtol=2e-5, atol=2e-5)
@@ -66,7 +72,7 @@ def test_qwen4_routed_method_matches_dequantized_oracle(monkeypatch):
     from sglang.srt.layers.moe.topk import StandardTopKOutput
     from sglang.srt.layers.quantization.mq4g128 import Mq4g128RoutedMoEMethod
 
-    monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_OCCUPANCY", "2")
+    monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS", "1")
     torch.manual_seed(11)
     e, m, topk, h, i = 2, 1, 10, 2560, 640
     w13 = torch.randn(e, 2 * i, h, device="cuda") * 0.03

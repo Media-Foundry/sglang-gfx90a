@@ -140,20 +140,19 @@ class Mq4g128RoutedMoEMethod:
         layer._mq4g128_routed = True
         torch.cuda.empty_cache()
 
-    def _project(self, x: torch.Tensor, weight: torch.Tensor, ids: torch.Tensor) -> torch.Tensor:
+    def _project(
+        self,
+        x: torch.Tensor,
+        weight: torch.Tensor,
+        ids: torch.Tensor,
+        use_grouped: bool,
+    ) -> torch.Tensor:
         from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
             mq4g128_grouped,
             mq4g128_indexed,
         )
-        from sglang.srt.environ import envs
-
         x_rot = fwht128(x).contiguous()
-        valid = ids >= 0
-        valid_count = int(valid.sum().item())
-        unique_count = int(torch.unique(ids[valid]).numel()) if valid_count else 0
-        occupancy = valid_count / max(unique_count, 1)
-        threshold = envs.SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_OCCUPANCY.get()
-        if occupancy >= threshold and valid_count >= 4:
+        if use_grouped:
             return mq4g128_grouped(x_rot, weight, ids)
         return mq4g128_indexed(x_rot, weight, ids)
 
@@ -168,11 +167,19 @@ class Mq4g128RoutedMoEMethod:
         if x.dtype not in (torch.bfloat16, torch.float16, torch.float32):
             raise TypeError(f"MQ4G128 input must be floating point, got {x.dtype}")
         ids = topk.topk_ids.to(torch.int32).contiguous()
-        gate_up = self._project(x.float().contiguous(), layer.w13_weight, ids)
+        from sglang.srt.environ import envs
+
+        use_grouped = (
+            x.shape[0]
+            >= envs.SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS.get()
+        )
+        gate_up = self._project(
+            x.float().contiguous(), layer.w13_weight, ids, use_grouped
+        )
         intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
         flat_intermediate = intermediate.reshape(-1, 640).contiguous()
         flat_ids = ids.reshape(-1, 1).contiguous()
-        down = self._project(flat_intermediate, layer.w2_weight, flat_ids)
+        down = self._project(flat_intermediate, layer.w2_weight, flat_ids, use_grouped)
         down = down.reshape(x.shape[0], ids.shape[1], 2560)
         output = (down * topk.topk_weights.float().unsqueeze(-1)).sum(dim=1)
         return StandardCombineInput(hidden_states=output.to(x.dtype))

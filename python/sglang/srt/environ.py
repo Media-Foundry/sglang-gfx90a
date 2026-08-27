@@ -303,8 +303,11 @@ class Envs:
     # experimental gfx90a MagnumQuant G128 format. Fail-loud shape guards and
     # correctness-first eager execution; disabled by default.
     SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED = EnvBool(False)
-    # Minimum mean assignments per live expert for the A4 grouped kernel.
-    SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_OCCUPANCY = EnvFloat(2.0)
+    # Static token threshold for the graph-safe A4 grouped kernel. BS1/2 use
+    # indexed GEMV; larger tiers use device-side expert histogram/scan.
+    # BS1/4/8/16 ABBA found no end-to-end A4 benefit under EP4.  Keep the
+    # device-sorted grouped path available for genuinely higher occupancy.
+    SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS = EnvInt(32)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)

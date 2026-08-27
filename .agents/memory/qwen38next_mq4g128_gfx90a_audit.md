@@ -129,7 +129,43 @@ streaming removed that peak. Replacing the Parameter object also temporarily
 retained both FP8 and packed weights (59.75 GiB); preserving Parameter identity
 via `.data` rebinding fixed it.
 
-The current A4 sorter is a correctness-first PyTorch implementation and reads
-occupancy to the host. It is not CUDA-Graph-safe and is not the final BS8/BS16
-path. Replace it with a static-buffer HIP histogram/scan sorter before claiming
-high-concurrency performance.
+## Static HIP sorter and BS1/4/8/16 ABBA
+
+The correctness-first PyTorch sorter was replaced by a single-block gfx90a HIP
+histogram, Blelloch exclusive scan, and assignment scatter. It writes fixed
+worst-case buffers (`M*T` groups and `4*M*T` assignment slots), never reads a
+device occupancy scalar on the host, and is graph-safe. Invalid/remote EP
+expert IDs require explicit handling: the first version filtered `-1` IDs but
+left their dense output slots uninitialized. Real TP4+EP4 generation exposed
+this immediately as gibberish even though all-valid unit tests passed. Invalid
+assignments are now appended as parallel zero-fill work items, avoiding a
+separate full-output `zero_` kernel. Unit tests cover both `-1` and out-of-range
+IDs, and two real France prompts again returned exactly
+`The capital of France is Paris.`
+
+Formal HTTP ABBA used distinct prompts, a client start barrier, independent
+HTTP sessions, one warmup plus five measured rounds per batch, 32 generated
+tokens, temperature zero, no graph, and no speculative decoding. Results below
+are aggregate completion tok/s; `trim` drops the fastest and slowest round.
+
+| Arm | BS1 median/trim | BS4 median/trim | BS8 median/trim | BS16 median/trim |
+|---|---:|---:|---:|---:|
+| A1 indexed | 5.37 / 5.37 | 18.98 / 14.28 | 14.61 / 19.28 | 27.61 / 36.51 |
+| B1 grouped | 5.21 / 5.20 | 18.30 / 13.83 | 9.30 / 17.57 | 17.70 / 30.85 |
+| B2 grouped | 5.31 / 5.31 | 18.59 / 18.56 | 33.44 / 33.43 | 56.79 / 56.40 |
+| A2 indexed | 5.25 / 5.25 | 18.75 / 18.74 | 33.26 / 33.61 | 58.14 / 58.12 |
+
+The first pass was contaminated by extended first-service/JIT state, while the
+stable B2/A2 comparison shows no grouped gain through BS16: BS4 and BS8 are
+effectively tied, and grouped is about 3% slower at BS16. The old selector also
+mistakenly used flattened down-projection rows (`M*topk`) as the batch size, so
+BS1 down entered grouped. Gate/up and down now share one decision based on the
+original token batch. The default grouped threshold is 32; lower thresholds
+remain opt-in for future occupancy-bucket work rather than being claimed as a
+performance win.
+
+Output hashes were stable at BS1. At concurrent batches, both A1/A2 and B1/B2
+showed similar greedy hash drift (for example 32/80 and 31/80 at BS16), so it is
+baseline concurrent numerical nondeterminism rather than a sorter-specific
+regression. Semantic correctness and completion length passed, but exact
+concurrent bitwise parity remains an independent runtime issue.

@@ -36,6 +36,18 @@ def _grouped_module(
     )
 
 
+@cache_once
+def _sorter_module(e: int, m: int, t: int, assignments: int) -> Module:
+    args = make_cpp_args(e, m, t, assignments)
+    return load_jit(
+        "gfx90a_mq4g128_sorter",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[("run", f"sglang::Gfx90aMq4g128Sorter<{args}>::run")],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
 def mq4g128_indexed(
     x: torch.Tensor, weight: torch.Tensor, expert_ids: torch.Tensor
 ) -> torch.Tensor:
@@ -53,37 +65,20 @@ def mq4g128_indexed(
 
 def build_expert_a4_runs(
     expert_ids: torch.Tensor, num_experts: int
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Correctness-first expert run builder; graph-safe sorter follows later."""
-    flat = expert_ids.reshape(-1)
-    valid = (flat >= 0) & (flat < num_experts)
-    assignments = torch.arange(flat.numel(), dtype=torch.int32, device=flat.device)[valid]
-    experts = flat[valid]
-    order = torch.argsort(experts, stable=True)
-    assignments = assignments[order]
-    experts = experts[order]
-    counts = torch.bincount(experts.to(torch.int64), minlength=num_experts)
-    run_experts = torch.repeat_interleave(
-        torch.arange(num_experts, dtype=torch.int32, device=flat.device),
-        torch.div(counts + 3, 4, rounding_mode="floor"),
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Graph-safe static-buffer HIP histogram/scan sorter."""
+    m, t = expert_ids.shape
+    capacity = m * t
+    sorted_assignments = torch.empty(
+        capacity * 4, dtype=torch.int32, device=expert_ids.device
     )
-    group_count = run_experts.numel()
-    # Per-expert A4 padding means the worst case is one group per assignment
-    # (all assignments select distinct experts), not ceil(total / 4).
-    capacity = flat.numel()
-    padded = torch.full((capacity * 4,), -1, dtype=torch.int32, device=flat.device)
-    cursor = 0
-    group = 0
-    for expert in range(num_experts):
-        count = int(counts[expert].item())
-        for start in range(0, count, 4):
-            take = min(4, count - start)
-            padded[group * 4 : group * 4 + take] = assignments[cursor + start : cursor + start + take]
-            group += 1
-        cursor += count
-    padded_experts = torch.full((capacity,), -1, dtype=torch.int32, device=flat.device)
-    padded_experts[:group_count] = run_experts
-    return padded, padded_experts, torch.tensor([group_count], dtype=torch.int32, device=flat.device)
+    sorted_experts = torch.empty(
+        capacity, dtype=torch.int32, device=expert_ids.device
+    )
+    _sorter_module(num_experts, m, t, 4).run(
+        expert_ids, sorted_assignments, sorted_experts
+    )
+    return sorted_assignments, sorted_experts
 
 
 def mq4g128_grouped(
@@ -95,7 +90,7 @@ def mq4g128_grouped(
     e, n, groups, block_bytes = weight.shape
     assert groups * 128 == k and block_bytes == 72
     t = expert_ids.shape[1]
-    sorted_ids, sorted_experts, _ = build_expert_a4_runs(expert_ids, e)
+    sorted_ids, sorted_experts = build_expert_a4_runs(expert_ids, e)
     out = torch.empty((m, t, n), dtype=torch.float32, device=x.device)
     _grouped_module(e, m, t, n, k, 4, sorted_experts.numel()).run(
         x, weight, sorted_ids, sorted_experts, out
