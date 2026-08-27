@@ -144,6 +144,39 @@ def _packed_varlen_attention_torch(
     return torch.stack(outputs, dim=0)
 
 
+def _packed_single_attention_torch(
+    q: torch.Tensor,
+    packed_k: torch.Tensor,
+    packed_v: torch.Tensor,
+    cu_seqlens_k: torch.Tensor,
+    topk: int,
+    scale: float,
+) -> torch.Tensor:
+    """Graph-safe BS1 QSA fallback with a fixed packed-KV extent."""
+    q_row = q[0].float()
+    k_row = packed_k[:topk].float()
+    v_row = packed_v[:topk].float()
+    num_q_heads = q_row.shape[0]
+    num_kv_heads = k_row.shape[1]
+    if num_q_heads != num_kv_heads:
+        if num_q_heads % num_kv_heads != 0:
+            raise ValueError(
+                f"QSA GQA heads are incompatible: Hq={num_q_heads}, "
+                f"Hkv={num_kv_heads}"
+            )
+        repeat = num_q_heads // num_kv_heads
+        k_row = k_row.repeat_interleave(repeat, dim=1)
+        v_row = v_row.repeat_interleave(repeat, dim=1)
+    scores = torch.einsum("hd,lhd->hl", q_row, k_row) * scale
+    valid = torch.arange(topk, device=q.device) < (
+        cu_seqlens_k[1] - cu_seqlens_k[0]
+    )
+    scores.masked_fill_(~valid.unsqueeze(0), torch.finfo(scores.dtype).min)
+    probabilities = torch.softmax(scores, dim=-1)
+    output = torch.einsum("hl,lhd->hd", probabilities, v_row)
+    return output.to(q.dtype).unsqueeze(0)
+
+
 
 class QwenSparseAttnMetadata(msgspec.Struct, frozen=True):
     """Per-forward metadata consumed by core sparse attention."""
@@ -1787,9 +1820,19 @@ class QwenSparseAttnBackend(AttentionBackend):
             topk,
         )
         if _is_hip:
-            output = _packed_varlen_attention_torch(
-                q, packed_k, packed_v, cu_seqlens_k, layer.scaling
-            )
+            if batch == 1:
+                output = _packed_single_attention_torch(
+                    q,
+                    packed_k,
+                    packed_v,
+                    cu_seqlens_k,
+                    topk,
+                    layer.scaling,
+                )
+            else:
+                output = _packed_varlen_attention_torch(
+                    q, packed_k, packed_v, cu_seqlens_k, layer.scaling
+                )
         else:
             flash_attn_varlen_func = _resolve_flash_attn_varlen_func()
             output = flash_attn_varlen_func(

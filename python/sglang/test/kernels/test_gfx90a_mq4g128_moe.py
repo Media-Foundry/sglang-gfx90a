@@ -22,15 +22,13 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
     torch.manual_seed(7)
     # The production Qwen4 shard has 128 local experts.  Keep the unit shape
     # power-of-two as required by the sorter scan while exercising every ID.
-    e, m, topk, n, k = 4, 5, 2, 64, 256
+    e, m, topk, n, k = 4, 8, 10, 64, 256
     weight = torch.randn(e, n, k, device="cuda", dtype=torch.float32) * 0.1
     packed = quantize_mq4g128(weight)
     x = torch.randn(m, k, device="cuda", dtype=torch.float32)
     x_rot = fwht128(x).contiguous()
-    expert_ids = torch.tensor(
-        [[0, 1], [0, 2], [1, -1], [2, 1], [3, 7]],
-        dtype=torch.int32,
-        device="cuda",
+    expert_ids = torch.randint(
+        -1, e + 1, (m, topk), dtype=torch.int32, device="cuda"
     )
     dequant = dequantize_mq4g128(packed).reshape(e, n, k)
     expected = torch.empty(m, topk, n, dtype=torch.float32, device="cuda")

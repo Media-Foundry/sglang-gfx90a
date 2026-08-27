@@ -169,3 +169,28 @@ showed similar greedy hash drift (for example 32/80 and 31/80 at BS16), so it is
 baseline concurrent numerical nondeterminism rather than a sorter-specific
 regression. Semantic correctness and completion length passed, but exact
 concurrent bitwise parity remains an independent runtime issue.
+
+## BS1 decode graph recovery
+
+The initial Qwen correctness profile disabled decode graphs and sustained only
+about 5.3 tok/s at BS1. Two independent capture blockers were fixed:
+
+1. `DecodeCudaGraphRunner` called the now-zero-argument
+   `require_{mlp,attn}_tp_gather` helpers with stale `server_args` arguments.
+2. The HIP QSA fallback copied packed-KV offsets to the CPU and looped over
+   requests. A BS1 fixed-extent implementation now masks the static Top-K
+   buffer entirely on device. It is bitwise identical to the old fallback for
+   valid KV counts 1, 17, and 64.
+
+TP4/EP4 MQ4G128 then captured a full decode graph at BS1. Two independent
+France requests returned exactly `The capital of France is Paris.` A 128-token
+native-AR HTTP probe (six steady rounds) measured 22.18 tok/s median and 22.18
+tok/s trimmed mean, about 4.2x the no-graph endpoint.
+
+A 24-step GPU trace showed that the next dominant local-compute budget is the
+MQ4 routed path: approximately 281 us/layer for gate/up and 431 us/layer for
+down at graph shapes `[27,10]` and `[270,1]`, respectively. A row-persistent
+assignment-scan prototype preserved France correctness but remained about
+22.3 tok/s hot, so it was removed. Cross-rank reduce kernels show large
+rank-dependent wait time in the trace and must be analyzed as graph critical
+path rather than summed kernel duration.
