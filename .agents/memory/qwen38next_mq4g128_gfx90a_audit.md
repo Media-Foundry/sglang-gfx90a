@@ -1274,3 +1274,21 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 Every service/GPU experiment was preceded by `amd-smi process --json`.
+
+The split-K reduction was subsequently folded into the first phase of the HC
+up kernel.  Its first 320 threads now sum the four partial rows in the same
+`p0+p1+p2+p3` order before applying SiLU, eliminating the standalone reduction
+CTA and its 320-element intermediate write/read.  The complete split4 HC mix
+improved from about `25.74` to `23.19 us` in 41-round ABBA (9.9%), remained
+bitwise equal, and the 3-test suite still passed.  Service A/B used the same
+fixed input and twelve hot 256-token samples:
+
+- B1 fused into up: `75.024 tok/s`;
+- A2 standalone reduction: `74.565 tok/s`;
+- B2 fused into up: `75.131 tok/s`.
+
+Together with the preceding standalone-reduction B2 (`74.669 tok/s`), the two
+arm means are approximately `75.077` versus `74.617 tok/s`, a small but stable
+0.62% gain.  All 39 new requests retained hash `ac55ed9f7239753d`.
+`SGLANG_QWEN4_GFX90A_HC_SPLIT_REDUCE_IN_UP=0` restores the standalone
+reduction; the fused form defaults on.

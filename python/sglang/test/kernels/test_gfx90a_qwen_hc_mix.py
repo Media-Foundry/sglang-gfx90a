@@ -76,7 +76,7 @@ def test_qwen_hc_down_split4_matches_baseline_and_replays(monkeypatch):
         w_up = (torch.randn(10240, 320, device="cuda") * 0.01).to(dtype)
         inject = (torch.randn(4, 10240, device="cuda") * 0.01).to(dtype)
         base_workspace = torch.empty(1, 320, device="cuda")
-        split_workspace = torch.empty(5, 320, device="cuda")
+        split_workspace = torch.empty(4, 320, device="cuda")
         base_gate = torch.empty(1, 8, 4, device="cuda")
         split_gate = torch.empty_like(base_gate)
         base_out = torch.empty(1, 2560, device="cuda", dtype=dtype)
