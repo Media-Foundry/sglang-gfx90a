@@ -140,6 +140,23 @@ def _make_metadata(pool, cache_loc, token_slot_table, write_locs):
     )
 
 
+@pytest.mark.parametrize("rows", [1, 2, 4])
+def test_qsa_dense_k_only_matches_joint_projection(rows):
+    device = torch.device("cuda")
+    rotary = _make_rotary(None, False, device)
+    indexer = _make_indexer(rotary, device)
+    indexer.index_qk_proj._qwen4_gfx90a_wave64_bf16 = True
+    hidden = torch.randn(rows, HIDDEN, device=device, dtype=torch.bfloat16)
+
+    joint, _ = indexer.index_qk_proj(hidden)
+    dense_k = indexer.project_k_dense(hidden)
+
+    expected = joint[:, NUM_Q_HEADS * HEAD_DIM :].reshape(
+        rows, 1, HEAD_DIM
+    )
+    torch.testing.assert_close(dense_k, expected, rtol=0, atol=0)
+
+
 def _force_eager(indexer):
     """Make an indexer instance take the pre-fusion eager paths."""
     indexer._use_fused_prep = lambda tensor: False

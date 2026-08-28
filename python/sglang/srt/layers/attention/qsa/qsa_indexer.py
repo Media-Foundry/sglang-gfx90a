@@ -5,7 +5,9 @@ from __future__ import annotations
 from typing import Tuple
 
 import torch
+import torch.nn.functional as F
 
+from sglang.srt.environ import envs
 from sglang.srt.layers.attention.qsa.kernel import (
     average_pool_qsa_keys,
     dense_qsa_token_indices,
@@ -213,6 +215,26 @@ class QSAIndexer(MultiPlatformOp):
         )
         q = self.apply_rope(positions, q)
         return q, token_k, False
+
+    def project_k_dense(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """Project only the key tail needed by a dense-index decode graph.
+
+        ``index_qk_proj`` stores Q rows followed by K rows.  Dense QSA selects
+        every visible token, so its indexer query, normalization, and RoPE have
+        no consumer.  The key still has to enter the compression ring.
+        """
+        key_rows = self.index_kv_heads * self.index_head_dim
+        weight = self.index_qk_proj.weight[-key_rows:]
+        token_k = None
+        if _is_hip:
+            from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                gfx90a_wave64_bf16_gemv,
+            )
+
+            token_k = gfx90a_wave64_bf16_gemv(hidden_states, weight)
+        if token_k is None:
+            token_k = F.linear(hidden_states, weight)
+        return token_k.reshape(-1, self.index_kv_heads, self.index_head_dim)
 
     def normalize_compressed_keys(
         self, compressed_keys: torch.Tensor, block_positions: torch.Tensor
@@ -602,20 +624,35 @@ class QSAIndexer(MultiPlatformOp):
                 logical_positions,
                 indexer_metadata.compress_member_rows is not None,
             )
-        q, token_k, state_stored = self.project_qk(
-            hidden_states,
-            positions,
-            pool=indexer_metadata.token_to_kv_pool,
-            cache_loc=state_slots,
-            q_heads_padded=(
-                # The tilelang decode MQA requires a query-head multiple of 8;
-                # writing the zero padding from the fused prep kernel avoids a
-                # separate fill + cat per layer.
-                ((self.index_n_heads + 7) // 8) * 8
-                if (forward_mode.is_decode() or is_target_verify or is_draft_extend)
-                else None
-            ),
+        from sglang.srt.model_executor.runner_utils.capture_mode import (
+            get_capture_dsa_variant,
+            get_is_capture_mode,
         )
+
+        dense_capture = (
+            get_is_capture_mode()
+            and get_capture_dsa_variant() == "dense"
+            and envs.SGLANG_QWEN4_GFX90A_QSA_DENSE_K_ONLY.get()
+        )
+        if dense_capture:
+            q = None
+            token_k = self.project_k_dense(hidden_states)
+            state_stored = False
+        else:
+            q, token_k, state_stored = self.project_qk(
+                hidden_states,
+                positions,
+                pool=indexer_metadata.token_to_kv_pool,
+                cache_loc=state_slots,
+                q_heads_padded=(
+                    # The tilelang decode MQA requires a query-head multiple of 8;
+                    # writing the zero padding from the fused prep kernel avoids a
+                    # separate fill + cat per layer.
+                    ((self.index_n_heads + 7) // 8) * 8
+                    if (forward_mode.is_decode() or is_target_verify or is_draft_extend)
+                    else None
+                ),
+            )
         self.update_key_state_and_compress(
             token_k,
             logical_positions,
@@ -625,11 +662,6 @@ class QSAIndexer(MultiPlatformOp):
             state_stored=state_stored,
         )
         if forward_mode.is_decode() or is_target_verify or is_draft_extend:
-            from sglang.srt.model_executor.runner_utils.capture_mode import (
-                get_capture_dsa_variant,
-                get_is_capture_mode,
-            )
-
             if (
                 get_is_capture_mode()
                 and get_capture_dsa_variant() == "dense"

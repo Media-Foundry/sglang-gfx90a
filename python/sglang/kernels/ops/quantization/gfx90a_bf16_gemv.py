@@ -25,6 +25,11 @@ def _config(n: int, k: int) -> tuple[int, int, int]:
     # pressure; a full 16-wave workgroup amortizes the shared-input staging.
     if (n, k) == (62080, 2560):
         return 1, 1, 16
+    # Qwen compressed-QSA dense graph projects only the single 128-wide K
+    # head.  One row per wave and four waves per workgroup minimizes the short
+    # tail while exposing enough independent workgroups across the 128 rows.
+    if (n, k) == (128, 2560):
+        return 1, 1, 4
     rows, unroll, waves = {
         256: (1, 2, 8),
         8192: (2, 1, 4),

@@ -925,12 +925,50 @@ no D2H synchronization.  Mixed batches select sparse if any row is long.  The
 dense-index oracle covered lengths 1/17/512/2048 exactly and its registered
 tests passed 3/3 (including the existing expansion tests).
 
-TP4/EP4/no-A2A, graph BS1, native-AR twelve-round service results improved
+TP4/EP4/no-A2A, graph BS1, native-AR twelve-round service results first improved
 from the retained 56.1193 tok/s checkpoint to 59.8776 tok/s trimmed (+6.70%).
-All completion hashes remained `1a8c2dccd3a72692`.  A 2030-token fixed-input
+A same-code kill-switch repeat later measured 60.2522 tok/s enabled versus
+56.0671 disabled (+7.46%).  All completion hashes remained
+`1a8c2dccd3a72692`.  A 2030-token fixed-input
 test generated 64 tokens twice, crossing the 2048 boundary from dense to
 sparse graph; both finished by length with identical SHA256
 `82d5ee5b1069f91e...`.  Capture time increased from about 4.7 to 13.7 seconds
 and graph memory by only about 0.01 GiB.  The feature is default-on for Qwen
 compressed QSA only and can be disabled with
 `SGLANG_QWEN4_GFX90A_QSA_DUAL_GRAPH=0`.
+
+### Dense QSA K-only projection
+
+The first dense graph removed indexer scoring but still ran the fused
+`index_qk_proj`: four 128-wide query heads plus one 128-wide key head.  Since
+the dense graph selects every visible token, its query, query RMSNorm and RoPE
+were dead.  The retained path slices the BF16 projection's final key rows and
+uses a shape-tuned wave64 GEMV `(rows_per_wave=1, unroll=1, waves=4)`, while
+preserving the key ring/compression update.  It reduces the dense projection
+from 640 outputs to 128 outputs.  The M=1/2/4 oracle is bitwise exact against
+the key tail of the original joint wave64 projection (4 registered tests,
+including dense indices, passed).
+
+Native-AR twelve-round ABBA, TP4/EP4/no-A2A and graph BS1, measured:
+
+- A1, joint QK: `60.2522 tok/s` trimmed;
+- B1, K-only: `63.6097 tok/s` (+5.57%);
+- A2, joint QK: `60.2996 tok/s`;
+- B2, K-only: `63.4296 tok/s` (+5.19%).
+
+All 48 requests produced 256 tokens with completion hash
+`1a8c2dccd3a72692`.  Two K-only 2030+64 boundary runs again produced exact
+SHA256 `82d5ee5b1069f91e...`, covering replay dispatch from dense to sparse at
+KV length 2048.  The feature defaults on and has the exact rollback
+`SGLANG_QWEN4_GFX90A_QSA_DENSE_K_ONLY=0`.
+
+### Rejected: unnormalized gfx90a router Top-K
+
+Qwen sets `norm_topk_prob=None`, so the custom gfx90a Top-K selector had been
+unreachable even though the kernel supported the production E512/K10 shape.
+An experimental unnormalized specialization matched AIter IDs and weights
+exactly and reduced the standalone launch from 13.711 to 11.606 us (~15.4%).
+The full dual-graph service, however, measured 60.1015 tok/s versus the
+retained 60.2522 tok/s baseline, with the same completion hash.  The selector
+and kernel extension were reverted: the shorter kernel did not improve the
+graph's arrival/synchronization critical path.
