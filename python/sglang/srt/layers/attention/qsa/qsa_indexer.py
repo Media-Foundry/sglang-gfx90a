@@ -359,6 +359,17 @@ class QSAIndexer(MultiPlatformOp):
                 self.compress_ratio, device=member_rows.device, dtype=torch.long
             )
             source_keys = token_k
+            # The device-side write plan is padded to a static capacity.  Its
+            # inert entries use member row zero, hence gather [0, ratio).  A
+            # very short extend can contain fewer than ``ratio`` token rows
+            # and no real completed group; pad only this transient source so
+            # the inert gather remains in bounds before writing reserved slot
+            # zero.  Real groups already imply at least ``ratio`` rows.
+            if source_keys.shape[0] < self.compress_ratio:
+                source_keys = F.pad(
+                    source_keys,
+                    (0, 0, 0, 0, 0, self.compress_ratio - source_keys.shape[0]),
+                )
             source_rope = metadata.extend_rope_matrix
             if source_rope is None:
                 source_rope = build_rope_position_matrix(

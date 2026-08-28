@@ -137,6 +137,13 @@ def _make_metadata(pool, cache_loc, token_slot_table, write_locs):
         pending_ring_slots=None,
         extend_rope_matrix=None,
         compress_group_ring_locs=None,
+        compress_member_rows=None,
+        compress_group_positions=torch.zeros(
+            write_locs.numel(), dtype=torch.int64, device=cache_loc.device
+        ),
+        compress_sequence_ids=torch.zeros(
+            write_locs.numel(), dtype=torch.int64, device=cache_loc.device
+        ),
     )
 
 
@@ -155,6 +162,38 @@ def test_qsa_dense_k_only_matches_joint_projection(rows):
         rows, 1, HEAD_DIM
     )
     torch.testing.assert_close(dense_k, expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("rows", [1, 2, 3])
+def test_qsa_short_extend_inert_compression_is_in_bounds(rows):
+    device = torch.device("cuda")
+    rotary = _make_rotary(None, False, device)
+    indexer = _make_indexer(rotary, device)
+    token_k = torch.randn(rows, 1, HEAD_DIM, device=device, dtype=torch.bfloat16)
+    positions = torch.arange(rows, device=device, dtype=torch.int64)
+    slots = torch.arange(1, rows + 1, device=device, dtype=torch.int64)
+    pool = FakePool(16, 8, device)
+    metadata = _make_metadata(
+        pool,
+        slots,
+        torch.zeros((1, 16), device=device, dtype=torch.int32),
+        torch.zeros(1, device=device, dtype=torch.int32),
+    )
+    metadata.compress_member_rows = torch.zeros(
+        1, device=device, dtype=torch.int64
+    )
+
+    indexer.update_key_state_and_compress(
+        token_k,
+        positions,
+        positions,
+        metadata,
+        state_slots=slots,
+    )
+    torch.cuda.synchronize()
+    torch.testing.assert_close(pool.key_state[slots], token_k, rtol=0, atol=0)
+    assert torch.isfinite(pool.compressed[0]).all()
+    assert torch.count_nonzero(pool.compressed[1:]) == 0
 
 
 def _force_eager(indexer):

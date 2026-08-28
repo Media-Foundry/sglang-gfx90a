@@ -989,6 +989,27 @@ the exact prior SHA256 `82d5ee5b1069f91e...`.  The extra graph added only
 about 0.01 GiB and roughly 0.7 seconds to capture.  The exact rollback is
 `SGLANG_QWEN4_GFX90A_QSA_COMPRESSION_PHASE_GRAPH=0`.
 
+### Correctness fix: short-extend QSA compression gather
+
+An eager prefill with only three tokens (for example, `The sky is`) trapped in
+HIP's vectorized gather with `HSA_STATUS_ERROR_EXCEPTION`.  This was a software
+out-of-bounds access, not an ECC/MCE hardware failure.  The static QSA write
+plan pads inactive compression groups with `member_rows=0`; the extend path
+therefore still forms the inert gather `[0,1,2,3]`.  With fewer than four
+source rows that gather exceeded `token_k`, even though its result was destined
+only for reserved cache slot zero.
+
+The retained fix pads only the transient extend source to the compression
+ratio when the prompt has one to three rows.  Real completed groups already
+contain at least four rows, so their numerical path is unchanged.  Registered
+tests explicitly execute and synchronize the one-, two-, and three-row cases;
+the focused QSA suite passed 7/7.  On the TP4/EP4/no-A2A service the formerly
+crashing three-token request completed twice with identical token IDs.  The
+256-token native-AR check retained hash `1a8c2dccd3a72692` at roughly
+68.0--68.5 tok/s, and two fixed 2030+64 dense/compression/sparse boundary runs
+both completed with identical SHA256
+`bcb568e75fdc51e1d9b1434752248c8c9b785d9fa51b9a98e7abd13cdee1067d`.
+
 ### Rejected: cross-layer shared dense indices
 
 Dense logical indices are layer-invariant, so an experiment generated the
