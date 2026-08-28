@@ -890,3 +890,19 @@ checkpoint's 56.1193 tok/s, with the same completion hash.  Collapsing eight
 160-thread apply CTAs plus four RMS CTAs into four longer CTAs worsened graph
 tail scheduling enough to erase the standalone win.  All selector, model
 plumbing, and kernel code was removed.
+
+## 2026-08-28: Qwen LM-head geometry and rejected GDN launch scan
+
+The TP4 LM-head shard has shape `[62080,2560]`.  A complete wave64 scan over
+rows-per-wave `{1,2,4,8}` and waves-per-CTA `{4,8,16}` was bitwise exact for
+all twelve variants.  The retained `(rows=1, waves=16)` median was 234.725 us
+versus 239.784 us for the former generic `(2,8)` geometry, a 2.1% kernel win
+or about 5 us per generated token.
+
+The BS1 GDN recurrent core was also scanned at Triton `num_warps=1/2/4` and
+`num_stages=1..4` for its real `[HV=48,V=128,K=128]` state.  More than one
+warp preserved the immediate output but changed the persistent BF16 state by
+up to 0.00390625, so it is not an exact default.  All one-warp stage counts
+were bitwise exact.  A longer fourteen-pair ABBA rejected the apparent stage-4
+micro win: stage 3/4 medians were 79.664/79.825 us (stage 4 0.2% slower).
+Production remains one warp and three stages.

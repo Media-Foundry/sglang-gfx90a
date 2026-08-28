@@ -21,6 +21,10 @@ def _config(n: int, k: int) -> tuple[int, int, int]:
     # so the complete 24-row GEMV fits in one workgroup while sharing x once.
     if (n, k) == (24, 2560):
         return 3, 1, 8
+    # TP4 Qwen4 LM-head shard. One row per wave avoids independent accumulator
+    # pressure; a full 16-wave workgroup amortizes the shared-input staging.
+    if (n, k) == (62080, 2560):
+        return 1, 1, 16
     rows, unroll, waves = {
         256: (1, 2, 8),
         8192: (2, 1, 4),
