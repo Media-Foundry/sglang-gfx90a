@@ -2439,3 +2439,13 @@ requests at exactly 512 tokens and reported `620.51 tok/s` HTTP aggregate.
 This overlaps the ordinary `618--629 tok/s` range and did not provide a
 resident-window improvement. SBO is therefore rejected for both latency and
 throughput tiers; the launch default remains disabled.
+
+## 2026-08-29: BS32 RCCL all-reduce rejected
+
+The BS1 conclusion for AIter custom all-reduce was rechecked at BS32, where a
+`[32,2560]` BF16 payload is about 160 KiB. Forcing
+`--disable-custom-all-reduce` completed all 32x512 requests exactly, but
+resident decode fell to approximately `387 -> 381 tok/s` and HTTP aggregate to
+`242.80 tok/s`, versus roughly `650--675` resident and `618--629` HTTP with
+AIter peer-read. Thus the custom collective remains essential even at the
+larger batch payload; RCCL is not a throughput-tier crossover.
