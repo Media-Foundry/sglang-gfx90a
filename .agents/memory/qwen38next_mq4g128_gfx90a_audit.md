@@ -1387,3 +1387,12 @@ the 2030+64 boundary retained text SHA-256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 The path defaults on for the guarded BS1 K640 selector;
 `SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS=0` restores the old grid.
+
+A follow-up fused router-weight reduction into the persistent-down CTA was
+bitwise BF16 exact and removed the `[10,2560]` FP32 partial write/read plus one
+kernel launch.  Register and LDS variants both reduced isolated graph latency
+only from about `17.92` to `15.58 us` (13.1% for that two-kernel chain):
+carrying the reduction state lengthened the persistent dot kernel itself.
+The service measured `75.656 tok/s`, inside the retained persistent-down
+restart range `75.546--75.921`; no end-to-end gain was distinguishable.  The
+fusion and its selector were removed.
