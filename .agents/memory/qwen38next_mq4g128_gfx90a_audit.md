@@ -1390,6 +1390,14 @@ rows 4/8/16/32 use 38/40/68/136 VGPR respectively.  Rows-32 matches Triton's
 48-CTA grid but halves occupancy; rows-16 restores comparable VGPR usage but
 doubles the grid to 96 CTAs.  Neither balance improves the whole graph.
 
+A two-wave rows-16 variant then packed two independent 16-row waves into each
+CTA.  It restored the 48-CTA grid while retaining a near-Triton register count:
+75 VGPR versus Triton's 70.  The module remained bitwise identical and measured
+`14.36 us` versus `14.24 us` for single-wave rows-16.  Despite the balanced
+static resources, the real service reached only `74.288 tok/s` trimmed.  This
+confirms that hot-state standalone latency and code-object occupancy are still
+insufficient proxies for the graph's cold FP32-state traffic/scheduling.
+
 All 256-token arms retained hash `ac55ed9f7239753d`; France was exact twice,
 the 2030+64 boundary retained SHA-256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.

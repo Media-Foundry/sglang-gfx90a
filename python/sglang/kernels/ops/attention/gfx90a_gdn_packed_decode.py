@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 @cache_once
-def _module(rows: int, a_bf16: bool, dt_bf16: bool) -> Module:
-    args = make_cpp_args(rows, int(a_bf16), int(dt_bf16))
+def _module(rows: int, waves: int, a_bf16: bool, dt_bf16: bool) -> Module:
+    args = make_cpp_args(rows, waves, int(a_bf16), int(dt_bf16))
     return load_jit(
         "gfx90a_gdn_packed_decode",
         *args,
@@ -31,6 +31,7 @@ def gfx90a_gdn_packed_decode(
     state: torch.Tensor,
     state_indices: torch.Tensor,
     rows: int = 32,
+    waves: int = 1,
 ) -> torch.Tensor:
     """BS1 Qwen3.8Next GDN recurrence specialized for gfx90a."""
     expected = {
@@ -57,8 +58,13 @@ def gfx90a_gdn_packed_decode(
         raise ValueError("all gfx90a GDN inputs must be contiguous CUDA tensors")
     if rows not in (4, 8, 16, 32):
         raise ValueError("rows must be one of 4, 8, 16, 32")
+    if waves not in (1, 2) or (128 % (rows * waves)) != 0:
+        raise ValueError("waves must be 1/2 and rows*waves must divide 128")
     out = torch.empty((1, 1, 12, 128), dtype=torch.bfloat16, device=mixed_qkv.device)
     _module(
-        rows, A_log.dtype == torch.bfloat16, dt_bias.dtype == torch.bfloat16
+        rows,
+        waves,
+        A_log.dtype == torch.bfloat16,
+        dt_bias.dtype == torch.bfloat16,
     ).run(mixed_qkv, a, b, A_log, dt_bias, state, state_indices, out)
     return out

@@ -63,6 +63,13 @@ class TestGfx90aGdnPackedDecode(unittest.TestCase):
             torch.testing.assert_close(out, reference_out, atol=6.2e-5, rtol=0)
             torch.testing.assert_close(state, reference_state, atol=8e-3, rtol=0)
 
+        state = initial.clone()
+        out = gfx90a_gdn_packed_decode(
+            mixed, a, b, A_log, dt_bias, state, indices, rows=16, waves=2
+        )
+        torch.testing.assert_close(out, reference_out, atol=6.2e-5, rtol=0)
+        torch.testing.assert_close(state, reference_state, atol=8e-3, rtol=0)
+
         graph_state = initial.clone()
         graph = torch.cuda.CUDAGraph()
         with torch.cuda.graph(graph):

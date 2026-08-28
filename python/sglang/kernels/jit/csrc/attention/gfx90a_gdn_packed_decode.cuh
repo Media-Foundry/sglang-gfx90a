@@ -23,8 +23,8 @@ __device__ __forceinline__ float gdn_wave_sum(float x) {
   return x;
 }
 
-template <uint32_t kRows, bool kABf16, bool kDtBf16>
-__global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
+template <uint32_t kRows, uint32_t kWaves, bool kABf16, bool kDtBf16>
+__global__ __launch_bounds__(64 * kWaves, 2) void gfx90a_gdn_packed_decode_kernel(
     const __hip_bfloat16* __restrict__ mixed,
     const __hip_bfloat16* __restrict__ a,
     const __hip_bfloat16* __restrict__ b,
@@ -35,10 +35,11 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
     __hip_bfloat16* __restrict__ out) {
   const uint32_t tile = blockIdx.x;
   const uint32_t hv = blockIdx.y;
-  const uint32_t lane = threadIdx.x;
+  const uint32_t wave = threadIdx.x / 64;
+  const uint32_t lane = threadIdx.x % 64;
   const int32_t slot = state_indices[0];
   if (slot < 0) {
-    const uint32_t row = tile * kRows + lane;
+    const uint32_t row = (tile * kWaves + wave) * kRows + lane;
     if (row < kGdnD) out[hv * kGdnD + row] = __float2bfloat16(0.0f);
     return;
   }
@@ -74,7 +75,7 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
   const __hip_bfloat16 beta_bf16 = __float2bfloat16(1.0f / (1.0f + expf(-__bfloat162float(b[hv]))));
   const float beta = __bfloat162float(beta_bf16);
 
-  const uint32_t row0 = tile * kRows;
+  const uint32_t row0 = (tile * kWaves + wave) * kRows;
   const size_t state_head =
       (static_cast<size_t>(slot) * kGdnHV + hv) * kGdnD * kGdnD;
   float s0[kRows];
@@ -106,7 +107,7 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
   }
 }
 
-template <uint32_t kRows, bool kABf16, bool kDtBf16>
+template <uint32_t kRows, uint32_t kWaves, bool kABf16, bool kDtBf16>
 struct Gfx90aGdnPackedDecode {
   static void run(const tvm::ffi::TensorView mixed,
                   const tvm::ffi::TensorView a,
@@ -133,9 +134,10 @@ struct Gfx90aGdnPackedDecode {
     TensorMatcher({-1, 12, 128, 128}).with_dtype<float>().with_device(device).verify(state);
     TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(state_indices);
     TensorMatcher({1, 1, 12, 128}).with_dtype<__hip_bfloat16>().with_device(device).verify(out);
-    static_assert(kGdnD % kRows == 0);
-    LaunchKernel(dim3(kGdnD / kRows, 12), 64, device.unwrap())(
-        gfx90a_gdn_packed_decode_kernel<kRows, kABf16, kDtBf16>,
+    static_assert(kGdnD % (kRows * kWaves) == 0);
+    LaunchKernel(dim3(kGdnD / (kRows * kWaves), 12), 64 * kWaves,
+                 device.unwrap())(
+        gfx90a_gdn_packed_decode_kernel<kRows, kWaves, kABf16, kDtBf16>,
         static_cast<const __hip_bfloat16*>(mixed.data_ptr()),
         static_cast<const __hip_bfloat16*>(a.data_ptr()),
         static_cast<const __hip_bfloat16*>(b.data_ptr()),

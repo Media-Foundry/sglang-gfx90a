@@ -18,6 +18,9 @@ _gfx90a_hip_packed_decode = is_hip() and get_bool_env_var(
 _gfx90a_hip_packed_rows = get_int_env_var(
     "SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS", 32
 )
+_gfx90a_hip_packed_waves = get_int_env_var(
+    "SGLANG_QWEN4_GFX90A_GDN_HIP_WAVES", 1
+)
 
 if not is_cpu():
     from sglang.kernels.ops.attention.fla.chunk import chunk_gated_delta_rule
@@ -156,6 +159,7 @@ class TritonGDNKernel(LinearAttnKernelBase):
                 ssm_states,
                 cache_indices,
                 rows=_gfx90a_hip_packed_rows,
+                waves=_gfx90a_hip_packed_waves,
             ).transpose(0, 1)
 
         fused_recurrent_gated_delta_rule_packed_decode(
