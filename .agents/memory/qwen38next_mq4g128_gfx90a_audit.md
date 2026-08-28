@@ -1002,6 +1002,25 @@ This exposed an unsafe cross-layer graph tensor/stream lifetime despite the
 short oracle.  The complete shared-buffer implementation and switch were
 removed; per-layer dense-index generation remains the correctness baseline.
 
+### Rejected: direct QSA K-ring GEMV epilogue
+
+A wave64 specialization scattered the 128-wide dense K projection directly
+to each dynamic pending-ring slot.  M=1/2/4 were bitwise exact; the M1 micro
+reduced the Python-observed GEMV+`index_copy_` chain from roughly 66--68 us to
+19.8 us.  An initial integration incorrectly reused the existing
+`state_stored` flag (which means both K and RoPE position are stored) for the
+K-only epilogue.  The short hash did not catch the stale-position state.  A
+dedicated `key_stored` oracle exposed and fixed that semantic bug, keeping the
+position write on the original path.
+
+After the fix, native-AR service measured `68.9440 tok/s` enabled versus
+`68.9734 tok/s` disabled, with identical completion hash and exact repeated
+2030+64 boundary SHA.  The direct scatter did not transfer through the
+alternate-stream graph schedule.  Fusing the three-axis position write into
+the GEMV also failed (`69.1820 tok/s`, below the earlier K-only experimental
+run).  Both epilogues, their switch, tests and JIT code were completely
+removed.
+
 ### Rejected: unnormalized gfx90a router Top-K
 
 Qwen sets `norm_topk_prob=None`, so the custom gfx90a Top-K selector had been
