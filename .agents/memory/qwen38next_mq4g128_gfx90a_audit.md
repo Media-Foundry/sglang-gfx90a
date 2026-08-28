@@ -1857,20 +1857,62 @@ from a BF16 shadow using the retained wave64 GEMV.  A limited BF16 cache cannot
 improve this path; an INT8 cache would have at most a small residual ceiling
 and would introduce activation quantization error.
 
-The most important system finding is that both `amd-smi` and `rocm-smi`
-reported all four active GCDs at only `800 MHz` throughout a 1024-token decode,
-while valid SYS levels are 500/800/1700 MHz and HBM was already at 1600 MHz.
-Changing DPM requires root on this host: both `sudo -n amd-smi set -l HIGH`
-and the unprivileged form were denied.  A one-wave persistent keepalive proved
-the clocks can reach 1700 MHz, but occupied a graph-critical resource and
-regressed `78.33 -> 68.87 tok/s`.  Finite high-duty pulses also held 1700 MHz
-but regressed to `18.43 tok/s`.  Both helpers were killed and never entered the
-repository.  The clean, decisive A/B still required is:
+`amd-smi` and `rocm-smi` reported `800 MHz` during sampled portions of a long
+decode, but this is not evidence of a DPM limiter: a point sample cannot
+distinguish compute from collective/wait phases, where downclocking is normal.
+A one-wave keepalive and finite high-duty pulse forced 1700 MHz but contaminated
+the graph-critical CU schedule and regressed `78.33 -> 68.87` and `18.43 tok/s`
+respectively.  The helpers were killed and never entered the repository.
+Frequency locking is therefore not an active optimization direction; use
+`amd-smi process --json` only to detect conflicting GPU processes before an
+experiment, and judge performance from kernel timelines and end-to-end ABBA.
 
-```bash
-sudo amd-smi set -l HIGH -g 0 1 2 3
-# benchmark and correctness, then restore
-sudo amd-smi set -l AUTO -g 0 1 2 3
-```
+The four-GCD topology must remain physical `0,1,2,3`.  Each adjacent pair is
+the two GCDs of one MI250 and has much higher intra-package bandwidth; a
+`0,2,4,6` one-GCD-per-card experiment would move TP collectives onto slower
+inter-card links and is not a valid improvement candidate.
 
-Only root DPM control can test high clocks without contaminating the graph.
+## Rejected: DP-attention TP2 pairs with EP4 MoE
+
+A structural oracle tested whether attention/GDN could run as two adjacent
+TP2 groups `(0,1)` and `(2,3)` while routed MoE continued to use all four EP
+ranks.  SGLang can nominally express this as TP4, EP4, DP-attention size 2.
+The first launch exposed a graph-tier bug: decode graph BS1 is filtered by the
+attention-TP alignment and leaves `capture_bs=[]`.  Capturing global BS2 gets
+past that assertion but all four ranks then spin during graph capture because
+the DP-to-MoE synchronization/collective sequence differs between active and
+idle DP groups.  With graphs disabled, the path completed deterministically
+but managed only `2.40` cold and `5.56 tok/s` hot for forced 64-token requests;
+the completion hash was stable.  Logs also showed the production custom-AR
+path being disabled for relevant DP groups and blocking DP MLP metadata
+all-gathers.  This implementation is therefore rejected for BS1: repairing it
+would require a new graph-safe rank-participation protocol, not a launch flag.
+
+## 2026-08-28 follow-up: actual-weight and router-fusion audit
+
+Do not infer an FP8 activation-quantization tax from the top-level checkpoint
+quantization label.  Raw safetensors inspection showed that Qwen3.8Next's
+latency-critical attention projections are BF16: layer-0 GDN QKV is
+`[10240,2560] BF16`, while layer-3 full-attention Q is `[12288,2560] BF16`
+and K is `[512,2560] BF16`.  The production gfx90a path already selects the
+wave64 BF16 GEMV for these weights.  Although an isolated `[1,2560]` per-128
+FP8 activation quantizer costs about `13.12 us`, that number is not present at
+every production layer and must not be counted as a W8A16 opportunity.
+
+An existing runtime trace near the current stack showed the router chain as a
+prominent real launch pair: the `512x2560` BF16 gate GEMV averaged about
+`6.1 us`, followed by AIter `topkGatingSoftmax` at about `18.7 us`.  A
+temporary 32-CTA fused producer/last-CTA Top-10 kernel preserved the exact
+production GEMV mapping and the repository's exact wave64 Top-10 arithmetic.
+Random input logits, IDs and weights were all bitwise equal, the completion
+counter returned to zero, and 1000 graph replays stayed bitwise stable.  But
+the isolated custom-chain median moved only `29.92 -> 29.28 us`; production's
+AIter consumer is already faster than that custom reference.  The fused code
+was fully removed without service integration.
+
+Full PyTorch GPU profiling is unsafe evidence for this graph/custom-AR setup.
+A 12-step profile made ranks enter profiler-stop at different collective
+epochs and left device signals spinning; `/stop_profile` could not recover it
+and the service had to be terminated.  Prefer the previously validated
+device-realtime marker method for narrow boundaries, and always remove marker
+code after capture.
