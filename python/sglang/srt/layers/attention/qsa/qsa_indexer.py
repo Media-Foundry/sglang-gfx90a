@@ -8,6 +8,7 @@ import torch
 
 from sglang.srt.layers.attention.qsa.kernel import (
     average_pool_qsa_keys,
+    dense_qsa_token_indices,
     expand_qsa_block_indices,
     qsa_fast_topk,
 )
@@ -624,6 +625,21 @@ class QSAIndexer(MultiPlatformOp):
             state_stored=state_stored,
         )
         if forward_mode.is_decode() or is_target_verify or is_draft_extend:
+            from sglang.srt.model_executor.runner_utils.capture_mode import (
+                get_capture_dsa_variant,
+                get_is_capture_mode,
+            )
+
+            if (
+                get_is_capture_mode()
+                and get_capture_dsa_variant() == "dense"
+            ):
+                return dense_qsa_token_indices(
+                    logical_positions,
+                    indexer_metadata.get_seqlens_int32(),
+                    token_topk=self.token_topk,
+                    compress_ratio=self.compress_ratio,
+                )
             compressed_cache, page_table, compressed_lengths, max_model_len = (
                 indexer_metadata.get_decode_mqa_inputs(self.layer_id)
             )

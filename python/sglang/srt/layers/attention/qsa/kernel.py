@@ -326,6 +326,52 @@ def expand_qsa_block_indices(
     )
 
 
+@triton.jit
+def _dense_qsa_token_indices_kernel(
+    query_positions,
+    sequence_lengths,
+    output,
+    output_stride: tl.constexpr,
+    TOKEN_TOPK: tl.constexpr,
+    FINAL_TOPK: tl.constexpr,
+    BLOCK: tl.constexpr,
+):
+    row = tl.program_id(0)
+    cols = tl.arange(0, BLOCK)
+    query_position = tl.load(query_positions + row)
+    sequence_length = tl.load(sequence_lengths + row)
+    visible = tl.minimum(query_position + 1, sequence_length)
+    value = tl.where((cols < visible) & (cols < TOKEN_TOPK), cols, -1)
+    tl.store(output + row * output_stride + cols, value, mask=cols < FINAL_TOPK)
+
+
+def dense_qsa_token_indices(
+    query_positions: torch.Tensor,
+    sequence_lengths: torch.Tensor,
+    *,
+    token_topk: int,
+    compress_ratio: int,
+) -> torch.Tensor:
+    """All-visible logical indices for the QSA dense decode graph."""
+    rows = query_positions.numel()
+    final_topk = token_topk + compress_ratio - 1
+    output = torch.empty(
+        (rows, final_topk), dtype=torch.int32, device=query_positions.device
+    )
+    if rows:
+        _dense_qsa_token_indices_kernel[(rows,)](
+            query_positions,
+            sequence_lengths,
+            output,
+            output.stride(0),
+            TOKEN_TOPK=token_topk,
+            FINAL_TOPK=final_topk,
+            BLOCK=triton.next_power_of_2(final_topk),
+            num_warps=8,
+        )
+    return output
+
+
 def qsa_sparse_attention(
     q: torch.Tensor,
     k_cache: torch.Tensor,

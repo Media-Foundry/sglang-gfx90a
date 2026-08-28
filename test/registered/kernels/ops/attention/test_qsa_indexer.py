@@ -17,6 +17,7 @@ register_cuda_ci(est_time=120, stage="base-b-kernel-unit", runner_config="1-gpu-
 
 from sglang.srt.layers.attention.qsa.kernel import (
     average_pool_qsa_keys,
+    dense_qsa_token_indices,
     expand_qsa_block_indices,
     torch_expand_qsa_block_indices,
 )
@@ -354,6 +355,20 @@ def test_expand_block_indices_int_inputs(dtype):
         token_topk,
     )
     assert torch.equal(out.cpu(), ref)
+
+
+def test_dense_qsa_token_indices_all_visible():
+    lengths = torch.tensor([1, 17, 512, 2048], device="cuda", dtype=torch.int32)
+    output = dense_qsa_token_indices(
+        lengths - 1, lengths, token_topk=2048, compress_ratio=4
+    )
+    assert output.shape == (4, 2051)
+    for row, length in enumerate(lengths.tolist()):
+        assert torch.equal(
+            output[row, :length],
+            torch.arange(length, device="cuda", dtype=torch.int32),
+        )
+        assert torch.all(output[row, length:] == -1)
 
 
 def test_decode_selection_equivalent():

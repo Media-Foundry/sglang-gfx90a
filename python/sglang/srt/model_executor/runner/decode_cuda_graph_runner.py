@@ -278,21 +278,37 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             is_deepseek_dsa,
             is_deepseek_v4,
         )
+        from sglang.srt.layers.attention.qsa.config import (
+            QSA_VARIANT_COMPRESSED,
+            parse_qsa_profile,
+        )
 
         hf_config = model_runner.model_config.hf_config
-        if (
-            is_hip()
-            and (
-                envs.SGLANG_DSV4_DSA_DUAL_GRAPH.get()
-                or envs.SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH.get()
-            )
-            and (is_deepseek_dsa(hf_config) or is_deepseek_v4(hf_config))
-        ):
-            self.dsa_index_topk = (
-                get_dsa_index_topk(hf_config)
-                if is_deepseek_dsa(hf_config)
-                else getattr(hf_config, "index_topk", None)
-            )
+        qsa_profile = parse_qsa_profile(hf_config)
+        is_qwen_compressed_qsa = (
+            qsa_profile is not None
+            and qsa_profile.variant == QSA_VARIANT_COMPRESSED
+        )
+        is_deepseek_indexed = is_deepseek_dsa(hf_config) or is_deepseek_v4(
+            hf_config
+        )
+        enable_deepseek_dual = is_deepseek_indexed and (
+            envs.SGLANG_DSV4_DSA_DUAL_GRAPH.get()
+            or envs.SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH.get()
+        )
+        enable_qwen_dual = (
+            is_qwen_compressed_qsa
+            and envs.SGLANG_QWEN4_GFX90A_QSA_DUAL_GRAPH.get()
+        )
+        if is_hip() and (enable_deepseek_dual or enable_qwen_dual):
+            if is_qwen_compressed_qsa:
+                self.dsa_index_topk = qsa_profile.budget
+            else:
+                self.dsa_index_topk = (
+                    get_dsa_index_topk(hf_config)
+                    if is_deepseek_dsa(hf_config)
+                    else getattr(hf_config, "index_topk", None)
+                )
             assert self.dsa_index_topk is not None
             self.dsa_dual_graph = True
             self.dsa_dense_only_graph = (

@@ -906,3 +906,31 @@ up to 0.00390625, so it is not an exact default.  All one-warp stage counts
 were bitwise exact.  A longer fourteen-pair ABBA rejected the apparent stage-4
 micro win: stage 3/4 medians were 79.664/79.825 us (stage 4 0.2% slower).
 Production remains one warp and three stages.
+
+## 2026-08-28: Qwen compressed-QSA dense/sparse dual decode graphs
+
+The twelve full-attention layers were still executing the complete compressed
+indexer logits -> block Top-K -> token expansion chain even while every
+visible token fit inside `indexer_budget=2048`.  The existing DeepSeek DSA
+dual-graph mechanism was generalized, with model-scoped switches, to Qwen's
+compressed QSA profile.  Each BS tier captures:
+
+- `dense`: preserve indexer K projection/ring/compression state updates, but
+  replace score/Top-K/expand with one kernel producing contiguous logical
+  indices `[0, ..., visible-1, -1, ...]`;
+- `sparse`: retain the complete original indexer for KV lengths above 2048.
+
+Replay dispatch uses the existing host-side `seq_lens_cpu` mirror, so it adds
+no D2H synchronization.  Mixed batches select sparse if any row is long.  The
+dense-index oracle covered lengths 1/17/512/2048 exactly and its registered
+tests passed 3/3 (including the existing expansion tests).
+
+TP4/EP4/no-A2A, graph BS1, native-AR twelve-round service results improved
+from the retained 56.1193 tok/s checkpoint to 59.8776 tok/s trimmed (+6.70%).
+All completion hashes remained `1a8c2dccd3a72692`.  A 2030-token fixed-input
+test generated 64 tokens twice, crossing the 2048 boundary from dense to
+sparse graph; both finished by length with identical SHA256
+`82d5ee5b1069f91e...`.  Capture time increased from about 4.7 to 13.7 seconds
+and graph memory by only about 0.01 GiB.  The feature is default-on for Qwen
+compressed QSA only and can be disabled with
+`SGLANG_QWEN4_GFX90A_QSA_DUAL_GRAPH=0`.
