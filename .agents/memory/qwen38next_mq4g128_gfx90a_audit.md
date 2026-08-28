@@ -935,6 +935,12 @@ all twelve variants.  The retained `(rows=1, waves=16)` median was 234.725 us
 versus 239.784 us for the former generic `(2,8)` geometry, a 2.1% kernel win
 or about 5 us per generated token.
 
+An independent repeat on the retained BF16-state checkpoint measured
+`(rows=1,waves=16)` at `231.356 us`; `(1,4)` and `(1,8)` tied at
+`230.716 us`.  The additional `0.28%` LM-head-only difference is about
+`0.005%` of end-to-end token time and was rejected without a service restart.
+All nine repeated geometry outputs were bitwise identical.
+
 The BS1 GDN recurrent core was also scanned at Triton `num_warps=1/2/4` and
 `num_stages=1..4` for its real `[HV=48,V=128,K=128]` state.  More than one
 warp preserved the immediate output but changed the persistent BF16 state by
@@ -942,6 +948,14 @@ up to 0.00390625, so it is not an exact default.  All one-warp stage counts
 were bitwise exact.  A longer fourteen-pair ABBA rejected the apparent stage-4
 micro win: stage 3/4 medians were 79.664/79.825 us (stage 4 0.2% slower).
 Production remains one warp and three stages.
+
+FP16 persistent GDN state was also screened before service integration.  For
+the real local packed-decode shape `[B=1,H=4,HV=12,K=V=128]`, captured replay
+medians were `18.560 us` with BF16 state and `18.240 us` with FP16 state, only
+`1.7%` for the recurrent core (less than `0.1%` at model level).  After the
+warm/replay sequence, FP16 versus BF16 differed by up to `9.16e-4` in output
+and `2.98e-2` in persistent state.  FP16 state was therefore rejected on both
+gain and numerical-stability grounds; production remains BF16.
 
 ## 2026-08-28: Qwen compressed-QSA dense/sparse dual decode graphs
 
