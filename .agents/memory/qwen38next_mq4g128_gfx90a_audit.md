@@ -1383,13 +1383,16 @@ runtime contract was established fail-loud during capture: local H/HV are
 can be FP32.  Per-dtype JIT specializations avoid conversion kernels.  With
 the corrected contract, output remained bitwise exact and FP32 state differed
 by at most `4.77e-7`; the registered test and graph replay passed.  The actual
-rows-32 service nevertheless measured only `71.806 tok/s` trimmed versus the
-75.7--76.4 production range.  Matching Triton's 48-CTA grid did not prevent
-the longer HIP register lifetime/occupancy from damaging the whole graph.
+rows-32 service nevertheless measured only `71.806 tok/s` trimmed; rows-16
+measured `74.933 tok/s`, versus a nearby Triton control of `76.386 tok/s`.
+Code-object metadata explained the reversal: Triton uses 70 VGPR, while HIP
+rows 4/8/16/32 use 38/40/68/136 VGPR respectively.  Rows-32 matches Triton's
+48-CTA grid but halves occupancy; rows-16 restores comparable VGPR usage but
+doubles the grid to 96 CTAs.  Neither balance improves the whole graph.
 
 All 256-token arms retained hash `ac55ed9f7239753d`; France was exact twice,
 the 2030+64 boundary retained SHA-256
-`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`,
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 The implementation remains available behind
 `SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED=1`, with rows selectable through
 `SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS`, but production stays on Triton.
