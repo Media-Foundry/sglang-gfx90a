@@ -1359,6 +1359,36 @@ determinism.  Do not infer a service win from a long expert run or from a
 standalone kernel alone; the winning tile must subsequently pass full-model
 correctness and restart ABBA.
 
+That full small-block oracle was then implemented and rejected.  The first
+kernel used `V_MFMA_I32_16X16X16I8`, padding A to 16 while keeping all 16 N
+rows useful.  The second used `V_MFMA_I32_4X4X4I8`; its sixteen independent
+blocks per wave covered 64 useful N rows and exactly matched the A1/A2/A4
+occupancy target.  Both preserved MQ4's affine zero correction, used symmetric
+per-G128 INT8 activations, and swept one/two/four wave64s per workgroup.
+
+The activation quantizer was a single native wave64 HIP kernel and matched the
+PyTorch quantization tensors exactly.  Relative projection error against the
+dequantized MQ4 FP32 oracle was about `0.0060--0.0068`, caused by activation
+quantization rather than lane-layout error.  CUDA-graph medians in microseconds
+were:
+
+| occupancy | scalar FP32-FMA | 16x16 MFMA + quant (4 waves) |
+|---:|---:|---:|
+| A1 | 16.96 | 21.60 |
+| A2 | 18.56 | 22.08 |
+| A4 | 21.76 | 22.72 |
+
+Projection-only 16x16 MFMA medians for one/two/four waves were A1
+`24.96/21.44/19.20` us and A2 `26.72/22.08/19.84` us; the independent A4
+four-wave measurement was about `20.32` us.  The 4x4 MFMA form was worse:
+A1 `46.56/33.92/30.08` us and A4 `46.72/34.08/30.40` us.  Extracting the
+four-wave 16x16 code object confirmed 16 static
+`v_mfma_i32_16x16x16i8` instructions, wavefront size 64, 33 VGPR, 20 SGPR,
+and 4096 bytes of group memory.  Thus this is a genuine CDNA2 MFMA result,
+not a selector miss.  Low occupancy is decisively better served by the
+existing scalar/vector path, and even A4 cannot repay activation quantization.
+All oracle source was removed; production remained unchanged.
+
 ## Rejected MQ4-time Qwen wave64 Top-10 reachability
 
 The Qwen wave64 Top-10 selector was tested outside its historical global AIter
