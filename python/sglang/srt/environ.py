@@ -341,6 +341,10 @@ class Envs:
     # native gfx90a wave64 GEMV.  0=off, 1=all, 2=attention output, 3=attention
     # input, 4=shared expert, 5=router, 6=PLE/indexer (A/B isolation modes).
     SGLANG_QWEN4_GFX90A_WAVE64_BF16_LINEAR = EnvInt(1)
+    # Use two 32-lane subgroups to fuse the exact BS1 BF16 shared-expert
+    # gate/up projection with BF16-rounded SwiGLU. Default-off pending service
+    # correctness and end-to-end throughput validation.
+    SGLANG_QWEN4_GFX90A_FUSED_SHARED_GATE_UP_SWIGLU = EnvBool(True)
     # Select the FP8 (deep_gemm) tokenwise QSA indexer; only the BF16 reference
     # path is ported, so setting this fails loudly instead of degrading.
     SGLANG_QWEN_DSA_USE_FP8_INDEXER = EnvBool(False)

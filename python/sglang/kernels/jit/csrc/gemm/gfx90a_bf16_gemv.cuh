@@ -132,6 +132,77 @@ struct Gfx90aBf16GemvKernel {
   }
 };
 
+// Experimental Qwen BS1 shared-expert oracle.  The two 32-lane subgroups in
+// each native wave compute gate[row] and up[row+I] concurrently, then retain
+// the BF16 materialization boundaries of GEMV -> SiLU -> multiply.
+template <uint32_t I, uint32_t K, uint32_t kNumWaves>
+__global__ void __launch_bounds__(kNumWaves * kGfx90aWave)
+    gfx90a_bf16_gate_up_swiglu_subgroup_kernel(
+        bf16_t* __restrict__ out, const bf16_t* __restrict__ x,
+        const bf16_t* __restrict__ weight) {
+  __shared__ bf16_t sx[K];
+  __shared__ bf16_t pair[kNumWaves][2];
+  const uint32_t tid = threadIdx.x;
+  for (uint32_t k = tid * kGfx90aGemvVec; k < K;
+       k += kNumWaves * kGfx90aWave * kGfx90aGemvVec) {
+    *reinterpret_cast<float4*>(sx + k) =
+        *reinterpret_cast<const float4*>(x + k);
+  }
+  __syncthreads();
+
+  const uint32_t wave = tid / kGfx90aWave;
+  const uint32_t wave_lane = tid % kGfx90aWave;
+  const uint32_t subgroup = wave_lane >> 5;
+  const uint32_t lane = wave_lane & 31;
+  const uint32_t row = blockIdx.x * kNumWaves + wave;
+  if (row >= I) return;
+
+  float acc = 0.0f;
+  constexpr uint32_t kStep = 32 * kGfx90aGemvVec;
+  const bf16_t* wr = weight + static_cast<size_t>(row + subgroup * I) * K;
+  for (uint32_t k = lane * kGfx90aGemvVec; k < K; k += kStep) {
+    acc += gfx90a_dot8_f32(
+        *reinterpret_cast<const float4*>(wr + k),
+        *reinterpret_cast<const float4*>(sx + k));
+  }
+#pragma unroll
+  for (uint32_t offset = 16; offset > 0; offset >>= 1)
+    acc += __shfl_down(acc, offset, 32);
+  if (lane == 0) pair[wave][subgroup] = cast<bf16_t>(acc);
+  __syncthreads();
+
+  if (wave_lane == 0) {
+    const float gate = cast<float>(pair[wave][0]);
+    const float up = cast<float>(pair[wave][1]);
+    const bf16_t activated =
+        cast<bf16_t>(gate / (1.0f + expf(-gate)));
+    out[row] = cast<bf16_t>(cast<float>(activated) * up);
+  }
+}
+
+template <uint32_t I, uint32_t K, uint32_t kNumWaves>
+struct Gfx90aBf16GateUpSwigluSubgroupKernel {
+  static void run(const tvm::ffi::TensorView x,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({1, K}).with_dtype<bf16_t>().with_device(device).verify(x);
+    TensorMatcher({2 * I, K})
+        .with_dtype<bf16_t>()
+        .with_device(device)
+        .verify(weight);
+    TensorMatcher({1, I}).with_dtype<bf16_t>().with_device(device).verify(out);
+    constexpr uint32_t kBlocks = (I + kNumWaves - 1) / kNumWaves;
+    LaunchKernel(kBlocks, kNumWaves * kGfx90aWave, device.unwrap())(
+        gfx90a_bf16_gate_up_swiglu_subgroup_kernel<I, K, kNumWaves>,
+        static_cast<bf16_t*>(out.data_ptr()),
+        static_cast<const bf16_t*>(x.data_ptr()),
+        static_cast<const bf16_t*>(weight.data_ptr()));
+  }
+};
+
 // Attention preparation consumes a float tensor but intentionally rounds each
 // dot product through BF16 first to match the AIter BF16 GEMM contract.
 template <uint32_t N, uint32_t K, uint32_t kRows, uint32_t kUnroll,

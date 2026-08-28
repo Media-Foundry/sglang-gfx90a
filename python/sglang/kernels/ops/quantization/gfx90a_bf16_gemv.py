@@ -57,6 +57,23 @@ def _jit_gfx90a_bf16_gemv_module(m: int, n: int, k: int) -> Module:
 
 
 @cache_once
+def _jit_gfx90a_bf16_gate_up_swiglu_subgroup_module() -> Module:
+    args = make_cpp_args(160, 2560, 8)
+    return load_jit(
+        "gfx90a_bf16_gate_up_swiglu_subgroup_oracle",
+        *args,
+        cuda_files=["gemm/gfx90a_bf16_gemv.cuh"],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aBf16GateUpSwigluSubgroupKernel<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_gfx90a_bf16_fp32_gemv_module(n: int) -> Module:
     # Shape-specific CDNA2 wave64 geometry.  Keeping unroll=2 preserves the
     # existing FP32 accumulation order bit-for-bit while reducing excess
@@ -122,6 +139,44 @@ def gfx90a_wave64_bf16_gemv(
         x, weight, out
     )
     return out
+
+
+def gfx90a_bf16_gate_up_swiglu_subgroup(
+    x: torch.Tensor, weight: torch.Tensor, out: torch.Tensor | None = None
+) -> torch.Tensor | None:
+    if (
+        not torch.version.hip
+        or x.shape != (1, 2560)
+        or weight.shape != (320, 2560)
+        or x.dtype != torch.bfloat16
+        or weight.dtype != torch.bfloat16
+        or not x.is_contiguous()
+        or not weight.is_contiguous()
+        or getattr(torch.cuda.get_device_properties(x.device), "gcnArchName", "").split(
+            ":", 1
+        )[0]
+        != "gfx90a"
+    ):
+        return None
+    if out is None:
+        out = torch.empty((1, 160), dtype=torch.bfloat16, device=x.device)
+    if (
+        out.shape != (1, 160)
+        or out.dtype != torch.bfloat16
+        or not out.is_contiguous()
+        or out.device != x.device
+    ):
+        return None
+    _jit_gfx90a_bf16_gate_up_swiglu_subgroup_module().run(x, weight, out)
+    return out
+
+
+def gfx90a_bf16_gate_up_swiglu_subgroup_oracle(
+    x: torch.Tensor, weight: torch.Tensor, out: torch.Tensor | None = None
+) -> torch.Tensor:
+    result = gfx90a_bf16_gate_up_swiglu_subgroup(x, weight, out)
+    assert result is not None, "unsupported gfx90a shared gate/up oracle input"
+    return result
 
 
 def gfx90a_wave64_bf16_fp32_gemv(

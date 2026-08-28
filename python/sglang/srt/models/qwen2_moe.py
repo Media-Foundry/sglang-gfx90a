@@ -184,6 +184,7 @@ class Qwen2MoeMLP(nn.Module):
         prefix: str = "",
         tp_rank: Optional[int] = None,
         tp_size: Optional[int] = None,
+        enable_gfx90a_fused_gate_up_swiglu: bool = False,
     ) -> None:
         super().__init__()
         self.gate_up_proj = MergedColumnParallelLinear(
@@ -210,6 +211,14 @@ class Qwen2MoeMLP(nn.Module):
                 f"Unsupported activation: {hidden_act}. Only silu is supported for now."
             )
         self.act_fn = SiluAndMul()
+        self._enable_gfx90a_fused_gate_up_swiglu = (
+            enable_gfx90a_fused_gate_up_swiglu
+            and _is_hip
+            and envs.SGLANG_QWEN4_GFX90A_FUSED_SHARED_GATE_UP_SWIGLU.get()
+            and self.gate_up_proj.bias is None
+            and self.gate_up_proj.quant_method.__class__.__name__
+            == "UnquantizedLinearMethod"
+        )
         # Set externally (see qwen3_5.py) when both projections are NVFP4 and
         # the FlashInfer fused SiLU+mul+FP4-quant kernel is available. The
         # fused path replaces act_fn + the down_proj input quantization with a
@@ -250,6 +259,17 @@ class Qwen2MoeMLP(nn.Module):
         self,
         x,
     ):
+        if self._enable_gfx90a_fused_gate_up_swiglu:
+            from sglang.kernels.ops.quantization.gfx90a_bf16_gemv import (
+                gfx90a_bf16_gate_up_swiglu_subgroup,
+            )
+
+            activated = gfx90a_bf16_gate_up_swiglu_subgroup(
+                x, self.gate_up_proj.weight
+            )
+            if activated is not None:
+                x, _ = self.down_proj(activated)
+                return x
         gate_up, _ = self.gate_up_proj(x)
         if self._enable_silu_fp4_quant_fusion and not isinstance(gate_up, tuple):
             x, _ = self.down_proj(self._silu_fp4_quant_fused(gate_up))
@@ -364,6 +384,7 @@ class Qwen2MoeSparseMoeBlock(nn.Module):
                 quant_config=quant_config,
                 reduce_results=False,
                 prefix=add_prefix("shared_expert", prefix),
+                enable_gfx90a_fused_gate_up_swiglu=True,
                 **(
                     dict(tp_rank=0, tp_size=1)
                     if (
