@@ -1928,3 +1928,13 @@ changing the graph output/buffer shape moved the independent-service fixed
 hash even though B's candidate and B's full-gather fallback agreed.  With no
 speedup and weaker cross-process numerical continuity, the sharded-greedy
 fields, sampler branch and environment switch were fully removed.
+
+A narrower alternate-stream schedule was tested after the earlier full
+shared/routed overlap rejection.  It overlapped only the shared-expert FFN
+with the independent router projection plus Top-10, joined both streams, and
+then launched routed MQ4 alone.  This avoided direct shared/routed expert
+competition and kept the exact control hash in all 7 forced-256 requests, but
+steady throughput was only `77.28--77.66 tok/s` versus the adjacent A2
+`78.24--78.42 tok/s`.  Even the shared FFN and 512-row router GEMV compete
+enough for gfx90a CU/HBM resources to outweigh launch hiding.  The stream
+plumbing and selector were fully removed.
