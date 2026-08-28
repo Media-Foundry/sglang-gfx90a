@@ -2414,3 +2414,18 @@ reported `618.40 tok/s` end-to-end. The resident server window was about
 `675 -> 653 tok/s` window rather than providing a material improvement.
 Therefore host run-ahead is not the missing 2x factor and the default remains
 one continuous decode step.
+
+## 2026-08-29: BS32 token-owned fused down rejected on correctness
+
+A BS32-specific down prototype preserved the existing wave32 FP32 dot helper,
+assigned one wave to each `(token, output row)`, skipped remote EP slots, and
+performed the exact masked reducer's `0/4/8, 1/5/9, 2/6, 3/7` Top-10 tree in
+registers. This retained roughly 82k independent waves while eliminating the
+expert sorter, `[M,T,N]` FP32 partial and separate reducer. On a realistic
+80-local-assignment EP4 sample, however, 6 of 81,920 BF16 outputs differed by
+one LSB (`max_abs=0.00048828125`). Adding an explicit volatile FP32 boundary
+between every dot and router multiply produced the identical mismatch, showing
+that recompiling the dot in the fused multi-slot context changes its reduction
+trajectory. The prototype was removed before service testing. Any future down
+fusion must consume the existing materialized dot output or prove bitwise
+parity; semantic-only validation is insufficient.
