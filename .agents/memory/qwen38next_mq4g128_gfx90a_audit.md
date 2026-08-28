@@ -1336,15 +1336,25 @@ layer.  Within those layers, routed plus shared MoE consumed roughly
 about `4.6 ms/token` in MoE, `3.6 ms/token` in the two HC/collective
 boundaries, and `3.2 ms/token` in attention/GDN.
 
-The preceding section's claim that `SGLANG_ALT_STREAM=1` restored actual Qwen
-shared/routed overlap was incorrect.  The Qwen constructor created the global
-HIP alternate stream but did not pass it into `Qwen2MoeSparseMoeBlock` on the
-current fused-shared configuration, so those measurements did not exercise
-the intended dual-stream branch.  A temporary reachability fix proved that
-the shared expert could overlap the router and routed expert, but the service
+The earlier claim that `SGLANG_ALT_STREAM=1` restored Qwen shared/routed MoE
+overlap was incorrect.  The Qwen constructor created the global HIP alternate
+stream but did not pass it into `Qwen2MoeSparseMoeBlock` on the current
+fused-shared configuration.  A temporary reachability fix proved that the
+shared expert could overlap the router and routed expert, but the service
 regressed from approximately `76.3` to `75.6 tok/s`: CU/cache contention
 outweighed the hidden shared-expert time.  The reachability change was removed;
-the current serialized schedule is intentional.
+MoE remains serialized.
+
+The same global stream is nevertheless consumed directly by Qwen's twelve QSA
+full-attention layers, where the indexer overlaps the QKV projection.  This is
+a real, separately reachable schedule.  With the retained static placement,
+explicit `SGLANG_ALT_STREAM=0` controls measured `78.059` and `78.325 tok/s`
+trimmed; the formal default-on QSA overlap measured `78.746 tok/s`, retaining
+the fixed completion hash.  France was exact, and forced 2048-token output
+again retained SHA-256
+`7f2c43f87821f42cd2d5d48bfa4bf764726c92bf4d0dd2e915375294b4777aaf`.
+Therefore the formal default stream stays enabled for QSA, while it must not
+be described as MoE overlap.
 
 The expert distribution recorder captured 256 real decode tokens for all 48
 layers and Top-10 routing.  Under the original contiguous EP4 placement, the
@@ -1383,6 +1393,22 @@ between the two layouts.  Thus the static permutation did not introduce this
 non-bitwise behavior, but future performance changes must continue to use the
 fixed oracle plus semantic and long-run checks while the underlying
 collective/numerical source is isolated.
+
+Two follow-up scans were rejected.  First, `--num-continuous-decode-steps 4`
+measured `78.106 tok/s` versus the adjacent one-step `78.059`, proving that
+scheduler run-ahead does not explain the client/server throughput difference.
+Second, a five-restart plateau search reduced the recorded mean maximum rank
+load further from `3.179` to `3.070`, but restart ABBA failed: old-map A1/A2
+were `78.059/78.325`, refined-map B1/B2 were `78.458/77.728 tok/s`; candidate
+mean was about 0.13% lower.  The refined map was not retained.
+
+The sampling tail was also ruled out.  On a free gfx90a GCD and the real
+`[1,248320]` vocabulary, `torch.argmax` measured `17.82 us` for BF16 and
+`17.97 us` for FP32, while AIter greedy measured `24.66/39.39 us`.  The AIter
+tail bug was reproduced directly: an all-`-inf` non-16-aligned 248319-wide row
+returned invalid token 248319, whereas the aligned Qwen vocabulary returned
+zero.  Re-enabling AIter sampling would therefore be both slower and unsafe;
+the existing gfx90a `torch.argmax` fallback remains correct.
 
 ## Rejected: BS1 striped redundant-expert dispatch
 
@@ -1794,7 +1820,7 @@ measurements initially appeared to show useful shared/routed overlap:
 All arms retained fixed hash `ac55ed9f7239753d`.  However, the later
 device-realtime reachability audit documented above proved that the Qwen MoE
 block never received this HIP alternate stream in the fused-shared
-configuration.  These numbers therefore measured indirect environment and
-restart effects, not actual shared/routed overlap.  Once made genuinely
-reachable, overlap regressed performance and was removed.  Do not use this
-section as evidence for enabling `SGLANG_ALT_STREAM`.
+configuration.  The small positive arm primarily exposed the separately real
+QSA indexer/QKV overlap, not shared/routed MoE overlap.  Once MoE overlap was
+made genuinely reachable, it regressed performance and was removed.  Keep the
+formal stream for QSA, but do not cite this section as MoE-overlap evidence.
