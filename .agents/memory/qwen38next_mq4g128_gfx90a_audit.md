@@ -2403,3 +2403,14 @@ aggregate `101.78 tok/s` after including admission. Collective/pipeline
 scheduling dominates the saved local MoE time. TP2xPP2 is therefore not the
 route to the 1200 tok/s four-GCD target in its current SGLang PP protocol;
 optimization returns to the TP4/EP4 BS16/BS32 graph.
+
+## 2026-08-29: four-step scheduler run-ahead rejected at BS32
+
+The production TP4/EP4 graph was launched with
+`--num-continuous-decode-steps 4` to test whether host metadata/launch seams
+limited multi-request decode. A 32x512 run completed every request exactly and
+reported `618.40 tok/s` end-to-end. The resident server window was about
+`674 -> 668 tok/s`, overlapping the ordinary profile's roughly
+`675 -> 653 tok/s` window rather than providing a material improvement.
+Therefore host run-ahead is not the missing 2x factor and the default remains
+one continuous decode step.
