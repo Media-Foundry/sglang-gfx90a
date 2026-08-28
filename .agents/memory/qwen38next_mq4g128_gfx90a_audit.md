@@ -1052,3 +1052,31 @@ The full dual-graph service, however, measured 60.1015 tok/s versus the
 retained 60.2522 tok/s baseline, with the same completion hash.  The selector
 and kernel extension were reverted: the shorter kernel did not improve the
 graph's arrival/synchronization critical path.
+
+### Rejected: indexed MQ4 gate/up plus SwiGLU HIP epilogue
+
+A shape-locked gfx90a HIP oracle paired the two 32-lane subgroups of one
+wave64: subgroup 0 computed `gate[row]`, subgroup 1 computed `up[row+640]`,
+both retained the production `mq4g128_dot_row` FP32 accumulation order, and
+the epilogue emitted `F.silu(gate) * up` directly as `[1,10,640]` FP32.  Both a
+width-64 shuffle exchange and an 8-byte LDS exchange were tested.  Neither
+needed LDS for correctness; both matched the registered indexed projection
+plus torch `F.silu` bitwise for valid and `-1` remote expert IDs.  LDS was
+roughly 1--2 us faster in the co-resident micro.
+
+Real `E128/M1/T10/N1280/K2560` interleaved microbenchmarks measured the old
+indexed projection plus SwiGLU at roughly `111--135 us`, versus `73--82 us`
+for the fused HIP epilogue: a local 31--40% improvement, or approximately
+`36--52 us/layer`.  The production candidate then ran the existing standalone
+FWHT before down projection.  Its pre-FWHT output remained bitwise exact to
+torch; compared with the retained Triton SwiGLU+FWHT boundary, the rotated
+tensor differed only at the last FP32 bits (`max_abs=1.862645e-9`).
+
+The guarded TP4/EP4 BS1 service B1 passed correctness: five hot 256-token runs
+all retained the same completion hash.  Throughput was
+`68.79 / 68.42 / 68.43 / 68.31 / 68.42 tok/s`, indistinguishable from the
+roughly `68.0--69.5 tok/s` baseline.  The extra standalone FWHT launch and the
+decode graph's scheduling/critical path absorbed the module-level saving.
+The HIP kernel, default-off switch, production wiring, tests and benchmark
+were therefore completely removed; this path must not be reintroduced based
+on the standalone percentage alone.
