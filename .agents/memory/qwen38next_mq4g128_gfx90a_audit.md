@@ -1529,6 +1529,17 @@ The implementation remains available behind
 `SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED=1`, with rows selectable through
 `SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS`, but production stays on Triton.
 
+The remaining service-level small-block gap was later closed on the BF16-state
+checkpoint.  Single-wave rows-8 launches 192 CTAs and produced seven hot
+forced-256 rounds at `76.27--76.39 tok/s`; rows-4 launches 384 CTAs and
+produced seven hot rounds at `76.54--76.63 tok/s`.  Every request retained
+hash `ac55ed9f7239753d`.  Both are below the retained Triton/BF16 range around
+78.3 tok/s even though rows-4/8 are the fastest standalone HIP variants.
+Together with rows-16/32 and two-wave rows-16, this completes the small-block
+matrix: increasing CTA count cannot convert the local recurrence win into a
+graph win because it worsens CU/cache contention with the overlapping Qwen
+branches.  No untested rows geometry remains as an obvious production switch.
+
 A separate exact-shape HIP kernel fused sigmoid-gated 12x128 RMSNorm into the
 following `2560x1536` BF16 out-projection input staging.  Its output was
 bitwise equal to the BF16 norm materialization plus retained wave64 GEMV and
