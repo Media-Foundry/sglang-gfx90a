@@ -1310,6 +1310,40 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 
+## Rejected: BS1 striped redundant-expert dispatch
+
+The existing rank-invariant `dynamic` redundant-expert dispatcher selects a
+replica from the token-row index.  At BS1, all Top-K slots therefore select the
+same replica.  A temporary deterministic `stripe` algorithm instead selected
+the replica from the Top-K slot index.  Its CPU mapping oracle passed: logical
+IDs `[0,1,2,0,1,2]` with two physical copies mapped to
+`[0,4,2,3,1,5]`.
+
+Duplicating all 512 routed experts could not be evaluated because the loader
+first materialized a temporary FP8 copy and OOMed while requesting another
+400 MiB.  Duplicating 128 experts did load and capture BS1: model memory rose
+from about 34.38 to 39.06 GiB/GCD, leaving 877,376 KV tokens at static memory
+fraction 0.80.  Runtime behavior was catastrophically slow, however: a
+one-token request returned, a 16-token request took about 24 seconds, and the
+256-token fixed-input harness received HTTP 502 twice.  The likely failure is
+that non-contiguous redundant physical IDs fall outside the assumptions of the
+current MQ4 grouped/indexed fast path and/or create an extreme rank straggler.
+The dispatcher and server-argument changes were fully removed.  Any future
+redundancy experiment must first make the MQ4 physical-to-local mapping and
+kernel selection redundancy-aware, and should stream checkpoint weights
+directly into MQ4 to avoid the FP8 loader peak.
+
+## CDNA2 matrix-kernel migration rule
+
+Future matrix prototypes must target CDNA2 MFMA wave64 explicitly rather than
+inherit wave32 scheduling assumptions.  The local ISA reference is
+`/home/pc/Code/Code/DOCs/instinct-mi200-cdna2-instruction-set-architecture.pdf`.
+For every migrated kernel, sweep A1/A2/A4 and multiple small block/wave-count
+choices, inspect the emitted MFMA instruction plus VGPR/LDS occupancy, and then
+run correctness before graph-level ABBA.  The rejected 16x16x16-I8 and
+4x4x4-I8 experiments remain evidence that merely emitting MFMA is insufficient
+for these very small-M routed-expert shapes.
+
 ## Rejected: single-rank replicated shared-expert owner
 
 The user-proposed split between routed and shared expert work was evaluated
