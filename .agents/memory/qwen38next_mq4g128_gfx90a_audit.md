@@ -2362,3 +2362,32 @@ were admitted/prefilled in chunks and warm request throughput was only about
 `112.6 tok/s`, despite the much faster resident decode window.  Therefore BS64
 is not added to the production graph set, and subsequent optimization remains
 focused on the BS16/BS32 decode critical path.
+
+## 2026-08-29: TP2 x PP2 Qwen pipeline bring-up
+
+A four-GCD `TP2 x PP2, EP2` structural oracle was brought from immediate
+startup failure to graph-captured native-AR execution. Three Qwen-specific PP
+gaps were fixed: non-local PLE shard records are filtered before the custom PLE
+loader; the Qwen4 wrapper/model now expose and propagate `PPProxyTensors`; and
+Qwen4 passes only its 10240-wide HC state between stages because both HC
+residuals are closed inside each decoder layer. The first stage remains
+heavier because early PLE storage is concentrated there, requiring
+`mem_fraction_static > 0.731` in the current equal-layer split; 0.80 was used
+for the oracle.
+
+TP2 exposes twelve local QSA query heads rather than TP4's six. The existing
+gfx90a packed-QSA kernel already templates the head count, so its selector now
+accepts both 6 and 12 heads. The expanded 6/12-head suite passed 26/26,
+including graph replay. This removed an illegal graph-capture fallback that
+read `cu_seqlens` back to the host.
+
+Synchronous PP (`microbatch=16`, async depth zero) completed 32/32 distinct
+requests at exactly 64 tokens and sustained about `508--509 tok/s` during its
+resident decode window. Async depth one with AIter custom all-reduce entered
+a four-rank device synchronization spin after prefill. Disabling custom AR
+made async PP correct and stable for 32x512 tokens, but NCCL collectives reduced
+resident decode to roughly `252--265 tok/s`; the HTTP aggregate was
+`130.64 tok/s` because the run also included slow heterogeneous-prompt
+admission. This is not a production speedup yet. The next PP experiment must
+first add the missing `E=256,M=16` expert-owned MQ4 path and then repair the
+custom-AR/PP epoch ordering; otherwise TP4/EP4 remains faster.

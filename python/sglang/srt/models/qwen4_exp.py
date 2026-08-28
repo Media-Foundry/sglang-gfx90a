@@ -46,7 +46,11 @@ from sglang.srt.layers.quantization.base_config import QuantizationConfig
 from sglang.srt.layers.quantization.unquant import UnquantizedEmbeddingMethod
 from sglang.srt.layers.utils import get_layer_id
 from sglang.srt.layers.vocab_parallel_embedding import VocabParallelEmbedding
-from sglang.srt.model_executor.forward_batch_info import ForwardBatch, ForwardMode
+from sglang.srt.model_executor.forward_batch_info import (
+    ForwardBatch,
+    ForwardMode,
+    PPProxyTensors,
+)
 from sglang.srt.model_executor.forward_context import (
     get_attn_backend,
     get_req_to_token_pool,
@@ -1688,11 +1692,21 @@ class Qwen4ExpModel(Qwen3_5ForCausalLM):
         positions: torch.Tensor,
         forward_batch: ForwardBatch,
         inputs_embeds: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
-        if inputs_embeds is not None:
-            hidden_states = inputs_embeds
+        pp_proxy_tensors: Optional[PPProxyTensors] = None,
+    ) -> torch.Tensor | PPProxyTensors:
+        if self.pp_group.is_first_rank:
+            if inputs_embeds is not None:
+                hidden_states = inputs_embeds
+            else:
+                hidden_states = self.embed_tokens(input_ids)
+            residual = None
         else:
-            hidden_states = self.embed_tokens(input_ids)
+            assert pp_proxy_tensors is not None
+            hidden_states = pp_proxy_tensors["hidden_states"]
+            # Qwen4 closes both HC mix/combine pairs inside every decoder
+            # layer, so unlike the Qwen3.5 prenorm backbone there is no live
+            # residual tensor at a pipeline boundary.
+            residual = None
 
         ple_batch = (
             _prepare_ple_batch(
@@ -1704,7 +1718,6 @@ class Qwen4ExpModel(Qwen3_5ForCausalLM):
             if self.has_ple
             else None
         )
-        residual = None
         aux_hidden_states = []
         for i in range(self.start_layer, self.end_layer):
             layer = self.layers[i]
@@ -1727,6 +1740,13 @@ class Qwen4ExpModel(Qwen3_5ForCausalLM):
                 )
 
         _commit_ple_batch(ple_batch, forward_batch)
+
+        if not self.pp_group.is_last_rank:
+            return PPProxyTensors(
+                {
+                    "hidden_states": hidden_states,
+                }
+            )
 
         hc_hidden_states = hidden_states
         hidden_states, _ = self.hyper_connection_mixer.mix(hidden_states)
@@ -1770,6 +1790,7 @@ class Qwen4ExpVLModel(Qwen4ExpModel):
             positions=positions,
             forward_batch=forward_batch,
             inputs_embeds=input_embeds,
+            pp_proxy_tensors=pp_proxy_tensors,
         )
         if isinstance(model_output, tuple):
             hidden_states, self.last_hc_hidden_states = model_output
@@ -1800,8 +1821,15 @@ class Qwen4ExpForConditionalGeneration(Qwen3VLForConditionalGeneration):
         )
 
     @torch.no_grad()
-    def forward(self, *args, **kwargs):
-        output = super().forward(*args, **kwargs)
+    def forward(
+        self,
+        *args,
+        pp_proxy_tensors: Optional[PPProxyTensors] = None,
+        **kwargs,
+    ):
+        output = super().forward(
+            *args, pp_proxy_tensors=pp_proxy_tensors, **kwargs
+        )
         hc_hidden_states = self.model.last_hc_hidden_states
         if hc_hidden_states is not None and isinstance(output, LogitsProcessorOutput):
             output.hidden_states = hc_hidden_states
@@ -2027,6 +2055,19 @@ class Qwen4ExpForConditionalGeneration(Qwen3VLForConditionalGeneration):
             elif name.endswith(".v_proj.v_scale"):
                 name = name.replace(".v_proj.v_scale", ".attn.v_scale")
 
+            # PLE shards are handled by the custom loader below, before the
+            # generic parameter loop.  Under pipeline parallelism, however,
+            # non-local decoder layers are represented by PPMissingLayer and
+            # consequently have no entry in ``ple_modules``.  Filter those
+            # checkpoint records first, just as the generic path does, rather
+            # than misclassifying a valid shard_N record as an unsupported
+            # layout on every stage that does not own its layer.
+            layer_id = get_layer_id(name)
+            if layer_id is not None and (
+                layer_id < self.start_layer or layer_id >= self.end_layer
+            ):
+                continue
+
             if self._load_qwen4_exp_ple_buffer(
                 name, loaded_weight, buffers, loaded_buffers
             ):
@@ -2051,12 +2092,6 @@ class Qwen4ExpForConditionalGeneration(Qwen3VLForConditionalGeneration):
                     lm_head_param, "weight_loader", default_weight_loader
                 )
                 weight_loader(lm_head_param, loaded_weight)
-
-            layer_id = get_layer_id(name)
-            if layer_id is not None and (
-                layer_id < self.start_layer or layer_id >= self.end_layer
-            ):
-                continue
 
             is_fused_expert = (
                 "experts.gate_up_proj" in name or "experts.down_proj" in name

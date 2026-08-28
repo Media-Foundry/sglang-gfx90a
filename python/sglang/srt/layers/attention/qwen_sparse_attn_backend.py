@@ -1825,7 +1825,11 @@ class QwenSparseAttnBackend(AttentionBackend):
             if (
                 is_gfx90a_supported()
                 and envs.SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE.get()
-                and q.shape[1:] == (6, 256)
+                # TP4 exposes six local query heads; TP2 (used by the
+                # four-GCD TP2xPP2 throughput profile) exposes twelve.  The
+                # HIP kernel templates H and has the same packed-KV contract
+                # for both layouts.
+                and q.shape[1:] in ((6, 256), (12, 256))
                 and packed_k.shape == (scratch_capacity, 1, 256)
                 and scratch_capacity >= batch * topk
                 and packed_k.dtype == torch.bfloat16

@@ -28,12 +28,13 @@ def test_qwen_qsa_mtp_index_share_override_precedence():
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
 @pytest.mark.parametrize("valid", [1, 64, 193, 512, 1024, 2048])
 @pytest.mark.parametrize("batch", [1, 4])
-def test_gfx90a_qsa_packed_decode_matches_torch(valid, batch):
+@pytest.mark.parametrize("heads", [6, 12])
+def test_gfx90a_qsa_packed_decode_matches_torch(valid, batch, heads):
     if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
         pytest.skip("requires gfx90a")
     torch.manual_seed(13)
     topk = 2048
-    q = torch.randn(batch, 6, 256, device="cuda", dtype=torch.bfloat16)
+    q = torch.randn(batch, heads, 256, device="cuda", dtype=torch.bfloat16)
     k = torch.randn(batch * topk, 1, 256, device="cuda", dtype=torch.bfloat16)
     v = torch.randn_like(k)
     counts = [max(1, valid - row * 7) for row in range(batch)]
