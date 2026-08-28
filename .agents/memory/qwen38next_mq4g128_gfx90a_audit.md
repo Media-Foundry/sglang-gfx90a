@@ -1396,3 +1396,13 @@ carrying the reduction state lengthened the persistent dot kernel itself.
 The service measured `75.656 tok/s`, inside the retained persistent-down
 restart range `75.546--75.921`; no end-to-end gain was distinguishable.  The
 fusion and its selector were removed.
+
+A BS1-only lazy global-to-local expert mapping probe was also rejected.  It
+kept global Top-10 IDs in the dispatcher and subtracted the rank's compile-time
+contiguous expert offset inside indexed gate/up and persistent down; prefill
+and grouped paths retained the ordinary mapping kernel.  Per-rank offset
+oracles were exact, and runtime trace confirmed that decode remap launches
+disappeared (the remaining 48 belonged to prefill).  Service B1 measured
+`76.088 tok/s` versus an independent rollback A2 `75.929 tok/s`, only 0.21%.
+This is below restart noise and does not justify dual global/local ID semantics,
+so the dispatcher and kernel changes were fully removed.
