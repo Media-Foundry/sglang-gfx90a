@@ -202,6 +202,36 @@ __global__ __launch_bounds__(64) void mq4g128_indexed_kernel(
   if (lane == 0) out[(token * T + slot) * N + row] = value;
 }
 
+// BS1 EP path: collapse the static top-k grid dimension into each row CTA.
+// With EP4 most of the ten routed IDs are remote on any one rank.  The normal
+// `(N/2,T)` grid still schedules a CTA for every remote slot; this form keeps
+// enough row parallelism for gfx90a while paying CTA setup only once per pair
+// of output rows.  The dot and reduction order for every valid assignment is
+// identical to mq4g128_indexed_kernel.
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
+__global__ __launch_bounds__(64) void mq4g128_indexed_persistent_slots_kernel(
+    const float* __restrict__ x, const uint8_t* __restrict__ weight,
+    const int32_t* __restrict__ expert_ids, float* __restrict__ out) {
+  const uint32_t subgroup = threadIdx.x >> 5;
+  const uint32_t lane = threadIdx.x & 31;
+  const uint32_t row = blockIdx.x * 2 + subgroup;
+  if (row >= N) return;
+  constexpr uint64_t kRowBytes = (K / 128) * 72;
+#pragma unroll
+  for (uint32_t assignment = 0; assignment < M * T; ++assignment) {
+    const int32_t expert = expert_ids[assignment];
+    float value = 0.0f;
+    if (expert >= 0 && expert < static_cast<int32_t>(E)) {
+      const uint8_t* wrow = weight +
+          (static_cast<uint64_t>(expert) * N + row) * kRowBytes;
+      value = mq4g128_dot_row<K>(
+          wrow, x + static_cast<size_t>(assignment / T) * K, lane);
+    }
+    if (lane == 0)
+      out[static_cast<uint64_t>(assignment) * N + row] = value;
+  }
+}
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t A>
 __global__ __launch_bounds__(64) void mq4g128_grouped_kernel(
@@ -256,6 +286,27 @@ struct Gfx90aMq4g128Indexed {
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
     LaunchKernel(dim3((N + 1) / 2, T, M), dim3(64), x.device())(
         mq4g128_indexed_kernel<E, M, T, N, K>,
+        static_cast<const float*>(x.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<float*>(out.data_ptr()));
+  }
+};
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
+struct Gfx90aMq4g128PersistentSlots {
+  static void run(const tvm::ffi::TensorView x,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView expert_ids,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<float>().with_device(device).verify(x);
+    TensorMatcher({E, N, K / 128, 72}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
+    LaunchKernel((N + 1) / 2, 64, x.device())(
+        mq4g128_indexed_persistent_slots_kernel<E, M, T, N, K>,
         static_cast<const float*>(x.data_ptr()),
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()),

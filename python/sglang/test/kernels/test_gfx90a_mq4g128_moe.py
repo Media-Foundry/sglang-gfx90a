@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import torch
 from types import SimpleNamespace
@@ -72,6 +74,43 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
     # oracle; keep the cross-path bound explicit instead of claiming bitwise
     # identity.
     torch.testing.assert_close(grouped, indexed, rtol=2e-5, atol=2e-5)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_mq4g128_persistent_slots_down_matches_indexed():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    torch.manual_seed(17)
+    e, n, k = 4, 64, 640
+    packed = quantize_mq4g128(
+        torch.randn(e, n, k, device="cuda", dtype=torch.float32) * 0.1
+    )
+    x = fwht128(torch.randn(10, k, device="cuda", dtype=torch.float32)).contiguous()
+    ids = torch.tensor(
+        [[2], [-1], [-1], [0], [-1], [3], [-1], [-1], [-1], [-1]],
+        dtype=torch.int32,
+        device="cuda",
+    )
+    old = os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS")
+    try:
+        os.environ["SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS"] = "0"
+        expected = mq4g128_indexed(x, packed, ids)
+        os.environ["SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS"] = "1"
+        actual = mq4g128_indexed(x, packed, ids)
+        torch.testing.assert_close(actual, expected, rtol=2e-5, atol=2e-5)
+        assert torch.count_nonzero(actual[[1, 2, 4, 6, 7, 8, 9]]) == 0
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            replay = mq4g128_indexed(x, packed, ids)
+        for _ in range(1000):
+            graph.replay()
+        torch.cuda.synchronize()
+        torch.testing.assert_close(replay, actual, rtol=0, atol=0)
+    finally:
+        if old is None:
+            os.environ.pop("SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS", None)
+        else:
+            os.environ["SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS"] = old
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")

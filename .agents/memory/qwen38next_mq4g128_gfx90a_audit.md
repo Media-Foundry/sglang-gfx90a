@@ -1354,3 +1354,36 @@ was `74.924` and B3 was `74.776 tok/s`.  The candidate/control means differed
 by only about 0.28% and the sign reversed across restarts.  Both scheduling
 switches were removed; stream identity/priority alone does not resolve the
 routed/shared CU contention.
+
+## BS1 EP4 persistent-slot MQ4 down projection
+
+The indexed MQ4 grid previously included the full static Top-10 dimension.
+After EP4 remapping, a rank normally owns only two or three assignments, but
+the old `(N/2, assignment)` grid still scheduled CTAs for all ten and returned
+early for remote IDs.  A persistent-slot kernel now launches only `N/2` CTAs;
+each row CTA walks the ten assignments, computes valid local experts, and
+writes exact zeros for remote assignments.  This is restricted to the
+production down layout `M*T=10, K=640`.  Applying it to gate/up K=2560 was
+correct but 9.1% slower because serializing its longer dots lost assignment
+parallelism.
+
+For the real down shape `(M,T,N,K)=(10,1,2560,640)` with three valid local
+assignments, ten-round graph medians improved `20.788 -> 11.644 us` (44.0%).
+The FP32 partial difference was bounded by `3.58e-7`, relative L2 `9.21e-8`;
+remote outputs remained exact zero, the dedicated oracle passed, and 1000
+graph replays were deterministic.  Runtime service trace confirmed production
+selection and improved the contended kernel from about `15.2` to `9.2 us`
+per layer.
+
+Native-AR TP4/EP4/no-A2A fixed-input restart ABBA, 256 forced tokens:
+
+- controls A2/A3: `74.924 / 74.488 tok/s` trimmed;
+- candidates B1/B2: `75.921 / 75.546 tok/s` trimmed;
+- arm means: `74.706 -> 75.734 tok/s`, about `+1.38%`.
+
+All measured requests retained completion hash `ac55ed9f7239753d`.  France
+returned exactly `The capital of France is Paris.` twice with normal stop, and
+the 2030+64 boundary retained text SHA-256
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
+The path defaults on for the guarded BS1 K640 selector;
+`SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS=0` restores the old grid.

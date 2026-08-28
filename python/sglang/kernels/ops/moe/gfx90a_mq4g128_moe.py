@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 import torch
@@ -46,6 +47,20 @@ def _indexed_module(e: int, m: int, t: int, n: int, k: int) -> Module:
         *args,
         cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
         cuda_wrappers=[("run", f"sglang::Gfx90aMq4g128Indexed<{args}>::run")],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
+def _persistent_slots_module(e: int, m: int, t: int, n: int, k: int) -> Module:
+    args = make_cpp_args(e, m, t, n, k)
+    return load_jit(
+        "gfx90a_mq4g128_persistent_slots",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128PersistentSlots<{args}>::run")
+        ],
         extra_cuda_cflags=["-O3"],
     )
 
@@ -101,7 +116,17 @@ def mq4g128_indexed(
     assert expert_ids.shape[0] == m and expert_ids.dtype == torch.int32
     t = expert_ids.shape[1]
     out = torch.empty((m, t, n), dtype=torch.float32, device=x.device)
-    _indexed_module(e, m, t, n, k).run(x, weight, expert_ids, out)
+    if (
+        m * t == 10
+        and k == 640
+        and os.environ.get(
+            "SGLANG_QWEN4_GFX90A_MQ4G128_PERSISTENT_SLOTS", "1"
+        )
+        == "1"
+    ):
+        _persistent_slots_module(e, m, t, n, k).run(x, weight, expert_ids, out)
+    else:
+        _indexed_module(e, m, t, n, k).run(x, weight, expert_ids, out)
     return out
 
 
