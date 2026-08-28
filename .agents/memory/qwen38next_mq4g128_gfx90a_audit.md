@@ -1996,3 +1996,22 @@ and text SHA-256
 `7213f2c89dc4a37bef5b2f77f1383bce00a9362e7d4cea85b21c108384dc54dc`.
 The exact-shape decode optimization defaults on with
 `SGLANG_QWEN4_GFX90A_GDN_VIEW_SPLIT=0` as rollback.
+
+The next retained boundary fusion combines the attention HC apply epilogue
+with the following MLP HC grouped Gemma RMSNorm.  One 160-thread CTA owns each
+2560-wide HC branch, produces the two BF16-rounded eight-element vectors per
+thread used by the original combine, retains them in registers, and replays
+the exact grouped-RMS reduction tree before writing both the combined and
+normed 10240-wide tensors.  This replaces the prior eight-CTA combine launch
+plus four-CTA norm launch while preserving both outputs needed by the later
+MLP residual path.
+
+The complete module chain improved `6.13 -> 4.50 us` (about 26.6%).  Thirty-two
+random seeds were bitwise exact for both outputs, 1000 CUDA Graph replays were
+bitwise stable, and the registered regression passed.  Service throughput was
+neutral within noise (`79.415` control versus `79.400 tok/s` candidate), but
+the fusion is retained because it removes one launch without measurable loss
+and provides the epilogue seam for further collective/HC fusion.  France was
+correct with normal stop, and forced-2048 retained the historical output-ID
+and text SHA-256 values.  It defaults on with
+`SGLANG_QWEN4_GFX90A_HC_COMBINE_NORM=0` as exact rollback.

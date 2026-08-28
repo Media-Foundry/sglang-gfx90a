@@ -340,6 +340,9 @@ class Envs:
     # BS1 GDN input projections are already [Q|K|V|Z] and [B|A].  Permit a
     # zero-copy decode split instead of materializing four copied tensors.
     SGLANG_QWEN4_GFX90A_GDN_VIEW_SPLIT = EnvBool(True)
+    # Fuse the exact BS1 attention-HC combine with the following MLP grouped
+    # Gemma RMSNorm. Default-off until service-level ABBA is complete.
+    SGLANG_QWEN4_GFX90A_HC_COMBINE_NORM = EnvBool(True)
     # Route selected, shape-compatible Qwen4 BF16 decode linears through the
     # native gfx90a wave64 GEMV.  0=off, 1=all, 2=attention output, 3=attention
     # input, 4=shared expert, 5=router, 6=PLE/indexer (A/B isolation modes).

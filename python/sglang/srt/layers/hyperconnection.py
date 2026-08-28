@@ -249,6 +249,12 @@ class GatedResidual(HyperConnectionBase):
             hyper_input_normed = self.hc_norm(
                 hyper_input.unflatten(-1, (self.hc_count, self.hidden_size))
             ).flatten(-2)
+        return self.mix_pre_normalized(hyper_input, hyper_input_normed)
+
+    def mix_pre_normalized(
+        self, hyper_input: torch.Tensor, hyper_input_normed: torch.Tensor
+    ):
+        """Run HC mixing when the caller already produced the exact norm."""
         precomputed_gate_partials = None
         if (
             _is_hip

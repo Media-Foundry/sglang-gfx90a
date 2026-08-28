@@ -1350,8 +1350,36 @@ class Qwen4ExpLayerExtensionMixin:
     ):
         if not forward_batch.forward_mode.is_idle():
             hidden_states = attn_tp_all_reduce(hidden_states)
-        hidden_states = self.attn_hyper_connection.combine(hidden_states, residual)
-        hidden_states, residual = self.mlp_hyper_connection.mix(hidden_states)
+        use_fused_combine_norm = (
+            envs.SGLANG_QWEN4_GFX90A_HC_COMBINE_NORM.get()
+            and torch.version.hip is not None
+            and forward_batch.forward_mode.is_decode()
+            and hidden_states.shape == (1, 2560)
+            and isinstance(residual, tuple)
+            and len(residual) == 3
+            and residual[0].shape == (1, 10240)
+            and residual[2].shape == (1, 8, 4)
+        )
+        if use_fused_combine_norm:
+            from sglang.kernels.ops.hyperconnection.gfx90a_hc_combine_norm import (
+                gfx90a_qwen_hc_combine_norm,
+            )
+
+            hidden_states, hidden_states_normed = gfx90a_qwen_hc_combine_norm(
+                hidden_states,
+                residual[0],
+                residual[2],
+                self.mlp_hyper_connection.hc_norm.weight,
+                self.mlp_hyper_connection.hc_norm.variance_epsilon,
+            )
+            hidden_states, residual = self.mlp_hyper_connection.mix_pre_normalized(
+                hidden_states, hidden_states_normed
+            )
+        else:
+            hidden_states = self.attn_hyper_connection.combine(
+                hidden_states, residual
+            )
+            hidden_states, residual = self.mlp_hyper_connection.mix(hidden_states)
         return hidden_states, residual
 
     def _qwen4_exp_use_dp_moe_gather(self) -> bool:

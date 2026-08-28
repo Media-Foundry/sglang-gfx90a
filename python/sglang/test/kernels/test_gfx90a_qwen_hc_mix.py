@@ -8,6 +8,12 @@ from sglang.kernels.ops.hyperconnection.gfx90a_hc_mix import (
     _module,
     gfx90a_qwen_hc_mix,
 )
+from sglang.kernels.ops.hyperconnection.gfx90a_hc_combine_norm import (
+    gfx90a_qwen_hc_combine_norm,
+)
+from sglang.kernels.ops.layernorm.grouped_gemma_rmsnorm import (
+    grouped_gemma_rmsnorm,
+)
 from sglang.srt.layers.hc_mix_triton import fused_hc_mix
 from sglang.srt.utils import is_hip
 
@@ -60,6 +66,46 @@ def test_qwen_hc_gate_fusion_is_bitwise_exact():
     assert torch.equal(mixed_ref, mixed_fused)
     assert torch.equal(partials_ref, partials_fused)
     assert torch.equal(out_ref, out_fused)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_hc_combine_norm_is_bitwise_exact_and_replay_stable():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    combine = _jit_hc_combine_module(4, 2560, torch.bfloat16)
+    for seed in (0, 1, 17, 20260829):
+        torch.manual_seed(seed)
+        block = (torch.randn(1, 2560, device="cuda") * 0.1).bfloat16()
+        residual = (torch.randn(1, 10240, device="cuda") * 0.1).bfloat16()
+        partials = torch.randn(1, 8, 4, device="cuda")
+        weight = (torch.randn(10240, device="cuda") * 0.01).bfloat16()
+        expected_combined = torch.empty_like(residual)
+        combine.hc_combine_apply_precomputed(
+            block, residual, expected_combined, partials
+        )
+        expected_normed = grouped_gemma_rmsnorm(
+            expected_combined, weight, 2560, 1e-6
+        )
+        actual_combined, actual_normed = gfx90a_qwen_hc_combine_norm(
+            block, residual, partials, weight, 1e-6
+        )
+        assert torch.equal(actual_combined, expected_combined)
+        assert torch.equal(actual_normed, expected_normed)
+
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        actual_combined, actual_normed = gfx90a_qwen_hc_combine_norm(
+            block, residual, partials, weight, 1e-6
+        )
+    graph.replay()
+    torch.cuda.synchronize()
+    combined_ref = actual_combined.clone()
+    normed_ref = actual_normed.clone()
+    for _ in range(1000):
+        graph.replay()
+    torch.cuda.synchronize()
+    assert torch.equal(actual_combined, combined_ref)
+    assert torch.equal(actual_normed, normed_ref)
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
