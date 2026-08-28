@@ -1310,6 +1310,37 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 
+## Rejected: single-rank replicated shared-expert owner
+
+The user-proposed split between routed and shared expert work was evaluated
+after the BF16-state checkpoint.  A real-shape module oracle first showed why
+it was plausible: the retained TP4 local shared chain (`I=160`) measured
+`23.679 us`, while a fully replicated TP1 chain (`I=640`) measured only
+`26.720 us`.  The individual local/full gate-up+SwiGLU kernels were
+`20.639/21.759 us`, and local/full down projections were `16.000/18.560 us`.
+Thus the full shared expert was launch/occupancy dominated rather than four
+times slower.
+
+An opt-in implementation replicated full shared weights on every rank, chose
+`layer_id % 4` as the owner, skipped shared compute on the other ranks, and
+relied on the existing post-MoE TP all-reduce to sum the owner's shared output
+with all routed partials.  It added about 0.37 GiB/GCD and reduced the KV pool
+from 486400 to 456640 tokens.  Decode graph BS1 captured on all four ranks.
+
+Correctness initially passed: three forced-256 requests retained
+`ac55ed9f7239753d`, France returned exactly
+`The capital of France is **Paris**.`, and the 2030+64 boundary retained
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
+Eight subsequent hot short requests were stable at `77.90--78.08 tok/s`, with
+server decode windows around `82.4 tok/s`; this overlaps the BF16 production
+range rather than proving a material gain.  More importantly, the forced-2048
+gate stopped progressing around generated token 1344 and the detokenizer
+heartbeat expired.  The candidate therefore failed the required long-run
+correctness/stability gate.  All owner wiring, replicated selectors, and
+full-shape helper exposure were removed.  A future revisit requires a dynamic
+least-loaded owner and must first explain this long-run stall; the fixed
+layer-rotated owner is not a production result.
+
 ## BF16 GDN recurrent state
 
 The SGLang Mamba state pool had still been allocated as FP32 even though the
