@@ -60,6 +60,15 @@ def completion_hash(output_ids: list[int]) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
+def first_divergence(actual: list[int], expected: list[int]) -> int | None:
+    for index, (lhs, rhs) in enumerate(zip(actual, expected)):
+        if lhs != rhs:
+            return index
+    if len(actual) != len(expected):
+        return min(len(actual), len(expected))
+    return None
+
+
 def send(url: str, payload: dict, barrier: threading.Barrier, timeout: int):
     target = urllib.parse.urlsplit(url)
     body = json.dumps(payload).encode()
@@ -92,7 +101,9 @@ def main() -> None:
     args = parser.parse_args()
 
     reference_hashes: list[str] | None = None
+    reference_outputs: list[list[int]] | None = None
     measured_rates = []
+    measured_hash_exact = []
     for rep in range(args.warmups + args.reps):
         barrier = threading.Barrier(args.concurrency + 1)
         nonce = time.time_ns()
@@ -125,14 +136,26 @@ def main() -> None:
         lengths = [len(ids) for ids in outputs]
         hashes = [completion_hash(ids) for ids in outputs]
         finishes = [body.get("meta_info", {}).get("finish_reason") for _, body in results]
-        if reference_hashes is None:
+        phase = "warmup" if rep < args.warmups else "measure"
+        if phase == "measure" and reference_hashes is None:
+            # JIT/admission warmup can use a different batch composition.  The
+            # first measured steady round is the trajectory reference.
             reference_hashes = hashes
-        hash_exact = hashes == reference_hashes
+            reference_outputs = outputs
+        hash_exact = None if reference_hashes is None else hashes == reference_hashes
+        divergences = (
+            None
+            if reference_outputs is None
+            else [
+                first_divergence(actual, expected)
+                for actual, expected in zip(outputs, reference_outputs)
+            ]
+        )
         length_exact = all(length == args.tokens for length in lengths)
         aggregate = sum(lengths) / group_wall
-        phase = "warmup" if rep < args.warmups else "measure"
         if phase == "measure":
             measured_rates.append(aggregate)
+            measured_hash_exact.append(bool(hash_exact))
         print(
             json.dumps(
                 {
@@ -146,6 +169,7 @@ def main() -> None:
                     "request_wall_p95_s": round(percentile(walls, 0.95), 6),
                     "length_exact": length_exact,
                     "hash_exact": hash_exact,
+                    "first_divergence": divergences,
                     "lengths": lengths,
                     "hashes": hashes,
                     "finish": finishes,
@@ -167,6 +191,8 @@ def main() -> None:
                     "median_tok_s": round(statistics.median(measured_rates), 3),
                     "trimmed_mean_tok_s": round(statistics.mean(trimmed), 3),
                     "rates": [round(rate, 3) for rate in measured_rates],
+                    "hash_stable_rounds": sum(measured_hash_exact),
+                    "hash_measured_rounds": len(measured_hash_exact),
                 },
                 separators=(",", ":"),
             )
