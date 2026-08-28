@@ -41,6 +41,7 @@ from sglang.srt.configs.qwen3_5 import (
 from sglang.srt.distributed import get_pp_group
 from sglang.srt.eplb.expert_distribution import get_global_expert_distribution_recorder
 from sglang.srt.eplb.expert_location import ModelConfigForExpertLocation
+from sglang.srt.environ import envs
 from sglang.srt.layers.attention.mamba.mamba import mamba_v2_sharded_weight_loader
 from sglang.srt.layers.communicator import LayerCommunicator, LayerScatterModes
 from sglang.srt.layers.dp_attention import (
@@ -785,7 +786,31 @@ class Qwen3_5GatedDeltaNet(nn.Module):
                     backend, projected_states_qkvz, projected_states_ba, forward_batch
                 )
 
-        if (
+        use_gfx90a_decode_views = (
+            envs.SGLANG_QWEN4_GFX90A_GDN_VIEW_SPLIT.get()
+            and torch.version.hip is not None
+            and forward_batch.forward_mode.is_decode()
+            and projected_states_qkvz.shape[0] == 1
+            and projected_states_ba.shape[0] == 1
+            and projected_states_qkvz.is_contiguous()
+            and projected_states_ba.is_contiguous()
+        )
+        if use_gfx90a_decode_views:
+            k_tp = self.key_dim // self.attn_tp_size
+            v_tp = self.value_dim // self.attn_tp_size
+            nv_tp = self.num_v_heads // self.attn_tp_size
+            qkv_width = 2 * k_tp + v_tp
+            mixed_qkv = projected_states_qkvz[:, :qkv_width]
+            z = projected_states_qkvz[:, qkv_width:].reshape(
+                1, nv_tp, self.head_v_dim
+            )
+            b = projected_states_ba[:, :nv_tp]
+            a = projected_states_ba[:, nv_tp:]
+            assert mixed_qkv.is_contiguous()
+            assert z.is_contiguous()
+            assert b.is_contiguous()
+            assert a.is_contiguous()
+        elif (
             self.num_v_heads // self.num_k_heads in _GDN_FUSED_QKVZBA_RATIOS
             and not _is_npu
         ):

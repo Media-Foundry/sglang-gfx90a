@@ -1979,3 +1979,20 @@ the real critical-rank occupancy, however, live=3 measured best candidate
 `17.47 us`.  Repeated per-row ID scans cost more than the existing remote CTA
 early exits.  The compact kernel and wrapper were fully removed without a
 service run.
+
+The BS1 GDN projection split was then removed without changing arithmetic.
+Qwen's local projection tensors are already laid out as contiguous
+`[Q|K|V|Z]` and `[B|A]`; with one row, the `Q|K|V`, `Z`, `B`, and `A` slices
+are all contiguous views even though their parent row is wider.  The guarded
+decode path now passes those views directly instead of launching the Triton
+split/copy kernel.  Thirty-two random-shape oracles were bitwise exact and
+verified all four views contiguous.  Fixed-input graph-BS1 native-AR improved
+from control trim `79.044` to candidate trim `79.503 tok/s` (+0.58%), with
+8/8 identical completion hashes.  France returned exactly
+`The capital of France is **Paris**.` with normal stop.  Forced 2048-token
+output retained historical output-ID SHA-256
+`7f2c43f87821f42cd2d5d48bfa4bf764726c92bf4d0dd2e915375294b4777aaf`
+and text SHA-256
+`7213f2c89dc4a37bef5b2f77f1383bce00a9362e7d4cea85b21c108384dc54dc`.
+The exact-shape decode optimization defaults on with
+`SGLANG_QWEN4_GFX90A_GDN_VIEW_SPLIT=0` as rollback.

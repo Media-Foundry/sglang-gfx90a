@@ -337,6 +337,9 @@ class Envs:
     # Fuse Qwen4's HC inject-gate partial dots into the gfx90a HC down
     # projection and carry them across the sublayer collective.
     SGLANG_QWEN4_GFX90A_HC_GATE_FUSION = EnvBool(True)
+    # BS1 GDN input projections are already [Q|K|V|Z] and [B|A].  Permit a
+    # zero-copy decode split instead of materializing four copied tensors.
+    SGLANG_QWEN4_GFX90A_GDN_VIEW_SPLIT = EnvBool(True)
     # Route selected, shape-compatible Qwen4 BF16 decode linears through the
     # native gfx90a wave64 GEMV.  0=off, 1=all, 2=attention output, 3=attention
     # input, 4=shared expert, 5=router, 6=PLE/indexer (A/B isolation modes).
