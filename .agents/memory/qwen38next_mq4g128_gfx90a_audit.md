@@ -1938,3 +1938,22 @@ steady throughput was only `77.28--77.66 tok/s` versus the adjacent A2
 `78.24--78.42 tok/s`.  Even the shared FFN and 512-row router GEMV compete
 enough for gfx90a CU/HBM resources to outweigh launch hiding.  The stream
 plumbing and selector were fully removed.
+
+An additional router Top-10 audit tested whether the earlier custom-kernel
+regression was merely caused by its one-wave launch shape.  A bitwise-exact
+variant retained a two-wave/128-thread CTA like the production E=512 path;
+the second wave intentionally exited for the single decode row.  Its isolated
+ABBA improved `14.81 -> 11.79 us` (20.4%), and the 32-seed ID/weight oracle
+passed bitwise.  End-to-end evidence contradicted the microbenchmark: fixed
+256-token native-AR fell from control trim `79.092 tok/s` to candidate trim
+`73.159 tok/s` (-7.5%), while all seven completion hashes remained exact.
+The selector and launch experiment were fully reverted.  Do not revisit the
+router by changing CTA footprint alone; it perturbs the full graph despite a
+lower isolated device time.
+
+Instantaneous DPM clocks sampled during collectives, barriers, or device wait
+periods are not valid evidence of a compute-frequency limiter.  Communication
+phases naturally downclock on MI250.  Clock locking and alternate-GCD layouts
+are therefore excluded from the optimization plan; production topology stays
+on physical GCDs 0,1,2,3 so the 0/1 and 2/3 same-package high-bandwidth links
+remain available.
