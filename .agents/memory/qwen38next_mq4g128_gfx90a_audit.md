@@ -491,6 +491,42 @@ mix/combine tests passed 25/25 on gfx90a. The combined kernel suite passed
 one unrelated BF16 `M=1024, H=2048, group=1024` case exceeded the existing
 tolerance at 1 of 2,097,152 elements (`0.015625` absolute difference).
 
+## Combine-produced RMS stats oracle (rejected)
+
+An independent, production-disconnected oracle tested the exact BS1 boundary
+`attn_hyper_connection.combine -> mlp_hyper_connection.mix`.  The existing
+precomputed-gate combine apply uses eight CTAs, each covering half a 2560-wide
+branch.  The oracle instead used four 160-thread CTAs, one per full branch.
+Each thread applied two eight-element vectors, rounded the combined residual to
+BF16, then accumulated both vectors before the same warp/CTA reduction tree as
+`GroupedGemmaRMSNorm<2560>`.  It emitted four FP32 sums of squares alongside
+the raw BF16 residual.
+
+The following split-4 down kernel maps each K split exactly to one HC branch.
+It read the raw residual, corresponding norm-weight slice, and branch sum of
+squares; reconstructed the Gemma-normalized BF16 values in LDS; and retained
+the existing wave64 down dot and fixed FP32 partial layout.  No normalized
+`[1,10240]` tensor was materialized in the timed candidate.
+
+Correctness passed all gates: combined raw BF16, a debug materialization of
+normalized BF16, and split-4 down FP32 partials were all bitwise exact; 20
+independent input seeds remained exact; and 1000 captured-graph replays kept
+raw/partial outputs exact with no stale state.
+
+Seven-round graph ABBA for the complete boundary was nevertheless neutral:
+
+```text
+A = current combine apply + grouped RMS + current split-4 down: 14.192 us
+B = combine+sumsq + raw/norm direct split-4 down:             13.986 us
+saved:                                                         0.206 us (1.45%)
+```
+
+The numerical design is valid, but every one of the 80 row-block CTAs per
+branch reconstructs the same 2560 normalized values in private LDS.  The
+repeated norm-weight load and elementwise work almost completely consume the
+standalone grouped-RMS launch saving.  This is far below the production gate,
+so the oracle was removed and no selector/service integration was attempted.
+
 ## Single-kernel gfx90a FWHT128
 
 The MQ4 activation rotation was a hidden launch-count bottleneck. Each
@@ -1292,3 +1328,9 @@ arm means are approximately `75.077` versus `74.617 tok/s`, a small but stable
 0.62% gain.  All 39 new requests retained hash `ac55ed9f7239753d`.
 `SGLANG_QWEN4_GFX90A_HC_SPLIT_REDUCE_IN_UP=0` restores the standalone
 reduction; the fused form defaults on.
+
+An isolated HC-up weight-only INT8 prototype was also rejected.  Per-row
+symmetric INT8 weights reduced the real `10240 x 320` up kernel only from
+`11.21` to `10.97 us` (about 2.1%) while already introducing max BF16 output
+error `0.00390625` and relative L2 error `7.8e-4`.  The full-model ceiling is
+well below 0.2%, so neither the kernel nor an INT8 shadow cache was retained.
