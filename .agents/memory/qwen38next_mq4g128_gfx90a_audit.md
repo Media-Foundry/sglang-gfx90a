@@ -2449,3 +2449,26 @@ resident decode fell to approximately `387 -> 381 tok/s` and HTTP aggregate to
 `242.80 tok/s`, versus roughly `650--675` resident and `618--629` HTTP with
 AIter peer-read. Thus the custom collective remains essential even at the
 larger batch payload; RCCL is not a throughput-tier crossover.
+
+## 2026-08-29: M64 expert-owned MQ4 reaches about 1k tok/s
+
+The earlier BS64 rejection compared only grouped-A4 and generic indexed MQ4;
+the expert-owned sorter/projection was restricted to M16/M32. It is now
+specialized for the real EP4 M64 gate/up `(64,10,1280,2560)` and flattened
+down `(640,1,2560,640)` shapes. On a 160-local-assignment sample, gate/up
+improved `685.94 -> 470.41 us` (1.46x) and down
+`1048.83 -> 247.69 us` (4.23x). Both were bitwise equal to indexed output and
+stable for 1000 graph replays.
+
+With grouped selection deferred to M128, the 32/64 graph service sustained
+approximately `1004 -> 990 tok/s` during the resident 64-request decode
+window, versus only `538--541 tok/s` for the previous M64 indexed arm and
+`478--481 tok/s` for grouped A4. All 64 requests completed exactly 512 tokens.
+The full HTTP aggregate was only `270.22 tok/s` because the known hybrid-state
+admission path spent about 90 seconds serially admitting heterogeneous prompts;
+that delay is reported separately and is not a decode-kernel regression.
+
+This is a material multi-request checkpoint. The M64 selector defaults on and
+the grouped threshold defaults to 128. The next scaling tier is M128
+expert-owned with a 128-slot recurrent-state pool and a narrowly captured
+BS128 graph; this is the direct route from about 1k toward 1200 tok/s.

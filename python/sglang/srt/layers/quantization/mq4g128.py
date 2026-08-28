@@ -260,6 +260,11 @@ class Mq4g128RoutedMoEMethod:
             envs.SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE.get()
             and (
                 (
+                    envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M64.get()
+                    and x.shape[0] == 64
+                )
+                or
+                (
                     envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32.get()
                     and x.shape[0] == 32
                 )
