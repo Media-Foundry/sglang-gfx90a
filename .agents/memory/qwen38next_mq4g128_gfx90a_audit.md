@@ -1916,3 +1916,15 @@ epochs and left device signals spinning; `/stop_profile` could not recover it
 and the service had to be terminated.  Prefer the previously validated
 device-realtime marker method for narrow boundaries, and always remove marker
 code after capture.
+
+The trace's large two-stage LM-head collective duration was also a waiting
+artifact rather than removable bandwidth.  An opt-in prototype kept each
+rank's 62,080-vocabulary logits shard in the model graph, took its local
+argmax, and all-gathered only four `(value, global_id)` candidates.  Greedy
+candidate-only and same-process forced full-gather fallback produced identical
+64- and 256-token text, and France remained correct.  Nevertheless, B stayed
+at `78.20--78.33 tok/s`; return A measured `78.24--78.42 tok/s`.  Moreover,
+changing the graph output/buffer shape moved the independent-service fixed
+hash even though B's candidate and B's full-gather fallback agreed.  With no
+speedup and weaker cross-process numerical continuity, the sharded-greedy
+fields, sampler branch and environment switch were fully removed.
