@@ -2391,3 +2391,15 @@ resident decode to roughly `252--265 tok/s`; the HTTP aggregate was
 admission. This is not a production speedup yet. The next PP experiment must
 first add the missing `E=256,M=16` expert-owned MQ4 path and then repair the
 custom-AR/PP epoch ordering; otherwise TP4/EP4 remains faster.
+
+The missing EP2 specialization was then enabled by allowing the already
+E-templated expert-owned sorter/projection to accept 256 local experts at M16.
+On the exact PP shapes it remained bitwise equal to indexed output for every
+valid assignment and improved gate/up `363.36 -> 310.56 us` (17.0%) and down
+`286.88 -> 201.60 us` (42.3%). It is retained as an opt-in PP capability and
+does not affect the TP4 default. In the async-NCCL service, however, resident
+decode remained about `253--267 tok/s`; 32x256 completed exactly, with HTTP
+aggregate `101.78 tok/s` after including admission. Collective/pipeline
+scheduling dominates the saved local MoE time. TP2xPP2 is therefore not the
+route to the 1200 tok/s four-GCD target in its current SGLang PP protocol;
+optimization returns to the TP4/EP4 BS16/BS32 graph.

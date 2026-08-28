@@ -175,7 +175,11 @@ def mq4g128_indexed(
             "SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16", "0"
         )
         == "1"
-        and e == 128
+        # TP4/EP4 owns 128 experts per rank.  The TP2xPP2/EP2 pipeline
+        # profile owns 256 experts per rank but presents the same M16 gate
+        # and flattened-down shapes to each stage; the sorter/projection are
+        # already templated by E and remain graph-static for either layout.
+        and e in (128, 256)
         and (
             (m, t, n, k) == (16, 10, 1280, 2560)
             or (m, t, n, k) == (160, 1, 2560, 640)
