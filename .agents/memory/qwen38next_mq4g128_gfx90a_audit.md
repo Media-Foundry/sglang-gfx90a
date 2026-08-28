@@ -2343,3 +2343,22 @@ length, and the semantic oracle answered that Paris is the capital of France.
 The extension is retained because it removes a launch, is exact, and shows no
 multi-request regression; it is not counted as material progress toward the
 1200 tok/s target.
+
+## 2026-08-29: BS64 decode tier screened and rejected
+
+The concurrent harness was extended to 64 distinct prompts so the larger tier
+does not measure duplicated prompts, cache reuse, or identical router traces.
+Both candidates captured only BS32/BS64 graphs with 64 BF16 recurrent-state
+slots.  The production grouped-A4 route sustained only about `478--481 tok/s`
+once all requests were resident.  Raising the grouped threshold to 128 forced
+the indexed assignment route at M64 and improved resident decode to
+approximately `538--541 tok/s` (about 12.6%), but remained materially below
+the BS32 production result of `628.73 tok/s`.
+
+The indexed arm completed all 64 requests at exactly 256 tokens.  Its first
+measured repeat was internally hash-stable for every request.  Admission must
+be reported separately: with radix caching disabled, 64 heterogeneous prompts
+were admitted/prefilled in chunks and warm request throughput was only about
+`112.6 tok/s`, despite the much faster resident decode window.  Therefore BS64
+is not added to the production graph set, and subsequent optimization remains
+focused on the BS16/BS32 decode critical path.
