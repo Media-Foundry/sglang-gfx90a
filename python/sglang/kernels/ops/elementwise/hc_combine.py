@@ -42,6 +42,10 @@ def _jit_hc_combine_module(hc_count: int, hidden_size: int, dtype: torch.dtype) 
         cuda_wrappers=[
             ("hc_combine", f"HcCombineKernel<{args}>::run"),
             ("hc_combine_split", f"HcCombineSplitKernel<{args}>::run"),
+            (
+                "hc_combine_apply_precomputed",
+                f"HcCombineSplitKernel<{args}>::apply_precomputed",
+            ),
         ],
     )
 
@@ -133,4 +137,19 @@ def hc_combine_split(
     partials = _get_partials(hc_count, r.device, rows)[:rows]
     module = _jit_hc_combine_module(hc_count, hidden_size, residual.dtype)
     module.hc_combine_split(y, r, n, inject_weight, out, partials)
+    return out.reshape(residual.shape)
+
+
+def hc_combine_apply_precomputed(
+    block_output: torch.Tensor,
+    residual: torch.Tensor,
+    partials: torch.Tensor,
+    hc_count: int,
+    hidden_size: int,
+) -> torch.Tensor:
+    y = block_output.reshape(-1, hidden_size)
+    r = residual.reshape(-1, hc_count * hidden_size)
+    out = torch.empty_like(r)
+    module = _jit_hc_combine_module(hc_count, hidden_size, residual.dtype)
+    module.hc_combine_apply_precomputed(y, r, out, partials)
     return out.reshape(residual.shape)

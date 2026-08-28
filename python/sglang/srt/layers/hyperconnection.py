@@ -249,7 +249,36 @@ class GatedResidual(HyperConnectionBase):
             hyper_input_normed = self.hc_norm(
                 hyper_input.unflatten(-1, (self.hc_count, self.hidden_size))
             ).flatten(-2)
+        precomputed_gate_partials = None
         if (
+            _is_hip
+            and is_gfx90a_supported()
+            and hyper_input_normed.shape == (1, 10240)
+            and hyper_input_normed.dtype == torch.bfloat16
+            and self.hc_count == 4
+            and self.hidden_size == 2560
+            and hasattr(self, "block_inject_weight")
+        ):
+            from sglang.srt.environ import envs
+
+            if envs.SGLANG_QWEN4_GFX90A_HC_GATE_FUSION.get():
+                from sglang.kernels.ops.hyperconnection.gfx90a_hc_mix import (
+                    gfx90a_qwen_hc_mix_with_gate,
+                )
+
+                mixed_input, precomputed_gate_partials = (
+                    gfx90a_qwen_hc_mix_with_gate(
+                        hyper_input_normed,
+                        self.input_mix_weight_down.weight,
+                        self.input_mix_weight_up.weight,
+                        self.block_inject_weight.weight,
+                    )
+                )
+            else:
+                mixed_input = None
+        else:
+            mixed_input = None
+        if mixed_input is None and (
             self._jit_mix_ok
             and hyper_input_normed.is_cuda
             and not _is_hip
@@ -272,7 +301,7 @@ class GatedResidual(HyperConnectionBase):
                 self.hc_count,
                 self.hidden_size,
             ).to(self.params_dtype)
-        elif fused_hc_mix_supported(
+        elif mixed_input is None and fused_hc_mix_supported(
             hyper_input_normed,
             self.input_mix_weight_down.weight,
             self.input_mix_weight_up.weight,
@@ -284,7 +313,7 @@ class GatedResidual(HyperConnectionBase):
                 self.hc_count,
                 self.hidden_size,
             ).to(self.params_dtype)
-        else:
+        elif mixed_input is None:
             mixed_input = self._mix_compute(
                 hyper_input_normed,
                 self.input_mix_weight_down.weight,
@@ -292,14 +321,37 @@ class GatedResidual(HyperConnectionBase):
                 self.hc_count,
                 self.hidden_size,
             ).to(self.params_dtype)
+        if precomputed_gate_partials is not None:
+            return mixed_input, (
+                hyper_input,
+                hyper_input_normed,
+                precomputed_gate_partials,
+            )
         return mixed_input, (hyper_input, hyper_input_normed)
 
     def combine(self, block_output: torch.Tensor, residuals) -> torch.Tensor:
-        hyper_input, hyper_input_normed = residuals
+        if len(residuals) == 3:
+            hyper_input, hyper_input_normed, precomputed_gate_partials = residuals
+        else:
+            hyper_input, hyper_input_normed = residuals
+            precomputed_gate_partials = None
         assert hyper_input.shape[-1] == self.hc_count * self.hidden_size
         assert block_output.shape[-1] == self.hidden_size
         if block_output.shape[0] == 0:
             return hyper_input.to(self.params_dtype)
+
+        if precomputed_gate_partials is not None:
+            from sglang.kernels.ops.elementwise.hc_combine import (
+                hc_combine_apply_precomputed,
+            )
+
+            return hc_combine_apply_precomputed(
+                block_output,
+                hyper_input,
+                precomputed_gate_partials,
+                self.hc_count,
+                self.hidden_size,
+            )
 
         if (
             self._jit_combine_ok

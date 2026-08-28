@@ -18,7 +18,13 @@ def _module(down_rows: int = 1, up_rows: int = 1) -> Module:
         "gfx90a_qwen_hc_mix_rows",
         *args,
         cuda_files=["hyperconnection/gfx90a_hc_mix.cuh"],
-        cuda_wrappers=[("run", f"sglang::Gfx90aQwenHcMix<{args}>::run")],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aQwenHcMix<{args}>::run"),
+            (
+                "run_with_gate",
+                f"sglang::Gfx90aQwenHcMix<{args}>::run_with_gate",
+            ),
+        ],
         extra_cuda_cflags=["-O3"],
     )
 
@@ -33,3 +39,21 @@ def gfx90a_qwen_hc_mix(
         raise ValueError("SGLANG_QWEN4_GFX90A_HC_ROWS must be 1, 2, 4, or 8")
     _module(rows, rows).run(x, w_down, w_up, workspace, out)
     return out
+
+
+def gfx90a_qwen_hc_mix_with_gate(
+    x: torch.Tensor,
+    w_down: torch.Tensor,
+    w_up: torch.Tensor,
+    inject_weight: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    workspace = torch.empty((1, 320), dtype=torch.float32, device=x.device)
+    gate_partials = torch.empty((1, 8, 4), dtype=torch.float32, device=x.device)
+    out = torch.empty((1, 2560), dtype=x.dtype, device=x.device)
+    rows = int(os.environ.get("SGLANG_QWEN4_GFX90A_HC_ROWS", "1"))
+    if rows not in (1, 2, 4, 8):
+        raise ValueError("SGLANG_QWEN4_GFX90A_HC_ROWS must be 1, 2, 4, or 8")
+    _module(rows, rows).run_with_gate(
+        x, w_down, w_up, inject_weight, workspace, gate_partials, out
+    )
+    return out, gate_partials

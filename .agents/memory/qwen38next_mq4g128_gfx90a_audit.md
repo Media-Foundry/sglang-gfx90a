@@ -844,3 +844,36 @@ us (256), and 12.02 us (original 512).  All outputs were bitwise equal, but
 smaller CTAs require more signal-bearing blocks and do not reduce the XGMI
 critical path.  The AIter source and production `.so` SHA256
 `5e8695f2d3da23eb...` were restored.
+
+## 2026-08-28: fuse HC inject-gate production into HC down
+
+Qwen's HC combine gate depends only on the normalized residual available
+before the attention/MoE block, but the old graph launched its 8x4 partial-dot
+kernel after the block's TP all-reduce.  The first eight CTAs of the retained
+gfx90a HC down projection now reuse the same staged 10240-wide input and replay
+the exact 8-split, 32-thread inject-weight dot decomposition.  The 32 FP32
+partials travel in the residual tuple; after all-reduce, combine launches only
+the apply kernel.  This removes one launch per attention/MLP sublayer without
+changing BF16 rounding or the collective.
+
+The standalone oracle was bitwise exact for the mixed input, all gate
+partials, and final 10240-wide combined residual.  Ten-pair ABBA reduced the
+combined mix+combine micro path from 32.578 to 30.983 us (~4.9%).  Full-service
+ABBA, twelve 256-token requests per arm, was:
+
+- A1 off: 55.4376 tok/s trimmed;
+- B1 on: 55.8979 tok/s (+0.83%);
+- A2 off: 55.6778 tok/s;
+- B2 on: 56.1193 tok/s (+0.79%).
+
+All 48 arm requests had completion hash `1a8c2dccd3a72692`.  Two longer runs
+both stopped naturally at 502 generated tokens with identical SHA256
+`c9413cf51a4ce9af...` and ran at 57.92/58.03 tok/s.  The dedicated gfx90a
+tests cover the full bitwise oracle (2/2 passed).  The fusion is default-on
+with `SGLANG_QWEN4_GFX90A_HC_GATE_FUSION=0` as an exact rollback.
+
+The first service attempt also established an important scope guard: the
+model-final HC mixer is constructed with `use_combine=False` and therefore has
+no inject weight.  Gate fusion must require `block_inject_weight`; otherwise
+startup fails with `AttributeError` and scheduler SIGABRT cleanup.  The guard
+is retained.

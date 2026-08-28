@@ -324,6 +324,9 @@ class Envs:
     # Two-stage wave64 HIP HC mix for the exact Qwen4 decode shape. This
     # removes persistent-grid atomics/barriers; set 0 for the legacy path.
     SGLANG_QWEN4_GFX90A_HC_MIX_HIP = EnvBool(True)
+    # Fuse Qwen4's HC inject-gate partial dots into the gfx90a HC down
+    # projection and carry them across the sublayer collective.
+    SGLANG_QWEN4_GFX90A_HC_GATE_FUSION = EnvBool(True)
     # Route selected, shape-compatible Qwen4 BF16 decode linears through the
     # native gfx90a wave64 GEMV.  0=off, 1=all, 2=attention output, 3=attention
     # input, 4=shared expert, 5=router, 6=PLE/indexer (A/B isolation modes).
