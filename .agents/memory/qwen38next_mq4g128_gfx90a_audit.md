@@ -989,6 +989,19 @@ the exact prior SHA256 `82d5ee5b1069f91e...`.  The extra graph added only
 about 0.01 GiB and roughly 0.7 seconds to capture.  The exact rollback is
 `SGLANG_QWEN4_GFX90A_QSA_COMPRESSION_PHASE_GRAPH=0`.
 
+### Rejected: cross-layer shared dense indices
+
+Dense logical indices are layer-invariant, so an experiment generated the
+graph-stable `[BS,2051]` tensor in the first full-attention layer and reused it
+in the remaining eleven.  Short-request ABBA looked mildly positive:
+`69.0500` and `69.1139 tok/s` enabled versus `68.6257 tok/s` disabled
+(+0.62--0.71%), and all 256-token hashes matched.  The stronger 2030+64
+dense/compression/sparse boundary repeat failed: the first run retained SHA
+`82d5ee5b...`, while the second stopped at token 44 with a different hash.
+This exposed an unsafe cross-layer graph tensor/stream lifetime despite the
+short oracle.  The complete shared-buffer implementation and switch were
+removed; per-layer dense-index generation remains the correctness baseline.
+
 ### Rejected: unnormalized gfx90a router Top-K
 
 Qwen sets `norm_topk_prob=None`, so the custom gfx90a Top-K selector had been
