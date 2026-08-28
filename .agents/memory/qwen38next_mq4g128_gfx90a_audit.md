@@ -2305,3 +2305,24 @@ A coarse scheduler WAR barrier was also tested as an oracle for the existing
 cross-repeat greedy hash drift.  After JIT warmup it retained normal
 `628--631 tok/s` throughput but did not stabilize completion hashes, excluding
 the missing HIP external-event fence as the source of this particular drift.
+
+## 2026-08-29: direct-paged QSA consumer rejected
+
+An isolated graph oracle removed the QSA compact K/V scratch and instead
+resolved each logical top-k position through `req_to_token` inside the
+attention split kernel.  It compared the complete production
+`cu_seqlens + compact + packed attention` chain against the direct consumer at
+BS16/BS32 and effective lengths 128/512/2048.  All eager and graph outputs
+were bitwise exact.
+
+With one query head per CTA, direct paging was useful only at the shortest
+length: BS32 L128 changed about `69.0 -> 59.4 us`.  At L512 and L2048 it
+regressed `168.4 -> 208.8 us` and `551.6 -> 793.9 us`, because six heads each
+repeated the page-table and paged-KV reads.  A three-head CTA then staged K/V
+for reuse in LDS.  After correcting its per-head output-lane mapping it also
+remained bitwise exact, but was slower everywhere: BS32 L128/L512/L2048 moved
+approximately `68.1 -> 91.8`, `166.0 -> 360.5`, and `549.0 -> 1526.5 us`.
+The 768-thread CTA and per-position LDS barriers cost much more than the saved
+K/V reads.  Even the sole positive point saved only about `0.12 ms/step`
+across twelve QSA layers, far below the structural threshold.  All oracle code
+was removed and production remains on compact+packed QSA.
