@@ -1080,3 +1080,56 @@ decode graph's scheduling/critical path absorbed the module-level saving.
 The HIP kernel, default-off switch, production wiring, tests and benchmark
 were therefore completely removed; this path must not be reintroduced based
 on the standalone percentage alone.
+
+### Rejected: TP4/EP2 MQ4G64 module path
+
+The TP4/EP2 layout was audited and prototyped without loader or service
+integration.  With MoE-DP1, `moe_tp_size=4/2=2`; each EP rank stores 256 of the
+512 experts and each stored expert has logical intermediate shard `640/2=320`.
+The MoE-TP groups are `[0,1]` and `[2,3]`, while MoE-EP groups are `[0,2]` and
+`[1,3]`.  Standard dispatch maps the other 256 experts to `-1`; Qwen's retained
+global TP4 all-reduce sums the EP and TP partials together after the separate
+shared-expert partial is added.
+
+The checkpoint's FP8 scales are global `[128,128]` blocks: gate/up weights are
+`[640,2560]` with scales `[5,20]`, and down is `[2560,640]` with scales `[20,5]`.
+The second TP shard begins at 320, halfway through global block 2.  Generic
+AIter padding cannot load it correctly: padding local 320 to 384 makes the
+existing loader slice rank 0 as `0:384` and rank 1 as `384:640 + zeros`, instead
+of the required `0:320` and `320:640`.  A real loader would need logical-320
+weight slicing plus offset-aware scale expansion; rank 1 consumes the tail of
+block 2 and then blocks 3/4 for both w13 rows and w2 columns.
+
+Two storage designs were compared.  G128 needs only down-K padding 320 to 384,
+giving packed w13 `[256,640,20,72]` and w2 `[256,2560,3,72]`: 360 MiB/layer or
+16.875 GiB for 48 layers/GCD.  G64 needs no padding and gives
+`[256,640,40,40]` plus `[256,2560,5,40]`: 375 MiB/layer or 17.578 GiB/GCD.
+For reference, retained TP4/EP4 G128 routed storage is 337.5 MiB/layer or
+15.820 GiB/GCD.  Thus G64 costs about 1.758 GiB/GCD over EP4 and 0.703 GiB over
+the padded-G128 EP2 design.  At mean occupancy, useful scalar MAC count is the
+same as EP4, but G64 doubles group iterations/scale-zero metadata and reads
+about 11.1% more packed bytes; padded G128 instead performs about 6.7% extra
+down work.
+
+The module oracle added FWHT64, affine G64 pack/dequant, a 32-lane G64 indexed
+HIP dot, and a pure global-coordinate FP8-slice converter.  Synthetic focused
+tests passed 6/6, including valid/`-1` expert IDs and true gate/down dimensions;
+the retained G128 regression subset passed 5/5.  Raw layer-0 checkpoint tests
+for gate, up and down at offsets 0 and 320 all produced byte-identical G64 packs
+against full-checkpoint dequantize-then-slice (6/6).
+
+All microbenchmarks ran on GPU 7 only after `amd-smi process -g 7` reported
+`No running processes detected`.  Projection-only shapes were EP4 G128 gate
+`E128/M1/T10/N1280/K2560`, down `E128/M10/T1/N2560/K640`; EP2 G64 gate
+`E256/M1/T10/N640/K2560`, down `E256/M10/T1/N2560/K320`.  Invalid slots stayed
+in the fixed T10 extent.  Gate+down medians by live local assignments were:
+
+- EP4 G128 live 3/4/5: `116.639 / 122.639 / 127.439 us`;
+- EP2 G64 live 5/6/7: `123.199 / 132.240 / 129.998 us`.
+
+The realistic critical-rank comparison, roughly EP4-live4 versus EP2-live6,
+was about 7.8% slower for G64; even the high-tail live5 versus live7 comparison
+was about 2.0% slower.  Since the no-padding design increased memory and did
+not improve the module critical path, all G64 code, tests and benchmark were
+removed.  The path must not proceed to loader/service integration without a
+different kernel organization that first demonstrates a clear module win.
