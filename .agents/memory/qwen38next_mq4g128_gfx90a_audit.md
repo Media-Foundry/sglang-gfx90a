@@ -1309,6 +1309,21 @@ service requests retained completion SHA-256 prefix `ac55ed9f7239753d`.
 France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
+
+## Rejected gfx90a GDN ratio-8 fused split
+
+The production MQ4 configuration disables the global AIter switch, which made
+Qwen3.5 GDN ratio 8 use the fallback `split + cat + contiguous` path even though
+the existing fused split kernel supports this geometry.  A guarded experiment
+made ratio 8 reachable on HIP independently of `SGLANG_USE_AITER`.  Its focused
+ratio-8 test was exact, so this was not a correctness limitation.
+
+End-to-end restart measurements did not reproduce a useful gain: fused runs
+were `76.408` and `76.204 tok/s`, while the intervening fallback control was
+`76.231 tok/s`.  The apparent first-run improvement disappeared on repetition.
+The selector and test were therefore fully reverted.  A multi-stream profiler
+attempt also stalled during profiler shutdown with the shared/routed alternate
+stream active; that trace was discarded and all involved processes were killed.
 Every service/GPU experiment was preceded by `amd-smi process --json`.
 
 The split-K reduction was subsequently folded into the first phase of the HC
