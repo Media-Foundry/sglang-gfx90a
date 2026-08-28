@@ -1335,6 +1335,52 @@ TP4 graph, however, BV128 collapsed to a stable `62.52 tok/s` over twelve
 `75.9--76.3 tok/s` range.  The four-times longer CTA damages whole-graph CU
 scheduling despite the isolated timing.  The selector was fully removed and
 BV32 remains production.
+
+A separate BS1 zero-copy projection-view probe exploited Qwen3.5's already
+contiguous `[Q|K|V|Z]` and `[B|A]` outputs to remove the split/copy launch.  The
+views were contiguous for the singleton leading dimension and an oracle through
+causal convolution plus packed recurrence was bitwise exact in output, conv
+state, and SSM state.  Twelve-request service runs measured `75.669 tok/s` for
+the view candidate and `75.369 tok/s` for the immediate selector-off return
+control; the preceding independent production control was `75.859 tok/s`.
+Thus the candidate lies inside restart drift and its mean advantage against the
+two bracketing controls is negligible.  The selector and branch were removed.
+
+## Experimental wave64 HIP GDN packed decode (default off)
+
+The `hipscope` wave32/Q8 recurrence organization was adapted, rather than
+copied, into a gfx90a wave64 kernel for Qwen3.8Next's exact BS1 shape
+`[H=6, HV=48, K=V=128]` with BF16 persistent state.  It performs Q/K L2 norm,
+gating, both state GEMVs, rank-1 update, and state/output writes in one HIP
+kernel.  The CDNA2 ISA was checked for MFMA options, but this M=1 recurrence
+first benefits more from register/occupancy control than from padding a matrix
+instruction.
+
+Real-shape row-tile scans were all output-correct and measured:
+
+- rows 4: `12.65 us` trimmed;
+- rows 8: `12.48 us` trimmed;
+- rows 16: `15.39 us` trimmed;
+- rows 32: `26.49 us` trimmed;
+- Triton reference: `43.72 us` trimmed.
+
+A 256-step oracle had output max error `6.10e-5`, final-state max error
+`6.10e-4`, relative state L2 `8.09e-7`, and cosine 1.0; graph replay was
+finite.  Whole-service scheduling reversed the isolated ranking: rows 8/32/16
+gave `75.975 / 76.179 / 76.406 tok/s`, versus adjacent controls in the
+`75.37--75.86` range.  A second rows-16 restart fell to `75.480`, so the short
+request gain was not reproducible.  Three 2048-token rows-16 runs were
+`77.246 / 77.282 / 77.293`; after excluding one sparse-indexer cold control,
+the Triton controls were `77.631 / 77.807`, making HIP about 0.56% slower.
+
+All 256-token arms retained hash `ac55ed9f7239753d`; France was exact twice,
+the 2030+64 boundary retained SHA-256
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`,
+and all 2048-token arms shared SHA-256
+`393b7ef7411fbea6f8dde421c92a9f357eee4d98cee99c6da62aabddc9019c54`.
+The implementation remains available behind
+`SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED=1`, with rows selectable through
+`SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS`, but production stays on Triton.
 Every service/GPU experiment was preceded by `amd-smi process --json`.
 
 The split-K reduction was subsequently folded into the first phase of the HC

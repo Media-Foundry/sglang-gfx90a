@@ -3,7 +3,21 @@ import torch
 from sglang.srt.layers.attention.linear.kernels.kernel_backend import (
     LinearAttnKernelBase,
 )
-from sglang.srt.utils import is_cpu, is_npu, is_xpu
+from sglang.srt.utils import (
+    get_bool_env_var,
+    get_int_env_var,
+    is_cpu,
+    is_hip,
+    is_npu,
+    is_xpu,
+)
+
+_gfx90a_hip_packed_decode = is_hip() and get_bool_env_var(
+    "SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED", "False"
+)
+_gfx90a_hip_packed_rows = get_int_env_var(
+    "SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS", 16
+)
 
 if not is_cpu():
     from sglang.kernels.ops.attention.fla.chunk import chunk_gated_delta_rule
@@ -117,6 +131,32 @@ class TritonGDNKernel(LinearAttnKernelBase):
                 use_qk_l2norm_in_kernel=True,
             )
             return out.transpose(0, 1)
+
+        if (
+            _gfx90a_hip_packed_decode
+            and mixed_qkv.shape == (1, 7680)
+            and a.shape == (1, 48)
+            and b.shape == (1, 48)
+            and ssm_states.ndim == 4
+            and ssm_states.shape[1:] == (48, 128, 128)
+            and ssm_states.dtype == torch.bfloat16
+            and ssm_states.is_contiguous()
+            and cache_indices.shape == (1,)
+        ):
+            from sglang.kernels.ops.attention.gfx90a_gdn_packed_decode import (
+                gfx90a_gdn_packed_decode,
+            )
+
+            return gfx90a_gdn_packed_decode(
+                mixed_qkv,
+                a,
+                b,
+                A_log,
+                dt_bias,
+                ssm_states,
+                cache_indices,
+                rows=_gfx90a_hip_packed_rows,
+            ).transpose(0, 1)
 
         fused_recurrent_gated_delta_rule_packed_decode(
             mixed_qkv=mixed_qkv,
