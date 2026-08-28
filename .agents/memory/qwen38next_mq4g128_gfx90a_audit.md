@@ -1406,3 +1406,24 @@ disappeared (the remaining 48 belonged to prefill).  Service B1 measured
 `76.088 tok/s` versus an independent rollback A2 `75.929 tok/s`, only 0.21%.
 This is below restart noise and does not justify dual global/local ID semantics,
 so the dispatcher and kernel changes were fully removed.
+
+## Restore only Qwen shared/routed alternate-stream overlap
+
+The post-persistent runtime trace exposed that the current formal launch had
+silently dropped all historical alternate-stream variables: every GDN and MoE
+kernel was serialized on one stream.  Re-testing the switches independently
+showed that only the shared/routed MoE overlap remains useful on the current
+kernel stack:
+
+- `SGLANG_ALT_STREAM=1` only: `76.264 tok/s` trimmed;
+- plus `SGLANG_GDN_QKVZ_BA_ALT_STREAM=1`: `75.668 tok/s`;
+- plus `SGLANG_QK_NORM_ALT_STREAM=1` instead: `75.681 tok/s`;
+- all three historical switches: `75.205 tok/s`.
+
+All arms retained fixed hash `ac55ed9f7239753d`.  The routed-MQ4 HIP profile
+now defaults the base alt stream on when `SGLANG_ALT_STREAM` is absent, while
+the two GDN/QK sub-overlaps remain off.  Explicit `SGLANG_ALT_STREAM=0` is the
+rollback.  A no-explicit-alt restart confirmed the default (`75.859 tok/s`
+trimmed), returned the exact France sentence twice, and retained the 2030+64
+boundary SHA-256
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.

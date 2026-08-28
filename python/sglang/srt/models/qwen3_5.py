@@ -133,7 +133,15 @@ _is_gfx95 = is_gfx95_supported()
 _is_hip = is_hip()
 _is_xpu = is_xpu()
 _use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip
-_hip_use_alt_stream = get_bool_env_var("SGLANG_ALT_STREAM") and _is_hip
+_hip_use_alt_stream = (
+    get_bool_env_var(
+        "SGLANG_ALT_STREAM",
+        "True"
+        if get_bool_env_var("SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED")
+        else "False",
+    )
+    and _is_hip
+)
 _gdn_use_alt_stream = _is_cuda or (
     get_bool_env_var("SGLANG_GDN_QKVZ_BA_ALT_STREAM", "False") and _hip_use_alt_stream
 )
