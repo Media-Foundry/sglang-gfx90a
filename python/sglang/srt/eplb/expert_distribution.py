@@ -397,9 +397,6 @@ class _SinglePassGatherer(ABC):
 
 
 class _DetailSinglePassGatherer(_SinglePassGatherer):
-    # DeepSeek V3 has this value; should generalize later
-    _TOP_K_NUM = 8
-
     def __init__(
         self,
         server_args: ServerArgs,
@@ -407,13 +404,25 @@ class _DetailSinglePassGatherer(_SinglePassGatherer):
         rank: int,
     ):
         super().__init__(expert_location_metadata, rank)
+        model_config = server_args.get_model_config()
+        text_config = getattr(model_config, "hf_text_config", model_config.hf_config)
+        top_k_num = getattr(
+            text_config,
+            "num_experts_per_tok",
+            getattr(text_config, "num_experts_per_token", None),
+        )
+        if not isinstance(top_k_num, int) or top_k_num <= 0:
+            raise ValueError(
+                "per-token expert recording requires a positive "
+                "num_experts_per_tok (or num_experts_per_token) in the model config"
+            )
         self._metadata: Optional[Dict[str, Any]] = None
         self._topk_ids_of_layer = torch.zeros(
             (
                 expert_location_metadata.num_layers,
                 # TODO determine the max number
                 get_schedule().chunked_prefill_size * 8,
-                self._TOP_K_NUM,
+                top_k_num,
             ),
             dtype=torch.int32,
             device=get_device_namespace().device,

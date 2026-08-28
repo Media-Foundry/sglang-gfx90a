@@ -1323,15 +1323,32 @@ Duplicating all 512 routed experts could not be evaluated because the loader
 first materialized a temporary FP8 copy and OOMed while requesting another
 400 MiB.  Duplicating 128 experts did load and capture BS1: model memory rose
 from about 34.38 to 39.06 GiB/GCD, leaving 877,376 KV tokens at static memory
-fraction 0.80.  Runtime behavior was catastrophically slow, however: a
-one-token request returned, a 16-token request took about 24 seconds, and the
-256-token fixed-input harness received HTTP 502 twice.  The likely failure is
-that non-contiguous redundant physical IDs fall outside the assumptions of the
-current MQ4 grouped/indexed fast path and/or create an extreme rank straggler.
-The dispatcher and server-argument changes were fully removed.  Any future
-redundancy experiment must first make the MQ4 physical-to-local mapping and
-kernel selection redundancy-aware, and should stream checkpoint weights
-directly into MQ4 to avoid the FP8 loader peak.
+fraction 0.80.  The initial claim of catastrophic runtime slowdown was an
+experiment-harness error: Python `urllib` inherited the host proxy and its
+HTTP 502 responses never came from SGLang.  With `NO_PROXY=*`, the native
+`dynamic` control measured `75.871 tok/s` trimmed and slot-striped dispatch
+measured `76.007 tok/s`, only +0.18%.  Both produced the same stable output-ID
+hash `c8a2b8effe2952b0`, but that differed from the no-redundancy control.
+
+The per-token expert recorder also contained a real Qwen bug: it hard-coded
+DeepSeek Top-K=8 and failed Qwen Top-K=10 graph capture with a `[1,8]` versus
+`[1,10]` copy error.  It now derives Top-K from the loaded model config.  A
+256-token record then showed that the busiest EP4 rank owns an average 4.211
+of ten routed assignments per layer (histogram: max-rank load 3/4/5/6/7/8 in
+2555/5847/2835/863/165/23 layer-steps).  Offline EPLB placement plus an exact
+per-token greedy replica choice reduced this oracle to 3.347 assignments.
+
+A single-launch HIP greedy dispatcher matched the CPU oracle exactly and was
+deterministic for 100 graph replays.  With an EPLB-derived 48x640 placement,
+the service reached only `76.265 tok/s`; its stable hash changed again to
+`c83fb3c0bf412c8a`, and the France oracle returned an empty one-token stop.
+Thus the current EPLB weight relocation / MQ4 physical mapping is not
+semantically valid for this model, and neither the greedy nor stripe selector
+is retained.  The occupancy data remains useful, but any future redundancy
+work must first prove raw relocated expert weights byte-identical to their
+logical checkpoint experts before service timing.  Full 512-way duplication
+would additionally require streaming directly into MQ4 to avoid the FP8
+loader peak.
 
 ## CDNA2 matrix-kernel migration rule
 
