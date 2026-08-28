@@ -1240,3 +1240,37 @@ MQ4 shape selector unreachable, and restores the FP8 expert footprint from
 `34.38` to `43.95 GiB/GCD`.  Such a run is not comparable to the accepted
 MQ4 profile.  Every GPU launch in this experiment was preceded by a clean
 `amd-smi process --json` scan.
+
+## 2026-08-28: occupancy-oriented HC down split-K
+
+The BS1 HC down projection has shape `10240 -> 320`.  The retained one-row
+wave64 kernel launched only 80 four-wave CTAs, occupying about 26% of the 304
+CUs on one MI250 GCD.  An atomic-free split-K specialization now divides each
+row's contiguous K traversal into four parts, expands the grid to 320 CTAs,
+writes static FP32 partials, and combines them in split order with one fixed
+reduction CTA.  The existing eight-way inject-gate decomposition remains on
+the split-0 CTAs and is bitwise unchanged.  `SGLANG_QWEN4_GFX90A_HC_DOWN_SPLIT`
+accepts 1/2/4/8; split 4 is the gfx90a default and split 1 is the rollback.
+
+Forty-one-round module ABBA measured the complete down + up + gate-production
+path at `29.13 us` for split 1, `25.18 us` for split 4, and `25.36 us` for
+split 8.  Thus split 4 improves the full HC mix by about 13.6%; split 8 was
+rejected.  Four random seeds produced bitwise-identical BF16 mixed outputs and
+gate partials, and 1000 captured graph replays were finite and bitwise stable.
+The registered gfx90a HC suite passed 3/3.
+
+TP4/EP4/no-A2A graph-BS1 native-AR service ABBA used fixed 64-token input IDs,
+forced 256-token completions, twelve hot samples per arm, and two-sample trim:
+
+- A1 split 1: `69.760 tok/s`;
+- B1 split 4: `74.531 tok/s`;
+- A2 split 1: `71.894 tok/s`;
+- B2 split 4: `74.669 tok/s`.
+
+The arm means improve from about `70.827` to `74.600 tok/s`, or 5.33%; the
+neighboring A2/B2 pair is independently positive by about 3.86%.  All 50
+service requests retained completion SHA-256 prefix `ac55ed9f7239753d`.
+France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
+boundary runs retained identical SHA256
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
+Every service/GPU experiment was preceded by `amd-smi process --json`.

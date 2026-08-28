@@ -139,6 +139,93 @@ __global__ __launch_bounds__(256) void qwen_hc_down_gate_kernel(
   }
 }
 
+// Occupancy-oriented split-K variant for the BS1 down projection.  The
+// original one-row kernel launches only 80 CTAs for N=320, leaving most of a
+// 304-CU MI250 GCD idle.  Splitting the contiguous K traversal expands that
+// grid without atomics; a fixed-order second kernel combines the FP32
+// partials.  This is experimental because the split changes FP32 association.
+template <uint32_t kRows, uint32_t kSplit>
+__global__ __launch_bounds__(256) void qwen_hc_down_gate_splitk_kernel(
+    const bf16_t* __restrict__ x, const bf16_t* __restrict__ weight,
+    const bf16_t* __restrict__ inject_weight, float* __restrict__ partials,
+    float* __restrict__ gate_partials) {
+  constexpr uint32_t K = 10240;
+  constexpr uint32_t N = 320;
+  constexpr uint32_t HC = 4;
+  static_assert(K % kSplit == 0);
+  constexpr uint32_t KPart = K / kSplit;
+  __shared__ bf16_t sx[KPart];
+  const uint32_t tid = threadIdx.x;
+  const uint32_t split = blockIdx.x % kSplit;
+  const uint32_t row_block = blockIdx.x / kSplit;
+  const uint32_t k_base = split * KPart;
+  for (uint32_t k = tid * kQwenHcVec; k < KPart;
+       k += blockDim.x * kQwenHcVec)
+    *reinterpret_cast<float4*>(sx + k) =
+        *reinterpret_cast<const float4*>(x + k_base + k);
+  __syncthreads();
+
+  const uint32_t wave = tid / kQwenHcWave;
+  const uint32_t lane = tid % kQwenHcWave;
+  const uint32_t row0 = (row_block * 4 + wave) * kRows;
+  float acc[kRows] = {};
+  for (uint32_t k = lane * kQwenHcVec; k < KPart;
+       k += kQwenHcWave * kQwenHcVec) {
+    const float4 xv = *reinterpret_cast<const float4*>(sx + k);
+#pragma unroll
+    for (uint32_t r = 0; r < kRows; ++r)
+      if (row0 + r < N)
+        acc[r] += qwen_hc_dot8(*reinterpret_cast<const float4*>(
+            weight + static_cast<size_t>(row0 + r) * K + k_base + k), xv);
+  }
+#pragma unroll
+  for (uint32_t r = 0; r < kRows; ++r)
+#pragma unroll
+    for (uint32_t offset = 32; offset; offset >>= 1)
+      acc[r] += __shfl_down(acc[r], offset, 64);
+  if (lane == 0)
+#pragma unroll
+    for (uint32_t r = 0; r < kRows; ++r)
+      if (row0 + r < N)
+        partials[(static_cast<size_t>(split) * N) + row0 + r] = acc[r];
+
+  // Preserve the existing gate-partial decomposition exactly.  Only the
+  // split-0 CTA for each of the first eight row blocks produces it.
+  if (split == 0 && row_block < 8 && tid < HC * 32) {
+    const uint32_t c = tid / 32;
+    const uint32_t sublane = tid % 32;
+    const uint32_t ref_tid = row_block * 32 + sublane;
+    float sum = 0.0f;
+#pragma unroll
+    for (uint32_t j = 0; j < 5; ++j) {
+      const uint32_t vec = ref_tid + j * 256;
+      const bf16x2_t* nv = reinterpret_cast<const bf16x2_t*>(x + vec * 8);
+      const bf16x2_t* wv = reinterpret_cast<const bf16x2_t*>(
+          inject_weight + static_cast<size_t>(c) * K + vec * 8);
+#pragma unroll
+      for (uint32_t i = 0; i < 4; ++i) {
+        const auto [nx, ny] = cast<fp32x2_t>(nv[i]);
+        const auto [wx, wy] = cast<fp32x2_t>(wv[i]);
+        sum += nx * wx + ny * wy;
+      }
+    }
+    sum = warp::reduce_sum<32>(sum);
+    if (sublane == 0) gate_partials[row_block * HC + c] = sum;
+  }
+}
+
+template <uint32_t kSplit>
+__global__ __launch_bounds__(320) void qwen_hc_down_splitk_reduce_kernel(
+    const float* __restrict__ partials, float* __restrict__ out) {
+  constexpr uint32_t N = 320;
+  const uint32_t row = threadIdx.x;
+  float value = partials[row];
+#pragma unroll
+  for (uint32_t split = 1; split < kSplit; ++split)
+    value += partials[static_cast<size_t>(split) * N + row];
+  out[row] = value;
+}
+
 // HC up projection plus sigmoid gate and four-stream weighted mean.
 // A wave computes two hidden columns and keeps all four gates in registers.
 template <uint32_t kRows>
@@ -199,7 +286,7 @@ __global__ __launch_bounds__(256) void qwen_hc_up_mix_kernel(
   }
 }
 
-template <uint32_t kDownRows, uint32_t kUpRows>
+template <uint32_t kDownRows, uint32_t kUpRows, uint32_t kDownSplit = 1>
 struct Gfx90aQwenHcMix {
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView w_down,
@@ -211,15 +298,26 @@ struct Gfx90aQwenHcMix {
     TensorMatcher({1, 10240}).with_dtype<bf16_t>().with_device(device).verify(x);
     TensorMatcher({320, 10240}).with_dtype<bf16_t>().with_device(device).verify(w_down);
     TensorMatcher({10240, 320}).with_dtype<bf16_t>().with_device(device).verify(w_up);
-    TensorMatcher({1, 320}).with_dtype<float>().with_device(device).verify(workspace);
+    if constexpr (kDownSplit == 1)
+      TensorMatcher({1, 320}).with_dtype<float>().with_device(device).verify(workspace);
+    else
+      TensorMatcher({kDownSplit + 1, 320}).with_dtype<float>().with_device(device).verify(workspace);
     TensorMatcher({1, 2560}).with_dtype<bf16_t>().with_device(device).verify(out);
-    LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
-        qwen_hc_down_kernel<kDownRows>, static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const bf16_t*>(w_down.data_ptr()),
-        static_cast<float*>(workspace.data_ptr()));
+    auto workspace_ptr = static_cast<float*>(workspace.data_ptr());
+    if constexpr (kDownSplit == 1) {
+      LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
+          qwen_hc_down_kernel<kDownRows>, static_cast<const bf16_t*>(x.data_ptr()),
+          static_cast<const bf16_t*>(w_down.data_ptr()), workspace_ptr);
+    } else {
+      // The no-gate API is not used by the production Qwen path.  Keep a
+      // conservative fallback until a separate no-gate split oracle exists.
+      LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
+          qwen_hc_down_kernel<kDownRows>, static_cast<const bf16_t*>(x.data_ptr()),
+          static_cast<const bf16_t*>(w_down.data_ptr()), workspace_ptr + kDownSplit * 320);
+    }
     LaunchKernel((2560 + 4 * kUpRows - 1) / (4 * kUpRows), 256, x.device())(
         qwen_hc_up_mix_kernel<kUpRows>, static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const float*>(workspace.data_ptr()),
+        workspace_ptr + (kDownSplit == 1 ? 0 : kDownSplit * 320),
         static_cast<const bf16_t*>(w_up.data_ptr()),
         static_cast<bf16_t*>(out.data_ptr()));
   }
@@ -237,20 +335,36 @@ struct Gfx90aQwenHcMix {
     TensorMatcher({320, 10240}).with_dtype<bf16_t>().with_device(device).verify(w_down);
     TensorMatcher({10240, 320}).with_dtype<bf16_t>().with_device(device).verify(w_up);
     TensorMatcher({4, 10240}).with_dtype<bf16_t>().with_device(device).verify(inject_weight);
-    TensorMatcher({1, 320}).with_dtype<float>().with_device(device).verify(workspace);
+    if constexpr (kDownSplit == 1)
+      TensorMatcher({1, 320}).with_dtype<float>().with_device(device).verify(workspace);
+    else
+      TensorMatcher({kDownSplit + 1, 320}).with_dtype<float>().with_device(device).verify(workspace);
     TensorMatcher({1, 8, 4}).with_dtype<float>().with_device(device).verify(gate_partials);
     TensorMatcher({1, 2560}).with_dtype<bf16_t>().with_device(device).verify(out);
-    LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
-        qwen_hc_down_gate_kernel<kDownRows>,
-        static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const bf16_t*>(w_down.data_ptr()),
-        static_cast<const bf16_t*>(inject_weight.data_ptr()),
-        static_cast<float*>(workspace.data_ptr()),
-        static_cast<float*>(gate_partials.data_ptr()));
+    auto workspace_ptr = static_cast<float*>(workspace.data_ptr());
+    if constexpr (kDownSplit == 1) {
+      LaunchKernel((320 + 4 * kDownRows - 1) / (4 * kDownRows), 256, x.device())(
+          qwen_hc_down_gate_kernel<kDownRows>,
+          static_cast<const bf16_t*>(x.data_ptr()),
+          static_cast<const bf16_t*>(w_down.data_ptr()),
+          static_cast<const bf16_t*>(inject_weight.data_ptr()),
+          workspace_ptr, static_cast<float*>(gate_partials.data_ptr()));
+    } else {
+      LaunchKernel(((320 + 4 * kDownRows - 1) / (4 * kDownRows)) * kDownSplit,
+                   256, x.device())(
+          qwen_hc_down_gate_splitk_kernel<kDownRows, kDownSplit>,
+          static_cast<const bf16_t*>(x.data_ptr()),
+          static_cast<const bf16_t*>(w_down.data_ptr()),
+          static_cast<const bf16_t*>(inject_weight.data_ptr()), workspace_ptr,
+          static_cast<float*>(gate_partials.data_ptr()));
+      LaunchKernel(1, 320, x.device())(
+          qwen_hc_down_splitk_reduce_kernel<kDownSplit>, workspace_ptr,
+          workspace_ptr + kDownSplit * 320);
+    }
     LaunchKernel((2560 + 4 * kUpRows - 1) / (4 * kUpRows), 256, x.device())(
         qwen_hc_up_mix_kernel<kUpRows>,
         static_cast<const bf16_t*>(x.data_ptr()),
-        static_cast<const float*>(workspace.data_ptr()),
+        workspace_ptr + (kDownSplit == 1 ? 0 : kDownSplit * 320),
         static_cast<const bf16_t*>(w_up.data_ptr()),
         static_cast<bf16_t*>(out.data_ptr()));
   }

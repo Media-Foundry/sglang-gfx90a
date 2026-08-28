@@ -60,3 +60,47 @@ def test_qwen_hc_gate_fusion_is_bitwise_exact():
     assert torch.equal(mixed_ref, mixed_fused)
     assert torch.equal(partials_ref, partials_fused)
     assert torch.equal(out_ref, out_fused)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_hc_down_split4_matches_baseline_and_replays(monkeypatch):
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    dtype = torch.bfloat16
+    baseline = _module(1, 1, 1)
+    split4 = _module(1, 1, 4)
+    for seed in (7, 41, 123, 812):
+        torch.manual_seed(seed)
+        x = torch.randn(1, 10240, device="cuda", dtype=dtype)
+        w_down = (torch.randn(320, 10240, device="cuda") * 0.01).to(dtype)
+        w_up = (torch.randn(10240, 320, device="cuda") * 0.01).to(dtype)
+        inject = (torch.randn(4, 10240, device="cuda") * 0.01).to(dtype)
+        base_workspace = torch.empty(1, 320, device="cuda")
+        split_workspace = torch.empty(5, 320, device="cuda")
+        base_gate = torch.empty(1, 8, 4, device="cuda")
+        split_gate = torch.empty_like(base_gate)
+        base_out = torch.empty(1, 2560, device="cuda", dtype=dtype)
+        split_out = torch.empty_like(base_out)
+        baseline.run_with_gate(
+            x, w_down, w_up, inject, base_workspace, base_gate, base_out
+        )
+        split4.run_with_gate(
+            x, w_down, w_up, inject, split_workspace, split_gate, split_out
+        )
+        torch.cuda.synchronize()
+        assert torch.equal(split_gate, base_gate)
+        assert torch.equal(split_out, base_out)
+
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        split4.run_with_gate(
+            x, w_down, w_up, inject, split_workspace, split_gate, split_out
+        )
+    graph.replay()
+    torch.cuda.synchronize()
+    replay_ref = split_out.clone()
+    for _ in range(1000):
+        graph.replay()
+    torch.cuda.synchronize()
+    assert torch.equal(split_out, replay_ref)
+    assert torch.isfinite(split_out).all()
