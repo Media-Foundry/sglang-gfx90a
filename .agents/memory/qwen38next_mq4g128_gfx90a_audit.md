@@ -1216,3 +1216,27 @@ semantically correct, and two fixed 2030+64 dense/compression/sparse boundary
 runs both retained exact SHA256
 `bcb568e75fdc51e1d9b1434752248c8c9b785d9fa51b9a98e7abd13cdee1067d`.
 The feature therefore defaults on, with `=0` as the exact fallback.
+
+### Rejected: stock AIter all-reduce plus RMSNorm fusion
+
+The existing `--enable-aiter-allreduce-fusion` path was tested after the
+shared-expert gate/up+SwiGLU checkpoint because it can remove the standalone
+post-collective norm launch without changing the model weights.  TP4/EP4,
+no-A2A, graph-BS1 service A/B used identical fixed 64-token input IDs and
+forced 256-token native-AR completions.  Excluding each arm's warmup, the
+trimmed client rates were `69.760 tok/s` disabled and `69.999 tok/s` enabled,
+only `+0.34%`.  The corresponding steady server windows were approximately
+`76.3--76.4` and `76.6--76.8 tok/s`.  Every request in both arms produced the
+same completion SHA-256 prefix `ac55ed9f7239753d`.  The stock fusion is
+therefore numerically safe here but remains disabled: its launch saving does
+not survive the graph critical-path schedule strongly enough to justify a new
+default.
+
+This experiment also exposed an important launch-profile distinction.  The
+accepted MQ4 service must keep import-time `SGLANG_USE_AITER=0`; AIter custom
+all-reduce is selected independently by its default-on AR integration.  Setting
+global `SGLANG_USE_AITER=1` changes Qwen MoE construction, makes the routed
+MQ4 shape selector unreachable, and restores the FP8 expert footprint from
+`34.38` to `43.95 GiB/GCD`.  Such a run is not comparable to the accepted
+MQ4 profile.  Every GPU launch in this experiment was preceded by a clean
+`amd-smi process --json` scan.
