@@ -1310,6 +1310,55 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 
+## BF16 GDN recurrent state
+
+The SGLang Mamba state pool had still been allocated as FP32 even though the
+Qwen3.8Next GDN recurrent update is otherwise driven by BF16 model tensors.
+Using the existing public `--mamba-ssm-dtype bfloat16` contract is a real
+decode optimization rather than a new approximate kernel: it reduces the
+persistent state pool from about 0.87 to 0.44 GiB per GCD and reduces recurrent
+state traffic.  The four-GCD production launcher now makes BF16 explicit;
+`MAMBA_SSM_DTYPE=float32` is the rollback arm.
+
+Restart A/B/B measurements used native AR, TP4/EP4/no-A2A, graph BS1, the
+production MQ4 routed path and shared/routed alternate-stream overlap:
+
+- BF16 B1: short forced-256 trimmed `76.571 tok/s`; forced-2048 median
+  `78.208 tok/s`;
+- FP32 A2: short forced-256 trimmed `74.485 tok/s`; forced-2048 median
+  `76.098 tok/s`;
+- BF16 B2: short forced-256 trimmed `76.795 tok/s`; forced-2048 median
+  `78.364 tok/s`.
+
+The final B2 long request measured `78.313 tok/s`.  All short requests retained
+text SHA prefix `ac55ed9f7239753d`; the official non-thinking France request
+returned exactly `The capital of France is **Paris**.`; the 2030+64 boundary
+retained SHA-256
+`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`;
+and forced-2048 retained SHA-256
+`393b7ef7411fbea6f8dde421c92a9f357eee4d98cee99c6da62aabddc9019c54`.
+Thus the measured gain is about 3% against the adjacent FP32 restart without
+changing any of the established correctness oracles.  Every GPU run was
+preceded by `amd-smi process --json`.
+
+## CDNA2 MFMA migration constraints for MQ4
+
+The MI200 ISA reference used for subsequent work is
+`/home/pc/Code/Code/DOCs/instinct-mi200-cdna2-instruction-set-architecture.pdf`.
+The routed-expert `640` dimension is the expert intermediate dimension and is
+exactly five G128 groups in the down projection, so there is no G128 tail to
+blame there.  Candidate kernels must use native wave64 lane/accumulator
+mapping and gfx90a-supported `V_MFMA_I32_*I8` or BF16 `_1K` forms; gfx942
+intrinsics and wave32 layouts are not portable substitutes.
+
+Before another service selector is added, benchmark real occupancy buckets
+separately: A1, A2, and A4 assignment runs, each at one, two, and four wave64s
+per workgroup (64/128/256 threads).  Collect latency, VGPR, LDS, code-object
+MFMA opcode counts, occupancy, exact/relative error, and graph replay
+determinism.  Do not infer a service win from a long expert run or from a
+standalone kernel alone; the winning tile must subsequently pass full-model
+correctness and restart ABBA.
+
 ## Rejected MQ4-time Qwen wave64 Top-10 reachability
 
 The Qwen wave64 Top-10 selector was tested outside its historical global AIter
