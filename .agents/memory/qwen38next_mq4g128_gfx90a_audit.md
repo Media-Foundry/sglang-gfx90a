@@ -1334,3 +1334,23 @@ symmetric INT8 weights reduced the real `10240 x 320` up kernel only from
 `11.21` to `10.97 us` (about 2.1%) while already introducing max BF16 output
 error `0.00390625` and relative L2 error `7.8e-4`.  The full-model ceiling is
 well below 0.2%, so neither the kernel nor an INT8 shadow cache was retained.
+
+An isolated full-HC FP16 `v_dot2_f32_f16` oracle was likewise rejected.  It
+kept the production split-4 grid, inject-gate decomposition and final mixing,
+but stored both HC projection matrices in FP16 and used CDNA2 packed dot2.
+Twelve-round graph ABBA improved the complete mix only from `24.736` to
+`23.944 us` (3.20%).  The gate partials remained bitwise exact and 1000 graph
+replays were stable, while the mixed BF16 output had `max_abs=4.8828125e-4`,
+relative L2 `2.30e-4`, and cosine `0.99999994`.  The model-level ceiling is
+roughly 0.4--0.6% but an FP16 shadow would consume about 1.2 GiB/GCD, so all
+oracle code was removed.
+
+The Qwen dual-stream MoE schedule was also tested by swapping branch roles:
+routed gate/Top-K/MQ4 remained on the graph current stream while the shared
+expert ran on the side stream.  The plain swap was neutral (`74.972 tok/s`
+trimmed, exact fixed-input hash).  Giving the swapped shared side stream ROCm
+high priority produced a promising B1 `75.641`, but failed restart ABBA: A2
+was `74.924` and B3 was `74.776 tok/s`.  The candidate/control means differed
+by only about 0.28% and the sign reversed across restarts.  Both scheduling
+switches were removed; stream identity/priority alone does not resolve the
+routed/shared CU contention.
