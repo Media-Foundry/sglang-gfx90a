@@ -1341,6 +1341,20 @@ full-shape helper exposure were removed.  A future revisit requires a dynamic
 least-loaded owner and must first explain this long-run stall; the fixed
 layer-rotated owner is not a production result.
 
+### Rejected: round-robin expert placement
+
+The contiguous EP4 expert placement was tested against a rank-interleaved
+mapping in which physical rank slices held logical IDs `r, r+4, r+8, ...`.
+SGLang's existing expert-location loader and dynamic no-A2A dispatch handled
+the mapping correctly: model memory stayed 34.38 GiB/GCD, graph BS1 captured,
+and every measured forced-256 request retained hash `ac55ed9f7239753d`.
+After the first JIT request, seven reported hot rounds were tightly grouped at
+`77.07--77.18 tok/s` (roughly `77.15`), within the BF16 production restart
+range and below its best 78+ measurements.  Thus neighboring logical expert
+IDs are not creating a material EP4 straggler on this workload.  The temporary
+`round_robin` initial-location shorthand was removed rather than expanding the
+public EPLB contract for a sub-1% result.
+
 ## BF16 GDN recurrent state
 
 The SGLang Mamba state pool had still been allocated as FP32 even though the
