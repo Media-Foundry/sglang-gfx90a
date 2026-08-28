@@ -2261,3 +2261,47 @@ From the next optimization round onward, acceptance is based on real BS16 and
 BS32 resident decode with distinct prompts, exact output lengths and semantic
 or token-hash correctness.  BS1 and standalone kernels are diagnostic only;
 they are not sufficient evidence for retaining an optimization.
+
+## 2026-08-29: rejected multi-request structural experiments
+
+Three high-level candidates were screened specifically at BS16/BS32 after the
+resident baseline reached approximately `423.6/628.4 tok/s`.
+
+First, the local CK profiler was compared with PyTorch/rocBLAS on an idle
+gfx90a GCD for the real BF16 dense projection shape
+`M32 x N10240 x K2560`.  CK searched 120 XDL instances and selected an MFMA
+kernel at `80.83 us`; rocBLAS measured `67.32 us` in a 31-round median.  CK is
+therefore not a drop-in dense-GEMM win for this throughput tier.
+
+Second, the existing BS1/FP32 wave64 HIP GDN recurrence was temporarily
+extended to BS16/BS32 and BF16 recurrent state.  A focused oracle showed very
+small numerical differences (`out relative L2 <= 7.5e-7`, state relative L2
+`<= 1.9e-5`) and 1000 graph replays remained finite.  Its best isolated
+geometry changed Triton from about `53.5 -> 23.3 us` at BS16 and
+`49.6 -> 41.7 us` at BS32.  In the complete service, however, BS16 was neutral
+to slightly worse (`420.6 tok/s`) and BS32 collapsed to `200.5 tok/s`.
+Thousands of resident wave64 CTAs changed whole-graph CU/cache scheduling,
+repeating the earlier BS1 lesson that a faster recurrence microkernel is not
+a faster graph.  The implementation was completely removed.
+
+Third, DP-attention size two was revisited only for the multi-request regime:
+adjacent GCD pairs ran TP2 attention/GDN while all four ranks retained EP4
+MoE.  The first capture failed because local TP2 exposes twelve Q heads but
+the gfx90a packed-QSA selector only accepted TP4's six heads.  A temporary
+12-head extension passed 24/24 packed-QSA comparisons and allowed the BS32
+graph to capture without the historical idle-group spin.  Nevertheless the
+resident service managed only about `378.5 tok/s`; DP-to-EP gather/scatter
+synchronization outweighed the smaller attention TP group.
+
+Enabling two-batch overlap initially failed loudly because TBO did not slice
+the per-request `mamba_clear_indices`.  Slicing that field let execution
+advance, but the first workload then hit a device-side async assertion and
+aborted all four HSA queues during the hybrid-state/collective sequence.  This
+is a deeper TBO state-ordering problem, not a safe one-field compatibility
+fix.  Both the TBO field change and the optional 12-head DP selector were
+removed.  TP4/EP4 remains the production multi-request decomposition.
+
+A coarse scheduler WAR barrier was also tested as an oracle for the existing
+cross-repeat greedy hash drift.  After JIT warmup it retained normal
+`628--631 tok/s` throughput but did not stabilize completion hashes, excluding
+the missing HIP external-event fence as the source of this particular drift.
