@@ -2160,3 +2160,30 @@ retained fixed grid, while down's best compact result was `156.80 us` versus
 `150.24 us`.  Active-list construction and worker-loop scheduling therefore
 cancelled or exceeded empty-CTA savings.  The experimental code was removed;
 the fixed expert grid remains the production choice.
+## 2026-08-29: BS16 expert-owned MQ4 and loopback GC control
+
+The graph-safe expert-owned MQ4 path was extended independently to the exact
+BS16 EP4 shapes.  A 31-round oracle with 40 valid local assignments out of 160
+gave `171.20 -> 164.64 us` for gate/up and `265.36 -> 104.64 us` for down with
+eight subgroups.  Both shapes were bitwise identical to indexed output, their
+sorter invariants passed, and 1000 graph replays remained bitwise stable.  The
+masked fixed-order weighted reducer was also enabled for BS16; the complete
+MQ4 registered suite passed 11/11.
+
+Long resident service decode provided the decisive return-control:
+
+- candidate: approximately `442 -> 430 tok/s` over 1024 generated tokens;
+- `EXPERT_OWNED_M16=0` return-control: approximately `343 -> 325 tok/s`;
+- BS32 remained approximately `678 -> 637 tok/s` over 1024 tokens.
+
+Thus BS16 gains roughly 29--32% without regressing the BS32 graph tier.  All
+16 candidate and control requests completed exactly 1024 tokens with
+`finish=length`; the candidate also answered the France oracle correctly.
+
+The host environment sets global HTTP proxy variables without `NO_PROXY`.
+SGLang's post-startup `/freeze_gc` loopback RPC was consequently sent to the
+proxy and failed 30 times with HTTP 502.  The launch profile now forces
+`127.0.0.1,localhost` into both `NO_PROXY` spellings.  A fresh service then
+logged `/freeze_gc` 200 and froze tokenizer, scheduler and detokenizer GC.
+This fixes the control-plane bug, although separate long prefill/admission
+gaps remain and must not be confused with resident decode throughput.

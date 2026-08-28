@@ -170,7 +170,18 @@ def mq4g128_indexed(
             or (m, t, n, k) == (320, 1, 2560, 640)
         )
     )
-    if use_expert_owned_m32:
+    use_expert_owned_m16 = (
+        os.environ.get(
+            "SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16", "0"
+        )
+        == "1"
+        and e == 128
+        and (
+            (m, t, n, k) == (16, 10, 1280, 2560)
+            or (m, t, n, k) == (160, 1, 2560, 640)
+        )
+    )
+    if use_expert_owned_m32 or use_expert_owned_m16:
         # Remote expert slots must remain exact zeros for the later fixed-order
         # reduction.  The sorter and projection use fixed-size device buffers,
         # so this path remains safe under CUDA graph capture.

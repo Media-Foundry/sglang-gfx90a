@@ -311,6 +311,9 @@ class Envs:
     # Use fixed-grid expert-owned MQ4 projections for the exact BS32 EP4
     # gate/down shapes, avoiding CTAs for remote expert assignments.
     SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32 = EnvBool(False)
+    # The corresponding BS16 shapes use the same graph-safe sorter.  Keep a
+    # separate selector so BS16 and BS32 can be independently ABBA tested.
+    SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16 = EnvBool(False)
     # Fuse the BS1 MQ4 router-weight multiply, slot reduction and BF16 cast.
     # This preserves the original expert-dot output and ATen reduction order.
     SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE = EnvBool(True)

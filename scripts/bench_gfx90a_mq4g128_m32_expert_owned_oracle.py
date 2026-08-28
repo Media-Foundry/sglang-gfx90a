@@ -204,6 +204,8 @@ def run_shape(m: int, t: int, n: int, k: int, seed: int) -> None:
 def main() -> None:
     if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
         raise RuntimeError("gfx90a required")
+    run_shape(16, 10, 1280, 2560, 5)
+    run_shape(160, 1, 2560, 640, 9)
     run_shape(32, 10, 1280, 2560, 7)
     run_shape(320, 1, 2560, 640, 11)
 

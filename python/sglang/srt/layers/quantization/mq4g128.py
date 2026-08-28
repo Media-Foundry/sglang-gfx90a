@@ -258,8 +258,16 @@ class Mq4g128RoutedMoEMethod:
         flat_ids = ids.reshape(-1, 1).contiguous()
         use_masked_reduce = (
             envs.SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE.get()
-            and envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32.get()
-            and x.shape[0] == 32
+            and (
+                (
+                    envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32.get()
+                    and x.shape[0] == 32
+                )
+                or (
+                    envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16.get()
+                    and x.shape[0] == 16
+                )
+            )
             and not use_grouped
         )
         down = self._project(
