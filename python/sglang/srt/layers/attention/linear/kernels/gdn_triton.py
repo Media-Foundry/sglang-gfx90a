@@ -16,7 +16,7 @@ _gfx90a_hip_packed_decode = is_hip() and get_bool_env_var(
     "SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED", "False"
 )
 _gfx90a_hip_packed_rows = get_int_env_var(
-    "SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS", 16
+    "SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS", 32
 )
 
 if not is_cpu():
@@ -134,12 +134,12 @@ class TritonGDNKernel(LinearAttnKernelBase):
 
         if (
             _gfx90a_hip_packed_decode
-            and mixed_qkv.shape == (1, 7680)
-            and a.shape == (1, 48)
-            and b.shape == (1, 48)
+            and mixed_qkv.shape == (1, 2560)
+            and a.shape == (1, 12)
+            and b.shape == (1, 12)
             and ssm_states.ndim == 4
-            and ssm_states.shape[1:] == (48, 128, 128)
-            and ssm_states.dtype == torch.bfloat16
+            and ssm_states.shape[1:] == (12, 128, 128)
+            and ssm_states.dtype == torch.float32
             and ssm_states.is_contiguous()
             and cache_indices.shape == (1,)
         ):

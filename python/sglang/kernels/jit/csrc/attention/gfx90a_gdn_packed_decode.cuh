@@ -12,8 +12,8 @@
 
 namespace sglang {
 
-constexpr uint32_t kGdnH = 6;
-constexpr uint32_t kGdnHV = 48;
+constexpr uint32_t kGdnH = 4;
+constexpr uint32_t kGdnHV = 12;
 constexpr uint32_t kGdnD = 128;
 
 __device__ __forceinline__ float gdn_wave_sum(float x) {
@@ -23,14 +23,14 @@ __device__ __forceinline__ float gdn_wave_sum(float x) {
   return x;
 }
 
-template <uint32_t kRows>
+template <uint32_t kRows, bool kABf16, bool kDtBf16>
 __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
     const __hip_bfloat16* __restrict__ mixed,
     const __hip_bfloat16* __restrict__ a,
     const __hip_bfloat16* __restrict__ b,
-    const float* __restrict__ A_log,
-    const float* __restrict__ dt_bias,
-    __hip_bfloat16* __restrict__ state,
+    const void* __restrict__ A_log,
+    const void* __restrict__ dt_bias,
+    float* __restrict__ state,
     const int32_t* __restrict__ state_indices,
     __hip_bfloat16* __restrict__ out) {
   const uint32_t tile = blockIdx.x;
@@ -61,9 +61,15 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
   const float k0 = k0_raw * kscale;
   const float k1 = k1_raw * kscale;
 
-  const float x = __bfloat162float(a[hv]) + dt_bias[hv];
+  const float a_log_value = kABf16
+      ? __bfloat162float(static_cast<const __hip_bfloat16*>(A_log)[hv])
+      : static_cast<const float*>(A_log)[hv];
+  const float dt_bias_value = kDtBf16
+      ? __bfloat162float(static_cast<const __hip_bfloat16*>(dt_bias)[hv])
+      : static_cast<const float*>(dt_bias)[hv];
+  const float x = __bfloat162float(a[hv]) + dt_bias_value;
   const float softplus = x <= 20.0f ? log1pf(expf(x)) : x;
-  const float alpha = expf(-expf(A_log[hv]) * softplus);
+  const float alpha = expf(-expf(a_log_value) * softplus);
   // Match the Triton path's BF16 round-trip of sigmoid(beta).
   const __hip_bfloat16 beta_bf16 = __float2bfloat16(1.0f / (1.0f + expf(-__bfloat162float(b[hv]))));
   const float beta = __bfloat162float(beta_bf16);
@@ -76,8 +82,8 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
 #pragma unroll
   for (uint32_t r = 0; r < kRows; ++r) {
     const size_t base = state_head + (row0 + r) * kGdnD;
-    s0[r] = __bfloat162float(state[base + lane]) * alpha;
-    s1[r] = __bfloat162float(state[base + lane + 64]) * alpha;
+    s0[r] = state[base + lane] * alpha;
+    s1[r] = state[base + lane + 64] * alpha;
   }
 
   const uint32_t vbase = 2 * kGdnH * kGdnD + hv * kGdnD;
@@ -95,12 +101,12 @@ __global__ __launch_bounds__(64, 2) void gfx90a_gdn_packed_decode_kernel(
 #pragma unroll
   for (uint32_t r = 0; r < kRows; ++r) {
     const size_t base = state_head + (row0 + r) * kGdnD;
-    state[base + lane] = __float2bfloat16(s0[r]);
-    state[base + lane + 64] = __float2bfloat16(s1[r]);
+    state[base + lane] = s0[r];
+    state[base + lane + 64] = s1[r];
   }
 }
 
-template <uint32_t kRows>
+template <uint32_t kRows, bool kABf16, bool kDtBf16>
 struct Gfx90aGdnPackedDecode {
   static void run(const tvm::ffi::TensorView mixed,
                   const tvm::ffi::TensorView a,
@@ -113,23 +119,28 @@ struct Gfx90aGdnPackedDecode {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
-    TensorMatcher({1, 7680}).with_dtype<__hip_bfloat16>().with_device(device).verify(mixed);
-    TensorMatcher({1, 48}).with_dtype<__hip_bfloat16>().with_device(device).verify(a);
-    TensorMatcher({1, 48}).with_dtype<__hip_bfloat16>().with_device(device).verify(b);
-    TensorMatcher({48}).with_dtype<float>().with_device(device).verify(A_log);
-    TensorMatcher({48}).with_dtype<float>().with_device(device).verify(dt_bias);
-    TensorMatcher({-1, 48, 128, 128}).with_dtype<__hip_bfloat16>().with_device(device).verify(state);
+    TensorMatcher({1, 2560}).with_dtype<__hip_bfloat16>().with_device(device).verify(mixed);
+    TensorMatcher({1, 12}).with_dtype<__hip_bfloat16>().with_device(device).verify(a);
+    TensorMatcher({1, 12}).with_dtype<__hip_bfloat16>().with_device(device).verify(b);
+    if constexpr (kABf16)
+      TensorMatcher({12}).with_dtype<__hip_bfloat16>().with_device(device).verify(A_log);
+    else
+      TensorMatcher({12}).with_dtype<float>().with_device(device).verify(A_log);
+    if constexpr (kDtBf16)
+      TensorMatcher({12}).with_dtype<__hip_bfloat16>().with_device(device).verify(dt_bias);
+    else
+      TensorMatcher({12}).with_dtype<float>().with_device(device).verify(dt_bias);
+    TensorMatcher({-1, 12, 128, 128}).with_dtype<float>().with_device(device).verify(state);
     TensorMatcher({1}).with_dtype<int32_t>().with_device(device).verify(state_indices);
-    TensorMatcher({1, 1, 48, 128}).with_dtype<__hip_bfloat16>().with_device(device).verify(out);
+    TensorMatcher({1, 1, 12, 128}).with_dtype<__hip_bfloat16>().with_device(device).verify(out);
     static_assert(kGdnD % kRows == 0);
-    LaunchKernel(dim3(kGdnD / kRows, 48), 64, device.unwrap())(
-        gfx90a_gdn_packed_decode_kernel<kRows>,
+    LaunchKernel(dim3(kGdnD / kRows, 12), 64, device.unwrap())(
+        gfx90a_gdn_packed_decode_kernel<kRows, kABf16, kDtBf16>,
         static_cast<const __hip_bfloat16*>(mixed.data_ptr()),
         static_cast<const __hip_bfloat16*>(a.data_ptr()),
         static_cast<const __hip_bfloat16*>(b.data_ptr()),
-        static_cast<const float*>(A_log.data_ptr()),
-        static_cast<const float*>(dt_bias.data_ptr()),
-        static_cast<__hip_bfloat16*>(state.data_ptr()),
+        A_log.data_ptr(), dt_bias.data_ptr(),
+        static_cast<float*>(state.data_ptr()),
         static_cast<const int32_t*>(state_indices.data_ptr()),
         static_cast<__hip_bfloat16*>(out.data_ptr()));
   }

@@ -1360,37 +1360,47 @@ two bracketing controls is negligible.  The selector and branch were removed.
 
 The `hipscope` wave32/Q8 recurrence organization was adapted, rather than
 copied, into a gfx90a wave64 kernel for Qwen3.8Next's exact BS1 shape
-`[H=6, HV=48, K=V=128]` with BF16 persistent state.  It performs Q/K L2 norm,
+after TP4: `[H=4, HV=12, K=V=128]` with FP32 persistent state.  It performs Q/K L2 norm,
 gating, both state GEMVs, rank-1 update, and state/output writes in one HIP
 kernel.  The CDNA2 ISA was checked for MFMA options, but this M=1 recurrence
 first benefits more from register/occupancy control than from padding a matrix
 instruction.
 
-Real-shape row-tile scans were all output-correct and measured:
+Corrected real-shape row-tile scans were output bitwise exact and measured
+approximately:
 
-- rows 4: `12.65 us` trimmed;
-- rows 8: `12.48 us` trimmed;
-- rows 16: `15.39 us` trimmed;
-- rows 32: `26.49 us` trimmed;
-- Triton reference: `43.72 us` trimmed.
+- rows 4: `13.03 us` trimmed;
+- rows 8: `12.93 us` trimmed;
+- rows 16: `14.42 us` trimmed;
+- rows 32: `24.98 us` trimmed;
+- Triton reference: about `45.95 us` trimmed.
 
-A 256-step oracle had output max error `6.10e-5`, final-state max error
-`6.10e-4`, relative state L2 `8.09e-7`, and cosine 1.0; graph replay was
-finite.  Whole-service scheduling reversed the isolated ranking: rows 8/32/16
-gave `75.975 / 76.179 / 76.406 tok/s`, versus adjacent controls in the
-`75.37--75.86` range.  A second rows-16 restart fell to `75.480`, so the short
-request gain was not reproducible.  Three 2048-token rows-16 runs were
-`77.246 / 77.282 / 77.293`; after excluding one sparse-indexer cold control,
-the Triton controls were `77.631 / 77.807`, making HIP about 0.56% slower.
+The first implementation accidentally guarded on the unsharded global
+`H=6/HV=48` summary shape and BF16 state, so its initial service results were
+all silent Triton fallbacks and are not evidence about the HIP kernel.  The
+runtime contract was established fail-loud during capture: local H/HV are
+4/12, state is FP32, `A_log` is mixed BF16/FP32 across layers, and `dt_bias`
+can be FP32.  Per-dtype JIT specializations avoid conversion kernels.  With
+the corrected contract, output remained bitwise exact and FP32 state differed
+by at most `4.77e-7`; the registered test and graph replay passed.  The actual
+rows-32 service nevertheless measured only `71.806 tok/s` trimmed versus the
+75.7--76.4 production range.  Matching Triton's 48-CTA grid did not prevent
+the longer HIP register lifetime/occupancy from damaging the whole graph.
 
 All 256-token arms retained hash `ac55ed9f7239753d`; France was exact twice,
 the 2030+64 boundary retained SHA-256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`,
-and all 2048-token arms shared SHA-256
-`393b7ef7411fbea6f8dde421c92a9f357eee4d98cee99c6da62aabddc9019c54`.
 The implementation remains available behind
 `SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED=1`, with rows selectable through
 `SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS`, but production stays on Triton.
+
+A separate exact-shape HIP kernel fused sigmoid-gated 12x128 RMSNorm into the
+following `2560x1536` BF16 out-projection input staging.  Its output was
+bitwise equal to the BF16 norm materialization plus retained wave64 GEMV and
+the isolated kernel was about `9.8 us`.  Service B measured `76.301 tok/s`
+trimmed while the immediate selector-off A measured `76.386 tok/s`; France and
+the 2030+64 boundary oracle were exact.  The neutral/slightly negative fusion
+was fully removed.
 
 The existing CUDA-only fused GDN input projection was also made temporarily
 reachable on HIP.  Both checkpoint projections are BF16, so it concatenated

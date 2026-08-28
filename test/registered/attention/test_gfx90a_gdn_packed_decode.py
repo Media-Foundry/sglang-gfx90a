@@ -25,20 +25,22 @@ class TestGfx90aGdnPackedDecode(unittest.TestCase):
 
         generator = torch.Generator(device="cuda").manual_seed(20260828)
         mixed = torch.randn(
-            1, 7680, generator=generator, device="cuda", dtype=torch.bfloat16
+            1, 2560, generator=generator, device="cuda", dtype=torch.bfloat16
         )
-        a = torch.randn(1, 48, generator=generator, device="cuda", dtype=torch.bfloat16)
-        b = torch.randn(1, 48, generator=generator, device="cuda", dtype=torch.bfloat16)
-        A_log = torch.randn(48, generator=generator, device="cuda") * 0.3
-        dt_bias = torch.randn(48, generator=generator, device="cuda") * 0.1
+        a = torch.randn(1, 12, generator=generator, device="cuda", dtype=torch.bfloat16)
+        b = torch.randn(1, 12, generator=generator, device="cuda", dtype=torch.bfloat16)
+        A_log = (
+            torch.randn(12, generator=generator, device="cuda") * 0.3
+        ).to(torch.bfloat16)
+        dt_bias = torch.randn(12, generator=generator, device="cuda") * 0.1
         indices = torch.zeros(1, device="cuda", dtype=torch.int32)
         initial = torch.randn(
-            2, 48, 128, 128, generator=generator, device="cuda", dtype=torch.bfloat16
+            2, 12, 128, 128, generator=generator, device="cuda", dtype=torch.float32
         )
 
         reference_state = initial.clone()
         reference_out = torch.empty(
-            1, 1, 48, 128, device="cuda", dtype=torch.bfloat16
+            1, 1, 12, 128, device="cuda", dtype=torch.bfloat16
         )
         fused_recurrent_gated_delta_rule_packed_decode(
             mixed,

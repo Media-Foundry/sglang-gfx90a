@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 @cache_once
-def _module(rows: int) -> Module:
-    args = make_cpp_args(rows)
+def _module(rows: int, a_bf16: bool, dt_bf16: bool) -> Module:
+    args = make_cpp_args(rows, int(a_bf16), int(dt_bf16))
     return load_jit(
         "gfx90a_gdn_packed_decode",
         *args,
@@ -34,30 +34,31 @@ def gfx90a_gdn_packed_decode(
 ) -> torch.Tensor:
     """BS1 Qwen3.8Next GDN recurrence specialized for gfx90a."""
     expected = {
-        "mixed_qkv": ((1, 7680), torch.bfloat16),
-        "a": ((1, 48), torch.bfloat16),
-        "b": ((1, 48), torch.bfloat16),
-        "A_log": ((48,), torch.float32),
-        "dt_bias": ((48,), torch.float32),
+        "mixed_qkv": ((1, 2560), torch.bfloat16),
+        "a": ((1, 12), torch.bfloat16),
+        "b": ((1, 12), torch.bfloat16),
     }
     for name, tensor in (
         ("mixed_qkv", mixed_qkv),
         ("a", a),
         ("b", b),
-        ("A_log", A_log),
-        ("dt_bias", dt_bias),
     ):
         shape, dtype = expected[name]
         if tensor.shape != shape or tensor.dtype != dtype:
             raise ValueError(f"{name} must be {shape} {dtype}, got {tensor.shape} {tensor.dtype}")
-    if state.ndim != 4 or state.shape[1:] != (48, 128, 128) or state.dtype != torch.bfloat16:
-        raise ValueError("state must be [slots,48,128,128] BF16")
+    for name, tensor in (("A_log", A_log), ("dt_bias", dt_bias)):
+        if tensor.shape != (12,) or tensor.dtype not in (torch.bfloat16, torch.float32):
+            raise ValueError(f"{name} must be [12] BF16/FP32, got {tensor.shape} {tensor.dtype}")
+    if state.ndim != 4 or state.shape[1:] != (12, 128, 128) or state.dtype != torch.float32:
+        raise ValueError("state must be [slots,12,128,128] FP32")
     if state_indices.shape != (1,) or state_indices.dtype != torch.int32:
         raise ValueError("state_indices must be [1] int32")
     if not all(t.is_cuda and t.is_contiguous() for t in (mixed_qkv, a, b, A_log, dt_bias, state, state_indices)):
         raise ValueError("all gfx90a GDN inputs must be contiguous CUDA tensors")
     if rows not in (4, 8, 16, 32):
         raise ValueError("rows must be one of 4, 8, 16, 32")
-    out = torch.empty((1, 1, 48, 128), dtype=torch.bfloat16, device=mixed_qkv.device)
-    _module(rows).run(mixed_qkv, a, b, A_log, dt_bias, state, state_indices, out)
+    out = torch.empty((1, 1, 12, 128), dtype=torch.bfloat16, device=mixed_qkv.device)
+    _module(
+        rows, A_log.dtype == torch.bfloat16, dt_bias.dtype == torch.bfloat16
+    ).run(mixed_qkv, a, b, A_log, dt_bias, state, state_indices, out)
     return out
