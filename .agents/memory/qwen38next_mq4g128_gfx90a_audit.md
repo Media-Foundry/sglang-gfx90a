@@ -1957,3 +1957,25 @@ phases naturally downclock on MI250.  Clock locking and alternate-GCD layouts
 are therefore excluded from the optimization plan; production topology stays
 on physical GCDs 0,1,2,3 so the 0/1 and 2/3 same-package high-bandwidth links
 remain available.
+
+A follow-up CK/MFMA and expert-cache audit found no hidden drop-in kernel.
+Composable Kernel's gfx90a flatmm instances cover ordinary same-precision
+BF16/FP16 paths, while its closest packed A16W4 MoE and block-scale INT4
+examples exclude gfx90a and use E2M1/single-scale formats rather than MQ4's
+per-G128 affine `(scale, zero, nibbles)` representation.  The reusable low-level
+MFMA primitives had already been exercised by the repository's true-shape
+packed-BF16 and INT8 prototypes and lost to the scalar/vector kernel at A1--A4.
+Expanding a cached expert to BF16 also showed no useful device-time headroom:
+one-expert gate/up changed only `6.50 -> 6.45 us`, and down `4.72 -> 4.54 us`,
+while relative L2 moved by about `2.86e-3` and storage grew substantially.
+
+The retained 256-token routing record does show skew (mean per-layer static
+Top-8 coverage 29.1%, Top-16 41.0%, and previous-token reuse 37.1%), but a
+graph-static compact-slot gate/up prototype could not exploit it.  It scanned
+the ten IDs inside each output-row CTA, scheduled 2/3/4/5 valid-slot lanes, and
+wrote results back to their original slots, passing 8/8 bitwise oracles.  For
+the real critical-rank occupancy, however, live=3 measured best candidate
+`14.18 us` versus indexed `13.86 us`, and live=4 measured `18.50` versus
+`17.47 us`.  Repeated per-row ID scans cost more than the existing remote CTA
+early exits.  The compact kernel and wrapper were fully removed without a
+service run.
