@@ -1159,3 +1159,36 @@ combined projection time changed from `132.319` to `132.160 us`, only a
 chains cancel the saved affine operations, and gate is slightly slower.  The
 oracle kernel, wrapper and benchmark were fully removed without service
 testing.
+
+### Rejected: BS1 BF16 shared gate/up + SwiGLU fusion
+
+An isolated HIP oracle tested the real TP4 Qwen shared-expert shape
+`x=[1,2560]`, gate/up weight `[320,2560]`, and output `[1,160]`.  The reference
+chain used the retained `gfx90a_wave64_bf16_gemv` into a preallocated BF16
+`[1,320]` buffer followed by SGLang's ROCm `SiluAndMul`.  Candidate arithmetic
+explicitly retained both rounding boundaries: FP32 dot to BF16 gate/up, FP32
+SiLU to BF16, then BF16 multiply to BF16 output.
+
+The first 512-thread prototype assigned the lower and upper 32 lanes of each
+wave to gate and up.  A single 31-round interleaved ABBA run looked promising
+at `40.48 us` chain versus `28.48 us` fused (42.1%), but changing the reduction
+width changed one of 160 BF16 outputs (`max_abs=1.39698386e-9`).  It was not
+eligible for production.
+
+Two bitwise-exact wave64 variants were then tested.  The first used two
+accumulators per wave and exactly the old lane-to-K mapping and offset
+`32 -> 1` reduction tree.  The second used 16 independent wave64s per block,
+with separate gate/up waves and a shared-memory pairing boundary.  Both passed
+four random seeds bitwise and a CUDA graph capture/replay test.  The temporary
+registered tests reported `2 passed` before the experiment was removed.
+
+The apparent single-run gain of the dual-accumulator version did not survive
+independent repetitions.  Three subsequent 31-round ABBA processes measured
+fused versus the complete old chain at `-16.4%`, `-5.3%`, and `+2.1%`.  The
+16-wave version measured `-3.0%`, `-6.9%`, and `-2.9%` in three independent
+runs.  All GPU runs used GCD 7 only after `amd-smi process -g 7` reported no
+running processes.  Since no exact version met the 10% module threshold, the
+HIP kernel, JIT wrapper, default-off production selector, Qwen shared-MLP
+wiring, tests, and benchmark were fully removed.  Do not reintroduce this
+fusion based on the non-exact subgroup result or a single noisy event-timing
+run.
