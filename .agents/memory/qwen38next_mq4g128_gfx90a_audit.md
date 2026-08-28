@@ -2429,3 +2429,13 @@ that recompiling the dot in the fused multi-slot context changes its reduction
 trajectory. The prototype was removed before service testing. Any future down
 fusion must consume the existing materialized dot output or prove bitwise
 parity; semantic-only validation is insufficient.
+
+## 2026-08-29: BS32 single-batch overlap remains neutral
+
+SGLang SBO had previously been slightly negative at BS1, so it was retested
+at the materially different BS32 compute/communication ratio. The current
+TP4/EP4 graph with `--enable-single-batch-overlap` completed all 32 distinct
+requests at exactly 512 tokens and reported `620.51 tok/s` HTTP aggregate.
+This overlaps the ordinary `618--629 tok/s` range and did not provide a
+resident-window improvement. SBO is therefore rejected for both latency and
+throughput tiers; the launch default remains disabled.
