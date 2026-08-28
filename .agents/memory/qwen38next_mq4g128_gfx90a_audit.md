@@ -1324,6 +1324,66 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 
+## 2026-08-28: corrected stream reachability and static EP4 placement
+
+Device-realtime markers were temporarily inserted around one full-attention
+layer, one GDN layer, and the MoE sub-stages.  The markers use the gfx90a
+realtime counter and were removed after measurement.  Representative BS1
+budgets were about `231 us` for a GDN layer and `256 us` for a full-attention
+layer.  Within those layers, routed plus shared MoE consumed roughly
+`95 us`; GDN consumed roughly `60 us`, while full attention consumed roughly
+`84--89 us`.  Across 48 layers, the principal remaining pools are therefore
+about `4.6 ms/token` in MoE, `3.6 ms/token` in the two HC/collective
+boundaries, and `3.2 ms/token` in attention/GDN.
+
+The preceding section's claim that `SGLANG_ALT_STREAM=1` restored actual Qwen
+shared/routed overlap was incorrect.  The Qwen constructor created the global
+HIP alternate stream but did not pass it into `Qwen2MoeSparseMoeBlock` on the
+current fused-shared configuration, so those measurements did not exercise
+the intended dual-stream branch.  A temporary reachability fix proved that
+the shared expert could overlap the router and routed expert, but the service
+regressed from approximately `76.3` to `75.6 tok/s`: CU/cache contention
+outweighed the hidden shared-expert time.  The reachability change was removed;
+the current serialized schedule is intentional.
+
+The expert distribution recorder captured 256 real decode tokens for all 48
+layers and Top-10 routing.  Under the original contiguous EP4 placement, the
+mean per-token/layer maximum rank load was `4.211` assignments.  A simple
+load-balancing placement reduced it to `3.969`; capacity-preserving pair swaps
+against the actual straggler objective reduced it further to `3.179`, a 24.5%
+reduction.  The result is a no-redundancy permutation: every layer still owns
+exactly 512 logical experts and every rank exactly 128.
+
+Using generic dynamic EPLB remapping was correct but regressed the service to
+about `68.95 tok/s`, because logical-to-physical and physical-to-local maps
+added another Top-K-stage launch.  The retained MQ4 path instead constructs a
+logical-to-local map directly from the no-redundancy placement and reuses the
+existing one-launch HIP Top-K remapper.  Weight relocation is preserved while
+the generic remap tax is eliminated.  Non-MQ4, redundant, fused-shared, and
+trivial layouts retain their prior path.
+
+With temporary markers still present, restart ABBA measured approximately
+`76.27 -> 77.47 tok/s` (about +1.6%).  After removing all markers, the formal
+static-layout service produced a 12-request median of `78.079 tok/s` and a
+two-sample-trimmed mean of `78.059 tok/s`, versus the `76.27 tok/s` control
+mean (about +2.35%).  All twelve forced 256-token completions retained hash
+prefix `1a8c2dccd3a72692`.  France returned exactly
+`The capital of France is **Paris**.`, and a forced 2048-token request retained
+output-ID SHA-256
+`7f2c43f87821f42cd2d5d48bfa4bf764726c92bf4d0dd2e915375294b4777aaf`
+and text SHA-256
+`7213f2c89dc4a37bef5b2f77f1383bce00a9362e7d4cea85b21c108384dc54dc`,
+matching the preceding optimized-service repeat.
+
+A diverse-prompt determinism check exposed an existing correctness debt:
+several greedy requests diverge across identical repeats.  Restarting with the
+trivial expert layout reproduced the same behavior (first divergences at, for
+example, token 13, 22, and 55), and some resulting trajectories were shared
+between the two layouts.  Thus the static permutation did not introduce this
+non-bitwise behavior, but future performance changes must continue to use the
+fixed oracle plus semantic and long-run checks while the underlying
+collective/numerical source is isolated.
+
 ## Rejected: BS1 striped redundant-expert dispatch
 
 The existing rank-invariant `dynamic` redundant-expert dispatcher selects a
@@ -1720,23 +1780,21 @@ disappeared (the remaining 48 belonged to prefill).  Service B1 measured
 This is below restart noise and does not justify dual global/local ID semantics,
 so the dispatcher and kernel changes were fully removed.
 
-## Restore only Qwen shared/routed alternate-stream overlap
+## Rejected interpretation: apparent Qwen alternate-stream overlap
 
 The post-persistent runtime trace exposed that the current formal launch had
-silently dropped all historical alternate-stream variables: every GDN and MoE
-kernel was serialized on one stream.  Re-testing the switches independently
-showed that only the shared/routed MoE overlap remains useful on the current
-kernel stack:
+silently dropped all historical alternate-stream variables.  The following
+measurements initially appeared to show useful shared/routed overlap:
 
 - `SGLANG_ALT_STREAM=1` only: `76.264 tok/s` trimmed;
 - plus `SGLANG_GDN_QKVZ_BA_ALT_STREAM=1`: `75.668 tok/s`;
 - plus `SGLANG_QK_NORM_ALT_STREAM=1` instead: `75.681 tok/s`;
 - all three historical switches: `75.205 tok/s`.
 
-All arms retained fixed hash `ac55ed9f7239753d`.  The routed-MQ4 HIP profile
-now defaults the base alt stream on when `SGLANG_ALT_STREAM` is absent, while
-the two GDN/QK sub-overlaps remain off.  Explicit `SGLANG_ALT_STREAM=0` is the
-rollback.  A no-explicit-alt restart confirmed the default (`75.859 tok/s`
-trimmed), returned the exact France sentence twice, and retained the 2030+64
-boundary SHA-256
-`bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
+All arms retained fixed hash `ac55ed9f7239753d`.  However, the later
+device-realtime reachability audit documented above proved that the Qwen MoE
+block never received this HIP alternate stream in the fused-shared
+configuration.  These numbers therefore measured indirect environment and
+restart effects, not actual shared/routed overlap.  Once made genuinely
+reachable, overlap regressed performance and was removed.  Do not use this
+section as evidence for enabling `SGLANG_ALT_STREAM`.

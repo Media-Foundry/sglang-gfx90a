@@ -194,13 +194,45 @@ class StandardDispatcher(BaseDispatcher):
                 self.local_expert_mapping = torch.full(
                     (self.num_experts,), -1, dtype=torch.int32, device=device
                 )
-                self.local_expert_mapping[
-                    self.moe_ep_rank
-                    * self.num_local_routed_experts : (self.moe_ep_rank + 1)
-                    * self.num_local_routed_experts
-                ] = torch.arange(
-                    0, self.num_local_routed_experts, dtype=torch.int32, device=device
-                )
+                use_mq4_logical_mapping = False
+                if (
+                    getattr(
+                        self.moe_runner_config, "gfx90a_mq4g128_routed", False
+                    )
+                    and self.num_local_shared_experts == 0
+                ):
+                    from sglang.srt.eplb.expert_location import (
+                        get_global_expert_location_metadata,
+                    )
+
+                    metadata = get_global_expert_location_metadata()
+                    use_mq4_logical_mapping = (
+                        metadata is not None
+                        and metadata.num_physical_experts == self.num_experts
+                        and metadata.num_logical_experts == self.num_experts
+                    )
+                    if use_mq4_logical_mapping:
+                        begin = self.moe_ep_rank * self.num_local_routed_experts
+                        logical_ids = metadata.physical_to_logical_map_cpu[
+                            self.moe_runner_config.layer_id,
+                            begin : begin + self.num_local_routed_experts,
+                        ].to(device=device, dtype=torch.int64)
+                        self.local_expert_mapping[logical_ids] = torch.arange(
+                            self.num_local_routed_experts,
+                            dtype=torch.int32,
+                            device=device,
+                        )
+                if not use_mq4_logical_mapping:
+                    self.local_expert_mapping[
+                        self.moe_ep_rank
+                        * self.num_local_routed_experts : (self.moe_ep_rank + 1)
+                        * self.num_local_routed_experts
+                    ] = torch.arange(
+                        0,
+                        self.num_local_routed_experts,
+                        dtype=torch.int32,
+                        device=device,
+                    )
 
                 if self.num_local_shared_experts > 0:
                     self.local_expert_mapping[-self.num_local_shared_experts :] = (
