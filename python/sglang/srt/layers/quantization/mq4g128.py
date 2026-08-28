@@ -212,6 +212,7 @@ class Mq4g128RoutedMoEMethod:
         ids: torch.Tensor,
         use_grouped: bool,
         already_rotated: bool = False,
+        zero_invalid: bool = True,
     ) -> torch.Tensor:
         from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
             mq4g128_grouped,
@@ -220,7 +221,7 @@ class Mq4g128RoutedMoEMethod:
         x_rot = x.contiguous() if already_rotated else fwht128(x).contiguous()
         if use_grouped:
             return mq4g128_grouped(x_rot, weight, ids)
-        return mq4g128_indexed(x_rot, weight, ids)
+        return mq4g128_indexed(x_rot, weight, ids, zero_invalid=zero_invalid)
 
     def apply(self, layer: Module, dispatch_output):
         from sglang.srt.layers.moe.token_dispatcher.standard import StandardCombineInput
@@ -255,14 +256,30 @@ class Mq4g128RoutedMoEMethod:
             intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
             flat_intermediate = intermediate.reshape(-1, 640).contiguous()
         flat_ids = ids.reshape(-1, 1).contiguous()
+        use_masked_reduce = (
+            envs.SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE.get()
+            and envs.SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32.get()
+            and x.shape[0] == 32
+            and not use_grouped
+        )
         down = self._project(
             flat_intermediate,
             layer.w2_weight,
             flat_ids,
             use_grouped,
             already_rotated=fused_swiglu_fwht,
+            zero_invalid=not use_masked_reduce,
         )
         down = down.reshape(x.shape[0], ids.shape[1], 2560)
+        if use_masked_reduce:
+            from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
+                mq4g128_masked_weighted_reduce,
+            )
+
+            output = mq4g128_masked_weighted_reduce(
+                down, topk.topk_weights, ids
+            )
+            return StandardCombineInput(hidden_states=output)
         if (
             envs.SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE.get()
             and x.shape[0] == 1

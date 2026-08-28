@@ -2130,3 +2130,19 @@ decode window from the two-subgroup `593 -> 579 tok/s` to roughly
 `654 -> 635 tok/s`, another 9--10% improvement.  All 32 requests completed 512
 tokens exactly.  As above, the one-shot HTTP wall time included first-use JIT
 and admission delay and is not the resident decode metric.
+
+### Masked down consumer
+
+At BS32 the expert-owned down projection previously zero-filled the complete
+`[320,1,2560]` FP32 partial before writing local assignments, then launched
+separate ATen multiply, Top-10 reduction and BF16 cast operations.  A masked
+HIP consumer now skips remote IDs, exactly reproduces ATen's four-accumulator
+reduction tree, and allows down to leave remote partial slots uninitialized.
+
+The complete consumer measured `62.02 -> 20.10 us` in 31-round ABBA and was
+bitwise exact over 16 random registered-test seeds.  The MQ4 suite passes
+11/11.  Service impact is smaller but positive: the BS32 512-token resident
+window moved from approximately `654 -> 635 tok/s` to `675 -> 653 tok/s`,
+about 3%.  France remained correct and all 32 requests completed exactly 512
+tokens.  The optimization shares the existing MQ4 fused-reduce rollback and
+is retained as a graph-safe consumer fusion.

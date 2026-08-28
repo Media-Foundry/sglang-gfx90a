@@ -135,8 +135,25 @@ def _weighted_reduce_module(t: int, n: int) -> Module:
     )
 
 
+@cache_once
+def _masked_weighted_reduce_module(m: int, t: int, n: int) -> Module:
+    args = make_cpp_args(m, t, n)
+    return load_jit(
+        "gfx90a_mq4g128_masked_weighted_reduce",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128MaskedWeightedReduce<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
 def mq4g128_indexed(
-    x: torch.Tensor, weight: torch.Tensor, expert_ids: torch.Tensor
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    expert_ids: torch.Tensor,
+    zero_invalid: bool = True,
 ) -> torch.Tensor:
     m, k = x.shape
     e, n, groups, block_bytes = weight.shape
@@ -157,7 +174,11 @@ def mq4g128_indexed(
         # Remote expert slots must remain exact zeros for the later fixed-order
         # reduction.  The sorter and projection use fixed-size device buffers,
         # so this path remains safe under CUDA graph capture.
-        out = torch.zeros((m, t, n), dtype=torch.float32, device=x.device)
+        out = (
+            torch.zeros((m, t, n), dtype=torch.float32, device=x.device)
+            if zero_invalid
+            else torch.empty((m, t, n), dtype=torch.float32, device=x.device)
+        )
         offsets = torch.empty(e + 1, dtype=torch.int32, device=x.device)
         assignments = torch.empty(m * t, dtype=torch.int32, device=x.device)
         _expert_owned_sorter_module(e, m, t).run(
@@ -192,6 +213,22 @@ def mq4g128_weighted_reduce(
     router_weights = router_weights.float().contiguous()
     out = torch.empty((1, n), dtype=torch.bfloat16, device=partials.device)
     _weighted_reduce_module(t, n).run(partials, router_weights, out)
+    return out
+
+
+def mq4g128_masked_weighted_reduce(
+    partials: torch.Tensor,
+    router_weights: torch.Tensor,
+    expert_ids: torch.Tensor,
+) -> torch.Tensor:
+    m, t, n = partials.shape
+    assert partials.dtype == torch.float32 and partials.is_contiguous()
+    router_weights = router_weights.float().contiguous()
+    expert_ids = expert_ids.to(torch.int32).contiguous()
+    out = torch.empty((m, n), dtype=torch.bfloat16, device=partials.device)
+    _masked_weighted_reduce_module(m, t, n).run(
+        partials, router_weights, expert_ids, out
+    )
     return out
 
 

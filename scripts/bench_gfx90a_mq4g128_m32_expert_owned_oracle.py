@@ -10,6 +10,7 @@ from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
     _expert_owned_module,
     _expert_owned_sorter_module,
     _indexed_module,
+    _masked_weighted_reduce_module,
 )
 
 E = 128
@@ -164,6 +165,40 @@ def run_shape(m: int, t: int, n: int, k: int, seed: int) -> None:
         f"graph_replay=1000 finite={bool(torch.isfinite(owned_out).all())} "
         f"stable={bool(torch.equal(owned_out, reference))}"
     )
+
+    if (m, t, n, k) == (320, 1, 2560, 640):
+        partials = owned_out.reshape(32, 10, n)
+        reduce_ids = ids.reshape(32, 10)
+        router_weights = torch.rand(32, 10, dtype=torch.float32, device="cuda")
+        reduced = torch.empty(32, n, dtype=torch.bfloat16, device="cuda")
+        reducer = _masked_weighted_reduce_module(32, 10, n)
+
+        def aten_reduce():
+            return (partials * router_weights.unsqueeze(-1)).sum(dim=1).to(
+                torch.bfloat16
+            )
+
+        def masked_reduce():
+            reducer.run(partials, router_weights, reduce_ids, reduced)
+
+        for _ in range(30):
+            aten_reduce()
+            masked_reduce()
+        torch.cuda.synchronize()
+        expected = aten_reduce()
+        masked_reduce()
+        torch.cuda.synchronize()
+        aten_samples, masked_samples = [], []
+        for _ in range(31):
+            aten_samples.append(elapsed(aten_reduce))
+            masked_samples.append(elapsed(masked_reduce))
+            masked_samples.append(elapsed(masked_reduce))
+            aten_samples.append(elapsed(aten_reduce))
+        print(
+            f"masked_reduce bitwise={bool(torch.equal(expected, reduced))} "
+            f"max_abs={(expected.float() - reduced.float()).abs().max().item()} "
+            f"aten_us={summary(aten_samples)} masked_us={summary(masked_samples)}"
+        )
 
 
 def main() -> None:

@@ -498,6 +498,55 @@ struct Gfx90aMq4g128WeightedReduce {
   }
 };
 
+template <uint32_t M, uint32_t T, uint32_t N>
+__global__ void mq4g128_masked_weighted_reduce_kernel(
+    const float* __restrict__ partials,
+    const float* __restrict__ router_weights,
+    const int32_t* __restrict__ expert_ids, bf16_t* __restrict__ out) {
+  const uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint32_t token = blockIdx.y;
+  if (row >= N || token >= M) return;
+  float values[T];
+#pragma unroll
+  for (uint32_t slot = 0; slot < T; ++slot) {
+    const uint64_t assignment = static_cast<uint64_t>(token) * T + slot;
+    volatile float weighted = expert_ids[assignment] >= 0
+        ? partials[assignment * N + row] * router_weights[assignment]
+        : 0.0f;
+    values[slot] = weighted;
+  }
+  static_assert(T == 10, "Qwen routed reduction requires top-k 10");
+  float acc0 = 0.0f, acc1 = 0.0f, acc2 = 0.0f, acc3 = 0.0f;
+  acc0 += values[0]; acc1 += values[1]; acc2 += values[2]; acc3 += values[3];
+  acc0 += values[4]; acc1 += values[5]; acc2 += values[6]; acc3 += values[7];
+  acc0 += values[8]; acc1 += values[9];
+  float sum = acc0 + acc1;
+  sum += acc2;
+  sum += acc3;
+  out[static_cast<uint64_t>(token) * N + row] = cast<bf16_t>(sum);
+}
+
+template <uint32_t M, uint32_t T, uint32_t N>
+struct Gfx90aMq4g128MaskedWeightedReduce {
+  static void run(const tvm::ffi::TensorView partials,
+                  const tvm::ffi::TensorView router_weights,
+                  const tvm::ffi::TensorView expert_ids,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partials);
+    TensorMatcher({M, T}).with_dtype<float>().with_device(device).verify(router_weights);
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
+    LaunchKernel(dim3((N + 255) / 256, M), 256, partials.device())(
+        mq4g128_masked_weighted_reduce_kernel<M, T, N>,
+        static_cast<const float*>(partials.data_ptr()),
+        static_cast<const float*>(router_weights.data_ptr()),
+        static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<bf16_t*>(out.data_ptr()));
+  }
+};
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t A>
 struct Gfx90aMq4g128Sorter {
   static void run(const tvm::ffi::TensorView expert_ids,

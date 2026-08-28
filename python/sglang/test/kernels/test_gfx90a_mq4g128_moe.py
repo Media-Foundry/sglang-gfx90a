@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
     mq4g128_grouped,
     mq4g128_indexed,
+    mq4g128_masked_weighted_reduce,
     mq4g128_remap_topk,
     mq4g128_weighted_reduce,
 )
@@ -123,6 +124,21 @@ def test_qwen_weighted_reduce_matches_aten_bitwise():
         weights = torch.softmax(torch.randn(1, 10, device="cuda"), dim=-1)
         expected = (partials * weights.unsqueeze(-1)).sum(1).to(torch.bfloat16)
         actual = mq4g128_weighted_reduce(partials, weights)
+        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_masked_weighted_reduce_matches_aten_bitwise():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    for seed in range(16):
+        torch.manual_seed(seed)
+        partials = torch.randn(32, 10, 2560, device="cuda")
+        expert_ids = torch.randint(-1, 4, (32, 10), device="cuda", dtype=torch.int32)
+        partials.masked_fill_(expert_ids.unsqueeze(-1) < 0, 0.0)
+        weights = torch.softmax(torch.randn(32, 10, device="cuda"), dim=-1)
+        expected = (partials * weights.unsqueeze(-1)).sum(1).to(torch.bfloat16)
+        actual = mq4g128_masked_weighted_reduce(partials, weights, expert_ids)
         torch.testing.assert_close(actual, expected, rtol=0, atol=0)
 
 
