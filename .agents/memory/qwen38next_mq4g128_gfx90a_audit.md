@@ -1133,3 +1133,29 @@ was about 2.0% slower.  Since the no-padding design increased memory and did
 not improve the module critical path, all G64 code, tests and benchmark were
 removed.  The path must not proceed to loader/service integration without a
 different kernel organization that first demonstrates a clear module win.
+
+### Rejected: factorized-affine G128 dot
+
+An independent indexed HIP oracle retained the production packed G128 layout
+and 32-lane final reduction, but changed each lane's inner arithmetic.  For
+each 128-element group it accumulated `q*x` and `sum(x)` separately, then added
+`scale*qdot + zero*sumx` once per group.  The production kernel remained
+untouched and the factorized helper had no service call site.
+
+Correctness used the real TP4/EP4 projection shapes with three valid local
+assignments and the remaining fixed T10 slots set to `-1`: gate
+`E128/M1/T10/N1280/K2560` and down `E128/M10/T1/N2560/K640`.  Against explicitly
+dequantized packed FP32 weights, factorized gate had maximum absolute error
+`1.04308128e-7` and down `4.28408384e-8`.  Against the production indexed
+kernel, maximum differences were `1.1920929e-7` and `3.7252903e-8`
+respectively; invalid assignments remained exactly zero.  The changed affine
+factorization is therefore numerically close but deliberately not bitwise.
+
+GPU 7 was used only after `amd-smi process -g 7` reported no running processes.
+Twenty-one interleaved ABBA rounds measured production gate/down medians of
+`66.000 / 66.320 us` and factorized medians of `67.200 / 64.960 us`.  The
+combined projection time changed from `132.319` to `132.160 us`, only a
+`0.121%` speedup, far below the 8% module gate.  Extra qdot/sum-x dependency
+chains cancel the saved affine operations, and gate is slightly slower.  The
+oracle kernel, wrapper and benchmark were fully removed without service
+testing.
