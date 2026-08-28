@@ -1381,6 +1381,16 @@ and all 2048-token arms shared SHA-256
 The implementation remains available behind
 `SGLANG_QWEN4_GFX90A_GDN_HIP_PACKED=1`, with rows selectable through
 `SGLANG_QWEN4_GFX90A_GDN_HIP_ROWS`, but production stays on Triton.
+
+The existing CUDA-only fused GDN input projection was also made temporarily
+reachable on HIP.  Both checkpoint projections are BF16, so it concatenated
+the `N=13824` QKVZ and `N=96` BA weights after loading and replaced two GEMVs
+with one `N=13920` GEMV.  Although fixed-output correctness remained hash
+`ac55ed9f7239753d`, twelve 256-token requests measured only `73.339 tok/s`
+trimmed, about 3.2% below the surrounding 75.7--75.9 range.  Binding the tiny
+BA tail into the large wave64 projection worsens its grid/tail scheduling more
+than one removed launch saves.  The HIP selector and code path were fully
+removed.
 Every service/GPU experiment was preceded by `amd-smi process --json`.
 
 The split-K reduction was subsequently folded into the first phase of the HC
