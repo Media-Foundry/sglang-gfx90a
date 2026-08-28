@@ -58,7 +58,8 @@ def run_shape(m: int, t: int, n: int, k: int, seed: int) -> None:
     owned_out = torch.empty_like(indexed_out)
     indexed = _indexed_module(E, m, t, n, k)
     sorter = _expert_owned_sorter_module(E, m, t)
-    owned = _expert_owned_module(E, m, t, n, k)
+    owned_variants = {w: _expert_owned_module(E, m, t, n, k, w) for w in (2, 4, 8)}
+    owned = owned_variants[2]
 
     def baseline():
         indexed.run(x, weight, ids, indexed_out)
@@ -123,12 +124,36 @@ def run_shape(m: int, t: int, n: int, k: int, seed: int) -> None:
         f"median_speedup={stats['indexed'][0] / stats['owned'][0] - 1:.3%} "
         f"trim_speedup={stats['indexed'][1] / stats['owned'][1] - 1:.3%}"
     )
+    for waves, variant in owned_variants.items():
+        def wave_candidate():
+            owned_out.zero_()
+            sorter.run(ids, offsets, assignments)
+            variant.run(x, weight, offsets, assignments, owned_out)
 
-    candidate()
+        values = []
+        for _ in range(31):
+            values.append(elapsed(wave_candidate))
+            values.append(elapsed(wave_candidate))
+        wave_candidate()
+        torch.cuda.synchronize()
+        print(
+            f"waves={waves} complete_us={summary(values)} "
+            f"bitwise={bool(torch.equal(indexed_out, owned_out))}"
+        )
+
+    best_waves = 4 if (m, t) == (32, 10) else 8
+    best_owned = owned_variants[best_waves]
+
+    def best_candidate():
+        owned_out.zero_()
+        sorter.run(ids, offsets, assignments)
+        best_owned.run(x, weight, offsets, assignments, owned_out)
+
+    best_candidate()
     torch.cuda.synchronize()
     graph = torch.cuda.CUDAGraph()
     with torch.cuda.graph(graph):
-        candidate()
+        best_candidate()
     graph.replay()
     torch.cuda.synchronize()
     reference = owned_out.clone()

@@ -2112,3 +2112,21 @@ Repeated fresh HTTP batches can still exhibit a separate 25--55 second
 admission gap in which only 1 or 16 of 32 requests enter initially.  This does
 not occur inside a resident decode window and must not be folded into the GPU
 kernel comparison.  It remains a scheduler/Mamba request-churn issue to fix.
+
+### Expert-owned CTA geometry follow-up
+
+The initial expert-owned projection used one 64-thread CTA for two output
+rows.  A compile-time wave-count sweep retained the same 32-lane dot/reduction
+order while grouping more independent output rows into each CTA.  Complete
+sort+zero+projection timings were:
+
+- gate/up: 2/4/8 subgroup CTAs `284.72 / 278.88 / 280.32 us`;
+- flattened down: 2/4/8 subgroup CTAs `232.00 / 159.68 / 150.40 us`.
+
+Every geometry remained bitwise equal to indexed output.  The selected
+production geometry is four subgroups for gate/up and eight for down; both
+passed 1000 graph replays.  In the BS32 service this moved the 512-token steady
+decode window from the two-subgroup `593 -> 579 tok/s` to roughly
+`654 -> 635 tok/s`, another 9--10% improvement.  All 32 requests completed 512
+tokens exactly.  As above, the one-shot HTTP wall time included first-use JIT
+and admission delay and is not the resident decode metric.

@@ -67,9 +67,9 @@ def _expert_owned_sorter_module(e: int, m: int, t: int) -> Module:
 
 @cache_once
 def _expert_owned_module(
-    e: int, m: int, t: int, n: int, k: int
+    e: int, m: int, t: int, n: int, k: int, waves: int = 2
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k)
+    args = make_cpp_args(e, m, t, n, k, waves)
     return load_jit(
         "gfx90a_mq4g128_expert_owned",
         *args,
@@ -163,7 +163,8 @@ def mq4g128_indexed(
         _expert_owned_sorter_module(e, m, t).run(
             expert_ids, offsets, assignments
         )
-        _expert_owned_module(e, m, t, n, k).run(
+        waves = 4 if (m, t) == (32, 10) else 8
+        _expert_owned_module(e, m, t, n, k, waves).run(
             x, weight, offsets, assignments, out
         )
         return out

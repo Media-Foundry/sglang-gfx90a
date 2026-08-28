@@ -269,14 +269,16 @@ __global__ void mq4g128_expert_owned_sorter_kernel(
   }
 }
 
-template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
-__global__ __launch_bounds__(64) void mq4g128_expert_owned_kernel(
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t W>
+__global__ __launch_bounds__(32 * W) void mq4g128_expert_owned_kernel(
     const float* __restrict__ x, const uint8_t* __restrict__ weight,
     const int32_t* __restrict__ offsets,
     const int32_t* __restrict__ assignments, float* __restrict__ out) {
   const uint32_t subgroup = threadIdx.x >> 5;
   const uint32_t lane = threadIdx.x & 31;
-  const uint32_t row = blockIdx.x * 2 + subgroup;
+  static_assert(W == 2 || W == 4 || W == 8);
+  const uint32_t row = blockIdx.x * W + subgroup;
   const uint32_t expert = blockIdx.y;
   if (row >= N) return;
   const int32_t begin = offsets[expert];
@@ -404,7 +406,8 @@ struct Gfx90aMq4g128ExpertOwnedSorter {
   }
 };
 
-template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t W>
 struct Gfx90aMq4g128ExpertOwned {
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView weight,
@@ -419,8 +422,8 @@ struct Gfx90aMq4g128ExpertOwned {
     TensorMatcher({E + 1}).with_dtype<int32_t>().with_device(device).verify(offsets);
     TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(assignments);
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
-    LaunchKernel(dim3((N + 1) / 2, E), 64, x.device())(
-        mq4g128_expert_owned_kernel<E, M, T, N, K>,
+    LaunchKernel(dim3((N + W - 1) / W, E), 32 * W, x.device())(
+        mq4g128_expert_owned_kernel<E, M, T, N, K, W>,
         static_cast<const float*>(x.data_ptr()),
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(offsets.data_ptr()),
