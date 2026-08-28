@@ -178,6 +178,14 @@ def mq4g128_indexed(
             or (m, t, n, k) == (640, 1, 2560, 640)
         )
     )
+    use_expert_owned_m128 = (
+        os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M128", "0") == "1"
+        and e == 128
+        and (
+            (m, t, n, k) == (128, 10, 1280, 2560)
+            or (m, t, n, k) == (1280, 1, 2560, 640)
+        )
+    )
     use_expert_owned_m16 = (
         os.environ.get(
             "SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16", "0"
@@ -193,7 +201,12 @@ def mq4g128_indexed(
             or (m, t, n, k) == (160, 1, 2560, 640)
         )
     )
-    if use_expert_owned_m64 or use_expert_owned_m32 or use_expert_owned_m16:
+    if (
+        use_expert_owned_m128
+        or use_expert_owned_m64
+        or use_expert_owned_m32
+        or use_expert_owned_m16
+    ):
         # Remote expert slots must remain exact zeros for the later fixed-order
         # reduction.  The sorter and projection use fixed-size device buffers,
         # so this path remains safe under CUDA graph capture.
@@ -207,7 +220,7 @@ def mq4g128_indexed(
         _expert_owned_sorter_module(e, m, t).run(
             expert_ids, offsets, assignments
         )
-        waves = 4 if (m, t) in ((32, 10), (64, 10)) else 8
+        waves = 4 if (m, t) in ((32, 10), (64, 10), (128, 10)) else 8
         _expert_owned_module(e, m, t, n, k, waves).run(
             x, weight, offsets, assignments, out
         )

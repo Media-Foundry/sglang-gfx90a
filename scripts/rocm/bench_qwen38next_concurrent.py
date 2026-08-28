@@ -54,6 +54,11 @@ PROMPTS += [
     f"{prompt} Add one different practical detail for variant {index + 32}."
     for index, prompt in enumerate(PROMPTS)
 ]
+# Extend the same distinct-prompt construction to the 128-request tier.
+PROMPTS += [
+    f"{prompt} Contrast it with a second detail for variant {index + 64}."
+    for index, prompt in enumerate(PROMPTS)
+]
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -100,7 +105,9 @@ def send(url: str, payload: dict, barrier: threading.Barrier, timeout: int):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://127.0.0.1:30001/generate")
-    parser.add_argument("--concurrency", type=int, choices=(16, 32, 64), default=32)
+    parser.add_argument(
+        "--concurrency", type=int, choices=(16, 32, 64, 128), default=32
+    )
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--reps", type=int, default=5)

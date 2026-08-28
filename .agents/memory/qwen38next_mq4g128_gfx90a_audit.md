@@ -2472,3 +2472,43 @@ This is a material multi-request checkpoint. The M64 selector defaults on and
 the grouped threshold defaults to 128. The next scaling tier is M128
 expert-owned with a 128-slot recurrent-state pool and a narrowly captured
 BS128 graph; this is the direct route from about 1k toward 1200 tok/s.
+
+## 2026-08-29: BS128 native-AR throughput target reached
+
+The graph-static expert-owned path was extended to the exact BS128 EP4 shapes:
+gate/up `(128,10,1280,2560)` and flattened down
+`(1280,1,2560,640)`. On an idle gfx90a GCD with 320 valid local assignments,
+31-round medians were:
+
+- gate/up: indexed `1370.75 us`, expert-owned `777.14 us` (`1.764x`);
+- down: indexed `2066.12 us`, expert-owned `407.53 us` (`5.070x`).
+
+Both candidate outputs were bitwise equal to indexed output. After an explicit
+first replay and synchronization, both production shapes remained bitwise
+unchanged and finite at replay indices 1, 2, 10, 100 and 1000. Comparing the
+capture-time buffer before the first explicit replay is not a valid stability
+oracle on this HIP graph path.
+
+The four-GCD service used TP4/EP4, native AR, BF16 recurrent state, 128 Mamba
+state slots, grouped threshold 256, and captured only BS128. Once all 128
+distinct requests were resident, server decode windows reported:
+
+`1283.91, 1278.82, 1275.57, 1274.14, 1267.27, 1260.36, 1253.11, 1245.89,
+1241.05, 1234.31, 1229.75 tok/s`.
+
+Thus the full observed resident window remained above the 1200 tok/s target.
+All 128 requests completed exactly 512 tokens with `finish=length`, and an
+OpenAI chat correctness oracle on the same BS128-only graph returned `Paris`.
+The end-to-end HTTP number was only `256.33 tok/s` because heterogeneous
+prefills were admitted serially in 16-request chunks over roughly three
+minutes. This admission/prefill defect is reported separately and does not
+change the graph-resident decode result.
+
+Reproduction profile:
+
+```bash
+MAX_RUNNING_REQUESTS=128 MAX_MAMBA_CACHE_SIZE=128 \
+CUDA_GRAPH_BS_DECODE='128' \
+SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS=256 \
+scripts/rocm_qwen38next_gfx90a.sh
+```

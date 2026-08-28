@@ -312,6 +312,7 @@ class Envs:
     # gate/down shapes, avoiding CTAs for remote expert assignments.
     SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32 = EnvBool(False)
     SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M64 = EnvBool(False)
+    SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M128 = EnvBool(False)
     # The corresponding BS16 shapes use the same graph-safe sorter.  Keep a
     # separate selector so BS16 and BS32 can be independently ABBA tested.
     SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16 = EnvBool(False)
