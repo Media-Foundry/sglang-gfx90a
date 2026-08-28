@@ -2187,3 +2187,77 @@ proxy and failed 30 times with HTTP 502.  The launch profile now forces
 logged `/freeze_gc` 200 and froze tokenizer, scheduler and detokenizer GC.
 This fixes the control-plane bug, although separate long prefill/admission
 gaps remain and must not be confused with resident decode throughput.
+## 2026-08-29: inline FP16 dot2 MQ4 path rejected
+
+A separate expert-owned oracle replaced each four scalar FP32 products with
+two gfx90a `v_dot2_f32_f16` operations while retaining FP32 accumulation.  It
+converted the FP32 rotated activation and affine-decoded weights to FP16
+inline, without an extra conversion launch.  Numerical error was small
+(`relative L2 ~= 2.05e-4`), but every production shape slowed down.  At BS32,
+gate/up changed from `275.20` to `279.84 us` and down from `150.24` to
+`166.56 us`; BS16 was also neutral or slower.  Inline conversion, dequantize
+and scheduling costs dominate the removed scalar FMAs.  All dot2 experiment
+code was removed.  A true MFMA grouped tile is also poorly matched to the
+observed 80 local assignments across about 60 experts because padding each
+expert run to matrix M=16 would create roughly an order of magnitude more
+cross-products.
+## 2026-08-29: explicit scale broadcast/vector load rejected
+
+An exact expert-owned variant loaded each G128 scale/zero pair only on lane 0,
+broadcast it within each logical 32-lane subgroup, and replaced four scalar
+activation reads with one aligned `float4` read.  It remained bitwise exact,
+but gate/up regressed from `273.28` to `472.64 us` and down from `149.44` to
+`169.12 us`.  The explicit shuffles defeat the compiler/hardware handling of
+uniform scalar loads on gfx90a; all code was removed.
+## 2026-08-29: single-launch inline A2 reuse rejected
+
+To avoid the launch overhead that invalidated separate occupancy buckets, an
+expert-owned variant paired assignments inside the existing fixed-grid kernel
+and reused one weight decode through `dot_row_grouped<K,2>`, with scalar tail
+handling.  It required no new sorter or global task queue.  Nevertheless,
+BS32 gate/up regressed from `275.12` to `300.08 us` and down from `150.08` to
+`157.68 us`; grouped expression ordering also introduced tiny `1e-7` output
+differences.  Dual-accumulator pressure outweighed reuse for these short runs,
+so the variant was removed.
+## 2026-08-29: G128 activation-Q8 DP4A path rejected
+
+A device quantizer produced symmetric INT8 activations, per-G128 scales and
+quantized sums; the expert-owned projection unpacked MQ4 nibbles directly to
+four signed bytes, used gfx90a `sdot4`, and restored the affine zero term from
+the saved sum.  The complete chain had relative L2 error about `0.65%` and was
+slower: BS32 gate/up `276.16 -> 318.49 us`, down `149.12 -> 169.36 us`.
+Decomposition showed quantization cost only about `13.2 us`; the DP4A
+projection itself was `298.88 us` for gate and `150.72 us` for down, so fusing
+quantization into FWHT/SwiGLU could not recover a win.  Nibble packing and
+affine correction dominate the saved scalar products.  The code was removed.
+
+## 2026-08-29: BS32 trace-guided EPLB placement retained as optional
+
+A per-token expert-distribution trace was collected from 32 distinct requests
+over a 256-token warm decode window.  Each rank recorded all 48 MoE layers at
+the real `[32,10]` routing shape.  Under the existing capacity-preserving
+placement, the mean per-pass/layer maximum rank load was `93.1237`
+assignments, versus the ideal `80`.  Plain LPT reduced this to `90.0458`; a
+deterministic, capacity-preserving pair-swap search reduced it to `85.1112`,
+an `8.604%` predicted reduction in the rank-straggler assignment count.
+
+The optimizer and its generated permutation are retained as
+`scripts/rocm/optimize_qwen38next_eplb_bs32.py` and
+`scripts/rocm/qwen38next_eplb_bs32.json`.  The search validates the full
+permutation and equal per-rank capacity and requires no runtime host sync.
+
+Service validation used 32 requests with 1024 generated tokens each.  The
+candidate completed all requests at exactly 1024 tokens and produced a
+resident server-decode window of approximately `680 -> 647 tok/s`; the
+immediate return-control with the original placement measured approximately
+`675 -> 632 tok/s`.  The late-window improvement is about `2.3%`, materially
+smaller than the assignment-count prediction and below the threshold for a
+new default.  HTTP aggregate timing was rejected for this A/B because an
+unrelated prefill/admission idle interval occurred only in the candidate run.
+The artifact remains an optional reproducible experiment; the launch default
+is unchanged.
+
+From the next optimization round onward, acceptance is based on real BS16 and
+BS32 resident decode with distinct prompts, exact output lengths and semantic
+or token-hash correctness.  BS1 and standalone kernels are diagnostic only;
+they are not sufficient evidence for retaining an optimization.
