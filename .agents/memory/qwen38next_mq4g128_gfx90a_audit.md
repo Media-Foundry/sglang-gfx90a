@@ -1824,3 +1824,53 @@ configuration.  The small positive arm primarily exposed the separately real
 QSA indexer/QKV overlap, not shared/routed MoE overlap.  Once MoE overlap was
 made genuinely reachable, it regressed performance and was removed.  Keep the
 formal stream for QSA, but do not cite this section as MoE-overlap evidence.
+
+## 2026-08-28: post-78.75 critical-path audit and DPM finding
+
+Temporary gfx90a realtime markers split the full-attention layer-19
+attention-to-MLP boundary on every rank.  Three repeated windows measured:
+
+- AIter TP4 all-reduce: `10.7--18.7 us`, with the earliest rank waiting about
+  6--7 us for its peer and all ranks completing together;
+- precomputed-gate HC combine: `4.0--5.3 us`;
+- grouped RMSNorm plus the retained HC mix: `26.7--29.3 us`.
+
+Thus the local HC mix remains larger than the collective itself, but prior
+combine+RMS+split-down fusion already showed only a `0.206 us` boundary gain.
+The trace code was removed after capture.
+
+The remaining launch geometry was exhaustively screened.  Templating the HC
+down/up workgroups independently over one/two/four/eight wave64s gave a best
+module arm `(down=8, up=4)` at `22.876 us`, versus retained `(4,4)` at
+`23.030 us`; the 0.15-us difference is below service relevance and all wave
+templates were removed.  A wave64 HIP FWHT128 prototype was bitwise exact for
+the input rotation and within `1.19e-7` for SwiGLU+FWHT, but only changed
+`14.15 -> 13.47 us` and `14.30 -> 13.13 us`; it was also removed.  Replacing
+per-invalid-slot zero stores with one contiguous zero-fill regressed the real
+three-local-assignment gate projection from `13.86` to `15.82 us`.
+
+The recorded static layout has substantial hot-expert concentration: the
+top 4/8/16/32 local experts per layer cover approximately
+`40.7/54.6/70.7/87.3%` of routed assignments.  However, a single hot expert's
+real gate/up projection was already `6.34 us` from packed MQ4 versus `6.45 us`
+from a BF16 shadow using the retained wave64 GEMV.  A limited BF16 cache cannot
+improve this path; an INT8 cache would have at most a small residual ceiling
+and would introduce activation quantization error.
+
+The most important system finding is that both `amd-smi` and `rocm-smi`
+reported all four active GCDs at only `800 MHz` throughout a 1024-token decode,
+while valid SYS levels are 500/800/1700 MHz and HBM was already at 1600 MHz.
+Changing DPM requires root on this host: both `sudo -n amd-smi set -l HIGH`
+and the unprivileged form were denied.  A one-wave persistent keepalive proved
+the clocks can reach 1700 MHz, but occupied a graph-critical resource and
+regressed `78.33 -> 68.87 tok/s`.  Finite high-duty pulses also held 1700 MHz
+but regressed to `18.43 tok/s`.  Both helpers were killed and never entered the
+repository.  The clean, decisive A/B still required is:
+
+```bash
+sudo amd-smi set -l HIGH -g 0 1 2 3
+# benchmark and correctness, then restore
+sudo amd-smi set -l AUTO -g 0 1 2 3
+```
+
+Only root DPM control can test high clocks without contaminating the graph.
