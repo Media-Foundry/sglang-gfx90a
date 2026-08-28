@@ -328,6 +328,9 @@ class Envs:
     # In the dense QSA graph the indexer query is dead: all visible tokens are
     # selected.  Project only the key rows that maintain the compression ring.
     SGLANG_QWEN4_GFX90A_QSA_DENSE_K_ONLY = EnvBool(True)
+    # Capture a dense non-compression phase graph and select it on the three
+    # out of four decode steps that only update QSA's pending-key ring.
+    SGLANG_QWEN4_GFX90A_QSA_COMPRESSION_PHASE_GRAPH = EnvBool(True)
     # Two-stage wave64 HIP HC mix for the exact Qwen4 decode shape. This
     # removes persistent-grid atomics/barriers; set 0 for the legacy path.
     SGLANG_QWEN4_GFX90A_HC_MIX_HIP = EnvBool(True)

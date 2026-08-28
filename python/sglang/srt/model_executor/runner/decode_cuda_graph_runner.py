@@ -273,6 +273,7 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         self.dsa_dual_graph = False
         self.dsa_dense_only_graph = False
         self.dsa_index_topk: Optional[int] = None
+        self.dsa_compress_ratio: Optional[int] = None
         from sglang.srt.configs.model_config import (
             get_dsa_index_topk,
             is_deepseek_dsa,
@@ -303,6 +304,8 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         if is_hip() and (enable_deepseek_dual or enable_qwen_dual):
             if is_qwen_compressed_qsa:
                 self.dsa_index_topk = qsa_profile.budget
+                if envs.SGLANG_QWEN4_GFX90A_QSA_COMPRESSION_PHASE_GRAPH.get():
+                    self.dsa_compress_ratio = qsa_profile.compress_ratio
             else:
                 self.dsa_index_topk = (
                     get_dsa_index_topk(hf_config)
@@ -631,11 +634,23 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             max_kv_len = int(seq_lens_cpu.max().item())
         elif forward_batch.seq_lens is not None and forward_batch.seq_lens.numel() > 0:
             # Fallback: a single scalar reduction d2h (cheap, per-step).
-            max_kv_len = int(forward_batch.seq_lens.max().item())
+            seq_lens_cpu = forward_batch.seq_lens.detach().cpu()
+            max_kv_len = int(seq_lens_cpu.max().item())
         else:
             # No length info: be safe and use the correct-for-all sparse graph.
             return "sparse"
-        return "dense" if max_kv_len <= self.dsa_index_topk else "sparse"
+        if max_kv_len > self.dsa_index_topk:
+            return "sparse"
+        if self.dsa_compress_ratio is not None:
+            # The QSA compressed-cache consumer is needed only when at least
+            # one row completes a compression group.  seq_lens_cpu is already
+            # a host mirror, so this adds no device synchronization.
+            has_boundary = bool(
+                torch.any(seq_lens_cpu % self.dsa_compress_ratio == 0).item()
+            )
+            if not has_boundary:
+                return "dense_nocompress"
+        return "dense"
 
     def _resolve_lora_variant(self, forward_batch: ForwardBatch):
         if not getattr(self, "record_nolora_graph", False):
@@ -1155,7 +1170,11 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             ["dense"]
             if getattr(self, "dsa_dense_only_graph", False)
             else (
-                ["dense", "sparse"]
+                (
+                    ["dense_nocompress", "dense", "sparse"]
+                    if getattr(self, "dsa_compress_ratio", None) is not None
+                    else ["dense", "sparse"]
+                )
                 if getattr(self, "dsa_dual_graph", False)
                 else [None]
             )

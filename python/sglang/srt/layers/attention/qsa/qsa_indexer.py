@@ -629,9 +629,10 @@ class QSAIndexer(MultiPlatformOp):
             get_is_capture_mode,
         )
 
+        capture_dsa_variant = get_capture_dsa_variant()
         dense_capture = (
             get_is_capture_mode()
-            and get_capture_dsa_variant() == "dense"
+            and capture_dsa_variant in ("dense", "dense_nocompress")
             and envs.SGLANG_QWEN4_GFX90A_QSA_DENSE_K_ONLY.get()
         )
         if dense_capture:
@@ -653,18 +654,32 @@ class QSAIndexer(MultiPlatformOp):
                     else None
                 ),
             )
-        self.update_key_state_and_compress(
-            token_k,
-            logical_positions,
-            positions,
-            indexer_metadata,
-            state_slots=state_slots,
-            state_stored=state_stored,
-        )
+        if not (
+            get_is_capture_mode()
+            and capture_dsa_variant == "dense_nocompress"
+        ):
+            self.update_key_state_and_compress(
+                token_k,
+                logical_positions,
+                positions,
+                indexer_metadata,
+                state_slots=state_slots,
+                state_stored=state_stored,
+            )
+        elif not state_stored:
+            # Non-boundary decode still advances the pending raw-key/position
+            # ring.  Only the completed-group compression chain is dead.
+            pool = indexer_metadata.token_to_kv_pool
+            pool.set_qsa_key_state_buffer(
+                self.layer_id, state_slots[: token_k.shape[0]], token_k
+            )
+            pool.set_qsa_rope_position_buffer(
+                state_slots[: token_k.shape[0]], positions
+            )
         if forward_mode.is_decode() or is_target_verify or is_draft_extend:
             if (
                 get_is_capture_mode()
-                and get_capture_dsa_variant() == "dense"
+                and capture_dsa_variant in ("dense", "dense_nocompress")
             ):
                 return dense_qsa_token_indices(
                     logical_positions,

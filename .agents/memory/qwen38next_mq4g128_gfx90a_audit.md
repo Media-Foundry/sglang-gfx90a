@@ -962,6 +962,33 @@ SHA256 `82d5ee5b1069f91e...`, covering replay dispatch from dense to sparse at
 KV length 2048.  The feature defaults on and has the exact rollback
 `SGLANG_QWEN4_GFX90A_QSA_DENSE_K_ONLY=0`.
 
+### Compression-phase dense graph
+
+The fixed-shape QSA decode graph originally ran its full four-key compression
+chain on every token.  Only sequence lengths divisible by the compression
+ratio four complete a group; the other three phases computed gather, mean,
+K RMSNorm, RoPE and cache store merely to write an inert reserved slot zero.
+The runner now captures a third `dense_nocompress` graph.  Replay uses the
+existing host `seq_lens_cpu` mirror: below the 2048-token dense budget it
+chooses the normal dense graph if any row completes a group and otherwise the
+non-compression graph.  The latter still writes raw K and RoPE position into
+the pending ring.  Mixed batches conservatively compress if any row is on a
+boundary; long rows still select the sparse graph.
+
+The host selector oracle covered lengths 1/2/3/4/2048/2049 plus mixed
+`[1,4]` and `[1,3]`.  Native-AR twelve-round ABBA measured:
+
+- A1, compression every step (previous checkpoint): `63.4296 tok/s`;
+- B1, phase graph: `68.4602 tok/s` (+7.93%);
+- A2, compression every step: `63.5764 tok/s`;
+- B2, phase graph: `69.4768 tok/s` (+9.28%).
+
+Every request retained completion hash `1a8c2dccd3a72692`.  Two 2030+64 runs
+exercised non-boundary dense, boundary dense, and sparse replay and retained
+the exact prior SHA256 `82d5ee5b1069f91e...`.  The extra graph added only
+about 0.01 GiB and roughly 0.7 seconds to capture.  The exact rollback is
+`SGLANG_QWEN4_GFX90A_QSA_COMPRESSION_PHASE_GRAPH=0`.
+
 ### Rejected: unnormalized gfx90a router Top-K
 
 Qwen sets `norm_topk_prob=None`, so the custom gfx90a Top-K selector had been
