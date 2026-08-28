@@ -1354,11 +1354,11 @@ class Qwen4ExpLayerExtensionMixin:
             envs.SGLANG_QWEN4_GFX90A_HC_COMBINE_NORM.get()
             and torch.version.hip is not None
             and forward_batch.forward_mode.is_decode()
-            and hidden_states.shape == (1, 2560)
+            and hidden_states.shape in ((1, 2560), (16, 2560), (32, 2560))
             and isinstance(residual, tuple)
             and len(residual) == 3
-            and residual[0].shape == (1, 10240)
-            and residual[2].shape == (1, 8, 4)
+            and residual[0].shape == (hidden_states.shape[0], 10240)
+            and residual[2].shape == (hidden_states.shape[0], 8, 4)
         )
         if use_fused_combine_norm:
             from sglang.kernels.ops.hyperconnection.gfx90a_hc_combine_norm import (

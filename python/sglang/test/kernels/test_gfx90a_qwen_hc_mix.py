@@ -69,15 +69,16 @@ def test_qwen_hc_gate_fusion_is_bitwise_exact():
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
-def test_qwen_hc_combine_norm_is_bitwise_exact_and_replay_stable():
+@pytest.mark.parametrize("batch", [1, 16, 32])
+def test_qwen_hc_combine_norm_is_bitwise_exact_and_replay_stable(batch):
     if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
         pytest.skip("requires gfx90a")
     combine = _jit_hc_combine_module(4, 2560, torch.bfloat16)
     for seed in (0, 1, 17, 20260829):
         torch.manual_seed(seed)
-        block = (torch.randn(1, 2560, device="cuda") * 0.1).bfloat16()
-        residual = (torch.randn(1, 10240, device="cuda") * 0.1).bfloat16()
-        partials = torch.randn(1, 8, 4, device="cuda")
+        block = (torch.randn(batch, 2560, device="cuda") * 0.1).bfloat16()
+        residual = (torch.randn(batch, 10240, device="cuda") * 0.1).bfloat16()
+        partials = torch.randn(batch, 8, 4, device="cuda")
         weight = (torch.randn(10240, device="cuda") * 0.01).bfloat16()
         expected_combined = torch.empty_like(residual)
         combine.hc_combine_apply_precomputed(

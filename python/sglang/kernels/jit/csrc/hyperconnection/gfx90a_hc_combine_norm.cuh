@@ -22,6 +22,7 @@ struct QwenHcCombineNormParams {
   bf16_t* combined;
   bf16_t* normed;
   float eps;
+  uint32_t batch;
 };
 
 // Exact Qwen4 BS1 boundary:
@@ -44,12 +45,13 @@ __global__ __launch_bounds__(160) void gfx90a_qwen_hc_combine_norm_kernel(
   constexpr uint32_t Loads = 2;
   constexpr uint32_t Warps = Threads / 32;
 
-  const uint32_t branch = blockIdx.x;
+  const uint32_t branch = blockIdx.x % HC;
+  const uint32_t batch = blockIdx.x / HC;
   const uint32_t tid = threadIdx.x;
   float total = 0.0f;
 #pragma unroll
   for (uint32_t split = 0; split < 8; ++split)
-    total += params.gate_partials[split * HC + branch];
+    total += params.gate_partials[(batch * 8 + split) * HC + branch];
   const float gate = 2.0f / (1.0f + math::exp(-total * 0.25f));
 
   Storage combined_vec[Loads];
@@ -59,8 +61,8 @@ __global__ __launch_bounds__(160) void gfx90a_qwen_hc_combine_norm_kernel(
     const uint32_t vec = tid + load * Threads;
     Storage r;
     Storage y;
-    r.load(params.residual + branch * H, vec);
-    y.load(params.block_output, vec);
+    r.load(params.residual + batch * HC * H + branch * H, vec);
+    y.load(params.block_output + batch * H, vec);
 #pragma unroll
     for (uint32_t i = 0; i < 4; ++i) {
       const auto [rx, ry] = cast<fp32x2_t>(r[i]);
@@ -70,7 +72,8 @@ __global__ __launch_bounds__(160) void gfx90a_qwen_hc_combine_norm_kernel(
       const auto [cx, cy] = cast<fp32x2_t>(combined_vec[load][i]);
       sum_of_squares += cx * cx + cy * cy;
     }
-    combined_vec[load].store(params.combined + branch * H, vec);
+    combined_vec[load].store(
+        params.combined + batch * HC * H + branch * H, vec);
   }
 
   sum_of_squares = warp::reduce_sum(sum_of_squares);
@@ -101,7 +104,7 @@ __global__ __launch_bounds__(160) void gfx90a_qwen_hc_combine_norm_kernel(
           cx * norm_factor * (1.0f + wx),
           cy * norm_factor * (1.0f + wy)});
     }
-    out.store(params.normed + branch * H, vec);
+    out.store(params.normed + batch * HC * H + branch * H, vec);
   }
 }
 
@@ -115,9 +118,9 @@ struct Gfx90aQwenHcCombineNorm {
                   double eps) {
     using namespace host;
     auto device = SymbolicDevice{}; device.set_options<kDLCUDA>();
-    TensorMatcher({1, 2560}).with_dtype<bf16_t>().with_device(device).verify(block_output);
-    TensorMatcher({1, 10240}).with_dtype<bf16_t>().with_device(device).verify(residual).verify(combined).verify(normed);
-    TensorMatcher({1, 8, 4}).with_dtype<float>().with_device(device).verify(gate_partials);
+    TensorMatcher({-1, 2560}).with_dtype<bf16_t>().with_device(device).verify(block_output);
+    TensorMatcher({-1, 10240}).with_dtype<bf16_t>().with_device(device).verify(residual).verify(combined).verify(normed);
+    TensorMatcher({-1, 8, 4}).with_dtype<float>().with_device(device).verify(gate_partials);
     TensorMatcher({10240}).with_dtype<bf16_t>().with_device(device).verify(norm_weight);
     const QwenHcCombineNormParams params{
         static_cast<const bf16_t*>(block_output.data_ptr()),
@@ -126,8 +129,12 @@ struct Gfx90aQwenHcCombineNorm {
         static_cast<const bf16_t*>(norm_weight.data_ptr()),
         static_cast<bf16_t*>(combined.data_ptr()),
         static_cast<bf16_t*>(normed.data_ptr()),
-        static_cast<float>(eps)};
-    LaunchKernel(4, 160, device.unwrap())(
+        static_cast<float>(eps),
+        static_cast<uint32_t>(block_output.size(0))};
+    RuntimeCheck(residual.size(0) == block_output.size(0));
+    RuntimeCheck(gate_partials.size(0) == block_output.size(0));
+    RuntimeCheck(block_output.size(0) > 0 && block_output.size(0) <= 32);
+    LaunchKernel(params.batch * 4, 160, device.unwrap())(
         gfx90a_qwen_hc_combine_norm_kernel, params);
   }
 };

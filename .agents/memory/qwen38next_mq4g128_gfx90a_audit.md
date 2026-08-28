@@ -2326,3 +2326,20 @@ The 768-thread CTA and per-position LDS barriers cost much more than the saved
 K/V reads.  Even the sole positive point saved only about `0.12 ms/step`
 across twelve QSA layers, far below the structural threshold.  All oracle code
 was removed and production remains on compact+packed QSA.
+
+## 2026-08-29: retained BS16/BS32 HC combine+norm extension
+
+The exact gfx90a attention-HC-combine plus MLP grouped-RMSNorm fusion was
+extended from BS1 to the captured BS16/BS32 tiers.  Each `(batch, HC branch)`
+still owns one 160-thread CTA and preserves the original gate partial order,
+BF16 materialization point and RMS reduction tree.  Tests for all three tiers
+were bitwise exact and remained stable for 1000 graph replays.
+
+The complete module chain saved only about `0.73 us` at BS16 and `0.86 us` at
+BS32.  Service validation was neutral, as expected: BS16 measured
+`422.12 tok/s` and BS32 `628.73 tok/s`, overlapping the current
+`423.6/628.4` baseline.  Every concurrent request completed at the requested
+length, and the semantic oracle answered that Paris is the capital of France.
+The extension is retained because it removes a launch, is exact, and shows no
+multi-request regression; it is not counted as material progress toward the
+1200 tok/s target.

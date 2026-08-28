@@ -27,6 +27,18 @@ def gfx90a_qwen_hc_combine_norm(
     norm_weight: torch.Tensor,
     eps: float,
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    batch = block_output.shape[0]
+    if (
+        batch not in (1, 16, 32)
+        or block_output.shape != (batch, 2560)
+        or residual.shape != (batch, 10240)
+        or gate_partials.shape != (batch, 8, 4)
+        or norm_weight.shape != (10240,)
+    ):
+        raise ValueError(
+            "gfx90a Qwen HC combine+norm requires B=1/16/32, "
+            "block=[B,2560], residual=[B,10240], gate=[B,8,4], weight=[10240]"
+        )
     combined = torch.empty_like(residual)
     normed = torch.empty_like(residual)
     _module().run(
