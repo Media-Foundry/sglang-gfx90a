@@ -2146,3 +2146,17 @@ window moved from approximately `654 -> 635 tok/s` to `675 -> 653 tok/s`,
 about 3%.  France remained correct and all 32 requests completed exactly 512
 tokens.  The optimization shares the existing MQ4 fused-reduce rollback and
 is retained as a graph-safe consumer fusion.
+## 2026-08-29: BS32 compact active-expert grid rejected
+
+The retained expert-owned kernel launches a fixed grid over all 128 local
+expert IDs.  A graph-safe oracle added a deterministic device active-expert
+list and swept fixed worker grids `P=32/48/64/96/128`; no host occupancy sync
+or per-output atomic was used.  The real EP4 BS32 sample had 80 valid routed
+assignments spanning 60 active experts.
+
+All variants were bitwise identical to the indexed reference.  However, the
+gate chain's best compact result was `277.76 us` versus `277.44 us` for the
+retained fixed grid, while down's best compact result was `156.80 us` versus
+`150.24 us`.  Active-list construction and worker-loop scheduling therefore
+cancelled or exceeded empty-CTA savings.  The experimental code was removed;
+the fixed expert grid remains the production choice.
