@@ -2074,3 +2074,41 @@ collective/numerical-ordering issue rather than claimed bitwise parity.  Module
 oracles remain within their established FP32 tolerance, and single-request
 semantic/long-sequence checks remain mandatory before the checkpoint is
 published.
+
+## 2026-08-29: BS32 expert-owned MQ4 projection
+
+The indexed EP4 kernel launches over every logical assignment even though only
+about one quarter of assignments are local to a rank.  A graph-safe HIP
+histogram/scan now produces fixed-size expert offsets and a compact local
+assignment list.  A fixed `(expert, output tile)` grid exits empty experts and
+reuses each selected expert's weight tile across its local assignments.  The
+output is zero-filled first so remote slots retain the exact semantics expected
+by the existing fixed-order reduction.
+
+The production shapes must be distinguished explicitly: gate/up is
+`M=32,T=10,N=1280,K=2560`, while down consumes the flattened tensor and is
+`M=320,T=1,N=2560,K=640`.  Thirty-one-round ABBA microbenchmarks on an idle
+gfx90a GCD gave:
+
+- gate/up: indexed `347.52 us`, complete expert-owned chain `282.40 us`
+  (`+23.1%`);
+- down: indexed `520.96 us`, complete expert-owned chain `233.12 us`
+  (`+123.5%`).
+
+Both shapes are bitwise exact (`max_abs=0`), satisfy sorter offset/assignment
+invariants, and remain finite and bitwise stable over 1000 graph replays.  The
+registered MQ4 suite passes 10/10 with the selector enabled.  A semantic probe
+still produces `Paris` correctly.
+
+At BS32, enabling gate only raised steady server decode from roughly
+`443 -> 422 tok/s` to `472 -> 450 tok/s`.  Enabling both real production shapes
+raised the early-to-late 512-token window to roughly `594 -> 578 tok/s`, a
+33--37% gain over the indexed baseline.  All 32 requests completed the forced
+length.  The launch profile therefore enables
+`SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32=1`; setting it to zero is the
+exact fallback.
+
+Repeated fresh HTTP batches can still exhibit a separate 25--55 second
+admission gap in which only 1 or 16 of 32 requests enter initially.  This does
+not occur inside a resident decode window and must not be folded into the GPU
+kernel comparison.  It remains a scheduler/Mamba request-churn issue to fix.

@@ -202,6 +202,98 @@ __global__ __launch_bounds__(64) void mq4g128_indexed_kernel(
   if (lane == 0) out[(token * T + slot) * N + row] = value;
 }
 
+// M32 expert-owned metadata: valid local assignments are packed into
+// one contiguous segment per expert. offsets[E] is the total valid count;
+// remote/invalid assignments remain -1 in the unused tail.
+template <uint32_t E, uint32_t M, uint32_t T>
+__global__ void mq4g128_expert_owned_sorter_kernel(
+    const int32_t* __restrict__ expert_ids,
+    int32_t* __restrict__ offsets,
+    int32_t* __restrict__ assignments) {
+  static_assert((E & (E - 1)) == 0, "expert count must be a power of two");
+  constexpr uint32_t kTotal = M * T;
+  __shared__ int32_t counts[E];
+  __shared__ int32_t scan[E];
+  __shared__ int32_t cursors[E];
+  const uint32_t tid = threadIdx.x;
+  for (uint32_t expert = tid; expert < E; expert += blockDim.x) {
+    counts[expert] = 0;
+    scan[expert] = 0;
+  }
+  for (uint32_t assignment = tid; assignment < kTotal;
+       assignment += blockDim.x)
+    assignments[assignment] = -1;
+  __syncthreads();
+
+  for (uint32_t assignment = tid; assignment < kTotal;
+       assignment += blockDim.x) {
+    const int32_t expert = expert_ids[assignment];
+    if (expert >= 0 && expert < static_cast<int32_t>(E))
+      atomicAdd(counts + expert, 1);
+  }
+  __syncthreads();
+  for (uint32_t expert = tid; expert < E; expert += blockDim.x)
+    scan[expert] = counts[expert];
+  __syncthreads();
+
+  for (uint32_t stride = 1; stride < E; stride <<= 1) {
+    const uint32_t index = (tid + 1) * stride * 2 - 1;
+    if (index < E) scan[index] += scan[index - stride];
+    __syncthreads();
+  }
+  if (tid == 0) scan[E - 1] = 0;
+  __syncthreads();
+  for (uint32_t stride = E / 2; stride >= 1; stride >>= 1) {
+    const uint32_t index = (tid + 1) * stride * 2 - 1;
+    if (index < E) {
+      const int32_t left = scan[index - stride];
+      scan[index - stride] = scan[index];
+      scan[index] += left;
+    }
+    __syncthreads();
+  }
+  for (uint32_t expert = tid; expert < E; expert += blockDim.x) {
+    offsets[expert] = scan[expert];
+    cursors[expert] = scan[expert];
+  }
+  if (tid == 0) offsets[E] = scan[E - 1] + counts[E - 1];
+  __syncthreads();
+
+  for (uint32_t assignment = tid; assignment < kTotal;
+       assignment += blockDim.x) {
+    const int32_t expert = expert_ids[assignment];
+    if (expert >= 0 && expert < static_cast<int32_t>(E)) {
+      const uint32_t write = atomicAdd(cursors + expert, 1);
+      assignments[write] = assignment;
+    }
+  }
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
+__global__ __launch_bounds__(64) void mq4g128_expert_owned_kernel(
+    const float* __restrict__ x, const uint8_t* __restrict__ weight,
+    const int32_t* __restrict__ offsets,
+    const int32_t* __restrict__ assignments, float* __restrict__ out) {
+  const uint32_t subgroup = threadIdx.x >> 5;
+  const uint32_t lane = threadIdx.x & 31;
+  const uint32_t row = blockIdx.x * 2 + subgroup;
+  const uint32_t expert = blockIdx.y;
+  if (row >= N) return;
+  const int32_t begin = offsets[expert];
+  const int32_t end = offsets[expert + 1];
+  if (begin == end) return;
+  constexpr uint64_t kRowBytes = (K / 128) * 72;
+  const uint8_t* wrow =
+      weight + (static_cast<uint64_t>(expert) * N + row) * kRowBytes;
+  for (int32_t index = begin; index < end; ++index) {
+    const int32_t assignment = assignments[index];
+    const float value = mq4g128_dot_row<K>(
+        wrow, x + static_cast<size_t>(assignment / T) * K, lane);
+    if (lane == 0)
+      out[static_cast<uint64_t>(assignment) * N + row] = value;
+  }
+}
+
 // BS1 EP path: collapse the static top-k grid dimension into each row CTA.
 // With EP4 most of the ten routed IDs are remote on any one rank.  The normal
 // `(N/2,T)` grid still schedules a CTA for every remote slot; this form keeps
@@ -289,6 +381,50 @@ struct Gfx90aMq4g128Indexed {
         static_cast<const float*>(x.data_ptr()),
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<float*>(out.data_ptr()));
+  }
+};
+
+template <uint32_t E, uint32_t M, uint32_t T>
+struct Gfx90aMq4g128ExpertOwnedSorter {
+  static void run(const tvm::ffi::TensorView expert_ids,
+                  const tvm::ffi::TensorView offsets,
+                  const tvm::ffi::TensorView assignments) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, T}).with_dtype<int32_t>().with_device(device).verify(expert_ids);
+    TensorMatcher({E + 1}).with_dtype<int32_t>().with_device(device).verify(offsets);
+    TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(assignments);
+    LaunchKernel(1, 256, expert_ids.device())(
+        mq4g128_expert_owned_sorter_kernel<E, M, T>,
+        static_cast<const int32_t*>(expert_ids.data_ptr()),
+        static_cast<int32_t*>(offsets.data_ptr()),
+        static_cast<int32_t*>(assignments.data_ptr()));
+  }
+};
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K>
+struct Gfx90aMq4g128ExpertOwned {
+  static void run(const tvm::ffi::TensorView x,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView offsets,
+                  const tvm::ffi::TensorView assignments,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<float>().with_device(device).verify(x);
+    TensorMatcher({E, N, K / 128, 72}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E + 1}).with_dtype<int32_t>().with_device(device).verify(offsets);
+    TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(assignments);
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
+    LaunchKernel(dim3((N + 1) / 2, E), 64, x.device())(
+        mq4g128_expert_owned_kernel<E, M, T, N, K>,
+        static_cast<const float*>(x.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const int32_t*>(offsets.data_ptr()),
+        static_cast<const int32_t*>(assignments.data_ptr()),
         static_cast<float*>(out.data_ptr()));
   }
 };

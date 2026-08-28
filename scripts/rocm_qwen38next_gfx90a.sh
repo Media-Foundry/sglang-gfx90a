@@ -25,6 +25,7 @@ export SGLANG_QWEN4_GFX90A_HC_SPLIT_REDUCE_IN_UP=${SGLANG_QWEN4_GFX90A_HC_SPLIT_
 # The global A4 grouped MQ4 kernel loses to indexed assignment kernels at M=32
 # on EP4 because most expert runs are too short to amortize four accumulators.
 export SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS=${SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS:-64}
+export SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32=${SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32:-1}
 
 exec python -m sglang.launch_server \
   --model-path "${MODEL_PATH}" \

@@ -52,6 +52,36 @@ def _indexed_module(e: int, m: int, t: int, n: int, k: int) -> Module:
 
 
 @cache_once
+def _expert_owned_sorter_module(e: int, m: int, t: int) -> Module:
+    args = make_cpp_args(e, m, t)
+    return load_jit(
+        "gfx90a_mq4g128_expert_owned_sorter",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128ExpertOwnedSorter<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
+def _expert_owned_module(
+    e: int, m: int, t: int, n: int, k: int
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k)
+    return load_jit(
+        "gfx90a_mq4g128_expert_owned",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128ExpertOwned<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _persistent_slots_module(e: int, m: int, t: int, n: int, k: int) -> Module:
     args = make_cpp_args(e, m, t, n, k)
     return load_jit(
@@ -115,6 +145,29 @@ def mq4g128_indexed(
     assert groups * 128 == k and block_bytes == 72
     assert expert_ids.shape[0] == m and expert_ids.dtype == torch.int32
     t = expert_ids.shape[1]
+    use_expert_owned_m32 = (
+        os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32", "0") == "1"
+        and e == 128
+        and (
+            (m, t, n, k) == (32, 10, 1280, 2560)
+            or (m, t, n, k) == (320, 1, 2560, 640)
+        )
+    )
+    if use_expert_owned_m32:
+        # Remote expert slots must remain exact zeros for the later fixed-order
+        # reduction.  The sorter and projection use fixed-size device buffers,
+        # so this path remains safe under CUDA graph capture.
+        out = torch.zeros((m, t, n), dtype=torch.float32, device=x.device)
+        offsets = torch.empty(e + 1, dtype=torch.int32, device=x.device)
+        assignments = torch.empty(m * t, dtype=torch.int32, device=x.device)
+        _expert_owned_sorter_module(e, m, t).run(
+            expert_ids, offsets, assignments
+        )
+        _expert_owned_module(e, m, t, n, k).run(
+            x, weight, offsets, assignments, out
+        )
+        return out
+
     out = torch.empty((m, t, n), dtype=torch.float32, device=x.device)
     if (
         m * t == 10
