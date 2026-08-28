@@ -1310,6 +1310,16 @@ France returned `Paris` exactly twice.  Two 2030+64 dense/compression/sparse
 boundary runs retained identical SHA256
 `bf1d164575a4bb9f1a58bd25a42a523627ea94a781bea887db73691796175e27`.
 
+## Rejected MQ4-time Qwen wave64 Top-10 reachability
+
+The Qwen wave64 Top-10 selector was tested outside its historical global AIter
+guard because formal MQ4 uses `SGLANG_USE_AITER=0`.  A focused oracle confirmed
+its IDs and weights were bitwise identical to `topk_softmax`, but the full graph
+fell to `70.906 tok/s` trimmed over twelve requests (all fixed hash
+`ac55ed9f7239753d`), roughly 6.4% below baseline.  Its earlier gain therefore
+depends on the surrounding AIter graph/launch stack; the guard is not merely a
+dead configuration bug.  The selector move was fully reverted.
+
 ## Rejected gfx90a GDN ratio-8 fused split
 
 The production MQ4 configuration disables the global AIter switch, which made
