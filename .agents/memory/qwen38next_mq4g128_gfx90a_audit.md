@@ -833,3 +833,14 @@ write its DECODE trace; the profiler stop barrier then lost that peer and the
 scheduler performed its normal SIGABRT cleanup.  There was no ECC/RAS, GPU
 reset, VM fault, MCE, or EDAC evidence.  Given the negligible service gain and
 less robust synchronization/profiling behavior, the selector was removed.
+
+### Rejected: AIter shared-staging CTA thread-count scan
+
+The normal one-stage kernel was templated experimentally at 128/256/512
+threads while retaining rank order, FP32 accumulation, system-scope signals,
+and the final buffer-lifetime barrier.  Four-rank graph ABBA for 2560 BF16
+elements measured slowest-rank medians of approximately 12.94 us (128), 12.15
+us (256), and 12.02 us (original 512).  All outputs were bitwise equal, but
+smaller CTAs require more signal-bearing blocks and do not reduce the XGMI
+critical path.  The AIter source and production `.so` SHA256
+`5e8695f2d3da23eb...` were restored.
