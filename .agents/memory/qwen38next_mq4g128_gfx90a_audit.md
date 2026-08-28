@@ -1324,6 +1324,17 @@ were `76.408` and `76.204 tok/s`, while the intervening fallback control was
 The selector and test were therefore fully reverted.  A multi-stream profiler
 attempt also stalled during profiler shutdown with the shared/routed alternate
 stream active; that trace was discarded and all involved processes were killed.
+
+The packed recurrent kernel's value-row tile was then scanned at
+`BV={16,32,64,128}` for the real BS1 shape `[H=6,HV=48,K=V=128]`.  Every arm
+was bitwise identical in both output and updated persistent state.  A fifteen
+round isolated hot-state timing misleadingly put BV128 slightly ahead of BV32
+(`47.79` versus `48.31 us` trimmed), while BV16/64 were slower.  In the full
+TP4 graph, however, BV128 collapsed to a stable `62.52 tok/s` over twelve
+256-token requests (all hash `ac55ed9f7239753d`), far below the retained
+`75.9--76.3 tok/s` range.  The four-times longer CTA damages whole-graph CU
+scheduling despite the isolated timing.  The selector was fully removed and
+BV32 remains production.
 Every service/GPU experiment was preceded by `amd-smi process --json`.
 
 The split-K reduction was subsequently folded into the first phase of the HC
