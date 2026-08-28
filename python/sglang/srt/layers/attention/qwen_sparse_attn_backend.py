@@ -1827,7 +1827,7 @@ class QwenSparseAttnBackend(AttentionBackend):
                 and envs.SGLANG_QWEN4_GFX90A_QSA_PACKED_DECODE.get()
                 and q.shape[1:] == (6, 256)
                 and packed_k.shape == (scratch_capacity, 1, 256)
-                and scratch_capacity == batch * topk
+                and scratch_capacity >= batch * topk
                 and packed_k.dtype == torch.bfloat16
             ):
                 from sglang.kernels.ops.attention.gfx90a_qsa_packed_decode import (
@@ -1836,8 +1836,13 @@ class QwenSparseAttnBackend(AttentionBackend):
 
                 output = gfx90a_qsa_packed_decode(
                     q,
-                    packed_k,
-                    packed_v,
+                    # Graph scratch is sized for the largest captured tier.
+                    # Smaller tiers occupy only the compact prefix; trim the
+                    # static backing allocation so the HIP specialization sees
+                    # its true [B * TOPK, 1, D] contract instead of falling back
+                    # to the eager-only host-offset implementation.
+                    packed_k[: batch * topk],
+                    packed_v[: batch * topk],
                     cu_seqlens_k,
                     layer.scaling,
                 )

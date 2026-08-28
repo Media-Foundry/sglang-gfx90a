@@ -14,6 +14,7 @@ MAMBA_SSM_DTYPE=${MAMBA_SSM_DTYPE:-bfloat16}
 MEM_FRACTION_STATIC=${MEM_FRACTION_STATIC:-0.65}
 CONTEXT_LENGTH=${CONTEXT_LENGTH:-4096}
 MAX_RUNNING_REQUESTS=${MAX_RUNNING_REQUESTS:-32}
+MAX_MAMBA_CACHE_SIZE=${MAX_MAMBA_CACHE_SIZE:-64}
 INIT_EXPERT_LOCATION=${INIT_EXPERT_LOCATION:-${SCRIPT_DIR}/rocm/qwen38next_eplb_static_lpt.json}
 
 export HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0,1,2,3}
@@ -21,6 +22,9 @@ export SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED=${SGLANG_QWEN4_GFX90A_MQ4G128_ROUTED:-
 export SGLANG_USE_AITER=${SGLANG_USE_AITER:-0}
 export SGLANG_QWEN4_GFX90A_HC_DOWN_SPLIT=${SGLANG_QWEN4_GFX90A_HC_DOWN_SPLIT:-4}
 export SGLANG_QWEN4_GFX90A_HC_SPLIT_REDUCE_IN_UP=${SGLANG_QWEN4_GFX90A_HC_SPLIT_REDUCE_IN_UP:-1}
+# The global A4 grouped MQ4 kernel loses to indexed assignment kernels at M=32
+# on EP4 because most expert runs are too short to amortize four accumulators.
+export SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS=${SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS:-64}
 
 exec python -m sglang.launch_server \
   --model-path "${MODEL_PATH}" \
@@ -36,12 +40,13 @@ exec python -m sglang.launch_server \
   --mem-fraction-static "${MEM_FRACTION_STATIC}" \
   --context-length "${CONTEXT_LENGTH}" \
   --max-running-requests "${MAX_RUNNING_REQUESTS}" \
+  --max-mamba-cache-size "${MAX_MAMBA_CACHE_SIZE}" \
   --chunked-prefill-size 1024 \
   --page-size 64 \
   --c128-page-size 16 \
   --swa-full-tokens-ratio 0.8 \
   --disable-radix-cache \
-  --cuda-graph-bs-decode 1 \
+  --cuda-graph-bs-decode 1 16 32 \
   --host "${HOST}" \
   --port "${PORT}" \
   --skip-server-warmup \

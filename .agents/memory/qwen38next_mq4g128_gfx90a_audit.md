@@ -2015,3 +2015,62 @@ and provides the epilogue seam for further collective/HC fusion.  France was
 correct with normal stop, and forced-2048 retained the historical output-ID
 and text SHA-256 values.  It defaults on with
 `SGLANG_QWEN4_GFX90A_HC_COMBINE_NORM=0` as exact rollback.
+
+## 2026-08-29: four-GCD BS16/BS32 decode baseline and M32 MQ4 selection
+
+The production profile now captures only the decode tiers relevant to the
+multi-request objective: `1/16/32`.  The first BS16 capture exposed a selector
+regression in compressed QSA: graph scratch is allocated for the largest tier,
+so smaller tiers failed the exact `scratch_capacity == batch * topk` guard and
+entered `_packed_varlen_attention_torch()`, whose device-to-host offset read is
+illegal during graph capture.  The gfx90a packed-QSA call now consumes the
+active `[:batch * topk]` prefix of that static allocation.  All three tiers
+capture successfully, consume about 0.67 GiB/GCD of graph memory, and the
+packed-QSA regression suite passes 14/14.
+
+A 32-prompt native-AR harness was added at
+`scripts/rocm/bench_qwen38next_concurrent.py`.  It starts all requests behind a
+barrier, forces equal generation lengths, records every completion-ID hash,
+and reports aggregate throughput and request P50/P95.  The first requests must
+still warm JIT modules; accepted performance comes from subsequent steady
+decode windows, not those compilation-bearing rounds.
+
+The previous MQ4 selector switched globally from indexed kernels to a static
+HIP-sorter plus A4 grouped kernel at exactly `M=32`.  An A/B/return-A test found
+that this is the wrong occupancy policy for EP4 Qwen routing:
+
+- grouped A: server decode approximately `394 -> 387 tok/s` over a 512-token
+  window;
+- indexed B: approximately `443 -> 422 tok/s` over a 1024-token window, and
+  short steady HTTP rounds about `409--411 tok/s`;
+- grouped return A reproduced the lower approximately `394 -> 387 tok/s`.
+
+Thus keeping M32 on indexed kernels improves the comparable early window by
+about 12--13%.  `SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS` now defaults
+to 64 in the four-GCD launch profile.  This does not disprove occupancy
+bucketing; it specifically rejects applying one global A4 kernel to all M32
+assignments.  A future sorter should emit A1/A2/A4 buckets based on actual run
+lengths.
+
+The native FP8 routed path was also tested under the same `1/16/32` graph
+geometry with enough memory (`mem_fraction_static=0.75`).  It reached only
+`261--266 tok/s` at BS32 and is rejected; CDNA2's default Triton FP8 MoE path
+does not recover enough high-M utilization to beat packed MQ4 indexed.
+
+Finally, allocating exactly 32 recurrent-state slots caused completed batches
+to block immediate replacement requests while old state ownership drained,
+creating intermittent 25--75 second admission gaps.  The unrelated
+`--mamba-max-states-per-path` knob does not resize this pool.  The correct
+`--max-mamba-cache-size 64` setting removed the gap: two adjacent 32x128 rounds
+completed at `354.3` (first warm round) and `407.1 tok/s`, with the second round
+starting immediately.  The four-GCD profile now reserves 64 state slots while
+still limiting active requests to 32.
+
+Correctness evidence: every concurrent request completed at its forced length;
+the MQ4 and packed-QSA registered suites pass 24/24.  Cross-round completion
+hashes remain nondeterministic for a subset of prompts in both control and
+candidate configurations, so this is tracked as an existing concurrent
+collective/numerical-ordering issue rather than claimed bitwise parity.  Module
+oracles remain within their established FP32 tolerance, and single-request
+semantic/long-sequence checks remain mandatory before the checkpoint is
+published.
