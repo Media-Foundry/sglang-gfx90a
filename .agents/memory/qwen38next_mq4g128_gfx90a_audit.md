@@ -877,3 +877,16 @@ model-final HC mixer is constructed with `use_combine=False` and therefore has
 no inject weight.  Gate fusion must require `block_inject_weight`; otherwise
 startup fails with `AttributeError` and scheduler SIGABRT cleanup.  The guard
 is retained.
+
+### Rejected: HC apply + following grouped RMSNorm
+
+A one-CTA-per-branch kernel reproduced HC apply's BF16 residual rounding and
+then performed the immediately following MLP grouped RMSNorm in the same CTA,
+emitting both residual and normalized residual.  Both tensors were bitwise
+exact.  Ten-pair micro ABBA improved 12.600 us (two launches) to 6.844 us
+(one launch), about 46% for this local pair.  Nevertheless, a full TP4 graph
+service measured only 55.9869 tok/s trimmed, below the retained gate-fusion
+checkpoint's 56.1193 tok/s, with the same completion hash.  Collapsing eight
+160-thread apply CTAs plus four RMS CTAs into four longer CTAs worsened graph
+tail scheduling enough to erase the standalone win.  All selector, model
+plumbing, and kernel code was removed.
