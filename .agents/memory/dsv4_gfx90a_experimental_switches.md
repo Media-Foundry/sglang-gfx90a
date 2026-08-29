@@ -3870,3 +3870,34 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   A `123.380 us` and hybrid B `116.005 us`, saving only `7.375 us` (`5.98%`).
   It fails both required gates: not bitwise and far below `30 us`. Do not test
   this hybrid in production and do not spend time on a 1000-mutation rerun.
+
+### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
+
+- Revisited the exact standalone combination only because the long-generation
+  audit proved that the old HTTP resident metric under-reports model decode.
+  Added the strictly shape-guarded
+  `SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH` selector: only gfx90a
+  E256/M32/T6/I512/H4096, A4/R2/W8, gate2080/down832 and LDS mode2 can select
+  the DPP gate reduction plus two-row down weight/scale prefetch. The existing
+  fixed-order FP32 partial reduction is unchanged. Other tiers, prefill, MFMA
+  and non-TP4 shapes retain production kernels.
+- The prior component oracle had already passed 100 mutated activation/router
+  cases bitwise at the intermediate BF16, down FP32 partial and final BF16
+  boundaries. A fresh 32-row teacher-forced service comparison found all
+  output IDs, complete output-token logprobs and top-5 logprob rows bitwise
+  identical between selector off/on.
+- Two independent A and B services each ran three 512-token rounds with the
+  same 32 distinct fixed input IDs. All twelve A/B request waves passed the
+  France gate and every request returned 512 tokens. Scheduler log samples
+  above 600 tok/s gave A1/A2 medians `694.945/695.895` (trimmed means
+  `695.916/696.276`) and B1/B2 medians `707.990/706.140` (trimmed means
+  `708.281/706.881`). This is a reproducible model-decode gain of roughly
+  `1.6--1.9%`. Client common-resident samples also moved from A's
+  `609.013--612.637` to B's `616.900--621.397 tok/s`; group-wall outliers remain
+  a separate HTTP drain issue.
+- Enable the selector by default only in the explicit TP4-BS32 profile, while
+  preserving an environment override for rollback. This is below the usual
+  5% checkpoint threshold but is retained because it is exact, positive in
+  both independent service orderings, and follows the requested policy of
+  keeping verified small wins. The new stable diverse-request model-decode
+  center is approximately `707 tok/s`, still far below the 1500 tok/s goal.

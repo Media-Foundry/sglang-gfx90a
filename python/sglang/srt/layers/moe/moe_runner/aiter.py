@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 _logged_gfx90a_fast_direct_compare = False
 
 
+@functools.cache
+def _is_runtime_gfx90a() -> bool:
+    if not torch.cuda.is_available():
+        return False
+    return torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0] == "gfx90a"
+
+
 def _is_gfx90a_dsv4_direct_fp4_shape(
     w13_weight: torch.Tensor, w2_weight: torch.Tensor
 ) -> bool:
@@ -575,6 +582,20 @@ class AiterRunnerCore(MoeRunnerCore):
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
                     )
                 )
+                use_m32_dpp_down_prefetch = (
+                    envs.SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH.get()
+                    and _is_runtime_gfx90a()
+                    and runner_input.hidden_states.shape == (32, 4096)
+                    and runner_input.topk_ids.shape == (32, 6)
+                    and quant_info.w13_weight.shape == (256, 1024, 2048)
+                    and quant_info.w2_weight.shape == (256, 4096, 256)
+                    and grouped_assignments == 4
+                    and grouped_gate_rows == 2
+                    and grouped_down_rows == 2
+                    and gate_blocks == 2080
+                    and use_lds_unpack
+                    and not use_mfma32_prefill
+                )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
                         gate_prequant[0],
@@ -605,6 +626,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         rows=grouped_gate_rows,
                         blocks=gate_blocks,
                         use_lds_lut=use_lds_unpack,
+                        use_dpp_reduction=use_m32_dpp_down_prefetch,
                     )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
@@ -653,6 +675,9 @@ class AiterRunnerCore(MoeRunnerCore):
                     else get_int_env_var(
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS", 208
                     )
+                )
+                use_m32_dpp_down_prefetch = (
+                    use_m32_dpp_down_prefetch and down_blocks == 832
                 )
                 if use_m32_down_consumer:
                     from sglang.kernels.ops.moe.gfx90a_fp4_down_consumer_quant_oracle import (
@@ -726,6 +751,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         zero_partial=(
                             envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
                         ),
+                        use_row_prefetch=use_m32_dpp_down_prefetch,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

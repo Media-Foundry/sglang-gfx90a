@@ -89,6 +89,36 @@ def _jit_gate_up_grouped(
 
 
 @cache_once
+def _jit_gate_up_grouped_dpp(
+    e: int,
+    m: int,
+    t: int,
+    i: int,
+    k: int,
+    assignments: int,
+    rows: int,
+    waves: int,
+    blocks: int,
+    prepacked: int,
+) -> Module:
+    args = make_cpp_args(
+        e, m, t, i, k, assignments, rows, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_gate_up_grouped_dpp",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertGateUpGroupedDppKernel<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_gate_up_mfma32(
     e: int,
     m: int,
@@ -201,6 +231,41 @@ def _jit_down_grouped(
 
 
 @cache_once
+def _jit_down_grouped_row_prefetch(
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    assignments: int,
+    waves: int,
+    blocks: int,
+    prepacked: int,
+) -> Module:
+    args = make_cpp_args(
+        e, m, t, n, k, assignments, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_down_row_prefetch",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_expert_down_row_prefetch_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_down_mfma32(
     e: int,
     m: int,
@@ -306,6 +371,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
     blocks: int = 208,
     prepacked_weight: torch.Tensor | None = None,
     use_lds_lut: bool = False,
+    use_dpp_reduction: bool = False,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -326,7 +392,21 @@ def gfx90a_fp4_expert_gate_up_grouped(
         )
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
-    _jit_gate_up_grouped(
+    if use_dpp_reduction:
+        assert (e, m, topk, i, k) == (256, 32, 6, 512, 4096)
+        assert (assignments, rows, waves, blocks, weight_mode) == (
+            4,
+            2,
+            8,
+            2080,
+            2,
+        )
+    gate_module = (
+        _jit_gate_up_grouped_dpp
+        if use_dpp_reduction
+        else _jit_gate_up_grouped
+    )
+    gate_module(
         e,
         m,
         topk,
@@ -411,6 +491,7 @@ def gfx90a_fp4_expert_down_grouped(
     prepacked_weight: torch.Tensor | None = None,
     use_lds_lut: bool = False,
     zero_partial: bool = False,
+    use_row_prefetch: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -441,6 +522,40 @@ def gfx90a_fp4_expert_down_grouped(
         )
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
+    if use_row_prefetch:
+        assert (e, m, topk, n, k) == (256, 32, 6, 4096, 512)
+        assert (assignments, rows, waves, blocks, weight_mode) == (
+            4,
+            2,
+            8,
+            832,
+            2,
+        )
+        assert prepacked_weight is None and use_lds_lut
+        module = _jit_down_grouped_row_prefetch(
+            e,
+            m,
+            topk,
+            n,
+            k,
+            assignments,
+            waves,
+            blocks,
+            weight_mode,
+        )
+        module.run_partial(
+            xq,
+            x_scale,
+            kernel_weight.view(torch.uint8),
+            weight_scale.view(torch.uint8).reshape(e, n, k // 32),
+            sorted_ids,
+            sorted_expert_ids,
+            num_valid_ids,
+            topk_weights,
+            partial,
+        )
+        module.reduce(partial, out)
+        return out
     _jit_down_grouped(
         e,
         m,

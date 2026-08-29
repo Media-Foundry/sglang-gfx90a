@@ -1502,6 +1502,10 @@ class Envs:
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
+    # TP4/M32 oracle-backed combo: DPP gate reduction plus grouped-down row
+    # prefetch. Exact-shape guarded in the AIter runner and default-off until
+    # service scheduler-throughput A/B completes.
+    SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
