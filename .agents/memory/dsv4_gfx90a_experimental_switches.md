@@ -3494,3 +3494,24 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   INT8 median `627.582 us` (+43.8%). Doubling weight bytes costs far more than
   removing FP4 decode. Full INT8 prepack is both slower and incompatible with
   the memory target; retain packed 4-bit storage and the LDS-LUT decode path.
+
+### TP4 M32 A1 plus A4-rest two-bucket rejection (2026-08-30)
+
+- Closed the narrower gap left by the earlier TP8 A1/A2/A4 experiment. For
+  real diverse pass37/layer34, split 64 singleton experts into an A1 grouped
+  launch and kept all 42 non-singleton experts in 49 ordinary A4 blocks. This
+  is an optimistic CPU-prepartitioned oracle; it excludes production GPU
+  histogram/partition cost. Gate BF16, down FP32 partial and final BF16 were
+  bitwise exact, including 100 mutated-input replays.
+- A1/rest gate blocks `416/1664` and down `416/832` measured gate
+  `255.534 -> 275.243 us`, down `172.869 -> 177.637 us`, and full routed
+  `438.614 -> 463.960 us` (+5.78%). A higher-concurrency closure using gate
+  `1040/2080` and down `832/832` improved the candidate but still measured
+  gate `254.764 -> 268.886 us`, down `172.229 -> 176.037 us`, and full
+  `439.763 -> 458.518 us` (+4.26%).
+- The extra launch, per-grid LDS LUT initialization and synchronization exceed
+  the benefit of smaller A1 accumulator state even though singleton blocks are
+  56.6% of scans. It misses the predeclared gate continuation threshold
+  (`<=239 us`) by about 30 us before sorter cost. Do not implement a two-bucket
+  GPU sorter or service selector; occupancy partitioning without fewer weight
+  scans is closed for this TP4 diverse workload.

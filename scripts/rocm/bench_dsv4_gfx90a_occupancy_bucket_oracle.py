@@ -114,6 +114,7 @@ def make_metadata(
             or (occupancy == 1 and len(bucket) == 1)
             or (occupancy == 2 and len(bucket) == 2)
             or (occupancy == 4 and len(bucket) >= 3)
+            or (occupancy == 0 and len(bucket) >= 2)
         )
         if not selected:
             continue
@@ -213,6 +214,7 @@ def abba_pair(fn_a, fn_b, *, warmup: int, iterations: int, rounds: int):
 
 
 def main() -> None:
+    global I
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorder", required=True)
     parser.add_argument("--pass-index", type=int, default=37)
@@ -222,7 +224,25 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--correctness-replays", type=int, default=100)
+    parser.add_argument("--intermediate-size", type=int, default=I)
+    parser.add_argument("--baseline-gate-blocks", type=int, default=832)
+    parser.add_argument("--baseline-down-blocks", type=int, default=832)
+    parser.add_argument("--two-bucket", action="store_true")
+    parser.add_argument("--a1-gate-blocks", type=int, default=416)
+    parser.add_argument("--rest-gate-blocks", type=int, default=1664)
+    parser.add_argument("--a1-down-blocks", type=int, default=416)
+    parser.add_argument("--rest-down-blocks", type=int, default=832)
     args = parser.parse_args()
+    I = args.intermediate_size
+    profiles = PROFILES
+    if args.two_bucket:
+        profiles = (
+            BlockProfile(
+                "a1_plus_a4rest",
+                (args.a1_gate_blocks, args.rest_gate_blocks),
+                (args.a1_down_blocks, args.rest_down_blocks),
+            ),
+        )
 
     if not torch.version.hip:
         raise RuntimeError("ROCm is required")
@@ -242,12 +262,19 @@ def main() -> None:
     metadata_begin = time.perf_counter_ns()
     a4 = make_metadata(topk_ids, assignments=4)
     bucket_metadata = (
-        make_metadata(topk_ids, assignments=1, occupancy=1),
-        make_metadata(topk_ids, assignments=2, occupancy=2),
-        make_metadata(topk_ids, assignments=4, occupancy=4),
+        (
+            make_metadata(topk_ids, assignments=1, occupancy=1),
+            make_metadata(topk_ids, assignments=4, occupancy=0),
+        )
+        if args.two_bucket
+        else (
+            make_metadata(topk_ids, assignments=1, occupancy=1),
+            make_metadata(topk_ids, assignments=2, occupancy=2),
+            make_metadata(topk_ids, assignments=4, occupancy=4),
+        )
     )
     metadata_us = (time.perf_counter_ns() - metadata_begin) / 1000.0
-    bucket_names = ("A1", "A2", "A4")
+    bucket_names = ("A1", "A4-rest") if args.two_bucket else ("A1", "A2", "A4")
     represented = 0
     for name, metadata in zip(bucket_names, bucket_metadata):
         valid = metadata.sorted_ids.cpu()
@@ -281,9 +308,14 @@ def main() -> None:
     out_b = torch.empty_like(out_a)
 
     def run_a() -> torch.Tensor:
-        invoke_gate(a4, 832, xq, xs, w13, s13, intermediate_a)
+        invoke_gate(
+            a4, args.baseline_gate_blocks, xq, xs, w13, s13, intermediate_a
+        )
         iq, isc = per_token_group_quant_int8(intermediate_a, 32)
-        invoke_down_partial(a4, 832, iq, isc, w2, s2, topk_weights, partial_a)
+        invoke_down_partial(
+            a4, args.baseline_down_blocks, iq, isc, w2, s2,
+            topk_weights, partial_a
+        )
         reduce_once(partial_a, out_a)
         return out_a
 
@@ -304,7 +336,7 @@ def main() -> None:
     # Compile and prove exactness before timing any profile.
     reference = run_a().clone()
     torch.cuda.synchronize()
-    for profile in PROFILES:
+    for profile in profiles:
         candidate = make_b(profile)()
         torch.cuda.synchronize()
         gate_exact = torch.equal(intermediate_a, intermediate_b)
@@ -323,7 +355,7 @@ def main() -> None:
     # Block geometry cannot change arithmetic, so stress the first profile
     # over mutated quantized inputs after every geometry has passed its fixed
     # input check.  This catches stale shared-output/partial slots cheaply.
-    stress_b = make_b(PROFILES[0])
+    stress_b = make_b(profiles[0])
     for replay in range(args.correctness_replays):
         xq.add_((replay % 7) + 1)
         reference = run_a().clone()
@@ -339,7 +371,7 @@ def main() -> None:
         flush=True,
     )
 
-    for profile in PROFILES:
+    for profile in profiles:
         run_b = make_b(profile)
         a_samples, b_samples = abba_pair(
             run_a,
@@ -360,7 +392,9 @@ def main() -> None:
         )
 
         def gate_a() -> None:
-            invoke_gate(a4, 832, xq, xs, w13, s13, intermediate_a)
+            invoke_gate(
+                a4, args.baseline_gate_blocks, xq, xs, w13, s13, intermediate_a
+            )
 
         def gate_b() -> None:
             for metadata, blocks in zip(bucket_metadata, profile.gate):
@@ -373,7 +407,8 @@ def main() -> None:
 
         def down_a() -> None:
             invoke_down_partial(
-                a4, 832, iq_fixed, isc_fixed, w2, s2, topk_weights, partial_a
+                a4, args.baseline_down_blocks, iq_fixed, isc_fixed, w2, s2,
+                topk_weights, partial_a
             )
 
         def down_b() -> None:
