@@ -14,7 +14,8 @@ union Gfx90aGatePackedRow16 {
 // change is to request gate/up packed rows and scales for both R2 rows before
 // decoding or consuming row0.
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
-          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves>
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
+          bool kLogicalScale = false>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_row_prefetch_kernel(
         bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
@@ -87,12 +88,18 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
             *reinterpret_cast<const uint4*>(weight + gate_base);
         up_packed[r].vector =
             *reinterpret_cast<const uint4*>(weight + up_base);
-        gate_scale_raw[r] =
-            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
-                expert, gate_row, group)];
-        up_scale_raw[r] =
-            weight_scale[gfx90a_gate_up_scale_offset<E, I, K>(
-                expert, up_row, group)];
+        gate_scale_raw[r] = weight_scale[
+            kLogicalScale
+                ? (static_cast<size_t>(expert) * (2 * I) + gate_row) *
+                      (K / 32) + group
+                : gfx90a_gate_up_scale_offset<E, I, K>(expert, gate_row,
+                                                        group)];
+        up_scale_raw[r] = weight_scale[
+            kLogicalScale
+                ? (static_cast<size_t>(expert) * (2 * I) + up_row) *
+                      (K / 32) + group
+                : gfx90a_gate_up_scale_offset<E, I, K>(expert, up_row,
+                                                        group)];
       }
 
 #pragma unroll
@@ -171,7 +178,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
-          uint32_t kBlocks, uint32_t kPrepacked = 2>
+          uint32_t kBlocks, uint32_t kPrepacked = 2,
+          bool kLogicalScale = false>
 struct Gfx90aFp4ExpertGateRowPrefetchOracle {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -185,7 +193,7 @@ struct Gfx90aFp4ExpertGateRowPrefetchOracle {
     using namespace host;
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_gate_row_prefetch_kernel<
-            E, M, T, I, K, kAssignments, kRows, kNumWaves>,
+            E, M, T, I, K, kAssignments, kRows, kNumWaves, kLogicalScale>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

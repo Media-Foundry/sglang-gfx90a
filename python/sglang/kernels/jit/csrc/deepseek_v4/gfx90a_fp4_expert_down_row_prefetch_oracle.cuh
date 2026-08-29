@@ -15,7 +15,7 @@ union Gfx90aFp4PackedRow16 {
 // row1's pure VMEM can overlap row0's LDS decode and assignment consumers.
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kNumWaves,
-          uint32_t kPrepacked>
+          uint32_t kPrepacked, bool kLogicalScale = false>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_down_row_prefetch_kernel(
         float* __restrict__ partial, const int8_t* __restrict__ xq,
@@ -94,9 +94,10 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
               (static_cast<size_t>(expert) * N + row) * (K / 2) + group * 16;
           packed[r].vector =
               *reinterpret_cast<const uint4*>(weight + weight_base);
-          scale_raw[r] =
-              weight_scale[gfx90a_down_scale_offset<E, N, K>(
-                  expert, row, group)];
+          scale_raw[r] = weight_scale[
+              kLogicalScale
+                  ? (static_cast<size_t>(expert) * N + row) * (K / 32) + group
+                  : gfx90a_down_scale_offset<E, N, K>(expert, row, group)];
         } else {
           packed[r].vector = make_uint4(0, 0, 0, 0);
           scale_raw[r] = 0;
@@ -152,7 +153,7 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kNumWaves, uint32_t kBlocks,
-          uint32_t kPrepacked = 2>
+          uint32_t kPrepacked = 2, bool kLogicalScale = false>
 struct Gfx90aFp4ExpertDownRowPrefetchOracle {
   static void run_partial(const tvm::ffi::TensorView xq,
                           const tvm::ffi::TensorView x_scale,
@@ -175,7 +176,8 @@ struct Gfx90aFp4ExpertDownRowPrefetchOracle {
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_row_prefetch_kernel<
-            E, M, T, N, K, kAssignments, kNumWaves, kPrepacked>,
+            E, M, T, N, K, kAssignments, kNumWaves, kPrepacked,
+            kLogicalScale>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
