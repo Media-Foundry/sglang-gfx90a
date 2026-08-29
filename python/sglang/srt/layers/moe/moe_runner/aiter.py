@@ -596,6 +596,10 @@ class AiterRunnerCore(MoeRunnerCore):
                     and use_lds_unpack
                     and not use_mfma32_prefill
                 )
+                use_m32_gate_row_prefetch = (
+                    use_m32_dpp_down_prefetch
+                    and envs.SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH.get()
+                )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
                         gate_prequant[0],
@@ -627,6 +631,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         blocks=gate_blocks,
                         use_lds_lut=use_lds_unpack,
                         use_dpp_reduction=use_m32_dpp_down_prefetch,
+                        use_row_prefetch=use_m32_gate_row_prefetch,
                     )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(

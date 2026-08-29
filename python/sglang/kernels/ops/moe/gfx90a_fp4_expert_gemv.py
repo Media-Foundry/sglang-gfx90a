@@ -266,6 +266,28 @@ def _jit_down_grouped_row_prefetch(
 
 
 @cache_once
+def _jit_gate_up_grouped_row_prefetch(
+    e: int, m: int, t: int, i: int, k: int, assignments: int,
+    rows: int, waves: int, blocks: int, prepacked: int,
+) -> Module:
+    args = make_cpp_args(
+        e, m, t, i, k, assignments, rows, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_gate_row_prefetch",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh"
+        ],
+        cuda_wrappers=[(
+            "run",
+            f"sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{args}>::run",
+        )],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_down_mfma32(
     e: int,
     m: int,
@@ -372,6 +394,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
     prepacked_weight: torch.Tensor | None = None,
     use_lds_lut: bool = False,
     use_dpp_reduction: bool = False,
+    use_row_prefetch: bool = False,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -392,7 +415,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
         )
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
-    if use_dpp_reduction:
+    if use_dpp_reduction or use_row_prefetch:
         assert (e, m, topk, i, k) == (256, 32, 6, 512, 4096)
         assert (assignments, rows, waves, blocks, weight_mode) == (
             4,
@@ -402,7 +425,9 @@ def gfx90a_fp4_expert_gate_up_grouped(
             2,
         )
     gate_module = (
-        _jit_gate_up_grouped_dpp
+        _jit_gate_up_grouped_row_prefetch
+        if use_row_prefetch
+        else _jit_gate_up_grouped_dpp
         if use_dpp_reduction
         else _jit_gate_up_grouped
     )

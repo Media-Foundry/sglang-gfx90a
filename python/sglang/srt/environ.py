@@ -1506,6 +1506,9 @@ class Envs:
     # prefetch. Exact-shape guarded in the AIter runner and default-off until
     # service scheduler-throughput A/B completes.
     SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH = EnvBool(False)
+    # Exact TP4/M32 gate schedule: request both same-group R2 packed rows and
+    # scales before row0 decode/SDOT. Strict-shape guarded and default-off.
+    SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
