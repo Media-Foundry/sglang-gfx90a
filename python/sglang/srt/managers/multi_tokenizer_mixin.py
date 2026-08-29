@@ -596,12 +596,13 @@ class MultiDetokenizerRouter:
                     self._send(ipc, recv_obj)
                 continue
 
-            # Single request: route by its own http_worker_ipc.
+            # Single request: route by its HTTP worker when one exists.  The
+            # regular Python HTTP server has a single tokenizer manager and
+            # legitimately leaves this field unset, so use rid as the stable
+            # detokenizer affinity key in that configuration.
             if isinstance(recv_obj, BaseReq):
-                assert (
-                    recv_obj.http_worker_ipc is not None
-                ), f"Single req {recv_obj.rid=} missing http_worker_ipc"
-                self._send(self._pick(recv_obj.http_worker_ipc), recv_obj)
+                key = recv_obj.http_worker_ipc or recv_obj.rid
+                self._send(self._pick(key), recv_obj)
                 continue
 
             # Batch request.
@@ -613,19 +614,18 @@ class MultiDetokenizerRouter:
                     continue
 
                 ipcs = recv_obj.http_worker_ipcs
-                assert (
-                    ipcs is not None
-                    and len(ipcs) == len(recv_obj.rids)
-                    and all(x is not None for x in ipcs)
+                assert ipcs is not None and len(ipcs) == len(
+                    recv_obj.rids
                 ), f"Batch req {recv_obj.rids=} has invalid http_worker_ipcs"
 
                 # Split per-item and route each by its own ipc.
-                for i, ipc_key in enumerate(ipcs):
+                for i, ipc_name in enumerate(ipcs):
+                    affinity_key = ipc_name or recv_obj.rids[i]
                     one = _handle_output_by_index(recv_obj, i)
                     if one is recv_obj:
                         raise TypeError(f"Cannot split {type(recv_obj)}")
-                    one.http_worker_ipcs = [ipc_key]
-                    self._send(self._pick(ipc_key), one)
+                    one.http_worker_ipcs = [ipc_name]
+                    self._send(self._pick(affinity_key), one)
                 continue
 
             raise ValueError(

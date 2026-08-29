@@ -281,6 +281,9 @@ fi
 if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
   server_args+=(--cpu-offload-gb "${CPU_OFFLOAD_GB}")
 fi
+if [[ -n "${DETOKENIZER_WORKER_NUM:-}" ]]; then
+  server_args+=(--detokenizer-worker-num "${DETOKENIZER_WORKER_NUM}")
+fi
 if [[ -n "${DP_SIZE:-}" ]]; then
   server_args+=(--dp-size "${DP_SIZE}")
 fi

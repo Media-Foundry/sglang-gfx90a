@@ -3809,10 +3809,17 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   resident samples were `608.927/612.430/610.630 tok/s`, France passed, and the
   same last-two-bin collapse remained. It also made two group-wall samples
   unusually poor, so it is not a production candidate.
-- Four detokenizer workers failed correctness/availability before a valid
-  round completed. `MultiDetokenizerRouter` asserted that a batch had invalid
-  `http_worker_ipcs`, the service returned 502/no-token streams, and the test
-  was stopped. Do not expose this setting in the DSV4 launcher until the
-  multi-detokenizer IPC routing bug is fixed. The benchmark retains optional
+- Four detokenizer workers initially failed correctness/availability before a
+  valid round completed. `MultiDetokenizerRouter` asserted that a batch had
+  invalid `http_worker_ipcs`: the ordinary Python HTTP frontend legitimately
+  leaves each IPC name unset, while the multi-worker router incorrectly
+  required it. The router now uses `http_worker_ipc` when present and otherwise
+  hashes the request ID for stable detokenizer affinity, preserving the unset
+  return route to the shared tokenizer manager. After the fix, 32x64 passed
+  France and length checks at `696.882 tok/s`; three 32x512 rounds all passed
+  France and length checks with aggregate `589.242/589.643/588.984` and
+  resident `612.944/611.743/611.129 tok/s`. Thus the routing bug is fixed but
+  four workers do not improve this client tail. Keep `DETOKENIZER_WORKER_NUM`
+  optional, not a TP4 performance default. The benchmark retains optional
   token-position and common-wall-time bin reporting so future client-tail work
   cannot be mistaken for GPU decode optimization.
