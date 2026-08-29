@@ -284,6 +284,27 @@ class GatedResidual(HyperConnectionBase):
                 mixed_input = None
         else:
             mixed_input = None
+        if (
+            mixed_input is None
+            and _is_hip
+            and is_gfx90a_supported()
+            and hyper_input_normed.shape == (32, 10240)
+            and hyper_input_normed.dtype == torch.bfloat16
+            and self.hc_count == 4
+            and self.hidden_size == 2560
+        ):
+            from sglang.srt.environ import envs
+
+            if envs.SGLANG_QWEN4_GFX90A_CK_HC_MIX_M32.get():
+                from sglang.kernels.ops.hyperconnection.gfx90a_ck_hc_mix_m32 import (
+                    gfx90a_ck_hc_mix_m32,
+                )
+
+                mixed_input = gfx90a_ck_hc_mix_m32(
+                    hyper_input_normed,
+                    self.input_mix_weight_down.weight,
+                    self.input_mix_weight_up.weight,
+                )
         if mixed_input is None and (
             self._jit_mix_ok
             and hyper_input_normed.is_cuda

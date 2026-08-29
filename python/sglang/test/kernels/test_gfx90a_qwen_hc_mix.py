@@ -8,6 +8,9 @@ from sglang.kernels.ops.hyperconnection.gfx90a_hc_mix import (
     _module,
     gfx90a_qwen_hc_mix,
 )
+from sglang.kernels.ops.hyperconnection.gfx90a_ck_hc_mix_m32 import (
+    gfx90a_ck_hc_mix_m32,
+)
 from sglang.kernels.ops.hyperconnection.gfx90a_hc_combine_norm import (
     gfx90a_qwen_hc_combine_norm,
 )
@@ -151,3 +154,35 @@ def test_qwen_hc_down_split4_matches_baseline_and_replays(monkeypatch):
     torch.cuda.synchronize()
     assert torch.equal(split_out, replay_ref)
     assert torch.isfinite(split_out).all()
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_ck_hc_mix_m32_matches_reference_and_replays():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    torch.manual_seed(20260829)
+    dtype = torch.bfloat16
+    x = (torch.randn(32, 10240, device="cuda") * 0.1).to(dtype)
+    w_down = (torch.randn(320, 10240, device="cuda") * 0.01).to(dtype)
+    w_up = (torch.randn(10240, 320, device="cuda") * 0.01).to(dtype)
+    lowrank = torch.nn.functional.silu(
+        torch.nn.functional.linear(x, w_down) / 4
+    )
+    gates = torch.sigmoid(torch.nn.functional.linear(lowrank, w_up)).view(
+        32, 4, 2560
+    )
+    expected = (gates * x.view(32, 4, 2560)).mean(dim=1)
+    actual = gfx90a_ck_hc_mix_m32(x, w_down, w_up)
+    torch.testing.assert_close(actual, expected, rtol=1e-3, atol=1e-3)
+
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        replay = gfx90a_ck_hc_mix_m32(x, w_down, w_up)
+    graph.replay()
+    torch.cuda.synchronize()
+    replay_ref = replay.clone()
+    for _ in range(1000):
+        graph.replay()
+    torch.cuda.synchronize()
+    assert torch.equal(replay, replay_ref)
+    assert torch.isfinite(replay).all()

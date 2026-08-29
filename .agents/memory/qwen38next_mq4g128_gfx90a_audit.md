@@ -2642,3 +2642,44 @@ message and tested in the full TP4 graph. Control rounds were stable at
 standalone latency win. The SGLang selector and oracle were removed. AIter's
 source threshold and JIT module were rebuilt back to the original two-stage
 production behavior before the normal service was restored.
+
+## 2026-08-29: BS32 CK-MFMA hyperconnection mix retained
+
+The BS32 fallback hyperconnection mix still materialized a full
+`[32, 10240]` BF16 gate tensor through rocBLAS and then ran a separate
+sigmoid/multiply/four-branch mean consumer. A gfx90a-only replacement keeps
+the existing rocBLAS `10240 -> 320` down projection, routes the exact
+`M=32, K=320, N=10240` up projection through a fixed Composable Kernel XDL
+MFMA instance, and consumes the four gate branches in one HIP epilogue. The
+CK headers come from AIter's bundled Composable Kernel; `SGLANG_CK_ROOT`
+remains an explicit development override.
+
+The complete captured micrograph improved from approximately `102.4 us` to
+`55.0 us` (about 46%). Numerical comparison against the compiled BF16
+reference had maximum absolute error below `2.4e-7` and relative L2 about
+`3.4e-9`; 1000 graph replays were finite and bitwise stable. The dedicated
+gfx90a test passed.
+
+The first production capture exposed a CK integration bug rather than an
+unsupported GEMM: the first call to `IsSupportedArgument()` occurred inside
+CUDA Graph capture, where CK's runtime device-capability query returned false.
+The wrapper is already restricted to gfx90a and exact tensor shapes, so the
+capture-time query was removed while all tensor matchers remain. Capture then
+succeeded on all four ranks.
+
+Native-AR TP4/EP4/no-A2A, four GCDs, graph BS32, 32 distinct requests and 256
+generated tokens gave:
+
+- A1 control: `631.43 / 632.18 tok/s`;
+- B1 CK HC: `678.49 / 679.81 / 679.07 tok/s`;
+- A2 return control: one known slow-state round at `528.37`, then
+  `630.38 tok/s`;
+- B2 independent CK HC: `679.91 / 678.86 / 679.34 tok/s`.
+
+Both candidate services answered the France semantic oracle with Paris, every
+request completed exactly 256 tokens, and both B services avoided the control
+slow-state during all six measured rounds. Cross-round greedy hash drift
+remained present in both control and candidate and is therefore not attributed
+to this numerically close HC replacement. The stable throughput improvement
+against adjacent normal control rounds is about 7.5%. This is retained as the
+new BS32 checkpoint, while BS1/BS16 continue to use their established paths.
