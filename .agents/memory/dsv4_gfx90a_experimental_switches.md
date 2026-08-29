@@ -4040,3 +4040,19 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   both independent service orderings, and follows the requested policy of
   keeping verified small wins. The new stable diverse-request model-decode
   center is approximately `707 tok/s`, still far below the 1500 tok/s goal.
+### TP4 M32 G2080 DPP gate producer-release oracle (2026-08-30)
+
+- Added standalone diagnostics only: `gfx90a_fp4_gate_producer_release_oracle.cuh`
+  and `bench_dsv4_gate_producer_release_oracle.py`; no production selector.
+- Preserved W8/R2/G2080 DPP arithmetic. Each CTA-uniform outer iteration
+  publishes one device-scope acq_rel counter contribution; the 32nd publishes
+  the ready epoch. Same-GCD cross-stream ordering only needs DEVICE scope.
+- Correctness: 100 randomized mutations, intermediate BF16 bitwise exact;
+  all active counters were exactly `epoch*32` and ready epochs exact.
+- Seven-round ABBA trimmed result after removing redundant explicit fence and
+  trailing barrier: baseline 246.496 us, release candidate 282.589 us,
+  +36.093 us (+14.643%). This fails the required <10 us producer overhead.
+- SYSTEM scope was much worse (246.188 -> 2555.732 us); do not use it for this
+  same-GCD protocol. The fine-grained 32-contribution publication tax is too
+  high even at DEVICE scope, so do not proceed to the exact consumer on this
+  producer decomposition without reducing publication fan-in.
