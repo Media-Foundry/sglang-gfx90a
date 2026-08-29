@@ -3372,3 +3372,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   add remote reads, publication and a final reuse barrier while its absolute
   upside is below 10 us. Keep the independent oracle files for reproducing the
   exact owner-order and latency bound; do not wire this protocol into the model.
+
+### TP4 M32 native full-MHC gate audit (2026-08-30)
+
+- The existing wave64 HIP `gfx90a_mhc_post_pre` accepts arbitrary token counts,
+  although production only selects its full path for global BS1. A new oracle
+  compared it directly against the production M32 Triton decomposition using
+  the real rank0/layer20 FFN boundary dump and 20 Sinkhorn iterations.
+- Seven-round captured ABBA measured production `39.035 us` and native HIP
+  `45.444 us`; the one-CTA-per-token full kernel is 16.42% slower at M32.
+- The path also changes arithmetic association: residual/post/comb/layer-input
+  max-abs differences were respectively `0.001953125`, `1.98e-5`, `3.98e-5`,
+  and `0.0078125`; final layer-input relative-L2 was `2.25e-4`.
+- Therefore the `global_batch_size == 1` production gate is intentional, not an
+  accidentally unreachable M32 optimization. Keep the oracle script, but do
+  not broaden `SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL` to BS32.
