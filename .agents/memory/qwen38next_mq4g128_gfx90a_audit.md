@@ -1,5 +1,24 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-29: post-DPP occupancy reuse and QuickReduce rejected
+
+The expert-owned sdot kernel was tested with weight reuse only after the HIP
+sorter had proved a repeated expert run.  A four-assignment register bucket
+regressed gate/down from roughly `122/89 us` to `148/107 us`; a narrower
+run-length-exactly-two bucket still regressed gate to `126--127 us` and left
+down near `89 us`.  Register pressure and extra live activation streams cost
+more than the sparse collision reuse saves.  Both variants were fully removed;
+future occupancy work must change the work decomposition rather than adding
+per-wave accumulators to this kernel.
+
+The repository's quantized QuickReduce was also made temporarily reachable on
+gfx90a for the exact TP4 `[32,2560]` BF16 collective.  All modes were graph
+stable for 1,000 replays, but INT8/INT6/INT4 took approximately `77/83/78 us`
+per rank.  INT8 relative L2 was about `0.00944`; INT6 and INT4 increased it to
+`0.0308` and `0.122`.  The production AIter peer-read collective is already
+roughly `50--68 us`, so compressed QuickReduce is both slower and less exact
+at this 160-KiB size.  The gfx90a force selector and oracle were removed.
+
 ## 2026-08-29: DPP sdot reduction retained; dead CK selector removed
 
 The symmetric-Q4 sdot reduction keeps the original offset-16
