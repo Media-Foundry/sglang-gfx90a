@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A/B/C oracle combining exact DPP gate with grouped-down row prefetch."""
+"""DPP gate wave/grid sweep with grouped-down row prefetch fixed."""
 
 from __future__ import annotations
 
@@ -15,10 +15,6 @@ from scripts.rocm.bench_dsv4_gfx90a_occupancy_bucket_oracle import (
 from scripts.rocm.bench_dsv4_tp4_down_row_prefetch_oracle import candidate_module
 from scripts.rocm.bench_dsv4_tp4_m32_grouped_oracle import (
     _jit_gate_up_grouped_dpp,
-)
-from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
-    _jit_down_grouped,
-    _jit_gate_up_grouped,
 )
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
@@ -81,23 +77,28 @@ def main() -> None:
     s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device="cuda")
 
     gates = {
-        "A": _jit_gate_up_grouped(E, M, T, I, H, A4, R2, 8, G, LUT),
-        "B": _jit_gate_up_grouped_dpp(E, M, T, I, H, A4, R2, 8, G, LUT),
-        "C": _jit_gate_up_grouped_dpp(E, M, T, I, H, A4, R2, 4, G, LUT),
+        "W8G2080": _jit_gate_up_grouped_dpp(
+            E, M, T, I, H, A4, R2, 8, G, LUT
+        ),
+        **{
+            f"W4G{blocks}": _jit_gate_up_grouped_dpp(
+                E, M, T, I, H, A4, 1, 4, blocks, LUT
+            )
+            for blocks in (1664, 2080, 2496, 3120)
+        },
     }
-    baseline_down = _jit_down_grouped(E, M, T, N, I, A4, R2, 8, D, LUT)
     prefetched_down = candidate_module()
-    downs = {"A": baseline_down, "B": prefetched_down, "C": prefetched_down}
+    profiles = tuple(gates)
 
     states = {}
     stages = {}
-    for name in ("A", "B", "C"):
+    for name in profiles:
         state = {
             "intermediate": torch.empty((M, T, I), dtype=torch.bfloat16, device="cuda"),
             "partial": torch.empty((M, T, N), dtype=torch.float32, device="cuda"),
             "output": torch.empty((M, N), dtype=torch.bfloat16, device="cuda"),
         }
-        gate, down = gates[name], downs[name]
+        gate, down = gates[name], prefetched_down
 
         def gate_stage(state=state, gate=gate):
             gate.run(
@@ -135,7 +136,10 @@ def main() -> None:
 
     def assert_exact(candidate: str, label: str):
         for tensor_name in ("intermediate", "iq", "isc", "partial", "output"):
-            expected, actual = states["A"][tensor_name], states[candidate][tensor_name]
+            expected, actual = (
+                states["W8G2080"][tensor_name],
+                states[candidate][tensor_name],
+            )
             if not torch.equal(expected, actual):
                 diff = (expected.float() - actual.float()).abs()
                 raise RuntimeError(
@@ -148,31 +152,31 @@ def main() -> None:
         mutation_input.normal_()
         mxq, mxs = per_token_group_quant_int8(mutation_input, 32)
         xq.copy_(mxq); xs.copy_(mxs); topk_weights.uniform_()
-        for name in ("A", "B", "C"):
+        for name in profiles:
             stages[name]["full"]()
         torch.cuda.synchronize()
-        assert_exact("B", f"mutation={mutation}")
-        assert_exact("C", f"mutation={mutation}")
+        for name in profiles[1:]:
+            assert_exact(name, f"mutation={mutation}")
     print(
-        f"CORRECTNESS mutations={args.mutations} profiles=A/B/C "
+        f"CORRECTNESS mutations={args.mutations} profiles={profiles} "
         "intermediate_exact=True quant_exact=True partial_exact=True final_exact=True",
         flush=True,
     )
 
     timings = {
-        stage_name: {name: [] for name in ("A", "B", "C")}
+        stage_name: {name: [] for name in profiles}
         for stage_name in ("gate", "quant", "down", "reduce", "full")
     }
     for _ in range(args.rounds):
-        for name in ("A", "B", "C", "C", "B", "A"):
+        for name in profiles + tuple(reversed(profiles)):
             stages[name]["full"]()
             for stage_name in timings:
                 timings[stage_name][name].append(
                     time_us(stages[name][stage_name], args.warmup, args.iterations)
                 )
     summaries = {}
-    for stage_name, profiles in timings.items():
-        for name, values in profiles.items():
+    for stage_name, stage_profiles in timings.items():
+        for name, values in stage_profiles.items():
             value = trimmed(values)
             summaries[(stage_name, name)] = value
             print(
@@ -180,14 +184,15 @@ def main() -> None:
                 f"{statistics.median(values):.3f} trimmed_mean_us={value:.3f}",
                 flush=True,
             )
-    a = summaries[("full", "A")]
-    b = summaries[("full", "B")]
-    c = summaries[("full", "C")]
+    baseline = summaries[("full", "W8G2080")]
+    candidates = {
+        name: summaries[("full", name)] for name in profiles[1:]
+    }
+    best_name = min(candidates, key=candidates.get)
+    best = candidates[best_name]
     print(
-        f"DECISION A_us={a:.3f} B_us={b:.3f} C_us={c:.3f} "
-        f"B_gain_pct={(a / b - 1) * 100:.3f} "
-        f"C_gain_pct={(a / c - 1) * 100:.3f} "
-        f"B_pass={b <= 421.0} C_pass={c <= 416.0 and c <= a * 0.95}",
+        f"DECISION baseline_us={baseline:.3f} best={best_name} "
+        f"best_us={best:.3f} gain_pct={(baseline / best - 1) * 100:.3f}",
         flush=True,
     )
 

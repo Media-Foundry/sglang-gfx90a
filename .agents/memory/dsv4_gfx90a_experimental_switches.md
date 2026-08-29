@@ -3888,6 +3888,34 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   It fails both required gates: not bitwise and far below `30 us`. Do not test
   this hybrid in production and do not spend time on a 1000-mutation rerun.
 
+### TP4 M32 DPP gate R1/W4 with row-prefetch down rejection (2026-08-30)
+
+- The grouped gate template launches `kNumWaves * 64` threads and maps one
+  wave to one `(sorted expert block, I-row tile)` task, grid-striding by
+  `gridDim * kNumWaves`. It syntactically supports W4/W8/W16; W16 is the
+  hardware maximum 1024-thread workgroup. The only LDS is the 256-entry
+  `uint32` FP4 pair LUT (1024 bytes), independent of wave count. On CDNA2 the
+  measured R2/W8 kernel uses 96 VGPR, limiting a SIMD to two waves and a CU to
+  eight waves: one W8 CTA/CU. The R1/W4 form uses about 80 VGPR, allowing three
+  waves/SIMD or 12 waves/CU: up to three W4 CTAs/CU. W16 would require four
+  waves/SIMD in one CTA and therefore force <=64 VGPR or spills; it is legal at
+  the template/launch level but not a credible extension of this accumulator.
+- Extended `scripts/rocm/bench_dsv4_tp4_m32_dpp_downprefetch_combo_oracle.py`
+  with baseline DPP gate R2/W8/G2080 and candidates DPP gate R1/W4 at
+  G1664/2080/2496/3120. Every profile kept the exact row-prefetch R2/W8/D832
+  down path. The diverse route had 106 active experts, 192 useful assignments
+  and 113 padded A4 scan blocks; with I512/R1 this is 57,856 gate row tasks, so
+  W4's higher resident-wave ceiling competes against more grid-stride rounds.
+- One hundred mutated inputs preserved intermediate BF16, quantized activation
+  and scale, FP32 partial and final BF16 outputs bitwise for every profile.
+  Seven-round forward/reverse ABBA trimmed full-stage means were baseline
+  `425.374 us`, W4/G1664 `441.522`, W4/G2080 `431.333`, W4/G2496 `432.303`,
+  and W4/G3120 `425.434 us`. Gate-only means were `246.888 us` baseline and
+  `260.897/250.701/251.110/247.189 us` for those candidates. The best candidate
+  is still `0.014%` slower, so the theoretical 12-wave/CU occupancy does not
+  overcome its extra R1 row tasks. Do not add a W4 service selector or pursue
+  W16; retain R2/W8/G2080 with the row-prefetch down candidate for service A/B.
+
 ### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
 
 - Revisited the exact standalone combination only because the long-generation
