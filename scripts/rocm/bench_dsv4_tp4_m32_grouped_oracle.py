@@ -90,11 +90,16 @@ def time_us(fn, warmup: int, iterations: int) -> float:
 
 
 def main() -> None:
+    global I
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorder", required=True)
     parser.add_argument("--pass-index", type=int, default=37)
     parser.add_argument("--layer", type=int, default=34)
     parser.add_argument("--recorded-world-size", type=int, default=8)
+    parser.add_argument(
+        "--intermediate-size", type=int, default=I,
+        help="Local expert intermediate width (512=TP4, 2048=TP1)",
+    )
     parser.add_argument("--warmup", type=int, default=8)
     parser.add_argument("--iterations", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=5)
@@ -108,6 +113,7 @@ def main() -> None:
         help="ABBA the isolated shuffle-versus-DPP A4 TP4 kernels",
     )
     args = parser.parse_args()
+    I = args.intermediate_size
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
     raw = payload["logical_count"][args.pass_index, args.layer]
@@ -124,6 +130,23 @@ def main() -> None:
     s13 = torch.full((E, 2 * I, H // 32), 127, dtype=torch.uint8, device="cuda")
     w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device="cuda")
     s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device="cuda")
+    w13_prepacked = None
+    w2_prepacked = None
+    if args.profile is not None and "prepacked" in args.profile:
+        def decode_nibble(nibble: torch.Tensor) -> torch.Tensor:
+            magnitude = (nibble & 7).to(torch.int8)
+            value = (
+                magnitude + (magnitude > 4) + (magnitude > 5)
+                + 3 * (magnitude > 6)
+            )
+            return torch.where((nibble & 8) != 0, -value, value).to(torch.int8)
+
+        w13_prepacked = torch.stack(
+            (decode_nibble(w13 & 15), decode_nibble(w13 >> 4)), dim=-1
+        ).reshape(E, 2 * I, H)
+        w2_prepacked = torch.stack(
+            (decode_nibble(w2 & 15), decode_nibble(w2 >> 4)), dim=-1
+        ).reshape(E, N, I)
 
     if args.dpp_only:
         metadata = make_metadata(topk_ids, assignments=4)
@@ -303,6 +326,8 @@ def main() -> None:
         ("a8_r1_b1040", 8, 1, 1040, 1040, LDS_LUT),
         ("a8_r1_b1248", 8, 1, 1248, 1248, LDS_LUT),
         ("a4_r2_b624", 4, 2, 624, 624, LDS_LUT),
+        ("a4_r2_g2080_d832_nolds", 4, 2, 2080, 832, 0),
+        ("a4_r2_g2080_d832_prepacked", 4, 2, 2080, 832, 1),
         ("a4_r2_b832", 4, 2, 832, 832, LDS_LUT),
         ("a4_r2_g1040_d832", 4, 2, 1040, 832, LDS_LUT),
         ("a4_r2_g1248_d832", 4, 2, 1248, 832, LDS_LUT),
@@ -334,7 +359,10 @@ def main() -> None:
         ("a4_gr2_dr4_g2080_d1040", 4, 2, 4, 2080, 1040, LDS_LUT),
     )
     if args.profile is not None:
-        profiles = tuple(profile for profile in profiles if profile[0] == args.profile)
+        selected_profiles = set(args.profile.split(","))
+        profiles = tuple(
+            profile for profile in profiles if profile[0] in selected_profiles
+        )
         if not profiles:
             raise ValueError(f"unknown profile: {args.profile}")
     outputs: dict[str, torch.Tensor] = {}
@@ -361,13 +389,15 @@ def main() -> None:
         )
 
         def run() -> None:
+            gate_weight = w13_prepacked if lds_lut == 1 else w13
+            down_weight = w2_prepacked if lds_lut == 1 else w2
             gate.run(
-                xq, xs, w13, s13, metadata.sorted_ids,
+                xq, xs, gate_weight, s13, metadata.sorted_ids,
                 metadata.sorted_experts, metadata.valid, intermediate, 10.0,
             )
             iq, isc = per_token_group_quant_int8(intermediate, 32)
             down.run_partial(
-                iq, isc, w2, s2, metadata.sorted_ids, metadata.sorted_experts,
+                iq, isc, down_weight, s2, metadata.sorted_ids, metadata.sorted_experts,
                 metadata.valid, topk_weights, partial,
             )
             down.reduce(partial, output)
@@ -382,7 +412,10 @@ def main() -> None:
         for _ in range(args.rounds):
             timings[name].append(time_us(run, args.warmup, args.iterations))
 
-    reference = outputs.get("a8_r2_b624_nolds", next(iter(outputs.values())))
+    reference = outputs.get(
+        "a8_r2_b624_nolds",
+        outputs.get("a4_r2_g2080_d832", next(iter(outputs.values()))),
+    )
     for name, *_ in profiles:
         diff = (outputs[name].float() - reference.float()).abs()
         values = timings[name]

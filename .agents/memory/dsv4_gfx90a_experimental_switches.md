@@ -3470,3 +3470,27 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   22 GiB/GCD of w13 storage across 43 layers and carefully preserve the
   independently interleaved scale layout. All experimental code was removed;
   do not add a runtime weight-layout tag or loader repack for this result.
+
+### Four-GCD PP4xTP1 routed lower bound and FP4 decode bounds (2026-08-30)
+
+- Extended the grouped oracle with a local-intermediate-width selector and
+  tested the only untried four-GCD structural layout that preserves per-GCD
+  weight bytes: PP4 x TP1 with a static multi-microbatch decode conveyor. On
+  the real diverse pass37/layer34 route, the TP1 `I=2048` routed stage alone
+  measured `1667.0--1670.5 us`, median `1668.4 us` per layer. About 11 layers
+  on the slowest PP stage already consume roughly `18.35 ms`; the entire
+  BS32/1500 target step budget is `21.33 ms`, before attention, MHC, PP
+  transport and bubbles. Do not implement PP4 scheduling until the packed-FP4
+  stage is substantially faster.
+- Removed the 1-KiB LDS FP4 pair-codebook while keeping the same inline
+  `v_perm` codebook and A4/R2/W8/G2080/D832 work. The full stage remained
+  bitwise exact but regressed from adjacent `435.5--436.8 us` to
+  `636.8--637.0 us` (about +46%). The LDS LUT is essential; its shared-memory
+  reads are much cheaper than reconstructing both sign paths in VALU.
+- As a decode-free upper-bound diagnostic, expanded packed FP4 weights into
+  exact signed INT8 codebook values while preserving E8M0 scale application,
+  SDOT accumulation, sort, partial and reduction. Output was bitwise exact.
+  Seven rounds measured packed baseline median `436.552 us` and pre-expanded
+  INT8 median `627.582 us` (+43.8%). Doubling weight bytes costs far more than
+  removing FP4 decode. Full INT8 prepack is both slower and incompatible with
+  the memory target; retain packed 4-bit storage and the LDS-LUT decode path.
