@@ -3387,3 +3387,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Therefore the `global_batch_size == 1` production gate is intentional, not an
   accidentally unreachable M32 optimization. Keep the oracle script, but do
   not broaden `SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL` to BS32.
+
+### TP4 M32 MHC-RMS routed-gate prequant service recheck (2026-08-30)
+
+- Temporarily wired the already exact MHC final-RMSNorm plus group-32 INT8
+  producer into only the routed AIter gate path; shared experts continued to
+  consume the original BF16 hidden state. Fused quant-sort and down-consumer
+  remained off, so this isolated the first activation quantization.
+- The 32-distinct-input teacher-forced response matched baseline output IDs,
+  complete logprob rows and top-5 entries bitwise. Three 512-token diverse
+  resident runs measured `614.985/615.188/614.962 tok/s`, versus adjacent
+  baseline `613.982/614.657/615.128 tok/s`.
+- The median movement is only about +0.05%. Although the component oracle saves
+  about 36.7 us for RMSNorm plus quant, the separate quant is hidden by the
+  current graph schedule. Production handoff/selector changes were removed;
+  retain the existing standalone producer oracle only.
