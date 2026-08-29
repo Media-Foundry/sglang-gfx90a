@@ -3549,3 +3549,17 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Keep these geometries in the standalone oracle for reproducibility, but do
   not add a runner waves selector or start a service experiment for this
   sub-1% component result.
+
+### TP4 M32 compile-time constant LUT reconfirmation (2026-08-30)
+
+- Reconfirmed the older constant-LUT rejection on the final TP4 pass37/layer34
+  shape. Replaced each CTA's 1-KiB LDS pair table and barrier with an identical
+  compile-time `__constant__` 256-entry table; packed weights, SDOT arithmetic,
+  sort and reduction were unchanged and the result remained bitwise exact.
+- Seven rounds measured LDS baseline median `437.207 us` and constant-LUT
+  candidate `1117.737 us` (+155.7%). Divergent per-lane indices serialize or
+  incur long scoreboard dependencies through the constant/global path; the
+  repeated CTA initialization is far cheaper than every subsequent lookup.
+- This agrees with the older M1 and grouped-M32 constant-table failures. The
+  temporary symbol and kernel mode were removed. The per-CTA LDS pair LUT is a
+  proven architectural requirement for the current packed-SDOT representation.
