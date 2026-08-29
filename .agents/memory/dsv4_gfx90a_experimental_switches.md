@@ -3091,3 +3091,30 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - 独立graph确认M32 router的`tgemm`与`F.linear`逐元素exact，二者均约`12.29 us`；
   Python eager看到的`73 vs 36 us`只是dispatcher host overhead，不存在graph内替换收益。
   2226个hipBLASLt solution也没有快于当前captured kernel的候选。
+### 单TP4、真实多样BS32的A4/LDS routed几何（2026-08-29）
+
+- 目标口径改为单实例`TP4/EP1/no-A2A`、4 GCD、native AR、最多BS32，权重保持原始
+  checkpoint格式。测试输入使用
+  `.agents/memory/dsv4_tp8_diverse_32_input_ids.json`中的32条不同固定token-ID请求；
+  每轮独立`cache_salt`，不是重复prompt。
+- 旧`SGLANG_DSV4_GFX90A_MULTI_REQUEST_THROUGHPUT_PROFILE=1`实际沿用双TP4、每副本
+  M16调出的`A8/rows2/624 blocks`，并且没有启用LDS E2M1 LUT。新增production-shape
+  oracle`scripts/rocm/bench_dsv4_tp4_m32_grouped_oracle.py`，使用真实diverse recorder
+  的layer34路由、TP4 `E256/H4096/I512/topk6`，完整计入gate、第二次group32 quant、
+  down FP32 partial和固定slot reduction。
+- production-exact no-LDS A8/624为`710.301 us`；开启LDS后A8/624为`564.532 us`。
+  A4/rows2/832在两次独立运行中为约`451.3 us`，另一受邻卡实验扰动的三轮中为
+  `449.731/561.452/562.764 us`；A4/rows4通常约`470.9 us`。所有profile最终BF16
+  输出相对no-LDS基线逐元素bitwise exact、`max_abs=0`。
+- 只捕获tier1/32时，真正命中BS32 graph的多样请求128-token轮为`610.825 tok/s`，
+  相对旧完整tier服务稳态约`498.8--500.2`提升约22%；256-token命中轮为
+  `629.263 tok/s`。稀疏tier会在请求入场/结束错位时落eager，产生130--323 tok/s
+  慢轮，不能交付。
+- 捕获1--32全部tier后，32条不同请求、每条256 token的完整BS32波次为
+  `622.388/630.336/630.369 tok/s`，France首9 token精确、全部请求长度256。
+  HTTP总wall仍会因page-size256把32条短prompt按8条分批prefill而出现2--3个decode
+  波次；这属于admission/prefill口径，后续应以长驻留decode window或增大prefill chunk
+  分离，不能把整数波次总wall误判为kernel退化。
+- 新增显式`SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE=1`：选择TP4/EP1/no-A2A、A4、
+  LDS LUT、rows2、gate/down 832 blocks，并捕获1--32全部tier。它不覆盖旧双TP4 M16
+  profile，因为历史M16 A4端到端已判负。
