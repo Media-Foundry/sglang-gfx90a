@@ -35,12 +35,29 @@ def parse_args() -> argparse.Namespace:
         help="tokens per streamed update; larger values reduce HTTP/host overhead",
     )
     parser.add_argument("--timeout", type=float, default=1200.0)
+    parser.add_argument(
+        "--incremental-streaming-output",
+        action="store_true",
+        help="treat streamed output_ids as disjoint deltas",
+    )
+    parser.add_argument(
+        "--position-bin-size",
+        type=int,
+        default=0,
+        help="also report common resident decode windows in fixed token-position bins",
+    )
+    parser.add_argument(
+        "--resident-time-bins",
+        type=int,
+        default=0,
+        help="split the common BS32 resident wall-time window into equal bins",
+    )
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
 
 def post_stream(
-    url: str, payload: dict, timeout: float
+    url: str, payload: dict, timeout: float, incremental: bool = False
 ) -> tuple[dict, list[tuple[float, int]]]:
     request = urllib.request.Request(
         url,
@@ -51,6 +68,7 @@ def post_stream(
     result: dict = {}
     samples: list[tuple[float, int]] = []
     last_count = -1
+    accumulated_ids: list[int] = []
     with opener.open(request, timeout=timeout) as response:
         for raw in response:
             line = raw.decode().strip()
@@ -60,6 +78,9 @@ def post_stream(
             if body == "[DONE]":
                 break
             result = json.loads(body)
+            if incremental:
+                accumulated_ids.extend(result.get("output_ids") or [])
+                result["output_ids"] = accumulated_ids.copy()
             count = len(result.get("output_ids") or [])
             if count > last_count:
                 samples.append((time.perf_counter(), count))
@@ -108,7 +129,10 @@ def main() -> None:
             barrier.wait()
             begin = time.perf_counter()
             result, samples = post_stream(
-                args.base_url.rstrip("/") + "/generate", payload, args.timeout
+                args.base_url.rstrip("/") + "/generate",
+                payload,
+                args.timeout,
+                args.incremental_streaming_output,
             )
             return time.perf_counter() - begin, result, samples
 
@@ -156,6 +180,52 @@ def main() -> None:
                 f"round {rep}: no common resident decode window "
                 f"wall={steady_wall} tokens={steady_tokens}"
             )
+        position_bins = []
+        if args.position_bin_size > 0:
+            for lo in range(0, args.tokens, args.position_bin_size):
+                hi = min(args.tokens, lo + args.position_bin_size)
+
+                def time_at_count(samples, count):
+                    for sample_time, sample_count in samples:
+                        if sample_count >= count:
+                            return sample_time
+                    raise RuntimeError(
+                        f"round {rep}: no timestamp for completion count {count}"
+                    )
+
+                bin_start = max(time_at_count(samples, lo) for samples in token_samples)
+                bin_end = min(time_at_count(samples, hi) for samples in token_samples)
+                bin_tokens = sum(
+                    count_at(samples, bin_end) - count_at(samples, bin_start)
+                    for samples in token_samples
+                )
+                if bin_end > bin_start and bin_tokens > 0:
+                    position_bins.append(
+                        {
+                            "start": lo,
+                            "end": hi,
+                            "wall_s": bin_end - bin_start,
+                            "tokens": bin_tokens,
+                            "tok_s": bin_tokens / (bin_end - bin_start),
+                        }
+                    )
+        resident_time_bins = []
+        if args.resident_time_bins > 0:
+            for bin_id in range(args.resident_time_bins):
+                bin_start = steady_start + steady_wall * bin_id / args.resident_time_bins
+                bin_end = steady_start + steady_wall * (bin_id + 1) / args.resident_time_bins
+                bin_tokens = sum(
+                    count_at(samples, bin_end) - count_at(samples, bin_start)
+                    for samples in token_samples
+                )
+                resident_time_bins.append(
+                    {
+                        "bin": bin_id,
+                        "wall_s": bin_end - bin_start,
+                        "tokens": bin_tokens,
+                        "tok_s": bin_tokens / (bin_end - bin_start),
+                    }
+                )
         record = {
             "round": rep,
             "group_wall_s": wall,
@@ -163,6 +233,8 @@ def main() -> None:
             "resident_bs32_wall_s": steady_wall,
             "resident_bs32_tokens": steady_tokens,
             "resident_bs32_tok_s": steady_tokens / steady_wall,
+            "position_bins": position_bins,
+            "resident_time_bins": resident_time_bins,
             "lengths": lengths,
             "finish_reasons": finish_reasons,
             "france_first9_exact": True,
@@ -212,6 +284,7 @@ def main() -> None:
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "tokens": args.tokens,
         "stream_interval": args.stream_interval,
+        "incremental_streaming_output": args.incremental_streaming_output,
         "round_count": len(rounds),
         "median_tok_s": statistics.median(speeds),
         "trimmed_mean_tok_s": statistics.mean(trimmed),

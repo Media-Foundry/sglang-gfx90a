@@ -3785,3 +3785,34 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   waited indefinitely on async signals, stalling the requests. The affected
   service was stopped and all GPU resources released. Use external rocprof or
   the realtime-marker path for future BS32 traces.
+
+### TP4 BS32 long-generation client-tail diagnosis (2026-08-30)
+
+- Corrected an earlier shorthand: the roughly `699 tok/s` runs generated 64,
+  not 128, tokens. A same-process A64/B512/B512/A64 test used the same 32
+  distinct input IDs, graph tiers 1/32, fixed one-stage custom AR, native AR
+  and stream interval 1. A64 resident medians were `696.735/697.378 tok/s`;
+  B512 medians were `611.057/611.290 tok/s`. France remained exact and every
+  request returned its requested length.
+- Extending the harness with equal wall-time bins over the common BS32 window
+  showed that this is not normal KV-length scaling. Across three more B512
+  rounds, bins 0--5 sustained approximately `691--701 tok/s`, bin 6 delivered
+  about `566 tok/s`, and bin 7 only `134 tok/s`; full-window samples were
+  `611.147/611.757/611.706 tok/s`. Scheduler logs at 64-step cadence kept
+  `#running-req: 32`, `cuda graph: True`, and reported model generation
+  throughput `698.04--704.62 tok/s` through the decode. The client-side tail
+  therefore measures output/detokenizer drain after GPU progress, not a model
+  kernel slowdown. The stable native-AR model-decode checkpoint for this
+  short-context TP4 profile is about 700 tok/s; retain HTTP aggregate and
+  model-decode numbers as separate metrics.
+- Global `--incremental-streaming-output` did not fix the tail: three B512
+  resident samples were `608.927/612.430/610.630 tok/s`, France passed, and the
+  same last-two-bin collapse remained. It also made two group-wall samples
+  unusually poor, so it is not a production candidate.
+- Four detokenizer workers failed correctness/availability before a valid
+  round completed. `MultiDetokenizerRouter` asserted that a batch had invalid
+  `http_worker_ipcs`, the service returned 502/no-token streams, and the test
+  was stopped. Do not expose this setting in the DSV4 launcher until the
+  multi-detokenizer IPC routing bug is fixed. The benchmark retains optional
+  token-position and common-wall-time bin reporting so future client-tail work
+  cannot be mistaken for GPU decode optimization.
