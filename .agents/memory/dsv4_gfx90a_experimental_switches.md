@@ -3144,3 +3144,14 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   gate约4.35% relative-L2（尚未做raw-BF16 reference）；性能已远低于15%继续门槛，
   因此原型删除、不实现down、不接selector。此结果明确补齐旧M16/M32 padding反例之外
   的M4空白，后续不得再以“恰好A4无padding”为由重做BF16 M4 MFMA。
+
+### TP4 A4 gate kRows=2 cross-row activation reuse oracle (rejected)
+
+- An isolated, non-production kernel explicitly loaded each assignment's 32-byte
+  `xq` group once and reused it across row0/row1 gate/up SDOT chains.
+- All five block profiles were BF16 bitwise exact (`max_abs=0`).  The existing
+  gate2080/down832 path measured 441.694 us, while reuse gate blocks
+  832/1248/1664/2080/2496 measured 560.897/548.897/560.417/552.417/557.616 us.
+- Best reuse was 24.3% slower, consistent with extra VGPR pressure reducing
+  occupancy while the original code/compiler already reuses activation loads.
+  Do not repeat this explicit cross-row register-reuse direction.
