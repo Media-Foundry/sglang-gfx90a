@@ -98,6 +98,11 @@ def main() -> None:
     parser.add_argument("--warmup", type=int, default=8)
     parser.add_argument("--iterations", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument("--waves", type=int, default=WAVES)
+    parser.add_argument(
+        "--profile",
+        help="Run only the named grouped-kernel geometry (useful for profilers)",
+    )
     parser.add_argument(
         "--dpp-only", action="store_true",
         help="ABBA the isolated shuffle-versus-DPP A4 TP4 kernels",
@@ -123,16 +128,16 @@ def main() -> None:
     if args.dpp_only:
         metadata = make_metadata(topk_ids, assignments=4)
         shuffle_gate = _jit_gate_up_grouped(
-            E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
+            E, M, T, I, H, 4, 2, args.waves, 2080, LDS_LUT
         )
         dpp_gate = _jit_gate_up_grouped_dpp(
-            E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
+            E, M, T, I, H, 4, 2, args.waves, 2080, LDS_LUT
         )
         shuffle_down = _jit_down_grouped(
-            E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
+            E, M, T, N, I, 4, 2, args.waves, 832, LDS_LUT
         )
         dpp_down = _jit_down_grouped_dpp(
-            E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
+            E, M, T, N, I, 4, 2, args.waves, 832, LDS_LUT
         )
         # A: shuffle/shuffle; G: DPP gate only; D: DPP down only; B: both.
         kernel_matrix = {
@@ -316,6 +321,11 @@ def main() -> None:
         for name, assignments, rows, gate_blocks, down_blocks, lds_lut
         in tied_profiles
     ) + (
+        ("a4_gr1_dr2_g2080_d832", 4, 1, 2, 2080, 832, LDS_LUT),
+        ("a4_gr1_dr2_g1664_d1664", 4, 1, 2, 1664, 1664, LDS_LUT),
+        ("a4_gr1_dr2_g2080_d1664", 4, 1, 2, 2080, 1664, LDS_LUT),
+        ("a4_gr1_dr2_g3120_d832", 4, 1, 2, 3120, 832, LDS_LUT),
+        ("a4_gr1_dr2_g4160_d832", 4, 1, 2, 4160, 832, LDS_LUT),
         ("a4_gr2_dr1_g2080_d624", 4, 2, 1, 2080, 624, LDS_LUT),
         ("a4_gr2_dr1_g2080_d832", 4, 2, 1, 2080, 832, LDS_LUT),
         ("a4_gr2_dr1_g2080_d1040", 4, 2, 1, 2080, 1040, LDS_LUT),
@@ -323,6 +333,10 @@ def main() -> None:
         ("a4_gr2_dr4_g2080_d832", 4, 2, 4, 2080, 832, LDS_LUT),
         ("a4_gr2_dr4_g2080_d1040", 4, 2, 4, 2080, 1040, LDS_LUT),
     )
+    if args.profile is not None:
+        profiles = tuple(profile for profile in profiles if profile[0] == args.profile)
+        if not profiles:
+            raise ValueError(f"unknown profile: {args.profile}")
     outputs: dict[str, torch.Tensor] = {}
     timings: dict[str, list[float]] = {name: [] for name, *_ in profiles}
 
@@ -340,10 +354,10 @@ def main() -> None:
         partial = torch.empty((M, T, N), dtype=torch.float32, device="cuda")
         output = torch.empty((M, N), dtype=torch.bfloat16, device="cuda")
         gate = _jit_gate_up_grouped(
-            E, M, T, I, H, assignments, gate_rows, WAVES, gate_blocks, lds_lut
+            E, M, T, I, H, assignments, gate_rows, args.waves, gate_blocks, lds_lut
         )
         down = _jit_down_grouped(
-            E, M, T, N, I, assignments, down_rows, WAVES, down_blocks, lds_lut
+            E, M, T, N, I, assignments, down_rows, args.waves, down_blocks, lds_lut
         )
 
         def run() -> None:
@@ -368,7 +382,7 @@ def main() -> None:
         for _ in range(args.rounds):
             timings[name].append(time_us(run, args.warmup, args.iterations))
 
-    reference = outputs["a8_r2_b624_nolds"]
+    reference = outputs.get("a8_r2_b624_nolds", next(iter(outputs.values())))
     for name, *_ in profiles:
         diff = (outputs[name].float() - reference.float()).abs()
         values = timings[name]

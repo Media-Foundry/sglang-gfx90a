@@ -3402,3 +3402,37 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   about 36.7 us for RMSNorm plus quant, the separate quant is hidden by the
   current graph schedule. Production handoff/selector changes were removed;
   retain the existing standalone producer oracle only.
+
+### TP4 M32 grouped-FP4 hardware-counter checkpoint (2026-08-30)
+
+- Profiled the production-shape diverse route (`pass=37`, `layer=34`, 106
+  active experts, 113 A4 scans) on one gfx90a GCD. Added `--profile` and
+  `--waves` to the grouped oracle so rocprofiler can run one geometry without
+  JIT-compiling and retaining every candidate.
+- The uninstrumented A4/R2/W8/G2080/D832 full stage was `438.4--440.5 us`.
+  Kernel trace measured gate/up about `259.36 us` (`96 VGPR`, `64 SGPR`,
+  `1 KiB LDS`) and down about `170.24 us` (`52 VGPR`, `48 SGPR`, `1 KiB LDS`);
+  group quant and fixed-order reduction remained about `5.63/5.20 us`.
+- Performance counters show that essentially every external read request goes
+  to DRAM. Gate/up issued about `3.72M` 64-byte DRAM requests (`~238 MB`) and
+  down `1.87M` (`~120 MB`), corresponding to only about `0.92/0.70 TB/s` at
+  their normal durations. L2 request hit rates were about `51.1%/35.7%`, while
+  average external read residency was roughly `295/278` cycles. DRAM-credit
+  stalls were below `0.1%` of summed TCC busy cycles. Thus raw HBM credits are
+  not saturated; latency hiding, register residency, and packed-weight decode
+  constrain effective bandwidth.
+- The conda wrapper `/home/pc/anaconda3/bin/rocprofv3` mixes its packaged
+  aqlprofile/HSA libraries with the system ROCm runtime and aborts counter
+  collection (`aqlprofile API table load failed`). Use
+  `/opt/rocm/core-7.14/bin/rocprofv3 --rocm-root /opt/rocm/core-7.14` with the
+  matching `/opt/rocm/core-7.14/lib` first in `LD_LIBRARY_PATH`. TCC groups
+  must be split into at most compatible small groups; an oversized group
+  aborts with error 38.
+- Reducing only gate rows from 2 to 1 lowered its code object from 96 to 80
+  VGPR and kept all outputs exact. With W8/G2080 it reduced the full stage to
+  about `435.4 us`, only `0.6--0.8%`. Increasing its grid cap to 3120/4160
+  lost the gain. Combining rows1 with W4/G1664--2080/D1664 measured
+  `438.2--445.6 us` versus adjacent W8 baselines `436.5--439.2 us`, so it was
+  rejected. The small rows1 result is useful evidence but not a production
+  checkpoint; the next representation must reduce real DRAM scans rather than
+  only reshuffle occupancy.
