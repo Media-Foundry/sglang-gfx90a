@@ -23,6 +23,7 @@ PROJECTIONS = (
 )
 HIDDEN = 4096
 TOTAL_N = 4160
+HYBRID_N = 1536 + 2048
 
 
 def args():
@@ -33,6 +34,7 @@ def args():
     parser.add_argument("--warmup", type=int, default=30)
     parser.add_argument("--iters", type=int, default=200)
     parser.add_argument("--reps", type=int, default=7)
+    parser.add_argument("--mode", choices=("full", "hybrid"), default="full")
     return parser.parse_args()
 
 
@@ -55,15 +57,20 @@ def reference(x, weights):
     return torch.cat([F.linear(x, weight) for weight in weights], dim=1).contiguous()
 
 
-def candidate(x, local_weight, comm, raw_gather):
+def candidate(x, local_weight, comm, raw_gather, gathered_n, tail_weights):
     local = F.linear(x, local_weight)
     comm.all_gather_reg(local, out=raw_gather)
-    return (
+    gathered = (
         raw_gather.view(comm.world_size, x.shape[0], local.shape[1])
         .movedim(0, 1)
         .contiguous()
-        .view(x.shape[0], TOTAL_N)
+        .view(x.shape[0], gathered_n)
     )
+    if tail_weights:
+        return torch.cat(
+            [gathered] + [F.linear(x, weight) for weight in tail_weights], dim=1
+        ).contiguous()
+    return gathered
 
 
 def capture(fn, comm=None):
@@ -117,8 +124,11 @@ def main():
         torch.bfloat16
     )
     weights = [value.cuda() for value in weights_cpu]
-    combined = torch.cat(weights, dim=0).contiguous()
-    shard_n = TOTAL_N // world
+    gathered_n = HYBRID_N if case.mode == "hybrid" else TOTAL_N
+    gathered_weights = weights[:2] if case.mode == "hybrid" else weights
+    tail_weights = weights[2:] if case.mode == "hybrid" else []
+    combined = torch.cat(gathered_weights, dim=0).contiguous()
+    shard_n = gathered_n // world
     lo, hi = rank * shard_n, (rank + 1) * shard_n
     local_weight = combined[lo:hi].contiguous()
 
@@ -131,7 +141,12 @@ def main():
     comm.all_gather_unreg(local_warmup, out=raw_gather)
     torch.cuda.synchronize()
     graph_a, out_a = capture(lambda: reference(x, weights))
-    graph_b, out_b = capture(lambda: candidate(x, local_weight, comm, raw_gather), comm)
+    graph_b, out_b = capture(
+        lambda: candidate(
+            x, local_weight, comm, raw_gather, gathered_n, tail_weights
+        ),
+        comm,
+    )
 
     graph_a.replay()
     graph_b.replay()
@@ -146,7 +161,7 @@ def main():
         torch.equal(a, b)
         for a, b in zip(torch.split(out_a, widths, 1), torch.split(out_b, widths, 1), strict=True)
     ]
-    local_ag_slice_exact = torch.equal(local_reference, out_b[:, lo:hi])
+    local_ag_slice_exact = torch.equal(local_reference, out_b[:, :gathered_n][:, lo:hi])
     mismatches = 0
     max_abs = 0.0
     max_rel_l2 = 0.0
@@ -200,7 +215,7 @@ def main():
     exact = all(item["mismatches"] == 0 for item in all_correctness)
     if rank == 0:
         print(
-            f"ABBA A_us={a_us:.3f} B_us={b_us:.3f} saved_us={a_us-b_us:.3f} "
+            f"mode={case.mode} ABBA A_us={a_us:.3f} B_us={b_us:.3f} saved_us={a_us-b_us:.3f} "
             f"exact={exact} continue_gate={(a_us-b_us)>=30.0 and exact}",
             flush=True,
         )

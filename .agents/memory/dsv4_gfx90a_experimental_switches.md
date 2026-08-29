@@ -3850,3 +3850,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   Preserving four independent output-N boundaries would be required for exact
   semantics, but prior TP8 segmented experiments show that several small local
   GEMMs erase most or all of this gain.
+
+### TP4 M32 hybrid output-N N3584 rejection (2026-08-30)
+
+- Extended the same standalone oracle with `--mode hybrid`: only qkv N1536
+  plus core-compressor N2048 are concatenated to global N3584, each TP4 rank
+  computes one full-K N896 shard and reconstructs N3584 through registered AG;
+  index-compressor N512 and index-weight N64 retain their original independent
+  `F.linear` calls and final concatenation order.
+- The first 128-mutation gate failed decisively, so the planned 1000-mutation
+  extension was not run. Even the unmodified real layer-20 activation made the
+  qkv/core segments non-bitwise; across mutations qkv differed 124/128 and
+  core 128/128, while both untouched index segments remained exact. Every rank
+  reported the same result, maximum absolute error was `0.0078125`, maximum
+  relative L2 was `3.2453e-5`, and the replay-local GEMM matched its gathered
+  rank slice exactly. The discrepancy is therefore the changed N3584/N896
+  hipBLASLt reduction shape, not AG or rank-major reconstruction.
+- Seven-sample ABBA over the complete four-projection chain measured baseline
+  A `123.380 us` and hybrid B `116.005 us`, saving only `7.375 us` (`5.98%`).
+  It fails both required gates: not bitwise and far below `30 us`. Do not test
+  this hybrid in production and do not spend time on a 1000-mutation rerun.
