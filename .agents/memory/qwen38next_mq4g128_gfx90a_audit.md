@@ -1,5 +1,32 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
+## 2026-08-29: gfx90a V_PERM symmetric-Q4 decode
+
+The BS32 symmetric-Q4 `sdot4` path still expanded each packed 16-bit word with
+four independent nibble extracts, four signed conversions, and a scalar byte
+pack.  On gfx90a this compiled to roughly fifteen VALU instructions around
+each dot product.  The retained implementation instead forms even and odd
+nibble bytes and uses one `V_PERM_B32`; adding packed `0x78` is carry-free for
+all nibble values 0--15, and XORing the byte sign bits maps the result exactly
+to signed -8--7.
+
+The mapping was exhaustively checked for all 65,536 packed words.  The real
+M32 projection oracle also retained the same sdot error relative to the float
+symmetric path and passed 1,000 bitwise replays.  Old/new/old/new measurements
+on the production shapes were approximately:
+
+- gate/up: `155.8 -> 123.7 us` (20.6% lower);
+- down: `108.1 -> 94.1 us` (12.9% lower).
+
+A four-GCD TP4/EP4/no-A2A native-AR service, with decode graphs only at
+BS1/16/32, produced resident BS32 windows of about `869--886 tok/s`, versus
+the preceding checkpoint's `830--849 tok/s` (roughly 4.7--5.0%).  The Paris
+semantic probe passed and every one of 32 requests completed exactly 256
+tokens.  Cross-round greedy hashes still drifted, as on the preceding
+scheduler-overlap checkpoint; therefore the service-level result is not a new
+claim of bitwise scheduling stability.  The nibble transform itself is exact
+and does not change the integer dot-product inputs.
+
 ## 2026-08-28: post-49.7 tok/s decode probes rejected
 
 All service experiments below used native AR, TP4/EP4/no-A2A, decode graph

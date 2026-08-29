@@ -461,11 +461,16 @@ __device__ __forceinline__ float mq4g128_symmetric_sdot_row(
     const float weight_scale = *reinterpret_cast<const float*>(block);
     const uint16_t packed =
         *reinterpret_cast<const uint16_t*>(block + 4 + lane * 2);
-    const uint32_t q0 = static_cast<uint8_t>(static_cast<int8_t>((packed & 15) - 8));
-    const uint32_t q1 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 4) & 15) - 8));
-    const uint32_t q2 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 8) & 15) - 8));
-    const uint32_t q3 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 12) & 15) - 8));
-    const uint32_t weight_i8 = q0 | (q1 << 8) | (q2 << 16) | (q3 << 24);
+    // Expand four packed nibbles into byte lanes with a single gfx90a
+    // V_PERM_B32. Adding 0x78 cannot carry across byte lanes because each
+    // nibble is at most 15; flipping the sign bit then maps [0, 15] exactly
+    // onto the signed INT4 codebook [-8, 7].
+    const uint32_t even = packed & 0x0f0fu;
+    const uint32_t odd = (packed >> 4) & 0x0f0fu;
+    const uint32_t qbytes =
+        __builtin_amdgcn_perm(odd, even, 0x05010400u);
+    const uint32_t weight_i8 =
+        (qbytes + 0x78787878u) ^ 0x80808080u;
     const uint32_t base = group * 128 + lane * 4;
     const int32_t input_i8 = *reinterpret_cast<const int32_t*>(x + base);
     const int32_t dot = __builtin_amdgcn_sdot4(
