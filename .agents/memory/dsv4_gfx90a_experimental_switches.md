@@ -4056,3 +4056,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   same-GCD protocol. The fine-grained 32-contribution publication tax is too
   high even at DEVICE scope, so do not proceed to the exact consumer on this
   producer decomposition without reducing publication fan-in.
+### TP4 M32 expert-owned DPP gate publication oracle (2026-08-30)
+
+- Recorder metadata clarification: M32/top6 has 192 useful assignments but
+  per-expert A4 padding expands `num_valid_ids`/`sorted_ids` to 452 entries and
+  `sorted_experts` to 113 blocks. Thus the real gate grid upper bound for this
+  trace is 113, not the global `ceil(192/4)=48`; the absolute worst case is 192
+  padded expert blocks.
+- Added standalone owner/fan-in gate oracle (no production selector). One
+  expert block is processed by 1/4/8 W8 CTAs; each CTA walks its share of the
+  32 R2 row rounds and publishes once with DEVICE-scope acq_rel. The last CTA
+  publishes a monotonic ready epoch.
+- 100 randomized mutations: all owner1/4/8 intermediate BF16 tensors are
+  bitwise identical to the G2080 DPP reference; counters and epochs exact.
+- Seven-round ABBA trimmed results versus G2080 reference 246.494 us:
+  owner1 588.087 us (+341.593, +138.581%); owner4 322.113 us (+75.619,
+  +30.678%); owner8 281.777 us (+35.283, +14.314%).
+- Literal owner CTA underfills latency hiding despite 113 blocks covering the
+  roughly 104 CUs. Increasing fan-in converges toward the original scheduler,
+  but owner8 still fails the <10 us publication gate. Do not attach the exact
+  consumer to these decompositions.
