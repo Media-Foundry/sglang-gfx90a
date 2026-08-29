@@ -3325,3 +3325,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   scale expression. It also CSEs gate/up activation loads: each group has only
   two dwordx4 activation loads (offsets 0/16) shared by both projections.
   Do not revisit half-scale construction or explicit gate/up xq-load sharing.
+
+### TP4 M32 down-consumer service recheck after C4 overlap (2026-08-30)
+
+- Re-enabled only the existing exact CTA16 down-consumer candidate under the
+  accepted C4 multistream configuration. It quantizes BF16 expert intermediate
+  inside the down CTA and retains the fixed-slot FP32 partial/reduction order.
+- The 32-distinct-input teacher-forced response matched baseline output IDs,
+  complete logprob rows and top-5 entries bitwise. Three 512-token resident
+  runs measured `613.705/614.753/614.740 tok/s`, versus adjacent baseline
+  `613.982/614.657/615.128 tok/s`.
+- The centers differ by less than 0.1%; the old 1.41% TP4 component saving is
+  fully hidden in the current service graph. Keep
+  `SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER=0` rather than adding a neutral path.
