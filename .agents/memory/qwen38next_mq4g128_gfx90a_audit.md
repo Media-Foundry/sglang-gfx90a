@@ -2512,3 +2512,28 @@ CUDA_GRAPH_BS_DECODE='128' \
 SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS=256 \
 scripts/rocm_qwen38next_gfx90a.sh
 ```
+
+## 2026-08-29: BS32 TP-focused structural screens
+
+The new acceptance target is at most 32 concurrent requests, so the BS128
+throughput result above is not sufficient. The retained TP4/EP4 BS32 resident
+window remains approximately `675 -> 653 tok/s`.
+
+A cache-line-aligned MQ4 micro-oracle separated each row's contiguous code
+bytes from its affine metadata and rounded row strides to 64 bytes. It
+preserved the exact FP32 FMA/reduction order and was bitwise equal to the
+production expert-owned kernel. At the real M32 shapes it improved gate/up
+`306.72 -> 273.92 us` and down `174.88 -> 157.44 us`. A temporary TP4 service
+kept both checkpoint-compatible and aligned weights, increasing model memory
+from about 34.4 to 54.5 GiB/GCD. Despite the 10--11% projection micro gain,
+resident BS32 was only `682 -> 662 tok/s`, overlapping the production range.
+All 32 requests completed exactly 512 tokens. The aligned code and duplicate
+weight cache were removed; it is not a route to 1200.
+
+Pure PP4/TP1 was also screened and rejected before timing. Without PLE offload,
+PP0 exhausted 64 GiB while loading because the large PLE embedding is owned by
+the first stage. `--ple-offload-embedding` reduced PP0 device weights to about
+54.75 GiB and allowed memory sizing only above a measured static fraction of
+0.869, but this transfers the concentrated sparse lookup to host pinned memory
+and PCIe. The experiment was stopped rather than trading the requested stable
+GPU throughput for host-memory/PCIe pressure. Optimization remains on TP4.
