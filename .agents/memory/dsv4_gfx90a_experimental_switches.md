@@ -3621,3 +3621,19 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `>=20 us` performance gate and deferred-state exactness; do not wire the
   explicit staged chain into production. Continue to treat routed FP4 MoE as
   the dominant exact-native TP4/BS32 target.
+
+### TP4 M32 exact-two-round gate-grid rejection (2026-08-30)
+
+- Real diverse pass37/layer34 has 113 A4 scans and 256 gate row tiles, hence
+  28,928 wave tasks. A 1,808-block/eight-wave grid executes exactly two tasks
+  per wave, while the production 2,080-block grid leaves only part of the
+  second grid-stride round active. This previously untested point checked
+  whether tail imbalance, rather than memory latency, limited grouped gate.
+- Seven-round identical-output timing gave full-stage medians of `446.368`,
+  `444.635`, `440.843`, `441.568`, and `439.744 us` for gate block counts
+  1792/1808/1824/1872/2080 respectively; every candidate was bitwise exact.
+- Exact task divisibility is slower. The larger 2,080-block grid supplies more
+  independent CTAs to hide the roughly 295-cycle external-read residency, and
+  that benefit outweighs its partially occupied final round. Keep 2,080 as the
+  diverse TP4 gate geometry; do not derive static grids from one route's task
+  divisibility.
