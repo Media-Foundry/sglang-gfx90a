@@ -3515,3 +3515,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   (`<=239 us`) by about 30 us before sorter cost. Do not implement a two-bucket
   GPU sorter or service selector; occupancy partitioning without fewer weight
   scans is closed for this TP4 diverse workload.
+
+### TP4 M32 packed-weight cache-policy rejection (2026-08-30)
+
+- Tested cache policy only on packed FP4 weight loads; activation, E8M0 scale,
+  metadata and LDS decode remained unchanged. Clang's
+  `__builtin_nontemporal_load` was statically verified to emit coalesced
+  `global_load_dwordx4 glc slc` on gfx90a, not an ignored hint. The real
+  diverse full stage stayed bitwise exact but moved from median `439.082 us`
+  to `443.130 us` (+0.92%). Bypassing/invalidation of useful L1 traffic is not
+  beneficial.
+- Also built identical 16-byte raw-buffer loads with explicit cache policy 0
+  and SLC-only policy 2. Each variant ran independently and produced exact
+  output. Raw policy 0 measured about `447.18 us`; raw SLC measured about
+  `450.41 us`, versus adjacent flat/default around `439 us`. Thus changing
+  addressing alone already costs roughly 1.8%, and SLC adds another 0.7%.
+- gfx90a uses GLC/SLC semantics; gfx942 SC0/SC1 interpretations must not be
+  copied here. The temporary CK descriptor and policy modes were removed.
+  Default flat `global_load_dwordx4` remains the correct production choice;
+  do not revisit cache flags unless a future compiler exposes an SLC-only flat
+  load with identical addressing and code shape.
