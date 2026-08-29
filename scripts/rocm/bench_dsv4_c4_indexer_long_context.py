@@ -15,6 +15,11 @@ from sglang.srt.layers.attention.dsv4.indexer import (
     FP8_DTYPE,
     fp8_paged_mqa_logits_torch,
 )
+from sglang.kernels.ops.attention.dsv4.topk import (
+    plan_topk_v2,
+    topk_transform_512,
+    topk_transform_512_v2,
+)
 
 
 BATCH = 32
@@ -142,13 +147,52 @@ def main():
             )
 
         slot_out = torch.empty_like(slots)
+        v1_out = torch.empty_like(slots)
+        v1_raw = torch.empty_like(slots)
+        v2_out = torch.empty_like(slots)
+        v2_metadata = None
+        v2_unavailable = None
+        try:
+            v2_metadata = plan_topk_v2(seq_lens)
+        except RuntimeError as exc:
+            v2_unavailable = str(exc).splitlines()[0]
+
+        def production_v1():
+            topk_transform_512(
+                score, seq_lens, page_table, v1_out, PAGE, v1_raw
+            )
+            return v1_out
+
+        def production_v2():
+            assert v2_metadata is not None
+            topk_transform_512_v2(
+                score, seq_lens, page_table, v2_out, PAGE, v2_metadata
+            )
+            return v2_out
+
+        production_v1()
+        if v2_metadata is not None:
+            production_v2()
+        torch.cuda.synchronize()
+        expected_slot_sets = torch.sort(expected_slots, dim=1).values
+        v1_slot_exact = bool(
+            torch.equal(torch.sort(v1_out, dim=1).values, expected_slot_sets)
+        )
+        v2_slot_exact = (
+            bool(torch.equal(torch.sort(v2_out, dim=1).values, expected_slot_sets))
+            if v2_metadata is not None
+            else None
+        )
         graphs = {
             "logits": capture(lambda: logits(q, kv, weights, seq_lens, page_table, length))[0],
             "topk": capture(
                 lambda: torch.topk(score, TOPK, dim=1, largest=True, sorted=False).indices
             )[0],
             "slot": capture(lambda: slot_convert(raw, page_table, slot_out))[0],
+            "production_v1": capture(production_v1)[0],
         }
+        if v2_metadata is not None:
+            graphs["production_v2"] = capture(production_v2)[0]
 
         def full_fn():
             full_score = logits(q, kv, weights, seq_lens, page_table, length)
@@ -159,8 +203,40 @@ def main():
             return full_score, full_raw, slot_convert(full_raw, page_table, full_slots)
 
         graphs["full"] = capture(full_fn)[0]
+
+        def production_v1_full():
+            full_score = logits(q, kv, weights, seq_lens, page_table, length)
+            full_slots = torch.empty_like(slots)
+            full_raw = torch.empty_like(slots)
+            topk_transform_512(
+                full_score,
+                seq_lens,
+                page_table,
+                full_slots,
+                PAGE,
+                full_raw,
+            )
+            return full_score, full_slots, full_raw
+
+        def production_v2_full():
+            assert v2_metadata is not None
+            full_score = logits(q, kv, weights, seq_lens, page_table, length)
+            full_slots = torch.empty_like(slots)
+            topk_transform_512_v2(
+                full_score,
+                seq_lens,
+                page_table,
+                full_slots,
+                PAGE,
+                v2_metadata,
+            )
+            return full_score, full_slots
+
+        graphs["production_v1_full"] = capture(production_v1_full)[0]
+        if v2_metadata is not None:
+            graphs["production_v2_full"] = capture(production_v2_full)[0]
         samples = {name: [] for name in graphs}
-        order_a = ["logits", "topk", "slot", "full"]
+        order_a = list(graphs)
         order_b = list(reversed(order_a))
         for round_id in range(args.rounds):
             for name in order_a if round_id % 2 == 0 else order_b:
@@ -177,6 +253,9 @@ def main():
                 "topk_overlap_min": min(overlaps),
                 "topk_overlap_mean": statistics.mean(overlaps),
                 "slot_conversion_exact": slot_exact,
+                "production_v1_slot_set_exact": v1_slot_exact,
+                "production_v2_slot_set_exact": v2_slot_exact,
+                "production_v2_unavailable": v2_unavailable,
                 "samples_us": samples,
                 "median_us": medians,
                 "full_fp32_logits_write_bytes": BATCH * length * 4,

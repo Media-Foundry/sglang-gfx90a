@@ -3723,15 +3723,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   byte layout (8192 FP8 value bytes followed by 64 FP32 scales per page), which
   is required even though the public tensor view is `[page,64,1,132]`. The
   current full-Triton kernel used its default `BLOCK_S=16`.
-- Seven-round alternating graph order measured median microseconds for
+- The first seven-round alternating graph run measured the diagnostic
   `(full-Triton logits / torch Top-512 / logical-to-physical slot / complete
-  chain)`: L513 `21.952 / 33.488 / 18.008 / 70.239`, L1024
+  torch chain)`: L513 `21.952 / 33.488 / 18.008 / 70.239`, L1024
   `34.680 / 47.671 / 17.784 / 98.327`, L4096
   `119.367 / 64.015 / 18.128 / 208.334`, and L16384
-  `453.763 / 54.567 / 18.176 / 534.530 us`. Slot conversion was checked
-  exactly against the page-table formula. This confirms that long-context
-  scaling is dominated by the O(L) index dot/score scan, while the separate
-  Top-K plus slot tail still costs roughly 72.7 us at L16384.
+  `453.763 / 54.567 / 18.176 / 534.530 us`. This was only a diagnostic chain:
+  production does not launch a separate torch Top-K followed by slot
+  conversion. The AOT `topk_transform_512` v1 kernel already fuses Top-512,
+  page-table lookup and physical-slot generation.
+- A corrected production-path run measured `(logits / fused v1 tail / fused
+  v1 full chain)` as L513 `22.400 / 14.208 / 31.440`, L4096
+  `119.807 / 19.488 / 136.942`, and L16384
+  `454.763 / 31.616 / 486.987 us`. The v1 slot sets were exact against the
+  torch/page-table reference at every tested length. The optional v2 JIT path
+  was unavailable on this gfx90a environment because its generated HIP source
+  includes missing CUDA `cooperative_groups.h`; this does not affect the AOT
+  v1 production path.
 - Full-Triton scores agreed with the BF16 torch reference at maximum relative
   error `0.00150--0.00196` and mean absolute error about `0.066--0.068`.
   Top-512 set exact rows for L513/1024/4096/16384 were `32/27/20/8` out of 32;
@@ -3744,12 +3752,14 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   chunk and emits at most 512 `(FP32 score,int32 index)` candidates would write
   128 KiB through L4096 and 512 KiB at L16384. It is not a byte win at L513,
   ties at L1024, and reduces candidate/intermediate writes 4x at L4096/16384.
-  More importantly, it can remove the separate full-logits Top-K read and fold
-  physical-slot generation into merge. At L4096/16384 the measured explicit
-  Top-K plus slot budget is `82.14/72.74 us`; even allowing a 30--45 us merge,
-  the candidate path has a credible `>=20 us/layer` opportunity. Continue only
-  with a CTA-local selection micro-oracle first; do not replace production
-  until Top-512 boundary parity and graph behavior are validated.
+  However, the corrected production tail is only `19.49/31.62 us` at
+  L4096/L16384, not the earlier diagnostic `torch.topk + slot` sum. The scan
+  itself dominates at `119.81/454.76 us`; a candidate merge would consume much
+  of the existing fused-tail budget. Do not claim a robust `>=20 us/layer`
+  opportunity without a fused scan/local-select micro-oracle proving it. This
+  is a long-context research path, not the explanation for the short 128-token
+  versus 512-token service gap: C4 length is approximately full sequence/4,
+  so Top-512 begins near an original sequence length of 2048 tokens.
 - Production follow-up used the exact 32-request diverse manifest, forced
   native AR, graph tiers 1/32 and three 64-token rounds. The default external
   AIter two-stage service kept France correct and had resident BS32 samples
