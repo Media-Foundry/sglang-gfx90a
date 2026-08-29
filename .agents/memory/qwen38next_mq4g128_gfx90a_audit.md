@@ -2553,3 +2553,30 @@ the production wave32 subgroups. It was numerically close (`max_abs` below
 The down K dimension has five G128 groups, leaving half a wave idle in the
 last pair; more generally, the production two-row wave32 mapping exposes more
 row parallelism. The wave64 implementation was removed after the oracle.
+
+An INT8-code replacement for packed MQ4 was then tested at the real BS32
+expert-owned shapes. Unlike the earlier DP4A experiment, this version expanded
+the 4-bit affine codes once at load time, so the projection consumed native
+INT8 bytes directly and performed no nibble unpack. Dynamic per-G128 activation
+quantization cost only `13.6--14.7 us`, but the larger weight stream made the
+projection itself slower: gate/up was `273.6 -> 325.4 us` before quantization
+and down was `151.5 -> 195.1 us`. Complete times were `345.4` and `214.5 us`,
+with relative L2 error around `0.57--0.67%`. Thus even eliminating unpack does
+not repay the 1.89x code-byte expansion on M32; fusion cannot rescue it. The
+oracle was removed and production remains packed MQ4.
+
+The cached BS32 token-owned fused-down prototype was also timed before any
+attempt to relax its known one-LSB mismatch. Against the current
+sort+expert-owned-down+masked-reduce chain it measured `304.8 us` versus
+`165.2 us` and differed in 12 BF16 outputs (`max_abs=0.0001220703125`). It is
+both slower and less exact, so it remains rejected.
+
+A second multi-request GDN HIP design reduced the old failed kernel's CTA
+count by packing four wave64s into each CTA. The best module geometries were
+`rows=8,waves=4` at BS16 (`~64--66 us` versus Triton `~115 us`) and
+`rows=16,waves=4` at BS32 (`~100--102 us` versus `~140--142 us`). A 128-step
+oracle kept state relative L2 near `7e-8`, and 1000 graph replays remained
+finite. End-to-end TP4/EP4 BS32 nevertheless changed only from the control's
+roughly `676 -> 654 tok/s` resident window to `681 -> 665 tok/s` (about 1.7%
+late-window), far below the retention threshold. All multi-batch HIP changes
+were removed; the graph-wide scheduling cost again hid the microkernel gain.
