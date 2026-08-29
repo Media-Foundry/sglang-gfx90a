@@ -3338,3 +3338,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - The centers differ by less than 0.1%; the old 1.41% TP4 component saving is
   fully hidden in the current service graph. Keep
   `SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER=0` rather than adding a neutral path.
+
+### TP4 high-priority auxiliary-stream rejection (2026-08-30)
+
+- Gave HIP auxiliary stream 0 high priority behind a temporary default-off
+  selector. This stream carries the C4 core compressor and SBO shared expert;
+  the hypothesis was that shorter auxiliary join tails might outweigh added
+  contention with main-stream attention and routed experts.
+- The 32-distinct-input teacher-forced response remained bitwise identical.
+  Three 512-token resident runs were `614.953/614.292/615.990 tok/s`, versus
+  adjacent normal-priority baseline `613.982/614.657/615.128 tok/s`; median
+  movement was only about +0.05%.
+- HIP stream priority did not change the production critical path materially.
+  The selector and construction change were removed; keep normal priority.
