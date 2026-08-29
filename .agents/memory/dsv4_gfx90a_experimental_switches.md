@@ -3454,3 +3454,19 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   paired-A4 rejection. The experimental kernel/template code was removed; do
   not revisit row-major ordering without a fundamentally different load-sharing
   primitive and a substantially higher measured expert-run fraction.
+
+### TP4 M32 pairwise-interleaved w13 layout rejection (2026-08-30)
+
+- Repacked only the packed FP4 w13 rows from runtime `[all gate][all up]` to
+  `[gate0,up0,gate1,up1,...]`, leaving the existing A16W4 scale shuffle,
+  sorter, A4/R2/W8/G2080 geometry, w2 and fixed reduction unchanged. This
+  reduces the physical gate/up row distance from about 1 MiB to 2 KiB without
+  changing bytes read or arithmetic. The full output was bitwise exact.
+- Seven rounds measured baseline median `436.817 us` and interleaved median
+  `436.305 us`, only `0.512 us` (`0.12%`) faster. The locality change does not
+  materially improve the DRAM-bound gate/up critical path and misses the
+  10--15 us continuation gate by a wide margin.
+- Production would also need to replace, rather than duplicate, roughly
+  22 GiB/GCD of w13 storage across 43 layers and carefully preserve the
+  independently interleaved scale layout. All experimental code was removed;
+  do not add a runtime weight-layout tag or loader repack for this result.
