@@ -62,6 +62,23 @@ def serial_rows_gate_min2_module():
     )
 
 
+@cache_once
+def cta_stage_gate_module():
+    args = make_cpp_args(E, M, T, I, H, A4, R2, 8, G, LUT)
+    return load_jit(
+        "gfx90a_fp4_expert_gate_cta_stage_oracle",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gate_cta_stage_oracle.cuh"],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertGateCtaStageOracle<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
 def time_us(fn, warmup: int, iterations: int) -> float:
     for _ in range(warmup):
         fn()
@@ -94,6 +111,7 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--mutations", type=int, default=100)
     parser.add_argument("--compile-only", action="store_true")
+    parser.add_argument("--cta-stage-only", action="store_true")
     args = parser.parse_args()
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
@@ -122,6 +140,7 @@ def main() -> None:
         ),
         "SERIAL": serial_rows_gate_module(),
         "SERIAL_MIN2": serial_rows_gate_min2_module(),
+        "CTA_STAGE": cta_stage_gate_module(),
         **{
             f"W4G{blocks}": _jit_gate_up_grouped_dpp(
                 E, M, T, I, H, A4, 1, 4, blocks, LUT
@@ -129,6 +148,11 @@ def main() -> None:
             for blocks in (1664, 2080, 2496, 3120)
         },
     }
+    if args.cta_stage_only:
+        gates = {
+            "W8G2080": gates["W8G2080"],
+            "CTA_STAGE": gates["CTA_STAGE"],
+        }
     if args.compile_only:
         print("serial_rows_compile=ok", flush=True)
         return

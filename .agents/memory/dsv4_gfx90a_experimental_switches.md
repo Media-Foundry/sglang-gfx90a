@@ -3955,6 +3955,31 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   launch-bound coercion is unlikely to help without a structural live-range
   split and would risk real scratch traffic.
 
+### TP4 M32 CTA-wide activation staging gate rejection (2026-08-30)
+
+- Added oracle-only
+  `gfx90a_fp4_expert_gate_cta_stage_oracle.cuh` and `--cta-stage-only` support
+  in the DPP/down-prefetch combo oracle. The CTA loop maps all eight waves to
+  consecutive R2 tiles of the same sorted expert block; every thread executes
+  the same CTA-task loop and both barriers. For each A4 block, 512 threads
+  stage four INT8 K4096 activations and four 128-entry FP32 scale rows once,
+  then the eight waves share them. Weight loads, SDOT/DPP order, BF16 stores,
+  output task coverage and the row-prefetch R2/W8/D832 down path are unchanged.
+- Static gfx90a resources were `91 VGPR`, `54 SGPR`, `19,504 B LDS`, zero
+  scratch and zero SGPR/VGPR spills; compiler occupancy was `5 waves/SIMD`.
+  The 19 KiB LDS footprint includes the 1 KiB FP4 LUT plus staged activation,
+  scales and metadata. This passed the no-spill resource gate.
+- One hundred mutated cases preserved intermediate BF16, quantized activation
+  and scale, FP32 partial and final BF16 outputs bitwise. Seven-round
+  forward/reverse ABBA nevertheless moved gate trimmed mean from `247.256` to
+  `394.703 us` and full routed stage from `425.462` to `575.309 us` (35.2%
+  slower). Quant/down/reduce remained essentially unchanged.
+- Explicit staging loses to the cache-served peer-wave reloads: each CTA task
+  adds roughly 18 KiB of global-to-LDS copies, LDS reads and two workgroup
+  barriers, while the original repeated activation reads are already highly
+  cacheable and small relative to FP4 weight traffic. Do not connect this
+  candidate to production or pursue larger staged tiles.
+
 ### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
 
 - Revisited the exact standalone combination only because the long-generation
