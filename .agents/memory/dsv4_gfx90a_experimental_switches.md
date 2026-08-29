@@ -3179,3 +3179,22 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   therefore caused a reproducible 30.9% graph/service regression despite its
   micro win, consistent with changed occupancy/stream scheduling. Production
   wiring was removed. Keep the isolated oracle but do not enable DPP in TP4.
+
+### TP4 M32 token-row-owned MHC component oracle (2026-08-29)
+
+- Tested the strongest exact-native proposal from the external review without
+  changing production: four TP ranks either each execute the existing MHC
+  backend over all 32 rows (A), or each execute the same backend over its owned
+  contiguous 8 rows and publish normalized hidden rows with the real registered
+  AIter all-gather at both attention and FFN boundaries (B). Incoming
+  reduce-scatter was deliberately excluded, making B an optimistic bound.
+- Eager local hidden/residual/post/comb slices and gathered M32 hidden were all
+  bitwise exact. The captured four-rank path passed 1000 replay iterations with
+  no stale output or hang. Seven-round rank-max ABBA gave A1/A2 centers around
+  `106.631 us` for two boundaries and B1/B2 `133.979 us`; row ownership was
+  `27.348 us` slower. Compute-only row ownership was `84.363 us`, saving only
+  `22.267 us`, while the two publications added `49.616 us`.
+- This fails the predeclared `55--60 us/layer` continuation gate even before
+  accounting for an incoming reduce-scatter. Do not add production row-owned
+  state or graph-tier protocol. The reusable oracle is
+  `scripts/rocm/bench_dsv4_tp4_token_row_mhc_oracle.py`.
