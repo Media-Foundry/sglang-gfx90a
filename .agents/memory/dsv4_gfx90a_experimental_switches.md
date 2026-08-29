@@ -4110,3 +4110,21 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Enable issue order 3 only in `SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE`; the
   environment selector remains a zero-default rollback outside that profile.
   This is a verified small scheduling win, not a 1500 tok/s checkpoint.
+### TP4 M32 static A4 sorter-only oracle (2026-08-30)
+
+- Added standalone `gfx90a_m32_a4_sorter_oracle.cuh` and benchmark; no
+  production selector. It consumes `[32,6]` expert IDs/weights and emits the
+  same AIter capacities (`1210` sorted assignments, `303` expert blocks,
+  two-word valid metadata). The real diverse layer34 route has 192 useful
+  assignments and 452 padded entries / 113 A4 blocks.
+- The atomic cursor inherited from the fused quant-sort kernel permuted 27
+  same-expert assignments versus AIter. The exact oracle therefore uses a
+  stable flattened token/slot rank for each assignment, matching AIter's
+  deterministic order and its zero-weight padding.
+- Correctness: real layer34 plus 99 randomized unique-top6 distributions were
+  exact for valid sorted IDs, weights, expert IDs and num-valid metadata; 1000
+  captured graph replays remained exact.
+- Seven-round ABBA: AIter production sorter `10.228 us`; static stable HIP
+  candidate `15.563 us` (`-5.335 us`, 1.522x slower). It fails both the >=8-us
+  saving and <=60% latency gates. Do not replace `moe_sorting`; the entire sort
+  is only about 10 us, so fusing top-k with sort has a small absolute ceiling.
