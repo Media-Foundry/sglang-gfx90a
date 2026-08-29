@@ -3351,3 +3351,24 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   movement was only about +0.05%.
 - HIP stream priority did not change the production critical path materially.
   The selector and construction change were removed; keep normal priority.
+
+### TP4 M32 all-reduce plus MHC-post structural oracle (2026-08-30)
+
+- Built an isolated four-rank oracle for the proposed AR-to-MHC boundary. The
+  debug reduction exactly reproduced production's TP4 two-stage BF16 result,
+  including its flat-buffer owner rotation: rows 0--7 sum ranks `0123`, rows
+  8--15 `1230`, rows 16--23 `2301`, and rows 24--31 `3012`. This is why a
+  conventional H-dimension reduce-scatter is not bitwise equivalent.
+- Production component timing was already a hard upper-bound rejection:
+  AR-only was `26.18--26.40 us`, MHC-post-only `9.63--9.76 us`, and their
+  captured chain `32.33--32.63 us`. Even deleting MHC-post for free cannot meet
+  the declared 20-us/boundary continuation threshold.
+- A direct 64-CTA one-stage peer-read fusion measured
+  `157.57--158.52 us`; repeated entry/exit cross-rank barriers dominate. Its AR
+  debug output was bitwise exact under mutations, but the HIP MHC association
+  differed from production Triton by up to `6.1e-5` in BF16 output and about
+  `1e-6` in RMS partials.
+- A stage1-only RS plus token-CTA peer-pull was therefore not extended: it must
+  add remote reads, publication and a final reuse barrier while its absolute
+  upside is below 10 us. Keep the independent oracle files for reproducing the
+  exact owner-order and latency bound; do not wire this protocol into the model.
