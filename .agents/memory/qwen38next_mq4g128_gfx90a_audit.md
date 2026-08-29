@@ -2544,3 +2544,12 @@ within about 1--2% for every tested shape: `(N,K)=10240x2560, 3584x2560,
 1280x2560, 2560x640, 320x2560, 2560x160, 1536x2560`. The largest projection
 was `108.16/108.48 us` BF16/FP16, and none had a repeatable material FP16
 advantage. Changing the model precision cannot improve this throughput tier.
+
+A native wave64 MQ4 row-dot was screened next without changing TP4 or the
+packed weights. Each wave consumed two adjacent G128 groups instead of using
+the production wave32 subgroups. It was numerically close (`max_abs` below
+`1.8e-7`) but slower on both M32 projections: gate complete time was about
+`284.6 us` versus `273.6 us`, while down was `359--388 us` versus `149.0 us`.
+The down K dimension has five G128 groups, leaving half a wave idle in the
+last pair; more generally, the production two-row wave32 mapping exposes more
+row parallelism. The wave64 implementation was removed after the oracle.
