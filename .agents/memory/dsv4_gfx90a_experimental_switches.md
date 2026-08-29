@@ -3658,3 +3658,26 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   that benefit outweighs its partially occupied final round. Keep 2,080 as the
   diverse TP4 gate geometry; do not derive static grids from one route's task
   divisibility.
+
+### Routed-FP4 lossless entropy and four-GCD PP2xTP2 bounds (2026-08-30)
+
+- Sampled 144 original routed-expert weight/scale tensors across layers
+  0/20/42 and eight experts per layer directly from safetensors. Packed E2M1
+  codes have entropy `3.86035 bit/code` and only `6.386%` zero codes. The eight
+  most frequent codes cover just `66.27%`, so a fixed 3-bit common-code plus
+  escape representation would carry too many exceptions. E8M0 scales have
+  entropy `0.9645 bit/scale`, but there is only one scale per 32 codes. Even an
+  ideal zero-overhead entropy coder reduces combined weight-plus-scale bits by
+  only `8.459%`; real random-access metadata and GPU variable-length decode
+  would lower that gain. Do not build a lossless routed-weight entropy decoder
+  for the current 1.5k target.
+- A repository/history audit found no four-GCD `PP2 x TP2` DSV4 run. It is not
+  flag-only: TP2/EP1 uses raw `w13=(256,2048,2048)` and
+  `w2=(256,4096,512)`, absent from both the direct-AIter shape guards and the
+  W2 inverse-layout guard. More importantly, halving resident layers while
+  doubling each TP shard conserves per-GCD model bytes and KV bytes. The
+  I1024 routed work is approximately twice TP4 per layer; the synchronous PP
+  scheduler also disables overlap and historically made eight-GCD PP2xTP4
+  only about `748 tok/s`. A four-GCD PP2xTP2 estimate is `337--400 tok/s`, with
+  no capacity advantage over TP4. Do not add correctness-sensitive shape
+  wiring for this throughput objective.
