@@ -2580,3 +2580,23 @@ finite. End-to-end TP4/EP4 BS32 nevertheless changed only from the control's
 roughly `676 -> 654 tok/s` resident window to `681 -> 665 tok/s` (about 1.7%
 late-window), far below the retention threshold. All multi-batch HIP changes
 were removed; the graph-wide scheduling cost again hid the microkernel gain.
+
+### Additional BS32 CK INT8 and expert-CTA screens
+
+A clean gfx90a-only Composable Kernel build was configured with its INT8
+instances enabled. The stock INT8 XDL example uses `MPerBlock=256` and rejects
+the real `M=32,N=10240,K=2560` projection. A focused XDL instance with a
+32-row block removed that unsupported-shape artifact, but the raw INT8 GEMM
+still measured about `143.4 us`. This is already slower than the previously
+measured BF16 rocBLAS range (`67--108 us`) before adding activation
+quantization, scales, or a BF16 epilogue. The temporary CK example edits were
+restored; dense W8A8 is rejected for the TP4 BS32 path.
+
+The packed-MQ4 expert-owned CTA sweep was also extended temporarily from
+2/4/8 to 16/32 logical wave32 subgroups. A warm rerun on an idle gfx90a GCD
+kept every output bitwise identical and graph-stable. For the real BS32 gate
+shape, complete 2/4/8/16/32-subgroup times were approximately
+`279.2/275.8/276.2/290.6/304.2 us`; for the flattened down shape they were
+`232.5/159.4/149.5/155.4/167.3 us`. Thus the retained four-subgroup gate and
+eight-subgroup down choices are genuine local optima. The wider templates
+were removed without entering the service.
