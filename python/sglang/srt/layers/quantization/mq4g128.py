@@ -16,6 +16,7 @@ from sglang.srt.utils.common import is_gfx90a_supported
 
 GROUP_SIZE = 128
 GROUP_BYTES = 72
+SYMMETRIC_GROUP_BYTES = 68
 
 
 @triton.jit
@@ -122,19 +123,27 @@ def quantize_mq4g128(
         scale = ((hi - lo) / 15.0).clamp_min(torch.finfo(torch.float32).tiny)
         q = torch.round((groups - lo.unsqueeze(-1)) / scale.unsqueeze(-1)).clamp_(0, 15).to(torch.uint8)
     packed = q[..., 0::2] | (q[..., 1::2] << 4)
-    out = torch.empty((*groups.shape[:-1], GROUP_BYTES), dtype=torch.uint8, device=weight.device)
+    group_bytes = SYMMETRIC_GROUP_BYTES if symmetric else GROUP_BYTES
+    out = torch.empty((*groups.shape[:-1], group_bytes), dtype=torch.uint8, device=weight.device)
     out[..., :4] = scale.contiguous().view(torch.uint8).reshape(*scale.shape, 4)
-    out[..., 4:8] = lo.contiguous().view(torch.uint8).reshape(*lo.shape, 4)
-    out[..., 8:] = packed
+    if symmetric:
+        out[..., 4:] = packed
+    else:
+        out[..., 4:8] = lo.contiguous().view(torch.uint8).reshape(*lo.shape, 4)
+        out[..., 8:] = packed
     return out.contiguous()
 
 
 def dequantize_mq4g128(packed: torch.Tensor) -> torch.Tensor:
-    if packed.shape[-1] != GROUP_BYTES or packed.dtype != torch.uint8:
-        raise ValueError("MQ4G128 packed tensor must end in 72 uint8 bytes")
+    if packed.shape[-1] not in (GROUP_BYTES, SYMMETRIC_GROUP_BYTES) or packed.dtype != torch.uint8:
+        raise ValueError("MQ4G128 packed tensor must end in 68 or 72 uint8 bytes")
     scale = packed[..., :4].contiguous().view(torch.float32).squeeze(-1)
-    zero = packed[..., 4:8].contiguous().view(torch.float32).squeeze(-1)
-    nibbles = packed[..., 8:]
+    if packed.shape[-1] == SYMMETRIC_GROUP_BYTES:
+        zero = -8.0 * scale
+        nibbles = packed[..., 4:]
+    else:
+        zero = packed[..., 4:8].contiguous().view(torch.float32).squeeze(-1)
+        nibbles = packed[..., 8:]
     q = torch.empty((*nibbles.shape[:-1], GROUP_SIZE), dtype=torch.uint8, device=packed.device)
     q[..., 0::2] = nibbles & 15
     q[..., 1::2] = nibbles >> 4
@@ -157,8 +166,11 @@ def _requantize_checkpoint_fp8_mq4g128(
 ) -> torch.Tensor:
     """Stream FP8 experts into MQ4G128 without a whole-layer FP32 expansion."""
     e, n, k = weight.shape
+    symmetric = os.environ.get(
+        "SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0"
+    ) == "1"
     packed = torch.empty(
-        (e, n, k // GROUP_SIZE, GROUP_BYTES),
+        (e, n, k // GROUP_SIZE, SYMMETRIC_GROUP_BYTES if symmetric else GROUP_BYTES),
         dtype=torch.uint8,
         device=weight.device,
     )
@@ -168,10 +180,7 @@ def _requantize_checkpoint_fp8_mq4g128(
         packed[begin:end].copy_(
             quantize_mq4g128(
                 chunk,
-                symmetric=os.environ.get(
-                    "SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0"
-                )
-                == "1",
+                symmetric=symmetric,
             )
         )
         del chunk

@@ -22,22 +22,34 @@ from sglang.srt.layers.quantization.mq4g128 import (
 def make_case(m: int, t: int, n: int, k: int, seed: int):
     gen = torch.Generator(device="cuda").manual_seed(seed)
     x = torch.randn((m, k), dtype=torch.float32, device="cuda", generator=gen)
-    weight = torch.zeros((128, n, k // 128, 72), dtype=torch.uint8, device="cuda")
-    weight[..., 8:].random_(1, 16, generator=gen)
-    scale = weight[..., :4].view(torch.float32)
-    zero = weight[..., 4:8].view(torch.float32)
+    symmetric_weight = torch.zeros(
+        (128, n, k // 128, 68), dtype=torch.uint8, device="cuda"
+    )
+    symmetric_weight[..., 4:].random_(1, 16, generator=gen)
+    scale = symmetric_weight[..., :4].view(torch.float32)
     scale.fill_(0.0125)
-    zero.copy_(-8.0 * scale)
+    affine_weight = torch.empty(
+        (128, n, k // 128, 72), dtype=torch.uint8, device="cuda"
+    )
+    affine_weight[..., :4].copy_(symmetric_weight[..., :4])
+    affine_weight[..., 4:8].view(torch.float32).copy_(-8.0 * scale)
+    affine_weight[..., 8:].copy_(symmetric_weight[..., 4:])
     ids = torch.full((m, t), -1, dtype=torch.int32, device="cuda")
     ids.view(-1)[: min(m * t, 80)].random_(0, 128, generator=gen)
-    return x, weight, ids
+    return x, affine_weight, symmetric_weight, ids
 
 
 def run(case, symmetric: bool):
     os.environ["SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC"] = (
         "1" if symmetric else "0"
     )
-    return mq4g128_indexed(*case, zero_invalid=True)
+    x, affine_weight, symmetric_weight, ids = case
+    return mq4g128_indexed(
+        x,
+        symmetric_weight if symmetric else affine_weight,
+        ids,
+        zero_invalid=True,
+    )
 
 
 def time_us(case, symmetric: bool, iters: int = 100) -> float:

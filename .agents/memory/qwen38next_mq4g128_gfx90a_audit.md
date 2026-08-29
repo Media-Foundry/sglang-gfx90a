@@ -2745,3 +2745,14 @@ suffered a separate 35--50 second prefill/admission stall before entering the
 fast decode window. Those wall-time values are explicitly rejected as kernel
 throughput; fixing the recurrent-state/admission control-plane gap is now a
 separate priority.
+
+The retained symmetric storage subsequently removed its unused FP32 zero
+metadata, changing only that format from 72 to 68 bytes per G128 group. Affine
+fallback stays at 72 bytes, and indexed, persistent-slot, expert-owned and
+grouped wrappers are independently templated for the two strides. The M32
+stored-weight oracle remained bitwise exact; graph capture succeeded at tiers
+1/16/32; France still returned Paris; and resident decode remained
+`766--776 tok/s`. Projection microbenchmarks were effectively unchanged
+(`199.80/120.15 us` for gate/down), while routed packed-weight storage fell by
+5.6% and available post-capture memory rose by roughly 40--60 MiB/GCD in this
+profile.

@@ -87,12 +87,18 @@ def test_mq4g128_symmetric_m32_matches_stored_weight_oracle(monkeypatch):
         torch.randn(e, n, k, device="cuda", dtype=torch.float32) * 0.03,
         symmetric=True,
     )
+    affine_view = torch.empty((e, n, k // 128, 72), dtype=torch.uint8, device="cuda")
+    affine_view[..., :4].copy_(packed[..., :4])
+    affine_view[..., 4:8].view(torch.float32).copy_(
+        -8.0 * packed[..., :4].view(torch.float32)
+    )
+    affine_view[..., 8:].copy_(packed[..., 4:])
     x = fwht128(torch.randn(m, k, device="cuda")).contiguous()
     ids = torch.full((m, topk), -1, device="cuda", dtype=torch.int32)
     ids.view(-1)[:80].random_(0, e)
     monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32", "1")
     monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0")
-    stored_weight_oracle = mq4g128_indexed(x, packed, ids)
+    stored_weight_oracle = mq4g128_indexed(x, affine_view, ids)
     monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "1")
     actual = mq4g128_indexed(x, packed, ids)
     torch.testing.assert_close(actual, stored_weight_oracle, rtol=0, atol=0)

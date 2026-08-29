@@ -40,10 +40,13 @@ def mq4g128_remap_topk(
 
 
 @cache_once
-def _indexed_module(e: int, m: int, t: int, n: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, n, k)
+def _indexed_module(
+    e: int, m: int, t: int, n: int, k: int, symmetric: bool = False
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, symmetric)
+    suffix = "symmetric" if symmetric else "affine"
     return load_jit(
-        "gfx90a_mq4g128_indexed",
+        f"gfx90a_mq4g128_indexed_{suffix}",
         *args,
         cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
         cuda_wrappers=[("run", f"sglang::Gfx90aMq4g128Indexed<{args}>::run")],
@@ -89,10 +92,13 @@ def _expert_owned_module(
 
 
 @cache_once
-def _persistent_slots_module(e: int, m: int, t: int, n: int, k: int) -> Module:
-    args = make_cpp_args(e, m, t, n, k)
+def _persistent_slots_module(
+    e: int, m: int, t: int, n: int, k: int, symmetric: bool = False
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, symmetric)
+    suffix = "symmetric" if symmetric else "affine"
     return load_jit(
-        "gfx90a_mq4g128_persistent_slots",
+        f"gfx90a_mq4g128_persistent_slots_{suffix}",
         *args,
         cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
         cuda_wrappers=[
@@ -104,11 +110,19 @@ def _persistent_slots_module(e: int, m: int, t: int, n: int, k: int) -> Module:
 
 @cache_once
 def _grouped_module(
-    e: int, m: int, t: int, n: int, k: int, assignments: int, groups: int
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    assignments: int,
+    groups: int,
+    symmetric: bool = False,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, assignments, groups)
+    args = make_cpp_args(e, m, t, n, k, assignments, groups, symmetric)
+    suffix = "symmetric" if symmetric else "affine"
     return load_jit(
-        "gfx90a_mq4g128_grouped",
+        f"gfx90a_mq4g128_grouped_{suffix}",
         *args,
         cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
         cuda_wrappers=[("run", f"sglang::Gfx90aMq4g128Grouped<{args}>::run")],
@@ -166,7 +180,10 @@ def mq4g128_indexed(
     e, n, groups, block_bytes = weight.shape
     assert x.dtype == torch.float32 and x.is_contiguous()
     assert weight.dtype == torch.uint8 and weight.is_contiguous()
-    assert groups * 128 == k and block_bytes == 72
+    symmetric = (
+        os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0") == "1"
+    )
+    assert groups * 128 == k and block_bytes == (68 if symmetric else 72)
     assert expert_ids.shape[0] == m and expert_ids.dtype == torch.int32
     t = expert_ids.shape[1]
     use_expert_owned_m32 = (
@@ -228,10 +245,6 @@ def mq4g128_indexed(
             expert_ids, offsets, assignments
         )
         waves = 4 if (m, t) in ((32, 10), (64, 10), (128, 10)) else 8
-        symmetric = (
-            os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0")
-            == "1"
-        )
         _expert_owned_module(e, m, t, n, k, waves, symmetric).run(
             x, weight, offsets, assignments, out
         )
@@ -246,9 +259,13 @@ def mq4g128_indexed(
         )
         == "1"
     ):
-        _persistent_slots_module(e, m, t, n, k).run(x, weight, expert_ids, out)
+        _persistent_slots_module(e, m, t, n, k, symmetric).run(
+            x, weight, expert_ids, out
+        )
     else:
-        _indexed_module(e, m, t, n, k).run(x, weight, expert_ids, out)
+        _indexed_module(e, m, t, n, k, symmetric).run(
+            x, weight, expert_ids, out
+        )
     return out
 
 
@@ -304,11 +321,16 @@ def mq4g128_grouped(
 ) -> torch.Tensor:
     m, k = x.shape
     e, n, groups, block_bytes = weight.shape
-    assert groups * 128 == k and block_bytes == 72
+    symmetric = (
+        os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0") == "1"
+    )
+    assert groups * 128 == k and block_bytes == (68 if symmetric else 72)
     t = expert_ids.shape[1]
     sorted_ids, sorted_experts = build_expert_a4_runs(expert_ids, e)
     out = torch.empty((m, t, n), dtype=torch.float32, device=x.device)
-    _grouped_module(e, m, t, n, k, 4, sorted_experts.numel()).run(
+    _grouped_module(
+        e, m, t, n, k, 4, sorted_experts.numel(), symmetric
+    ).run(
         x, weight, sorted_ids, sorted_experts, out
     )
     return out
