@@ -3563,3 +3563,22 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - This agrees with the older M1 and grouped-M32 constant-table failures. The
   temporary symbol and kernel mode were removed. The per-CTA LDS pair LUT is a
   proven architectural requirement for the current packed-SDOT representation.
+
+### TP4 M32 sequential gate-then-up residency rejection (2026-08-30)
+
+- Tested a same-kernel two-pass gate/up mapping on the final A4/R2/W8/G2080
+  shape. Gate completed its original K-order reduction first and lane0 stored
+  the eight FP32 results in 256 bytes of wave-private LDS; up then repeated the
+  same K-order and combined with the FP32 gate value before the single original
+  BF16 output store. Packed weights, scales, SDOT and shuffle trees were
+  unchanged. Intermediate and final routed outputs were bitwise exact.
+- Seven rounds measured production full stage median `437.180 us` and the
+  sequential candidate `535.162 us` (+22.4%). Kernel trace showed candidate
+  gate about `362 us`, `88 VGPR`, `64 SGPR`, `1280 B LDS`, zero scratch. It
+  removed only eight VGPR from the 96-VGPR baseline and did not cross the
+  required <=64-VGPR residency tier.
+- Re-reading activation/scales and repeating loop/address work therefore adds
+  cost without enabling a second resident CTA. The candidate missed both
+  static and timing gates and was removed. Do not revisit separated gate/up
+  unless a representation demonstrably reaches <=64 VGPR without duplicating
+  packed-weight or activation traffic.
