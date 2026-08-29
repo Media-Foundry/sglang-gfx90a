@@ -3347,6 +3347,14 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - The centers differ by less than 0.1%; the old 1.41% TP4 component saving is
   fully hidden in the current service graph. Keep
   `SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER=0` rather than adding a neutral path.
+- Rechecked it once more on top of the accepted DPP-gate/down-prefetch
+  checkpoint using scheduler model throughput. Down-consumer replaces the
+  row-prefetch down path while retaining the DPP gate. The 32-row
+  teacher-forced token, full logprob and top-5 rows were bitwise exact; three
+  512-token rounds passed France and length. Model-decode median was
+  `706.640 tok/s` (trimmed mean `706.553`, range `700.08--711.20`) and HTTP
+  resident was `618.827/618.549/618.364`, within the two independent current
+  baseline centers `707.990/706.140`. It remains neutral and stays disabled.
 
 ### TP4 high-priority auxiliary-stream rejection (2026-08-30)
 
