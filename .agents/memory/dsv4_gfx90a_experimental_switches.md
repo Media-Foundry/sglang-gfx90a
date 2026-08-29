@@ -3155,3 +3155,27 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Best reuse was 24.3% slower, consistent with extra VGPR pressure reducing
   occupancy while the original code/compiler already reuses activation loads.
   Do not repeat this explicit cross-row register-reuse direction.
+
+### TP4 BS32 rank-max marker and DPP reduction ABBA (2026-08-29)
+
+- Current target is one TP4/EP1/no-A2A replica on four GCDs, native AR, original
+  checkpoint weights, and 32 distinct fixed input-ID requests. Layer20 (C4)
+  slowest-rank median was `1151.84 us`: attention-entry MHC `86.24`, prepare
+  `230.08`, attention core `56.32`, output `131.84`, FFN-entry MHC `91.44`, and
+  MoE `552.96 us`. Inside MoE, router/top-k/routed/TP4-AR were approximately
+  `26.8/11.68/465.52/33.52 us`. Layer21 (C128) was `1063.76 us`, with prepare
+  `160.48` and routed `463.60 us`; thus C4 compressor adds about 70 us on its
+  layers, but routed FP4 remains the common critical section.
+- An isolated CDNA2 DPP reduction variant kept gate offsets32/16 as shuffle-down
+  and replaced offsets8/4/2/1 with row-shift DPP; K512 down used DPP for all four
+  subgroup16 steps. One hundred captured replays were final-BF16 bitwise exact.
+  Seven-round oracle ABBA improved the complete routed stage from trimmed
+  `439.337` to `423.373 us` (-15.968 us, -3.64%).
+- Production A/B used a streaming diverse-request harness. Its resident window
+  begins after all 32 requests emitted a token and ends when the first request
+  emits its last token, so prefill/admission is reported separately. With
+  identical 512-token generation lengths, all France first-nine-token checks
+  passed; resident A1/B/A2 were `595.996/412.414/596.861 tok/s`. The DPP code
+  therefore caused a reproducible 30.9% graph/service regression despite its
+  micro win, consistent with changed occupancy/stream scheduling. Production
+  wiring was removed. Keep the isolated oracle but do not enable DPP in TP4.

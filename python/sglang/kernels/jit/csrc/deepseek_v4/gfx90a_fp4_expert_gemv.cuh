@@ -15,6 +15,13 @@ using namespace device;
 constexpr uint32_t kFp4ExpertWave = 64;
 using gfx90a_i32x4 = int32_t __attribute__((ext_vector_type(4)));
 
+template <uint32_t Control>
+__device__ __forceinline__ float gfx90a_fp4_dpp_add(float value) {
+  const uint32_t moved = __builtin_amdgcn_update_dpp(
+      0u, __builtin_bit_cast(uint32_t, value), Control, 0xf, 0xf, false);
+  return value + __builtin_bit_cast(float, moved);
+}
+
 __device__ __forceinline__ float gfx90a_fp4_value(uint8_t bits) {
   const uint8_t mag = bits & 7;
   float value;
@@ -444,7 +451,7 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 // slot in the high 8 bits of sorted_ids.
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
-          uint32_t kPrepacked>
+          uint32_t kPrepacked, bool kUseDpp = false>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_up_grouped_kernel(
         bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
@@ -564,12 +571,42 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
       if (!assignment_valid[assignment]) continue;
 #pragma unroll
       for (uint32_t r = 0; r < kRows; ++r) {
-#pragma unroll
-        for (uint32_t offset = 32; offset > 0; offset >>= 1) {
+        if constexpr (kUseDpp) {
+          // Preserve the established wave64 FP addition tree exactly. DPP
+          // row_shl cannot cross a 16-lane row, so offsets 32 and 16 remain
+          // shuffle-down operations before the four intra-row DPP steps.
           gate_acc[assignment][r] +=
-              __shfl_down(gate_acc[assignment][r], offset, kFp4ExpertWave);
+              __shfl_down(gate_acc[assignment][r], 32, kFp4ExpertWave);
           up_acc[assignment][r] +=
-              __shfl_down(up_acc[assignment][r], offset, kFp4ExpertWave);
+              __shfl_down(up_acc[assignment][r], 32, kFp4ExpertWave);
+          gate_acc[assignment][r] +=
+              __shfl_down(gate_acc[assignment][r], 16, kFp4ExpertWave);
+          up_acc[assignment][r] +=
+              __shfl_down(up_acc[assignment][r], 16, kFp4ExpertWave);
+          gate_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x108u>(gate_acc[assignment][r]);
+          up_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x108u>(up_acc[assignment][r]);
+          gate_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x104u>(gate_acc[assignment][r]);
+          up_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x104u>(up_acc[assignment][r]);
+          gate_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x102u>(gate_acc[assignment][r]);
+          up_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x102u>(up_acc[assignment][r]);
+          gate_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x101u>(gate_acc[assignment][r]);
+          up_acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x101u>(up_acc[assignment][r]);
+        } else {
+#pragma unroll
+          for (uint32_t offset = 32; offset > 0; offset >>= 1) {
+            gate_acc[assignment][r] +=
+                __shfl_down(gate_acc[assignment][r], offset, kFp4ExpertWave);
+            up_acc[assignment][r] +=
+                __shfl_down(up_acc[assignment][r], offset, kFp4ExpertWave);
+          }
         }
         if (lane == 0 && row0 + r < I) {
           const float gate = fminf(gate_acc[assignment][r], limit);
@@ -588,7 +625,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
-          uint32_t kBlocks, uint32_t kPrepacked = 0>
+          uint32_t kBlocks, uint32_t kPrepacked = 0,
+          bool kUseDpp = false>
 struct Gfx90aFp4ExpertGateUpGroupedKernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -613,7 +651,8 @@ struct Gfx90aFp4ExpertGateUpGroupedKernel {
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_gate_up_grouped_kernel<
-            E, M, T, I, K, kAssignments, kRows, kNumWaves, kPrepacked>,
+            E, M, T, I, K, kAssignments, kRows, kNumWaves, kPrepacked,
+            kUseDpp>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
@@ -625,6 +664,14 @@ struct Gfx90aFp4ExpertGateUpGroupedKernel {
         static_cast<float>(limit));
   }
 };
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kBlocks, uint32_t kPrepacked = 0>
+using Gfx90aFp4ExpertGateUpGroupedDppKernel =
+    Gfx90aFp4ExpertGateUpGroupedKernel<
+        E, M, T, I, K, kAssignments, kRows, kNumWaves, kBlocks, kPrepacked,
+        true>;
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,
@@ -874,7 +921,7 @@ struct Gfx90aFp4ExpertGateUpMfma32Kernel {
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
-          uint32_t kPrepacked>
+          uint32_t kPrepacked, bool kUseDpp = false>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_down_grouped_kernel(
         float* __restrict__ partial, const int8_t* __restrict__ xq,
@@ -994,10 +1041,21 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
       const float routed_weight = topk_weights[output_assignment];
 #pragma unroll
       for (uint32_t r = 0; r < kRows; ++r) {
+        if constexpr (kUseDpp && kSubgroupWidth == 16) {
+          acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x108u>(acc[assignment][r]);
+          acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x104u>(acc[assignment][r]);
+          acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x102u>(acc[assignment][r]);
+          acc[assignment][r] =
+              gfx90a_fp4_dpp_add<0x101u>(acc[assignment][r]);
+        } else {
 #pragma unroll
-        for (uint32_t offset = kSubgroupWidth / 2; offset > 0; offset >>= 1) {
-          acc[assignment][r] +=
-              __shfl_down(acc[assignment][r], offset, kSubgroupWidth);
+          for (uint32_t offset = kSubgroupWidth / 2; offset > 0; offset >>= 1) {
+            acc[assignment][r] +=
+                __shfl_down(acc[assignment][r], offset, kSubgroupWidth);
+          }
         }
         if (subgroup_lane == 0 && row0 + r < N) {
           partial[output_assignment * N + row0 + r] =
@@ -1221,7 +1279,8 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
-          uint32_t kBlocks, uint32_t kPrepacked = 0>
+          uint32_t kBlocks, uint32_t kPrepacked = 0,
+          bool kUseDpp = false>
 struct Gfx90aFp4ExpertDownGroupedKernel {
   // Expose the producer and fixed-slot reduction separately for standalone
   // occupancy-bucket experiments.  The normal `run` entry point below keeps
@@ -1251,7 +1310,8 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(partial);
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_grouped_kernel<
-            E, M, T, N, K, kAssignments, kRows, kNumWaves, kPrepacked>,
+            E, M, T, N, K, kAssignments, kRows, kNumWaves, kPrepacked,
+            kUseDpp>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
@@ -1292,6 +1352,14 @@ struct Gfx90aFp4ExpertDownGroupedKernel {
     reduce(partial, out);
   }
 };
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t kAssignments, uint32_t kRows, uint32_t kNumWaves,
+          uint32_t kBlocks, uint32_t kPrepacked = 0>
+using Gfx90aFp4ExpertDownGroupedDppKernel =
+    Gfx90aFp4ExpertDownGroupedKernel<
+        E, M, T, N, K, kAssignments, kRows, kNumWaves, kBlocks, kPrepacked,
+        true>;
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,

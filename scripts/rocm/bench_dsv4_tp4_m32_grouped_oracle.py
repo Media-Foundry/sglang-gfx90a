@@ -22,10 +22,57 @@ from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
     _jit_gate_up_grouped,
 )
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
+from sglang.kernels.jit.utils import cache_once, load_jit, make_cpp_args
 
 
 E, M, T, H, I, N = 256, 32, 6, 4096, 512, 4096
 WAVES, LDS_LUT = 8, 2
+
+
+@cache_once
+def _jit_gate_up_grouped_dpp(
+    e: int, m: int, t: int, i: int, k: int, assignments: int, rows: int,
+    waves: int, blocks: int, prepacked: int,
+):
+    args = make_cpp_args(
+        e, m, t, i, k, assignments, rows, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_gate_up_grouped_dpp_oracle",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[(
+            "run",
+            f"sglang::Gfx90aFp4ExpertGateUpGroupedDppKernel<{args}>::run",
+        )],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
+def _jit_down_grouped_dpp(
+    e: int, m: int, t: int, n: int, k: int, assignments: int, rows: int,
+    waves: int, blocks: int, prepacked: int,
+):
+    args = make_cpp_args(
+        e, m, t, n, k, assignments, rows, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_down_grouped_dpp_oracle",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownGroupedDppKernel<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownGroupedDppKernel<{args}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
 
 
 def time_us(fn, warmup: int, iterations: int) -> float:
@@ -51,6 +98,10 @@ def main() -> None:
     parser.add_argument("--warmup", type=int, default=8)
     parser.add_argument("--iterations", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument(
+        "--dpp-only", action="store_true",
+        help="ABBA the isolated shuffle-versus-DPP A4 TP4 kernels",
+    )
     args = parser.parse_args()
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
@@ -68,6 +119,90 @@ def main() -> None:
     s13 = torch.full((E, 2 * I, H // 32), 127, dtype=torch.uint8, device="cuda")
     w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device="cuda")
     s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device="cuda")
+
+    if args.dpp_only:
+        metadata = make_metadata(topk_ids, assignments=4)
+        kernels = {
+            "shuffle": (
+                _jit_gate_up_grouped(E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT),
+                _jit_down_grouped(E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT),
+            ),
+            "dpp": (
+                _jit_gate_up_grouped_dpp(
+                    E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
+                ),
+                _jit_down_grouped_dpp(
+                    E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
+                ),
+            ),
+        }
+        buffers = {}
+        runners = {}
+        for name, (gate, down) in kernels.items():
+            intermediate = torch.empty(
+                (M, T, I), dtype=torch.bfloat16, device="cuda"
+            )
+            partial = torch.empty((M, T, N), dtype=torch.float32, device="cuda")
+            output = torch.empty((M, N), dtype=torch.bfloat16, device="cuda")
+
+            def run(
+                gate=gate, down=down, intermediate=intermediate,
+                partial=partial, output=output,
+            ) -> None:
+                gate.run(
+                    xq, xs, w13, s13, metadata.sorted_ids,
+                    metadata.sorted_experts, metadata.valid, intermediate, 10.0,
+                )
+                iq, isc = per_token_group_quant_int8(intermediate, 32)
+                down.run_partial(
+                    iq, isc, w2, s2, metadata.sorted_ids,
+                    metadata.sorted_experts, metadata.valid, topk_weights, partial,
+                )
+                down.reduce(partial, output)
+
+            buffers[name] = output
+            runners[name] = run
+
+        runners["shuffle"]()
+        torch.cuda.synchronize()
+        reference = buffers["shuffle"].clone()
+        capture_stream = torch.cuda.Stream()
+        capture_stream.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(capture_stream):
+            for _ in range(3):
+                runners["dpp"]()
+        torch.cuda.current_stream().wait_stream(capture_stream)
+        torch.cuda.synchronize()
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            runners["dpp"]()
+        for replay in range(100):
+            graph.replay()
+            torch.cuda.synchronize()
+            if not torch.equal(buffers["dpp"], reference):
+                diff = (buffers["dpp"].float() - reference.float()).abs()
+                raise RuntimeError(
+                    f"DPP replay {replay} mismatched: max_abs={float(diff.max())}"
+                )
+        print("CORRECTNESS dpp_replays=100 exact=True", flush=True)
+
+        timings = {"shuffle": [], "dpp": []}
+        for _ in range(args.rounds):
+            for name in ("shuffle", "dpp", "dpp", "shuffle"):
+                timings[name].append(
+                    time_us(runners[name], args.warmup, args.iterations)
+                )
+        for name in ("shuffle", "dpp"):
+            values = timings[name]
+            trimmed = sorted(values)[1:-1] if len(values) > 2 else values
+            print(
+                f"RESULT profile={name} samples_us="
+                + ",".join(f"{value:.3f}" for value in values)
+                + f" median_us={statistics.median(values):.3f}"
+                + f" trimmed_mean_us={statistics.mean(trimmed):.3f}",
+                flush=True,
+            )
+        return
 
     tied_profiles = (
         ("a8_r2_b624_nolds", 8, 2, 624, 624, 0),
