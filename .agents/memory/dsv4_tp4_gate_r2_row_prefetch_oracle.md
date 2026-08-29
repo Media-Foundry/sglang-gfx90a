@@ -61,3 +61,38 @@ the known scheduler-path drift, while the fixed-batch teacher oracle was exact.
 Remove the TP4 profile opt-in. Keep the selector default-off and the standalone
 oracle for documentation, but do not enable it in production: the isolated
 10.8-us gate saving is hidden by the full multistream graph.
+
+## All-learned-layer route sweep
+
+To distinguish a layer34 routing artifact from a graph-hiding effect, the
+standalone sweep reused one weight/input allocation and iterated the same real
+pass37 metadata over learned-router layers 3--42. Each layer used three ABBA
+rounds (six samples per arm, 20 timed launches per sample). Layers
+3/12/21/30/42 additionally passed 100 activation mutations each with bitwise
+exact gate intermediates. The original layer34 already had the stronger
+100-mutation full-chain and graph-replay checks.
+
+- All 40 layers improved; none regressed.
+- Mean/median saving was `4.219/3.895 us` per layer.
+- The 40-layer summed gate time changed from `9970.663` to `9801.898 us`, a
+  1.72% isolated-gate improvement but only `168.765 us` per model step.
+- Layer34 measured `246.749 -> 244.505 us` (`2.244 us`, 0.92%) in this broader
+  sweep. The earlier isolated `10.793 us` result was therefore optimistic.
+- Best layers were 40 (`10.030 us`), 37 (`8.846 us`), 28 (`8.844 us`), 35
+  (`8.688 us`) and 24 (`7.912 us`). Weakest were 21 (`1.462 us`), 27
+  (`1.858 us`) and 19 (`1.914 us`).
+- Saving correlates moderately with more A4 scans (`corr=-0.436` for signed
+  candidate-minus-baseline delta) and higher baseline latency (`-0.595`), but
+  no routing distribution reverses the result.
+
+At the measured BS32 resident rate, one model step is about 51 ms. Even if all
+40 learned-layer micro savings landed on the critical path, `168.8 us` implies
+only about 0.33% throughput improvement. Shared-expert overlap, attention,
+collectives and launch scheduling can hide still more. This quantitatively
+explains the service result near +0.04% without invoking regressed layers.
+
+Artifacts:
+
+- script: `scripts/rocm/bench_dsv4_tp4_gate_row_prefetch_all_layers.py`
+- CSV: `/tmp/dsv4_gate_row_prefetch_layers.csv`
+- JSON summary: `/tmp/dsv4_gate_row_prefetch_layers.json`
