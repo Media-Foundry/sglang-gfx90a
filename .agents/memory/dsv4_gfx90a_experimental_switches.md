@@ -3582,3 +3582,42 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   static and timing gates and was removed. Do not revisit separated gate/up
   unless a representation demonstrably reaches <=64 VGPR without duplicating
   packed-weight or activation traffic.
+
+### TP4 M32 FFN-boundary rank-max v2 and staged-MHC rejection (2026-08-30)
+
+- Added the read-only diagnostic
+  `scripts/rocm/bench_dsv4_tp4_ffn_boundary_rankmax_v2.py`. It parses seven
+  accepted hot four-rank groups from the real-diverse-request layer-20 marker
+  log and graph-replays the matching real M32 layer-20 tensor/weight dump. No
+  production selector or model source was changed. The service rank-max
+  medians were FFN-entry MHC `92.96 us`, router `28.64 us`, top-k `12.00 us`,
+  routed expert `469.44 us`, and TP4 output all-reduce `36.16 us`. Four-rank
+  AR-duration spread gives a conservative arrival-wait upper bound of only
+  `5.28 us`; arrival skew is therefore not the main collective cost.
+- The real-tensor explicit MHC decomposition measured post plus RMS partials
+  `9.631 us`, pre-mix `23.946 us`, Sinkhorn `8.249 us`, weighted sum
+  `8.282 us`, RMSNorm `8.340 us`, and the complete captured chain
+  `39.747 us`. Component boundaries chained bitwise-exactly on all four ranks.
+  These figures initially made the `92.96 us` service marker look like a
+  roughly `53 us` production-backend opportunity, so the actual gfx90a
+  `mhc_fused_post_pre` entry point was captured beside the explicit chain on
+  the same stream and tensors.
+- With the non-native Sinkhorn profile, seven-round four-rank ABBA gave
+  production/staged medians `39.652/39.720 us`: staged was `0.068 us` slower.
+  With the launcher's exact native-Sinkhorn and iteration flags, a confirming
+  run gave approximately `41.757/41.860 us`, again making staged about
+  `0.103 us` slower. Thus the direct production backend is already the same
+  roughly 40-us graph sequence; no 20-us backend replacement exists. The
+  `92.96 us` old service interval includes preceding stream/graph arrival
+  dependencies or stale trace/profile context. Empty realtime-marker spans are
+  about `1.4 us` each and cannot by themselves explain the difference, but it
+  is invalid to attribute the full interval to MHC kernels.
+- Across the original activation and 100 bounded teacher-forced hidden-state
+  mutations, production and staged residual plus current `layer_input` were
+  bitwise exact. Deferred `post` and `comb` were not exact: initial max-abs was
+  approximately `0.00692/0.01480`, and mutation maxima were
+  `0.00730/0.01625`. These states feed the next layer, so current-layer hidden
+  equality is insufficient correctness evidence. The candidate fails both the
+  `>=20 us` performance gate and deferred-state exactness; do not wire the
+  explicit staged chain into production. Continue to treat routed FP4 MoE as
+  the dominant exact-native TP4/BS32 target.
