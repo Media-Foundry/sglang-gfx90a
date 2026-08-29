@@ -3198,3 +3198,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   accounting for an incoming reduce-scatter. Do not add production row-owned
   state or graph-tier protocol. The reusable oracle is
   `scripts/rocm/bench_dsv4_tp4_token_row_mhc_oracle.py`.
+
+### TP4 grouped-FP4 gate/down DPP isolation (2026-08-29)
+
+- Split the exact DPP candidate into A=`shuffle gate + shuffle down`,
+  G=`DPP gate only`, D=`DPP down only`, and B=`DPP both`. One hundred mutated
+  activation/router-weight cases matched intermediate BF16, FP32 partial, and
+  final BF16 bitwise; G and D each passed 1000 captured replays at all three
+  boundaries. Seven-round micro ABBA gave full routed A/G `439.353/426.569 us`
+  (-12.784), A/D `439.283/432.689 us` (-6.594), and A/B
+  `439.121/422.867 us` (-16.254).
+- B had already regressed diverse resident service by 30.9%, so production A/B
+  tested only G. With identical 32-distinct-input, 512-token streaming resident
+  windows, A samples were `596.861/592.956/593.571/596.919 tok/s`; two
+  independent G services were `601.712/598.117`. G1 versus adjacent A1/A2 was
+  +1.14%, but G2 versus A3/A4 only +0.48%; aggregate means were about
+  `595.08 -> 599.91 tok/s` (+0.81%). Every round passed the France first-nine
+  token oracle and generated the full length.
+- Gate-only DPP is a small real micro win and a weak service trend, but it fails
+  the predeclared stable >=1% service gate. Production selectors were removed;
+  keep the A/G/D/B oracle only. Do not combine gate+down DPP in the TP4 graph.

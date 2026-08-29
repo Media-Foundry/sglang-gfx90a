@@ -122,86 +122,170 @@ def main() -> None:
 
     if args.dpp_only:
         metadata = make_metadata(topk_ids, assignments=4)
-        kernels = {
-            "shuffle": (
-                _jit_gate_up_grouped(E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT),
-                _jit_down_grouped(E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT),
-            ),
-            "dpp": (
-                _jit_gate_up_grouped_dpp(
-                    E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
-                ),
-                _jit_down_grouped_dpp(
-                    E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
-                ),
-            ),
+        shuffle_gate = _jit_gate_up_grouped(
+            E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
+        )
+        dpp_gate = _jit_gate_up_grouped_dpp(
+            E, M, T, I, H, 4, 2, WAVES, 2080, LDS_LUT
+        )
+        shuffle_down = _jit_down_grouped(
+            E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
+        )
+        dpp_down = _jit_down_grouped_dpp(
+            E, M, T, N, I, 4, 2, WAVES, 832, LDS_LUT
+        )
+        # A: shuffle/shuffle; G: DPP gate only; D: DPP down only; B: both.
+        kernel_matrix = {
+            "A": (shuffle_gate, shuffle_down),
+            "G": (dpp_gate, shuffle_down),
+            "D": (shuffle_gate, dpp_down),
+            "B": (dpp_gate, dpp_down),
         }
-        buffers = {}
-        runners = {}
-        for name, (gate, down) in kernels.items():
-            intermediate = torch.empty(
-                (M, T, I), dtype=torch.bfloat16, device="cuda"
-            )
-            partial = torch.empty((M, T, N), dtype=torch.float32, device="cuda")
-            output = torch.empty((M, N), dtype=torch.bfloat16, device="cuda")
+        states = {}
+        stages = {}
+        for name, (gate, down) in kernel_matrix.items():
+            state = {
+                "intermediate": torch.empty(
+                    (M, T, I), dtype=torch.bfloat16, device="cuda"
+                ),
+                "partial": torch.empty(
+                    (M, T, N), dtype=torch.float32, device="cuda"
+                ),
+                "output": torch.empty(
+                    (M, N), dtype=torch.bfloat16, device="cuda"
+                ),
+            }
 
-            def run(
-                gate=gate, down=down, intermediate=intermediate,
-                partial=partial, output=output,
-            ) -> None:
+            def gate_stage(gate=gate, state=state) -> None:
                 gate.run(
                     xq, xs, w13, s13, metadata.sorted_ids,
-                    metadata.sorted_experts, metadata.valid, intermediate, 10.0,
+                    metadata.sorted_experts, metadata.valid,
+                    state["intermediate"], 10.0,
                 )
-                iq, isc = per_token_group_quant_int8(intermediate, 32)
+
+            def quant_stage(state=state) -> None:
+                state["iq"], state["isc"] = per_token_group_quant_int8(
+                    state["intermediate"], 32
+                )
+
+            def down_stage(down=down, state=state) -> None:
                 down.run_partial(
-                    iq, isc, w2, s2, metadata.sorted_ids,
-                    metadata.sorted_experts, metadata.valid, topk_weights, partial,
+                    state["iq"], state["isc"], w2, s2,
+                    metadata.sorted_ids, metadata.sorted_experts,
+                    metadata.valid, topk_weights, state["partial"],
                 )
-                down.reduce(partial, output)
 
-            buffers[name] = output
-            runners[name] = run
+            def reduce_stage(down=down, state=state) -> None:
+                down.reduce(state["partial"], state["output"])
 
-        runners["shuffle"]()
+            def full_stage(
+                gate_stage=gate_stage, quant_stage=quant_stage,
+                down_stage=down_stage, reduce_stage=reduce_stage,
+            ) -> None:
+                gate_stage()
+                quant_stage()
+                down_stage()
+                reduce_stage()
+
+            states[name] = state
+            stages[name] = {
+                "gate": gate_stage,
+                "quant": quant_stage,
+                "down": down_stage,
+                "reduce": reduce_stage,
+                "full": full_stage,
+            }
+
+        def assert_state_exact(candidate: str, label: str) -> None:
+            for tensor_name in ("intermediate", "partial", "output"):
+                actual = states[candidate][tensor_name]
+                expected = states["A"][tensor_name]
+                if not torch.equal(actual, expected):
+                    diff = (actual.float() - expected.float()).abs()
+                    raise RuntimeError(
+                        f"{label} {candidate}.{tensor_name} mismatch: "
+                        f"max_abs={float(diff.max())}"
+                    )
+
+        for name in ("A", "G", "D", "B"):
+            stages[name]["full"]()
         torch.cuda.synchronize()
-        reference = buffers["shuffle"].clone()
-        capture_stream = torch.cuda.Stream()
-        capture_stream.wait_stream(torch.cuda.current_stream())
-        with torch.cuda.stream(capture_stream):
-            for _ in range(3):
-                runners["dpp"]()
-        torch.cuda.current_stream().wait_stream(capture_stream)
-        torch.cuda.synchronize()
-        graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(graph):
-            runners["dpp"]()
-        for replay in range(100):
-            graph.replay()
+        for name in ("G", "D", "B"):
+            assert_state_exact(name, "initial")
+
+        # Mutate activation and router weights in place so all four paths see
+        # identical addresses and values. Check every boundary, not only BF16.
+        mutation_input = torch.empty_like(x)
+        for mutation in range(100):
+            mutation_input.normal_()
+            mutation_xq, mutation_xs = per_token_group_quant_int8(
+                mutation_input, 32
+            )
+            xq.copy_(mutation_xq)
+            xs.copy_(mutation_xs)
+            topk_weights.uniform_()
+            for name in ("A", "G", "D", "B"):
+                stages[name]["full"]()
             torch.cuda.synchronize()
-            if not torch.equal(buffers["dpp"], reference):
-                diff = (buffers["dpp"].float() - reference.float()).abs()
-                raise RuntimeError(
-                    f"DPP replay {replay} mismatched: max_abs={float(diff.max())}"
-                )
-        print("CORRECTNESS dpp_replays=100 exact=True", flush=True)
+            for name in ("G", "D", "B"):
+                assert_state_exact(name, f"mutation={mutation}")
+        print(
+            "CORRECTNESS mutations=100 matrix=A/G/D/B "
+            "intermediate_exact=True partial_exact=True final_exact=True",
+            flush=True,
+        )
 
-        timings = {"shuffle": [], "dpp": []}
-        for _ in range(args.rounds):
-            for name in ("shuffle", "dpp", "dpp", "shuffle"):
-                timings[name].append(
-                    time_us(runners[name], args.warmup, args.iterations)
-                )
-        for name in ("shuffle", "dpp"):
-            values = timings[name]
-            trimmed = sorted(values)[1:-1] if len(values) > 2 else values
+        # Capture G and D independently. A is recomputed once from the same
+        # fixed inputs; replay must preserve every visible boundary 1000 times.
+        stages["A"]["full"]()
+        torch.cuda.synchronize()
+        for candidate in ("G", "D"):
+            capture_stream = torch.cuda.Stream()
+            capture_stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(capture_stream):
+                for _ in range(3):
+                    stages[candidate]["full"]()
+            torch.cuda.current_stream().wait_stream(capture_stream)
+            torch.cuda.synchronize()
+            graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(graph):
+                stages[candidate]["full"]()
+            for replay in range(1000):
+                graph.replay()
+                torch.cuda.synchronize()
+                assert_state_exact(candidate, f"graph_replay={replay}")
             print(
-                f"RESULT profile={name} samples_us="
-                + ",".join(f"{value:.3f}" for value in values)
-                + f" median_us={statistics.median(values):.3f}"
-                + f" trimmed_mean_us={statistics.mean(trimmed):.3f}",
+                f"CORRECTNESS profile={candidate} graph_replays=1000 "
+                "intermediate_exact=True partial_exact=True final_exact=True",
                 flush=True,
             )
+
+        # Prepare all stage inputs before timing isolated consumers.
+        for name in ("A", "G", "D", "B"):
+            stages[name]["full"]()
+        torch.cuda.synchronize()
+        comparisons = (("G", "A/G/G/A"), ("D", "A/D/D/A"),
+                       ("B", "A/B/B/A"))
+        for candidate, order_label in comparisons:
+            for stage_name in ("gate", "quant", "down", "reduce", "full"):
+                timings = {"A": [], candidate: []}
+                for _ in range(7):
+                    for name in ("A", candidate, candidate, "A"):
+                        timings[name].append(time_us(
+                            stages[name][stage_name], args.warmup,
+                            args.iterations,
+                        ))
+                for name in ("A", candidate):
+                    values = timings[name]
+                    trimmed = sorted(values)[1:-1]
+                    print(
+                        f"RESULT comparison={order_label} stage={stage_name} "
+                        f"profile={name} samples_us="
+                        + ",".join(f"{value:.3f}" for value in values)
+                        + f" median_us={statistics.median(values):.3f}"
+                        + f" trimmed_mean_us={statistics.mean(trimmed):.3f}",
+                        flush=True,
+                    )
         return
 
     tied_profiles = (
