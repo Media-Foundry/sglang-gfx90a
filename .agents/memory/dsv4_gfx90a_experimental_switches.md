@@ -3916,6 +3916,27 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   overcome its extra R1 row tasks. Do not add a W4 service selector or pursue
   W16; retain R2/W8/G2080 with the row-prefetch down candidate for service A/B.
 
+### TP4 M32 serial-row DPP gate static rejection (2026-08-30)
+
+- Added oracle-only
+  `gfx90a_fp4_expert_gate_serial_rows_oracle.cuh` and a `SERIAL` loader in the
+  DPP/down-prefetch combo script. It keeps the A4/R2/W8/G2080 wave/task mapping
+  and the exact per-row K-group, SDOT, DPP reduction and BF16 store order, but
+  completes row0 before reusing `gate_acc/up_acc[assignment]` for row1. Weight
+  and activation dot calls remain one per assignment/row/group, so source-level
+  bytes and global task count do not increase.
+- A direct gfx90a resource build with
+  `-Rpass-analysis=kernel-resource-usage` reported `99 VGPR`, `51 SGPR`,
+  `1024 B LDS`, zero VGPR/SGPR spills, zero scratch and compiler occupancy
+  `4 waves/SIMD`. This is worse than the `<=80 VGPR` continuation gate and does
+  not deliver the expected accumulator-lifetime reduction: unrolling and
+  scheduling retain weight-decode/dot temporaries across the serial row body.
+- Per the predeclared rule, no 100-mutation or seven-round ABBA run was made.
+  Do not connect this kernel to production. A future attempt would need an
+  explicit noinline row helper or separate kernel phase to force liveness, but
+  either risks call overhead or duplicated metadata/task setup and is not a
+  priority after this static miss.
+
 ### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
 
 - Revisited the exact standalone combination only because the long-generation

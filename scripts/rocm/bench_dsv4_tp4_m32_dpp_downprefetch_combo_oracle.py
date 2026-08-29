@@ -16,11 +16,31 @@ from scripts.rocm.bench_dsv4_tp4_down_row_prefetch_oracle import candidate_modul
 from scripts.rocm.bench_dsv4_tp4_m32_grouped_oracle import (
     _jit_gate_up_grouped_dpp,
 )
+from sglang.kernels.jit.utils import cache_once, load_jit, make_cpp_args
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
 
 E, M, T, H, I, N = 256, 32, 6, 4096, 512, 4096
 A4, R2, G, D, LUT = 4, 2, 2080, 832, 2
+
+
+@cache_once
+def serial_rows_gate_module():
+    args = make_cpp_args(E, M, T, I, H, A4, 8, G, LUT)
+    return load_jit(
+        "gfx90a_fp4_expert_gate_serial_rows_oracle",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_expert_gate_serial_rows_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertGateSerialRowsOracle<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
 
 
 def time_us(fn, warmup: int, iterations: int) -> float:
@@ -54,6 +74,7 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--mutations", type=int, default=100)
+    parser.add_argument("--compile-only", action="store_true")
     args = parser.parse_args()
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
@@ -80,6 +101,7 @@ def main() -> None:
         "W8G2080": _jit_gate_up_grouped_dpp(
             E, M, T, I, H, A4, R2, 8, G, LUT
         ),
+        "SERIAL": serial_rows_gate_module(),
         **{
             f"W4G{blocks}": _jit_gate_up_grouped_dpp(
                 E, M, T, I, H, A4, 1, 4, blocks, LUT
@@ -87,6 +109,9 @@ def main() -> None:
             for blocks in (1664, 2080, 2496, 3120)
         },
     }
+    if args.compile_only:
+        print("serial_rows_compile=ok", flush=True)
+        return
     prefetched_down = candidate_module()
     profiles = tuple(gates)
 
