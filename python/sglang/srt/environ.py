@@ -320,6 +320,7 @@ class Envs:
     # omit the affine zero-point arithmetic.  The launch profile owns the
     # default; generic SGLang remains opt-in.
     SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC = EnvBool(False)
+    SGLANG_QWEN4_GFX90A_MQ4G128_SDOT_M32 = EnvBool(False)
     # Fuse the BS1 MQ4 router-weight multiply, slot reduction and BF16 cast.
     # This preserves the original expert-dot output and ATen reduction order.
     SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE = EnvBool(True)

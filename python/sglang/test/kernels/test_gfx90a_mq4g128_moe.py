@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
     mq4g128_grouped,
     mq4g128_indexed,
+    mq4g128_expert_owned_sdot,
     mq4g128_masked_weighted_reduce,
     mq4g128_remap_topk,
     mq4g128_weighted_reduce,
@@ -17,8 +18,10 @@ from sglang.srt.layers.quantization.mq4g128 import (
     _requantize_checkpoint_fp8_mq4g128,
     dequantize_mq4g128,
     fwht128,
+    fwht128_int8,
     quantize_mq4g128,
     swiglu_fwht128,
+    swiglu_fwht128_int8,
 )
 from sglang.srt.utils import is_hip
 
@@ -107,6 +110,31 @@ def test_mq4g128_symmetric_m32_matches_stored_weight_oracle(monkeypatch):
         replay = mq4g128_indexed(x, packed, ids)
     torch.cuda.synchronize()
     torch.testing.assert_close(replay, replay_reference, rtol=0, atol=0)
+
+    groups = x.reshape(m, k // 128, 128)
+    input_scale = groups.abs().amax(dim=-1).clamp_min(1.0e-10) / 127.0
+    input_quantized = (
+        torch.round(groups / input_scale.unsqueeze(-1))
+        .clamp(-127, 127)
+        .to(torch.int8)
+        .reshape_as(x)
+        .contiguous()
+    )
+    dequantized_input = (
+        input_quantized.float().reshape_as(groups) * input_scale.unsqueeze(-1)
+    ).reshape_as(x)
+    float_q8_oracle = mq4g128_indexed(dequantized_input, packed, ids)
+    sdot = mq4g128_expert_owned_sdot(
+        input_quantized, input_scale.contiguous(), packed, ids
+    )
+    torch.testing.assert_close(sdot, float_q8_oracle, rtol=3e-2, atol=1.2e-1)
+    sdot_reference = sdot.clone()
+    for _ in range(100):
+        sdot_replay = mq4g128_expert_owned_sdot(
+            input_quantized, input_scale.contiguous(), packed, ids
+        )
+    torch.cuda.synchronize()
+    torch.testing.assert_close(sdot_replay, sdot_reference, rtol=0, atol=0)
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
@@ -215,6 +243,26 @@ def test_swiglu_fwht128_matches_unfused(shape):
     )
     actual = swiglu_fwht128(gate_up)
     torch.testing.assert_close(actual, expected, rtol=2e-6, atol=2e-6)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_qwen_m32_fused_fwht_int8_quantization():
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    torch.manual_seed(73)
+    x = torch.randn(32, 2560, dtype=torch.bfloat16, device="cuda")
+    expected = fwht128(x)
+    quantized, scale = fwht128_int8(x)
+    actual = quantized.float().reshape(-1, 128) * scale.reshape(-1, 1)
+    rel = torch.linalg.vector_norm(actual - expected.reshape(-1, 128)) / torch.linalg.vector_norm(expected)
+    assert rel.item() < 0.007
+
+    gate_up = torch.randn(32, 10, 1280, device="cuda") * 0.7
+    expected = swiglu_fwht128(gate_up)
+    quantized, scale = swiglu_fwht128_int8(gate_up)
+    actual = quantized.float().reshape(-1, 128) * scale.reshape(-1, 1)
+    rel = torch.linalg.vector_norm(actual - expected.reshape(-1, 128)) / torch.linalg.vector_norm(expected)
+    assert rel.item() < 0.007
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")

@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 import triton
 import triton.language as tl
+from triton.language.extra import libdevice
 from torch.nn import Module
 
 from sglang.srt.utils.common import is_gfx90a_supported
@@ -53,6 +54,45 @@ def _swiglu_fwht128_gfx90a_kernel(gate_up_ptr, out_ptr):
     )
 
 
+@triton.jit
+def _fwht128_int8_gfx90a_kernel(x_ptr, out_ptr, scale_ptr):
+    group = tl.program_id(0)
+    offsets = tl.arange(0, 128)
+    y = tl.load(x_ptr + group * 128 + offsets).to(tl.float32)
+    for log_width in tl.static_range(0, 7):
+        width = 1 << log_width
+        partner = tl.gather(y, offsets ^ width, axis=0)
+        y = tl.where((offsets & width) == 0, y + partner, partner - y)
+    y *= 0.08838834764831845
+    scale = tl.maximum(tl.max(tl.abs(y)), 1.0e-10) / 127.0
+    quantized = libdevice.round(y / scale).to(tl.int8)
+    tl.store(out_ptr + group * 128 + offsets, quantized)
+    tl.store(scale_ptr + group, scale)
+
+
+@triton.jit
+def _swiglu_fwht128_int8_gfx90a_kernel(
+    gate_up_ptr, out_ptr, scale_ptr
+):
+    assignment = tl.program_id(0)
+    group = tl.program_id(1)
+    offsets = tl.arange(0, 128)
+    base = assignment * 1280 + group * 128 + offsets
+    gate = tl.load(gate_up_ptr + base).to(tl.float32)
+    up = tl.load(gate_up_ptr + base + 640).to(tl.float32)
+    y = (gate * tl.sigmoid(gate)) * up
+    for log_width in tl.static_range(0, 7):
+        width = 1 << log_width
+        partner = tl.gather(y, offsets ^ width, axis=0)
+        y = tl.where((offsets & width) == 0, y + partner, partner - y)
+    y *= 0.08838834764831845
+    scale = tl.maximum(tl.max(tl.abs(y)), 1.0e-10) / 127.0
+    quantized = libdevice.round(y / scale).to(tl.int8)
+    output_group = assignment * 5 + group
+    tl.store(out_ptr + output_group * 128 + offsets, quantized)
+    tl.store(scale_ptr + output_group, scale)
+
+
 def fwht128(x: torch.Tensor) -> torch.Tensor:
     """Normalized group-local FWHT-128 over the final dimension."""
     if x.shape[-1] % GROUP_SIZE:
@@ -75,6 +115,27 @@ def fwht128(x: torch.Tensor) -> torch.Tensor:
     return (y * (1.0 / math.sqrt(GROUP_SIZE))).reshape(original_shape)
 
 
+def fwht128_int8(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    source = x.contiguous()
+    if not (source.is_cuda and is_gfx90a_supported()):
+        rotated = fwht128(source)
+        groups = rotated.reshape(-1, GROUP_SIZE)
+        scale = groups.abs().amax(dim=-1).clamp_min(1.0e-10) / 127.0
+        quantized = torch.round(groups / scale.unsqueeze(-1)).clamp(-127, 127)
+        return quantized.to(torch.int8).reshape_as(source), scale.reshape(
+            *source.shape[:-1], source.shape[-1] // GROUP_SIZE
+        )
+    out = torch.empty_like(source, dtype=torch.int8)
+    scales = torch.empty(
+        (*source.shape[:-1], source.shape[-1] // GROUP_SIZE),
+        dtype=torch.float32,
+        device=source.device,
+    )
+    groups = source.numel() // GROUP_SIZE
+    _fwht128_int8_gfx90a_kernel[(groups,)](source, out, scales, num_warps=4)
+    return out, scales
+
+
 def swiglu_fwht128(gate_up: torch.Tensor) -> torch.Tensor:
     """Fuse FP32 SwiGLU with the following group-local FWHT-128 on gfx90a."""
     if gate_up.shape[-1] != 1280:
@@ -92,6 +153,25 @@ def swiglu_fwht128(gate_up: torch.Tensor) -> torch.Tensor:
         return out
     intermediate = F.silu(gate_up[..., :640]) * gate_up[..., 640:]
     return fwht128(intermediate)
+
+
+def swiglu_fwht128_int8(
+    gate_up: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    if gate_up.shape[-1] != 1280:
+        raise ValueError(f"Qwen MQ4 SwiGLU expects 1280 columns, got {gate_up.shape[-1]}")
+    source = gate_up.contiguous()
+    if not (source.is_cuda and is_gfx90a_supported()):
+        intermediate = F.silu(source[..., :640]) * source[..., 640:]
+        return fwht128_int8(intermediate)
+    out = torch.empty((*source.shape[:-1], 640), dtype=torch.int8, device=source.device)
+    scales = torch.empty((*source.shape[:-1], 5), dtype=torch.float32, device=source.device)
+    assignments = source.numel() // 1280
+    if assignments:
+        _swiglu_fwht128_int8_gfx90a_kernel[(assignments, 5)](
+            source, out, scales, num_warps=4
+        )
+    return out, scales
 
 
 def quantize_mq4g128(
@@ -275,15 +355,37 @@ class Mq4g128RoutedMoEMethod:
             x.shape[0]
             >= envs.SGLANG_QWEN4_GFX90A_MQ4G128_GROUPED_MIN_TOKENS.get()
         )
-        gate_up = self._project(
-            x.contiguous(), layer.w13_weight, ids, use_grouped
+        use_sdot_m32 = (
+            envs.SGLANG_QWEN4_GFX90A_MQ4G128_SDOT_M32.get()
+            and envs.SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC.get()
+            and x.shape[0] == 32
+            and is_gfx90a_supported()
         )
+        if use_sdot_m32:
+            from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
+                mq4g128_expert_owned_sdot,
+            )
+
+            x_quantized, x_scale = fwht128_int8(x)
+            gate_up = mq4g128_expert_owned_sdot(
+                x_quantized, x_scale, layer.w13_weight, ids
+            )
+        else:
+            gate_up = self._project(
+                x.contiguous(), layer.w13_weight, ids, use_grouped
+            )
         fused_swiglu_fwht = (
             envs.SGLANG_QWEN4_GFX90A_SWIGLU_FWHT.get()
             and gate_up.is_cuda
             and is_gfx90a_supported()
         )
-        if fused_swiglu_fwht:
+        if use_sdot_m32:
+            flat_intermediate, intermediate_scale = swiglu_fwht128_int8(
+                gate_up
+            )
+            flat_intermediate = flat_intermediate.reshape(-1, 640).contiguous()
+            intermediate_scale = intermediate_scale.reshape(-1, 5).contiguous()
+        elif fused_swiglu_fwht:
             flat_intermediate = (
                 swiglu_fwht128(gate_up).reshape(-1, 640).contiguous()
             )
@@ -315,14 +417,23 @@ class Mq4g128RoutedMoEMethod:
             )
             and not use_grouped
         )
-        down = self._project(
-            flat_intermediate,
-            layer.w2_weight,
-            flat_ids,
-            use_grouped,
-            already_rotated=fused_swiglu_fwht,
-            zero_invalid=not use_masked_reduce,
-        )
+        if use_sdot_m32:
+            down = mq4g128_expert_owned_sdot(
+                flat_intermediate,
+                intermediate_scale,
+                layer.w2_weight,
+                flat_ids,
+                zero_invalid=not use_masked_reduce,
+            )
+        else:
+            down = self._project(
+                flat_intermediate,
+                layer.w2_weight,
+                flat_ids,
+                use_grouped,
+                already_rotated=fused_swiglu_fwht,
+                zero_invalid=not use_masked_reduce,
+            )
         down = down.reshape(x.shape[0], ids.shape[1], 2560)
         if use_masked_reduce:
             from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (

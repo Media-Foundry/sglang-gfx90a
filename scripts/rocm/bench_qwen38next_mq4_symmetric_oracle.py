@@ -10,7 +10,11 @@ from pathlib import Path
 import torch
 from safetensors import safe_open
 
-from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import mq4g128_indexed
+from sglang.kernels.ops.moe.gfx90a_mq4g128_moe import (
+    _expert_owned_sdot_module,
+    _expert_owned_sorter_module,
+    mq4g128_indexed,
+)
 from sglang.srt.layers.quantization.mq4g128 import (
     _dequant_checkpoint_fp8,
     dequantize_mq4g128,
@@ -59,6 +63,45 @@ def time_us(case, symmetric: bool, iters: int = 100) -> float:
     begin.record()
     for _ in range(iters):
         run(case, symmetric)
+    end.record()
+    end.synchronize()
+    return begin.elapsed_time(end) * 1000.0 / iters
+
+
+def quantize_input(case):
+    x = case[0]
+    groups = x.reshape(x.shape[0], -1, 128)
+    scale = (groups.abs().amax(dim=-1) / 127.0).clamp_min(
+        torch.finfo(torch.float32).tiny
+    )
+    quantized = torch.round(groups / scale.unsqueeze(-1)).clamp(-127, 127)
+    return quantized.to(torch.int8).reshape_as(x).contiguous(), scale.contiguous()
+
+
+def run_sdot(case, quantized_input):
+    x, _, symmetric_weight, ids = case
+    qx, x_scale = quantized_input
+    m, k = x.shape
+    e, n, _, _ = symmetric_weight.shape
+    t = ids.shape[1]
+    out = torch.zeros((m, t, n), dtype=torch.float32, device=x.device)
+    offsets = torch.empty(e + 1, dtype=torch.int32, device=x.device)
+    assignments = torch.empty(m * t, dtype=torch.int32, device=x.device)
+    _expert_owned_sorter_module(e, m, t).run(ids, offsets, assignments)
+    waves = 4 if (m, t) == (32, 10) else 8
+    _expert_owned_sdot_module(e, m, t, n, k, waves).run(
+        qx, x_scale, symmetric_weight, offsets, assignments, out
+    )
+    return out
+
+
+def time_sdot_us(case, quantized_input, iters: int = 100) -> float:
+    begin, end = torch.cuda.Event(True), torch.cuda.Event(True)
+    run_sdot(case, quantized_input)
+    torch.cuda.synchronize()
+    begin.record()
+    for _ in range(iters):
+        run_sdot(case, quantized_input)
     end.record()
     end.synchronize()
     return begin.elapsed_time(end) * 1000.0 / iters
@@ -130,6 +173,19 @@ def main():
         print(
             f"{name}: replay_1000_bitwise={torch.equal(baseline, replay)} "
             f"finite={torch.isfinite(replay).all().item()}"
+        )
+        quantized_input = quantize_input(case)
+        sdot = run_sdot(case, quantized_input)
+        sdot_delta = candidate - sdot
+        sdot_rel = torch.linalg.vector_norm(sdot_delta) / torch.linalg.vector_norm(
+            candidate
+        )
+        sdot_times = [time_sdot_us(case, quantized_input) for _ in range(15)]
+        print(
+            f"{name}: symmetric_float_us={statistics.median(b):.3f} "
+            f"sdot_projection_us={statistics.median(sdot_times):.3f} "
+            f"sdot_max_abs={sdot_delta.abs().max().item():.8g} "
+            f"sdot_rel_l2={sdot_rel.item():.8g}"
         )
     if args.model_path:
         checkpoint_error(args.model_path)

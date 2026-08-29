@@ -102,6 +102,31 @@ def send(url: str, payload: dict, barrier: threading.Barrier, timeout: int):
     return time.perf_counter() - begin, result
 
 
+def tokenize(base_url: str, prompt: str) -> list[int]:
+    target = urllib.parse.urlsplit(base_url)
+    body = json.dumps(
+        {"model": "/media/PM983/qwen3.8next", "prompt": prompt}
+    ).encode()
+    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=120)
+    try:
+        connection.request(
+            "POST",
+            "/v1/tokenize",
+            body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        response = connection.getresponse()
+        response_body = response.read()
+        if response.status != 200:
+            raise RuntimeError(
+                f"tokenize HTTP {response.status}: "
+                f"{response_body[:512].decode(errors='replace')}"
+            )
+        return json.loads(response_body)["tokens"]
+    finally:
+        connection.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://127.0.0.1:30001/generate")
@@ -111,7 +136,19 @@ def main() -> None:
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--reps", type=int, default=5)
+    parser.add_argument(
+        "--text-input",
+        action="store_true",
+        help="include server-side text tokenization in the timed request",
+    )
     args = parser.parse_args()
+
+    base_url = f"{urllib.parse.urlsplit(args.url).scheme}://{urllib.parse.urlsplit(args.url).netloc}"
+    prompt_ids = (
+        None
+        if args.text_input
+        else [tokenize(base_url, prompt) for prompt in PROMPTS[: args.concurrency]]
+    )
 
     reference_hashes: list[str] | None = None
     reference_outputs: list[list[int]] | None = None
@@ -120,9 +157,9 @@ def main() -> None:
     for rep in range(args.warmups + args.reps):
         barrier = threading.Barrier(args.concurrency + 1)
         nonce = time.time_ns()
-        payloads = [
-            {
-                "text": prompt,
+        payloads = []
+        for i, prompt in enumerate(PROMPTS[: args.concurrency]):
+            payload = {
                 "sampling_params": {
                     "temperature": 0,
                     "max_new_tokens": args.tokens,
@@ -130,8 +167,11 @@ def main() -> None:
                 },
                 "cache_salt": f"qwen-concurrent-{args.concurrency}-{rep}-{i}-{nonce}",
             }
-            for i, prompt in enumerate(PROMPTS[: args.concurrency])
-        ]
+            if prompt_ids is None:
+                payload["text"] = prompt
+            else:
+                payload["input_ids"] = prompt_ids[i]
+            payloads.append(payload)
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=args.concurrency
         ) as pool:

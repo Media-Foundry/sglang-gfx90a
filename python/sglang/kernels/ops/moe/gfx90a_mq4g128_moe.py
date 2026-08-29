@@ -92,6 +92,22 @@ def _expert_owned_module(
 
 
 @cache_once
+def _expert_owned_sdot_module(
+    e: int, m: int, t: int, n: int, k: int, waves: int
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, waves)
+    return load_jit(
+        "gfx90a_mq4g128_expert_owned_sdot",
+        *args,
+        cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
+        cuda_wrappers=[
+            ("run", f"sglang::Gfx90aMq4g128ExpertOwnedSdot<{args}>::run")
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _persistent_slots_module(
     e: int, m: int, t: int, n: int, k: int, symmetric: bool = False
 ) -> Module:
@@ -266,6 +282,35 @@ def mq4g128_indexed(
         _indexed_module(e, m, t, n, k, symmetric).run(
             x, weight, expert_ids, out
         )
+    return out
+
+
+def mq4g128_expert_owned_sdot(
+    x: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    expert_ids: torch.Tensor,
+    *,
+    zero_invalid: bool = True,
+) -> torch.Tensor:
+    m, k = x.shape
+    e, n, groups, block_bytes = weight.shape
+    t = expert_ids.shape[1]
+    assert x.dtype == torch.int8 and x.is_contiguous()
+    assert x_scale.shape == (m, groups) and x_scale.dtype == torch.float32
+    assert block_bytes == 68 and groups * 128 == k
+    out = (
+        torch.zeros((m, t, n), dtype=torch.float32, device=x.device)
+        if zero_invalid
+        else torch.empty((m, t, n), dtype=torch.float32, device=x.device)
+    )
+    offsets = torch.empty(e + 1, dtype=torch.int32, device=x.device)
+    assignments = torch.empty(m * t, dtype=torch.int32, device=x.device)
+    _expert_owned_sorter_module(e, m, t).run(expert_ids, offsets, assignments)
+    waves = 4 if (m, t) == (32, 10) else 8
+    _expert_owned_sdot_module(e, m, t, n, k, waves).run(
+        x, x_scale.contiguous(), weight, offsets, assignments, out
+    )
     return out
 
 

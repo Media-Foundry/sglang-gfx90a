@@ -449,6 +449,92 @@ struct Gfx90aMq4g128ExpertOwned {
   }
 };
 
+template <uint32_t K>
+__device__ __forceinline__ float mq4g128_symmetric_sdot_row(
+    const uint8_t* __restrict__ row, const int8_t* __restrict__ x,
+    const float* __restrict__ x_scale, uint32_t lane) {
+  static_assert(K % 128 == 0);
+  float acc = 0.0f;
+#pragma unroll
+  for (uint32_t group = 0; group < K / 128; ++group) {
+    const uint8_t* block = row + group * 68;
+    const float weight_scale = *reinterpret_cast<const float*>(block);
+    const uint16_t packed =
+        *reinterpret_cast<const uint16_t*>(block + 4 + lane * 2);
+    const uint32_t q0 = static_cast<uint8_t>(static_cast<int8_t>((packed & 15) - 8));
+    const uint32_t q1 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 4) & 15) - 8));
+    const uint32_t q2 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 8) & 15) - 8));
+    const uint32_t q3 = static_cast<uint8_t>(static_cast<int8_t>(((packed >> 12) & 15) - 8));
+    const uint32_t weight_i8 = q0 | (q1 << 8) | (q2 << 16) | (q3 << 24);
+    const uint32_t base = group * 128 + lane * 4;
+    const int32_t input_i8 = *reinterpret_cast<const int32_t*>(x + base);
+    const int32_t dot = __builtin_amdgcn_sdot4(
+        static_cast<int32_t>(weight_i8), input_i8, 0, false);
+    acc += static_cast<float>(dot) * (weight_scale * x_scale[group]);
+  }
+#pragma unroll
+  for (uint32_t offset = 16; offset != 0; offset >>= 1)
+    acc += __shfl_down(acc, offset, 32);
+  return acc;
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t W>
+__global__ __launch_bounds__(32 * W) void mq4g128_expert_owned_sdot_kernel(
+    const int8_t* __restrict__ x, const float* __restrict__ x_scale,
+    const uint8_t* __restrict__ weight, const int32_t* __restrict__ offsets,
+    const int32_t* __restrict__ assignments, float* __restrict__ out) {
+  const uint32_t subgroup = threadIdx.x >> 5;
+  const uint32_t lane = threadIdx.x & 31;
+  const uint32_t row = blockIdx.x * W + subgroup;
+  const uint32_t expert = blockIdx.y;
+  if (row >= N) return;
+  const int32_t begin = offsets[expert];
+  const int32_t end = offsets[expert + 1];
+  if (begin == end) return;
+  constexpr uint64_t kRowBytes = (K / 128) * 68;
+  const uint8_t* wrow =
+      weight + (static_cast<uint64_t>(expert) * N + row) * kRowBytes;
+  for (int32_t index = begin; index < end; ++index) {
+    const int32_t assignment = assignments[index];
+    const uint32_t token = assignment / T;
+    const float value = mq4g128_symmetric_sdot_row<K>(
+        wrow, x + static_cast<size_t>(token) * K,
+        x_scale + static_cast<size_t>(token) * (K / 128), lane);
+    if (lane == 0)
+      out[static_cast<uint64_t>(assignment) * N + row] = value;
+  }
+}
+
+template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
+          uint32_t W>
+struct Gfx90aMq4g128ExpertOwnedSdot {
+  static void run(const tvm::ffi::TensorView x,
+                  const tvm::ffi::TensorView x_scale,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView offsets,
+                  const tvm::ffi::TensorView assignments,
+                  const tvm::ffi::TensorView out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({M, K}).with_dtype<int8_t>().with_device(device).verify(x);
+    TensorMatcher({M, K / 128}).with_dtype<float>().with_device(device).verify(x_scale);
+    TensorMatcher({E, N, K / 128, 68}).with_dtype<uint8_t>().with_device(device).verify(weight);
+    TensorMatcher({E + 1}).with_dtype<int32_t>().with_device(device).verify(offsets);
+    TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(assignments);
+    TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
+    LaunchKernel(dim3((N + W - 1) / W, E), 32 * W, x.device())(
+        mq4g128_expert_owned_sdot_kernel<E, M, T, N, K, W>,
+        static_cast<const int8_t*>(x.data_ptr()),
+        static_cast<const float*>(x_scale.data_ptr()),
+        static_cast<const uint8_t*>(weight.data_ptr()),
+        static_cast<const int32_t*>(offsets.data_ptr()),
+        static_cast<const int32_t*>(assignments.data_ptr()),
+        static_cast<float*>(out.data_ptr()));
+  }
+};
+
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           bool Symmetric = false>
 struct Gfx90aMq4g128PersistentSlots {

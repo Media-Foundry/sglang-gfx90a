@@ -2756,3 +2756,41 @@ stored-weight oracle remained bitwise exact; graph capture succeeded at tiers
 (`199.80/120.15 us` for gate/down), while routed packed-weight storage fell by
 5.6% and available post-capture memory rose by roughly 40--60 MiB/GCD in this
 profile.
+
+## 2026-08-29: symmetric Q4 x activation-Q8 sdot retained at BS32
+
+Once the routed weights became symmetric, the earlier DP4A failure no longer
+needed an affine zero-point correction. A gfx90a `v_dot4_i32_i8` path now
+unpacks four signed Q4 values into one register and consumes per-G128
+activation-Q8 values with `__builtin_amdgcn_sdot4`. The existing FWHT and
+SwiGLU+FWHT producers gained fused INT8 epilogues, so activation quantization
+does not add another launch or materialize the former FP32 rotated tensor.
+The path is restricted to exact M32 gate and flattened-down production shapes;
+BS1/BS16 retain their established FP32-activation kernels.
+
+Projection-only ABBA on an idle gfx90a GCD measured:
+
+- gate/up: symmetric FP32 `202.14 us`, Q8 sdot `153.69 us`;
+- down: symmetric FP32 `120.51 us`, Q8 sdot `107.74 us`.
+
+Fused producer quantization had relative L2 `0.00648` for FWHT and `0.00608`
+for SwiGLU+FWHT. The registered production-shape oracle compares sdot against
+the same Q8 activation dequantized through the FP32 kernel, checks the fused
+producer error below 0.7%, and verifies 100 bitwise-stable sdot replays; both
+focused tests pass.
+
+The complete TP4/EP4/no-A2A BS32 graph reached steady server windows of
+`849.46/841.83/832.49/836.08/829.70 tok/s`, versus approximately
+`780.13/775.27/771.93/769.91/765.89 tok/s` on the adjacent symmetric-FP32
+service. This is a further 8--9% resident-decode gain. All 32 requests produced
+exactly 256 tokens, and the six-question semantic suite again returned every
+expected answer. The four-GCD launch profile therefore enables
+`SGLANG_QWEN4_GFX90A_MQ4G128_SDOT_M32=1`, with `=0` as rollback.
+
+The concurrent decode harness now pre-tokenizes its fixed prompts outside the
+timed region and submits `input_ids`; `--text-input` restores end-to-end text
+tokenizer measurement. Live `/get_load` polling proved that the remaining
+15--35 second gaps occur before requests reach the scheduler even with
+pre-tokenized payloads, while resident GPU decode remains 830+ tok/s. These
+control-plane gaps are not counted as GPU decode throughput and remain a
+separate issue.
