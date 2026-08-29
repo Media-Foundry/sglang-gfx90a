@@ -69,7 +69,7 @@ def main() -> None:
     w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device="cuda")
     s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device="cuda")
 
-    profiles = (
+    tied_profiles = (
         ("a8_r2_b624_nolds", 8, 2, 624, 624, 0),
         ("a8_r2_b624", 8, 2, 624, 624, LDS_LUT),
         ("a8_r2_b832", 8, 2, 832, 832, LDS_LUT),
@@ -92,19 +92,39 @@ def main() -> None:
         ("a4_r4_b1040", 4, 4, 1040, 1040, LDS_LUT),
         ("a2_r2_b832", 2, 2, 832, 832, LDS_LUT),
     )
+    profiles = tuple(
+        (name, assignments, rows, rows, gate_blocks, down_blocks, lds_lut)
+        for name, assignments, rows, gate_blocks, down_blocks, lds_lut
+        in tied_profiles
+    ) + (
+        ("a4_gr2_dr1_g2080_d624", 4, 2, 1, 2080, 624, LDS_LUT),
+        ("a4_gr2_dr1_g2080_d832", 4, 2, 1, 2080, 832, LDS_LUT),
+        ("a4_gr2_dr1_g2080_d1040", 4, 2, 1, 2080, 1040, LDS_LUT),
+        ("a4_gr2_dr4_g2080_d624", 4, 2, 4, 2080, 624, LDS_LUT),
+        ("a4_gr2_dr4_g2080_d832", 4, 2, 4, 2080, 832, LDS_LUT),
+        ("a4_gr2_dr4_g2080_d1040", 4, 2, 4, 2080, 1040, LDS_LUT),
+    )
     outputs: dict[str, torch.Tensor] = {}
     timings: dict[str, list[float]] = {name: [] for name, *_ in profiles}
 
-    for name, assignments, rows, gate_blocks, down_blocks, lds_lut in profiles:
+    for (
+        name,
+        assignments,
+        gate_rows,
+        down_rows,
+        gate_blocks,
+        down_blocks,
+        lds_lut,
+    ) in profiles:
         metadata = make_metadata(topk_ids, assignments=assignments)
         intermediate = torch.empty((M, T, I), dtype=torch.bfloat16, device="cuda")
         partial = torch.empty((M, T, N), dtype=torch.float32, device="cuda")
         output = torch.empty((M, N), dtype=torch.bfloat16, device="cuda")
         gate = _jit_gate_up_grouped(
-            E, M, T, I, H, assignments, rows, WAVES, gate_blocks, lds_lut
+            E, M, T, I, H, assignments, gate_rows, WAVES, gate_blocks, lds_lut
         )
         down = _jit_down_grouped(
-            E, M, T, N, I, assignments, rows, WAVES, down_blocks, lds_lut
+            E, M, T, N, I, assignments, down_rows, WAVES, down_blocks, lds_lut
         )
 
         def run() -> None:

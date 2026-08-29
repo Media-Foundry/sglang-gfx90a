@@ -3131,3 +3131,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `441.513 us`，全部bitwise exact。只捕获1/32的完整服务上，g2080热稳态为
   `729.878/732.760/731.938/732.667 tok/s`，相同重复请求g832约`722.7--726.4`，
   端到端约+1%；因此单TP4-BS32 profile保留gate2080/down832的小收益。
+- 进一步把gate rows2固定、只切down rows1/2/4做干净GCD0复测：g2080/d832的
+  rows2为`439.060 us`，down rows4为`439.452 us`，rows1为`455.252 us`；rows2已经
+  最优，先前gate/down同时rows4没有掩盖down收益。
+- 按CK `WarpGemmMfmaBf16Bf16F32M4N64K16`和CDNA2
+  `V_MFMA_F32_4X4X4BF16_1K`建立过独立TP4 A4 gate原型：wave64的16个N-block×4 lane
+  精确承载四assignment，同wave维护gate/up accumulator，直接读取原packed FP4并按
+  E8M0 group32在线解为BF16；没有改权重或写常驻repack。tiles-per-wave 1/2/4、
+  blocks104/208/416均finite，但最快tiles1仍约`11.0 ms`，对production gate约
+  `256 us`慢约43倍；tiles2/4约12/22ms。K4096下每wave需要2048条gate/up M4 MFMA，
+  再叠加逐K4 FP4→BF16转换，完全抵消无padding优势。候选同时相对INT8 production
+  gate约4.35% relative-L2（尚未做raw-BF16 reference）；性能已远低于15%继续门槛，
+  因此原型删除、不实现down、不接selector。此结果明确补齐旧M16/M32 padding反例之外
+  的M4空白，后续不得再以“恰好A4无padding”为由重做BF16 M4 MFMA。
