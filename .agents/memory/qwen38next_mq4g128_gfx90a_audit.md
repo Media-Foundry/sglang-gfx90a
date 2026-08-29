@@ -2624,3 +2624,21 @@ device-scope atomic down projection and software grid barriers therefore
 recreate the known large-graph slow state and nondeterministic accumulation.
 The max-row extension, test, profiler preload helper, and rollback switch were
 all removed; the production limit remains 16.
+
+The same trace showed that BS32's `[32,2560]` BF16 TP collective is exactly
+`160 KiB`, while AIter selects its new one-stage kernel only below 160 KiB.
+A four-rank graph ABBA on idle GCDs compared all three reachable cases. The
+production new/two-stage path was roughly `58--68 us`; `use_new=False` selected
+the legacy one-stage kernel and was modestly faster at roughly `49--65 us`.
+Changing AIter's threshold from `<` to `<=` selected its new one-stage kernel,
+but that regressed badly to `112--118 us`; the strict boundary is therefore
+intentional for gfx90a, not an off-by-one bug. Both alternatives were exact in
+the module oracle.
+
+The legacy one-stage choice was then wired narrowly for the exact 160-KiB
+message and tested in the full TP4 graph. Control rounds were stable at
+`645.8/646.2 tok/s`. The candidate alternated between approximately
+`443/390/649 tok/s`, reproducing a cross-layer signal slow state despite the
+standalone latency win. The SGLang selector and oracle were removed. AIter's
+source threshold and JIT module were rebuilt back to the original two-stage
+production behavior before the normal service was restored.
