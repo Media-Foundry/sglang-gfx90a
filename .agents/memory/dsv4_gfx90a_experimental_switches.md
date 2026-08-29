@@ -3290,3 +3290,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Keep 2080 as the TP4-BS32 profile default. Do not add a route-dependent grid
   selector: the measured difference is small, but its sign is stable and the
   lower-CTA alternative does not recover hidden overlap.
+
+### TP4 M32 fused gate-quant plus A4-sort service rejection (2026-08-30)
+
+- Enabled the existing `gfx90a_m32_quant_sort` single-launch candidate only for
+  the exact TP4 M32/A4 shape. It replaces separate group-32 INT8 gate-input
+  quantization and expert sorting, without changing weights or routed math.
+- A parallel 32-distinct-input teacher-forced request matched the serial path in
+  all 32 output IDs, complete returned logprob rows and top-5 entries bitwise.
+- With C4 multistream and gate/down grids 2080/832, three 512-token diverse
+  resident runs measured `612.454/612.582/611.227 tok/s`. The adjacent unfused
+  service measured `613.982/614.657/615.128 tok/s`; fusion therefore regressed
+  about 0.4--0.6% despite removing one launch.
+- Keep `SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT=0`. Its combined CTA/LDS work
+  does not improve the production graph, so do not enable it merely from launch
+  count reasoning.
