@@ -3980,6 +3980,36 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   cacheable and small relative to FP4 weight traffic. Do not connect this
   candidate to production or pursue larger staged tiles.
 
+### TP4 M32 per-expert readiness scheduling oracle (2026-08-30)
+
+- Added standalone
+  `gfx90a_readiness_schedule_oracle.cuh` and
+  `scripts/rocm/bench_dsv4_readiness_schedule_oracle.py`. It models 113 sorted
+  expert blocks with 32 producer CTAs per block. Every producer CTA performs a
+  system-scope acq_rel counter RMW; the final RMW observes the release sequence
+  and publishes a monotonically increasing ready epoch. A configurable
+  8/16/24/32/48/64-CTA consumer device queue uses system acquire, executes
+  tunable dummy work and stores a consumed epoch. Queue reset is captured in
+  the consumer graph, while counters/epochs remain monotonic to avoid ABA.
+- With consumer work set to 512 ALU iterations per simulated block, all six
+  CTA counts completed 1000 graph replays without hang or stale data. Every
+  periodic check matched `counter == epoch*32`, `ready == epoch` and
+  `consumed == ready`. Synthetic producer median interference was CTA8
+  `+0.071%`, CTA16 `+0.849%`, CTA24 `+1.182%`, CTA32 `+1.177%`, CTA48
+  `+2.231%`, and CTA64 `+2.473%`: all below the 5% scheduling gate.
+- A second independently captured graph used the real exact DPP
+  A4/R2/W8/G2080 gate on the pass37/layer34 route while a pressure graph ran
+  equivalent total dummy work on the alternate stream. Seven-round medians
+  showed real-gate interference of CTA8 `+0.501%`, CTA16 `+0.750%`, CTA24
+  `+0.125%`, CTA32 `+0.249%`, CTA48 `+0.250%`, and CTA64 `+0.312%`; no point
+  approached the 5% limit.
+- This establishes that the system-scope epoch protocol is graph-stable and
+  that reserving 8--24 consumer CTAs need not materially delay gate. It does
+  not establish the `full <=410 us` target: dummy ALU lacks real quant/down
+  LDS, FP4 weight VMEM and SDOT pressure. If the full consumer is implemented,
+  begin with 8/16/24 CTAs and retain the exact release sequence; do not infer a
+  service speedup from this scheduling-only result.
+
 ### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
 
 - Revisited the exact standalone combination only because the long-generation
