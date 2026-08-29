@@ -371,22 +371,6 @@ class UnquantizedLinearMethod(LinearMethodBase):
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if (
-            getattr(layer, "_qwen4_gfx90a_ck_shared_down_m32", False)
-            and bias is None
-            and isinstance(x, torch.Tensor)
-            and x.reshape(-1, x.shape[-1]).shape == (32, 640)
-        ):
-            from sglang.kernels.ops.gemm.gfx90a_ck_bf16_gemm_m32 import (
-                gfx90a_ck_bf16_gemm_m32,
-            )
-
-            x_shape = x.shape
-            output = gfx90a_ck_bf16_gemm_m32(
-                x.reshape(32, 640).contiguous(), layer.weight
-            )
-            return output.view(*x_shape[:-1], output.shape[-1])
-
-        if (
             getattr(layer, "_qwen4_gfx90a_wave64_bf16", False)
             and bias is None
             and isinstance(x, torch.Tensor)

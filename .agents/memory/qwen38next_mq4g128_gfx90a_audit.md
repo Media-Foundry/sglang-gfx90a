@@ -1,25 +1,23 @@
 # Qwen3.8-Next routed-expert MQ4G128 audit
 
-## 2026-08-29: DPP sdot reduction and CK shared-down retained
+## 2026-08-29: DPP sdot reduction retained; dead CK selector removed
 
-Two correctness-screened small wins were stacked on the V_PERM checkpoint.
-First, the symmetric-Q4 sdot reduction keeps the original offset-16
+The symmetric-Q4 sdot reduction keeps the original offset-16
 `shfl_down`, then uses gfx90a DPP `row_shl` controls 8/4/2/1.  This preserves
 lane zero's FP32 addition tree while replacing four cross-lane shuffle
 operations.  The M32 oracle retained the same sdot error, passed 1,000
 bitwise replays, and changed gate/down projection time from approximately
 `123.7/94.1 us` to `122.3/89.4 us`.
 
-Second, a fixed CK XDL instance is selected only for Qwen's exact BS32 shared
-expert down shape `[32,640] x [2560,640]^T`.  It measured about `16.7 us`
-against rocBLAS's `31.2 us`, with relative L2 `3.49e-5`, finite output and
-1,000 bitwise graph replays.  The same CK geometry was explicitly rejected
-for all other screened dense shapes; the public wrapper fails loudly unless
-the validated `(N,K)=(2560,640)` pair is used.
+An initially stacked CK `[32,640] x [2560,640]^T` selector was removed after
+static reachability review: TP4 already shards Qwen's shared expert, whose
+actual local down contraction has `K=160`.  The candidate service therefore
+never entered that CK branch; retaining it would have been a dead switch and
+the standalone full-width microbenchmark is not production evidence.
 
 The combined four-GCD TP4/EP4/no-A2A native-AR BS32 graph produced resident
 decode windows around `883--899 tok/s`, versus `869--887 tok/s` for the
-preceding V_PERM checkpoint (about another 1.5%).  Paris semantics and exact
+preceding V_PERM checkpoint (about another 1.5%, attributable to DPP).  Paris semantics and exact
 32x256 completion lengths passed.  The pre-existing cross-round greedy hash
 drift remains and is not claimed fixed by this numerically close CK path.
 
