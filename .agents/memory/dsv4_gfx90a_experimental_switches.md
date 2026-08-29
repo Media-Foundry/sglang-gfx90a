@@ -4165,3 +4165,41 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Removed the TP4 profile opt-in after the A/B. Keep the environment selector
   default-off and retain the standalone geometry oracle; do not enable it by
   default from microbenchmark results alone.
+### TP4 A4/R2 two-wave K-half gate oracle rejection (2026-08-30)
+
+- Built an independent W8-as-four-wave-pairs prototype. Wave0 processes group
+  `lane`, wave1 group `lane+64`; wave1 publishes all sixteen FP32 gate/up
+  partials per lane to LDS, then wave0 adds the second half before the original
+  DPP reduction tree. A task-end barrier prevents next-iteration overwrite.
+- Static resources passed the requested gate: 74 VGPR, 48 SGPR, 16,384 B LDS,
+  private/scratch 0, VGPR spills 0 and SGPR spills 0. The initial 64-KiB hand
+  estimate was incorrect: four pairs x 64 lanes x 16 floats is 16 KiB.
+- Used barrier-safe grid904 for the real 113-block route: 904x4 pairs divides
+  113x256 row tiles exactly, giving every pair eight uniform iterations.
+- The first activation mutation nevertheless differed from the production DPP
+  gate by max-abs 0.25. Adding the task-end barrier did not change the result;
+  comparing against arithmetic-unpack rather than LDS-LUT production also
+  retained max-abs 0.25, so LUT decoding is not the cause. The split-wave
+  accumulation is not bitwise equivalent despite preserving the source-level
+  intended association. Stop before ABBA and do not wire production.
+
+#### Exact integer-dot revision and final performance rejection
+
+- The `0.25` discrepancy above was subsequently isolated to compiler FMA
+  association: wave1 had published an already scaled FP32 term.  The corrected
+  oracle publishes its raw `int32` SDOT accumulator and FP32 combined scale;
+  wave0 then executes the same production-shaped
+  `acc += float(dot) * scale` expression for both K halves.
+- This corrected form was bitwise exact for all intermediate gate/up outputs
+  across 100 activation mutations.  Its static resources were 76 VGPR and 50
+  SGPR by code-object metadata, 32,768 B LDS, zero private/scratch and no
+  spills.  (The assembler's `next_free` values include a different aligned
+  register accounting and were 97/100.)
+- Seven-round ABBA measured production W4/G2080 DPP at `246.242 us` and the
+  exact two-wave K-half candidate at `502.390 us`: a `256.149 us` regression,
+  or about 2.04x latency.  The extra wave, 32-KiB LDS exchange and two CTA
+  barriers dominate any K-parallel benefit.
+- Final conclusion: K-half splitting is mathematically viable when integer
+  dots and scales cross the wave boundary separately, but this CTA-cooperative
+  design is decisively unsuitable for production.  Do not revisit it without
+  eliminating the LDS exchange and CTA barriers altogether.
