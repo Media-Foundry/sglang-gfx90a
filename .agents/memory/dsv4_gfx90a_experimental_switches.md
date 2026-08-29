@@ -3305,6 +3305,15 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Keep `SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT=0`. Its combined CTA/LDS work
   does not improve the production graph, so do not enable it merely from launch
   count reasoning.
+- Revalidated this conclusion after the exact DPP-gate/down-prefetch checkpoint
+  and with scheduler-reported model throughput, eliminating the old HTTP-tail
+  ambiguity. Three 512-token rounds with 32 distinct inputs passed France,
+  length and the complete 32-row teacher-forced token/logprob/top-5 comparison.
+  Fused quant-sort measured model-decode median `705.475 tok/s` (trimmed mean
+  `705.889`, range `702.86--710.49`) and HTTP resident
+  `619.621/619.054/619.344`. The adjacent selector-off checkpoint had two
+  independent model-decode medians `707.990/706.140`; the fused path remains
+  neutral-to-negative even under the corrected metric. Keep it disabled.
 
 ### TP4 grouped-FP4 E8M0 half-scale ISA oracle (2026-08-30)
 
