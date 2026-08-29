@@ -52,3 +52,34 @@ Standalone changes only:
 - added optional logical-scale template mode to the gate/down row-prefetch
   oracle headers;
 - added `scripts/rocm/bench_dsv4_tp4_logical_scale_layout_oracle.py`.
+
+## Down-only logical-scale follow-up
+
+The same oracle added a third profile which retains CK-shuffled gate/up scales
+and converts only down scales to logical `[E,N,K/32]`. Testing again began with
+an empty-GPU `amd-smi process` check. All three profiles passed 100 activation
+and router-weight mutations with exact intermediate BF16, INT8 values/scales,
+FP32 partial and final BF16 output.
+
+Seven-round ABBA trimmed means for down-only logical scales:
+
+| stage | all shuffled | logical down only | delta |
+|---|---:|---:|---:|
+| gate/up | 244.859 us | 244.968 us | +0.109 us |
+| quant | 42.624 us | 42.966 us | +0.342 us |
+| down | 169.767 us | 160.461 us | -9.305 us |
+| reduce | 4.285 us | 4.123 us | -0.162 us |
+| full routed | 423.053 us | 417.636 us | -5.417 us |
+
+Thus down-only improves the down kernel by 5.80% and the complete routed micro
+by 1.30%. Its duplicate cache costs 16 MiB/layer, or 688 MiB/GCD for 43 layers.
+
+The minimal eventual production connection point is in
+`Fp8MoEMethod.process_weights_after_loading_block_quant`: for the strict
+gfx90a DSV4 CKTile shape, clone `w2_weight_scale_inv` after
+`_gfx90a_cktile_reorder_w2_rows` but before `shuffle_scale`. That tensor already
+has the logical row order corresponding to the reordered packed w2 weights.
+Expose it as an optional field of `AiterMoeQuantInfo`, and only substitute its
+pointer when the existing strict TP4/M32 DPP/down-row-prefetch selector is true.
+All other AIter/CK paths must continue consuming the shuffled scale. This is an
+assessment only; no production cache or selector was added in this experiment.

@@ -86,9 +86,14 @@ def main():
     print(f"MEMORY gate_bytes={ls13.numel()} down_bytes={ls2.numel()} per_layer_mib={(ls13.numel()+ls2.numel())/2**20:.3f} layers43_gib={(ls13.numel()+ls2.numel())*43/2**30:.3f}")
     tw=torch.rand((M,T),dtype=torch.float32,device="cuda")
     states={}
-    for name,logical in (("A",False),("B",True)):
+    # A: all CK-shuffled; B: both logical; C: shuffled gate + logical down.
+    for name, gate_logical_mode, down_logical_mode in (
+        ("A", False, False), ("B", True, True), ("C", False, True)
+    ):
         st={"mid":torch.empty((M,T,I),dtype=torch.bfloat16,device="cuda"),"part":torch.empty((M,T,N),dtype=torch.float32,device="cuda"),"out":torch.empty((M,N),dtype=torch.bfloat16,device="cuda")}
-        gm=gate(logical); dm=down(logical); gs=ls13 if logical else s13; ds=ls2 if logical else s2
+        gm=gate(gate_logical_mode); dm=down(down_logical_mode)
+        gs=ls13 if gate_logical_mode else s13
+        ds=ls2 if down_logical_mode else s2
         def g(gm=gm,gs=gs,st=st): gm.run(xq,xs,w13,gs,md.sorted_ids,md.sorted_experts,md.valid,st["mid"],10.0)
         def q(st=st): st["iq"],st["isc"]=per_token_group_quant_int8(st["mid"],32)
         def d(dm=dm,ds=ds,st=st): dm.run_partial(st["iq"],st["isc"],w2,ds,md.sorted_ids,md.sorted_experts,md.valid,tw,st["part"])
@@ -98,18 +103,21 @@ def main():
     mut=torch.empty_like(x)
     for i in range(a.mutations):
         mut.normal_(); q,s=per_token_group_quant_int8(mut,32); xq.copy_(q);xs.copy_(s);tw.uniform_()
-        for n in "AB": states[n][1]["full"]()
+        for n in "ABC": states[n][1]["full"]()
         torch.cuda.synchronize()
         for key in ("mid","iq","isc","part","out"):
-            if not torch.equal(states["A"][0][key],states["B"][0][key]):
-                raise RuntimeError(f"mutation={i} key={key} mismatch")
+            for n in "BC":
+                if not torch.equal(states["A"][0][key],states[n][0][key]):
+                    raise RuntimeError(f"mutation={i} profile={n} key={key} mismatch")
     print(f"CORRECTNESS mutations={a.mutations} all_exact=True")
-    timings={k:{"A":[],"B":[]} for k in ("gate","quant","down","reduce","full")}
+    timings={k:{"A":[],"B":[],"C":[]} for k in ("gate","quant","down","reduce","full")}
     for _ in range(a.rounds):
-        for n in ("A","B","B","A"):
+        for n in ("A","B","C","C","B","A"):
             for k in timings: timings[k][n].append(time_us(states[n][1][k]))
     for k,v in timings.items():
-        aa,bb=trim(v["A"]),trim(v["B"]); print(f"RESULT stage={k} shuffled_us={aa:.3f} logical_us={bb:.3f} delta_us={bb-aa:.3f} gain_pct={(aa/bb-1)*100:.3f}")
+        aa=trim(v["A"])
+        for n,label in (("B","both_logical"),("C","down_only_logical")):
+            bb=trim(v[n]); print(f"RESULT stage={k} profile={label} shuffled_us={aa:.3f} candidate_us={bb:.3f} delta_us={bb-aa:.3f} gain_pct={(aa/bb-1)*100:.3f}")
 
 
 if __name__=="__main__": main()
