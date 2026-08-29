@@ -3681,3 +3681,60 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   only about `748 tok/s`. A four-GCD PP2xTP2 estimate is `337--400 tok/s`, with
   no capacity advantage over TP4. Do not add correctness-sensitive shape
   wiring for this throughput objective.
+
+### Internal HIP custom-AR start-sync system-scope validation (2026-08-30)
+
+- The internal AOT custom all-reduce start barrier now publishes each rank's
+  readiness with a system-scope release store and polls its local peer flags
+  with system-scope acquire loads. This establishes the missing cross-GCD
+  happens-before edge from producer writes to the subsequent peer-buffer
+  loads; the old relaxed store plus device-scope relaxed load did not express
+  that ordering in the HIP memory model. The post-poll CTA barrier remains
+  necessary to release the non-polling threads.
+- Rebuilt for gfx90a with
+  `cd python/sglang/kernels/aot && AMDGPU_TARGET=gfx90a MAX_JOBS=8
+  /home/pc/anaconda3/envs/DS/bin/python setup_rocm.py build_ext --inplace`.
+  The installed test artifact was
+  `python/sglang/kernels/aot/python/sgl_kernel/common_ops.cpython-312-x86_64-linux-gnu.so`
+  with SHA256
+  `d6bdd0e78c35e32638af26cddd659a19c59ede280ae16256a45d4bd633fbdb77`;
+  the custom-AR object SHA256 was
+  `c0ebb1328280f8975ed1c4c44cb5b14571f59cf531c61ddda90f4eac8f5e0fd0`.
+  Note that the setup script re-hipifies generated `.hip` mirrors before its
+  incremental Ninja build, so source-side `.cu` changes may appear as tracked
+  generated-file updates and must be reviewed separately.
+- `scripts/rocm/bench_internal_custom_ar_start_sync.py` captured the registered
+  TP4 one-stage path for a real decode shape `[32,4096]` BF16 (256 KiB). Across
+  1000 alternating random-normal/integer mutations and 1000 graph replays,
+  every rank was bitwise exact against a CPU fixed `0,1,2,3` FP32 accumulation
+  followed by BF16 conversion: failures `[0,0,0,0]`, maximum absolute error
+  `0`. Nine rank-max samples were `29.721, 29.668, 29.678, 29.575, 29.528,
+  29.557, 29.622, 29.586, 29.521 us`; the one-sample-per-tail trimmed median
+  was `29.586 us`. This validates the isolated publication fix under graph
+  mutation/replay; production service correctness and throughput still need a
+  separate ABBA run before calling it a performance checkpoint.
+- Production follow-up used the exact 32-request diverse manifest, forced
+  native AR, graph tiers 1/32 and three 64-token rounds. The default external
+  AIter two-stage service kept France correct and had resident BS32 samples
+  `697.705/697.355/697.968 tok/s`, but only `10/32` requests were completion-ID
+  exact across rounds. First divergence ranged from token 0 to 54. RCCL via
+  `--disable-custom-all-reduce` was both slower (`440.860/441.281/440.254
+  tok/s`) and still only `3/32` exact, so RCCL is not a correctness fallback.
+- Before the publication fix, forcing `SGLANG_USE_1STAGE_ALLREDUCE=1` failed
+  the first France gate with repeated stale token IDs. After rebuilding the
+  release/acquire fix, France was correct and resident samples were
+  `699.080/699.377/697.822 tok/s`; the one-stage path therefore restores its
+  intended performance and no longer reads stale buffers. It still produced
+  only `7/32` cross-round exact completions. The remaining variability is not
+  the one-stage peer-buffer race or two-stage owner rotation alone: the three
+  independent HTTP rounds reached prefill in different batch/chunk groupings,
+  changing floating reduction/GEMM association before the fixed M32 decode
+  graph. Fixed-batch teacher-forced comparison remains the kernel correctness
+  oracle, while the concurrent harness now reports cross-round exact counts
+  and first-divergence positions explicitly instead of hiding them behind the
+  France-only check.
+- Torch `/start_profile` with CPU+GPU activities is unsafe for this ROCm
+  multi-stream graph: profiling began on EXTEND and HSA queue interposition
+  waited indefinitely on async signals, stalling the requests. The affected
+  service was stopped and all GPU resources released. Use external rocprof or
+  the realtime-marker path for future BS32 traces.

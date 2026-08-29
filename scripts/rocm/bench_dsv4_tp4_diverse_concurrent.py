@@ -88,6 +88,7 @@ def main() -> None:
         raise ValueError("input manifest must contain exactly 32 distinct requests")
 
     rounds = []
+    round_output_ids: list[list[list[int]]] = []
     for rep in range(args.rounds):
         barrier = threading.Barrier(33)
         nonce = time.time_ns()
@@ -121,6 +122,7 @@ def main() -> None:
             results = [future.result() for future in futures]
         wall = time.perf_counter() - begin
         ids = [completion_ids(result) for _, result, _ in results]
+        round_output_ids.append(ids)
         lengths = [len(value) for value in ids]
         if lengths != [args.tokens] * 32:
             raise RuntimeError(f"round {rep}: completion lengths={lengths}")
@@ -183,6 +185,27 @@ def main() -> None:
         if len(resident_speeds) > 2
         else resident_speeds
     )
+
+    def first_divergence(sequences: list[list[int]]) -> int | None:
+        reference = sequences[0]
+        for position in range(len(reference)):
+            if any(
+                sequence[position] != reference[position]
+                for sequence in sequences[1:]
+            ):
+                return position
+        return None
+
+    per_request_sequences = [
+        [round_ids[request_index] for round_ids in round_output_ids]
+        for request_index in range(32)
+    ]
+    first_divergence_by_request = [
+        first_divergence(sequences) for sequences in per_request_sequences
+    ]
+    cross_round_exact_requests = sum(
+        divergence is None for divergence in first_divergence_by_request
+    )
     summary = {
         "format": "dsv4-tp4-diverse-concurrent-v1",
         "input_manifest": str(args.inputs.resolve()),
@@ -194,6 +217,9 @@ def main() -> None:
         "trimmed_mean_tok_s": statistics.mean(trimmed),
         "resident_bs32_median_tok_s": statistics.median(resident_speeds),
         "resident_bs32_trimmed_mean_tok_s": statistics.mean(resident_trimmed),
+        "cross_round_exact_requests": cross_round_exact_requests,
+        "cross_round_all_exact": cross_round_exact_requests == 32,
+        "first_divergence_by_request": first_divergence_by_request,
         "rounds": rounds,
     }
     encoded = json.dumps(summary, indent=2) + "\n"

@@ -166,10 +166,15 @@ DINLINE void start_sync(
     // simultaneously write to the corresponding flag of all ranks.
     // Latency = 1 p2p write
     __scoped_atomic_store_n(
-        &sg.signals[threadIdx.x]->start[blockIdx.x][rank], flag, __ATOMIC_RELAXED, __MEMORY_SCOPE_SYSTEM);
+        &sg.signals[threadIdx.x]->start[blockIdx.x][rank],
+        flag,
+        __ATOMIC_RELEASE,
+        __MEMORY_SCOPE_SYSTEM);
     // wait until we got true from all ranks
-    while (__scoped_atomic_load_n(&self_sg->start[blockIdx.x][threadIdx.x], __ATOMIC_RELAXED, __MEMORY_SCOPE_DEVICE) <
-           flag)
+    while (__scoped_atomic_load_n(
+               &self_sg->start[blockIdx.x][threadIdx.x],
+               __ATOMIC_ACQUIRE,
+               __MEMORY_SCOPE_SYSTEM) < flag)
       ;
   }
   __syncthreads();
