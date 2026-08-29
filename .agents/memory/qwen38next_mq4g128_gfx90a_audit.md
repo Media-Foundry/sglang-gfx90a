@@ -2600,3 +2600,27 @@ shape, complete 2/4/8/16/32-subgroup times were approximately
 `232.5/159.4/149.5/155.4/167.3 us`. Thus the retained four-subgroup gate and
 eight-subgroup down choices are genuine local optima. The wider templates
 were removed without entering the service.
+
+### BS32 rank timeline and persistent HC-mix limit
+
+A rank-0 rocprofiler trace was collected from the production TP4/EP4/no-A2A
+BS32 graph. Because the host keeps Yama `ptrace_scope=1`, the diagnostic
+service used process-local `PR_SET_PTRACER_ANY` plus ROCm's attach-registration
+library; the global ptrace policy was not changed. Profiling overhead reduced
+observed aggregate throughput and therefore the trace is used for proportions,
+not as a speed result. Roughly 98 complete decode steps showed routed gate/up
+at `18.59%`, routed down at `9.43%`, AIter cross-device reduction at `7.66%`,
+the HC `mean_mul_sigmoid_view` epilogue at `7.82%`, and the largest BF16 GEMM
+family at `11.48%` of summed rank kernel time.
+
+The trace exposed why BS32 falls back from the existing persistent fused HC
+mix: `_FUSED_MIX_MAX_ROWS` is 16. Extending the same kernel to a padded 32-row
+tile passed a focused numerical oracle (`relative L2 ~= 9.9e-5`, max absolute
+error `2.44e-4`) and 1000 graph replays. Its isolated graph latency improved
+from about `104.2` to `83.7 us` (`+24.4%`). In the complete BS32 service,
+however, consecutive 512-token rounds alternated between about `674` and
+`348 tok/s`, and the slow round diverged on 30 of 32 token streams. The
+device-scope atomic down projection and software grid barriers therefore
+recreate the known large-graph slow state and nondeterministic accumulation.
+The max-row extension, test, profiler preload helper, and rollback switch were
+all removed; the production limit remains 16.
