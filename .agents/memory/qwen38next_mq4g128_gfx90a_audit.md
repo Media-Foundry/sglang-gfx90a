@@ -2537,3 +2537,10 @@ the first stage. `--ple-offload-embedding` reduced PP0 device weights to about
 0.869, but this transfers the concentrated sparse lookup to host pinned memory
 and PCIe. The experiment was stopped rather than trading the requested stable
 GPU throughput for host-memory/PCIe pressure. Optimization remains on TP4.
+
+The TP4 dense-projection precision hypothesis was also rejected at BS32.
+Synthetic rocBLAS ABBA on the exact Qwen dimensions showed BF16 and FP16
+within about 1--2% for every tested shape: `(N,K)=10240x2560, 3584x2560,
+1280x2560, 2560x640, 320x2560, 2560x160, 1536x2560`. The largest projection
+was `108.16/108.48 us` BF16/FP16, and none had a repeatable material FP16
+advantage. Changing the model precision cannot improve this throughput tier.
