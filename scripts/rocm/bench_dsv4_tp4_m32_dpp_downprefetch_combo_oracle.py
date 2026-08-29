@@ -43,6 +43,25 @@ def serial_rows_gate_module():
     )
 
 
+@cache_once
+def serial_rows_gate_min2_module():
+    args = make_cpp_args(E, M, T, I, H, A4, 8, G, LUT)
+    return load_jit(
+        "gfx90a_fp4_expert_gate_serial_rows_min2_oracle",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_expert_gate_serial_rows_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertGateSerialRowsOracle<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3", "-DSGL_SERIAL_ROWS_MIN_BLOCKS=2"],
+    )
+
+
 def time_us(fn, warmup: int, iterations: int) -> float:
     for _ in range(warmup):
         fn()
@@ -102,6 +121,7 @@ def main() -> None:
             E, M, T, I, H, A4, R2, 8, G, LUT
         ),
         "SERIAL": serial_rows_gate_module(),
+        "SERIAL_MIN2": serial_rows_gate_min2_module(),
         **{
             f"W4G{blocks}": _jit_gate_up_grouped_dpp(
                 E, M, T, I, H, A4, 1, 4, blocks, LUT

@@ -4,13 +4,18 @@
 
 namespace sglang {
 
+#ifndef SGL_SERIAL_ROWS_MIN_BLOCKS
+#define SGL_SERIAL_ROWS_MIN_BLOCKS 1
+#endif
+
 // Oracle-only R2 grouped gate. A task still owns two adjacent output rows, but
 // it completes one row's K scan/reduction/store before reusing the same
 // assignment accumulators for the second row.
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kAssignments, uint32_t kNumWaves, uint32_t kBlocks,
           uint32_t kPrepacked = 2>
-__global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
+__global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave,
+                                  SGL_SERIAL_ROWS_MIN_BLOCKS)
     gfx90a_fp4_expert_gate_serial_rows_kernel(
         bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
         const float* __restrict__ x_scale,

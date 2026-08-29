@@ -3937,6 +3937,24 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   either risks call overhead or duplicated metadata/task setup and is not a
   priority after this static miss.
 
+### TP4 M32 serial-row min-blocks=2 static rejection (2026-08-30)
+
+- Added an independently cached compile variant of the serial-row oracle with
+  `__launch_bounds__(kNumWaves * 64, 2)` for W8, using
+  `SGL_SERIAL_ROWS_MIN_BLOCKS=2`. The ordinary serial-row module retains its
+  default min-block setting, so the forced-residency code object cannot alias
+  or overwrite its JIT cache.
+- A direct gfx90a resource build reported exactly the same allocation as the
+  unconstrained attempt: `99 VGPR`, `51 SGPR`, `1024 B LDS`, zero scratch,
+  zero SGPR/VGPR spill and compiler occupancy `4 waves/SIMD`. The min-blocks
+  hint did not shorten live ranges or force the expected <=64-VGPR allocation;
+  the compiler already considers the generated code compatible with its
+  occupancy model.
+- This exceeds the explicit `<=64 VGPR` continuation gate. No mutation or ABBA
+  test was run, and this variant must not be connected to production. Further
+  launch-bound coercion is unlikely to help without a structural live-range
+  split and would risk real scratch traffic.
+
 ### TP4 BS32 exact DPP-gate plus down-prefetch checkpoint (2026-08-30)
 
 - Revisited the exact standalone combination only because the long-generation
