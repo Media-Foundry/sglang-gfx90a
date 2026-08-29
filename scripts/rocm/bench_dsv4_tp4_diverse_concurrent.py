@@ -28,6 +28,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument(
+        "--stream-interval",
+        type=int,
+        default=1,
+        help="tokens per streamed update; larger values reduce HTTP/host overhead",
+    )
     parser.add_argument("--timeout", type=float, default=1200.0)
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
@@ -93,6 +99,7 @@ def main() -> None:
                     "temperature": 0,
                     "max_new_tokens": args.tokens,
                     "ignore_eos": True,
+                    "stream_interval": args.stream_interval,
                 },
                 "cache_salt": f"tp4-diverse-{rep}-{index}-{nonce}",
                 "stream": True,
@@ -181,6 +188,7 @@ def main() -> None:
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "tokens": args.tokens,
+        "stream_interval": args.stream_interval,
         "round_count": len(rounds),
         "median_tok_s": statistics.median(speeds),
         "trimmed_mean_tok_s": statistics.mean(trimmed),

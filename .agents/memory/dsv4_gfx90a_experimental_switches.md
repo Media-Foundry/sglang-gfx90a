@@ -3244,3 +3244,20 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Enable `SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM=1` by default only inside
   the explicit TP4 BS32 profile. This is an exact native-AR scheduling change;
   it does not alter weights, attention semantics, or speculative decoding.
+
+### TP4 M32 C128 attention multistream rejection (2026-08-29)
+
+- Reused the exact C4 three-stream schedule for C128 layers behind a separate
+  default-off selector. Layer-21 four-rank markers reduced prepare only from
+  the serial `160.48 us` baseline to roughly `140 us`, about `20 us/layer`.
+- The no-marker service with the already accepted C4 overlap plus the C128
+  candidate produced `586.316 tok/s` in the resident BS32 window, below the
+  adjacent C4-only range of `592.956--596.919 tok/s`. All 32 requests still
+  generated 512 tokens and the France first-nine-token check passed.
+- The extra C128 stream/event joins therefore cost more than the hidden
+  compressor work. The C128 selector and production wiring were removed; do
+  not generalize the C4 multistream result across compression ratios.
+- The diverse resident harness now accepts `--stream-interval` so host/HTTP
+  notification cost can be diagnosed independently. Interval 8 measured
+  `607.479 tok/s`, but formal comparisons remain at interval 1 because coarse
+  notification shifts the observable common-resident boundary.
