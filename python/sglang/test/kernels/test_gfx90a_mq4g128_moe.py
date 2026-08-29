@@ -78,6 +78,32 @@ def test_mq4g128_indexed_and_grouped_match_oracle():
 
 
 @pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
+def test_mq4g128_symmetric_m32_matches_stored_weight_oracle(monkeypatch):
+    if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
+        pytest.skip("requires gfx90a")
+    torch.manual_seed(71)
+    e, m, topk, n, k = 128, 32, 10, 1280, 2560
+    packed = quantize_mq4g128(
+        torch.randn(e, n, k, device="cuda", dtype=torch.float32) * 0.03,
+        symmetric=True,
+    )
+    x = fwht128(torch.randn(m, k, device="cuda")).contiguous()
+    ids = torch.full((m, topk), -1, device="cuda", dtype=torch.int32)
+    ids.view(-1)[:80].random_(0, e)
+    monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M32", "1")
+    monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0")
+    stored_weight_oracle = mq4g128_indexed(x, packed, ids)
+    monkeypatch.setenv("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "1")
+    actual = mq4g128_indexed(x, packed, ids)
+    torch.testing.assert_close(actual, stored_weight_oracle, rtol=0, atol=0)
+    replay_reference = actual.clone()
+    for _ in range(100):
+        replay = mq4g128_indexed(x, packed, ids)
+    torch.cuda.synchronize()
+    torch.testing.assert_close(replay, replay_reference, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not is_hip(), reason="gfx90a HIP-only kernel")
 def test_mq4g128_persistent_slots_down_matches_indexed():
     if "gfx90a" not in torch.cuda.get_device_properties(0).gcnArchName:
         pytest.skip("requires gfx90a")

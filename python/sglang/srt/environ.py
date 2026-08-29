@@ -316,6 +316,10 @@ class Envs:
     # The corresponding BS16 shapes use the same graph-safe sorter.  Keep a
     # separate selector so BS16 and BS32 can be independently ABBA tested.
     SGLANG_QWEN4_GFX90A_MQ4G128_EXPERT_OWNED_M16 = EnvBool(False)
+    # Use clipped symmetric G128 expert weights so the gfx90a projection can
+    # omit the affine zero-point arithmetic.  The launch profile owns the
+    # default; generic SGLang remains opt-in.
+    SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC = EnvBool(False)
     # Fuse the BS1 MQ4 router-weight multiply, slot reduction and BF16 cast.
     # This preserves the original expert-dot output and ATen reduction order.
     SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE = EnvBool(True)

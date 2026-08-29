@@ -2708,3 +2708,40 @@ signal handlers spinning after the profiled request had completed.  The exact
 profiler-created service processes were terminated and no trace proportions
 were accepted.  Future timing must use graph-safe module events or the already
 validated external attach procedure rather than `/start_profile` auto-stop.
+
+## 2026-08-29: clipped symmetric MQ4 decode retained
+
+The affine G128 representation spends four FP32 zero-point corrections per
+lane/group. A gfx90a expert-owned specialization now accepts clipped symmetric
+packed weights (`q in [-7,7]`, stored as `q+8`) and evaluates `scale*q*x`
+without loading or applying the affine zero point. Generic SGLang remains
+opt-in; the four-GCD Qwen profile enables it by default and retains
+`SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC=0` as the affine rollback.
+
+Thirty interleaved ABBA samples on the production M32 shapes measured:
+
+- gate/up: `259.39 -> 199.28 us` (`1.302x`);
+- flattened down: `134.27 -> 121.33 us` (`1.107x`).
+
+For a packed symmetric tensor, the new kernel was bitwise identical to the
+old affine kernel reading the stored `zero=-8*scale`, and 1000 replays were
+bitwise stable. A registered production-shape M32 test repeats this stored-
+weight oracle and 100 graph replays.
+
+Pure min/max symmetric quantization increased sampled real-checkpoint error
+too much, so the retained packer clips at `0.85*maxabs`. Across gate and down
+weights from layers 0/24/47, affine relative L2 was `0.0988--0.0999` and the
+retained symmetric form was `0.1077--0.1087`, an approximately 8.8--9.0%
+increase in quantization error rather than the initial 17.5%. Six independent
+semantic probes (France/Japan capitals, arithmetic, Hamlet, Mars and French
+translation) all returned the expected answer, and every BS32 request
+completed its forced 256-token length.
+
+In the complete TP4/EP4/no-A2A graph, steady server decode was approximately
+`768--779 tok/s`, versus the adjacent affine service's usual
+`717--732 tok/s`, a repeatable 6--8% resident-decode gain. The concurrent HTTP
+harness reported only `126--182 tok/s` because each fresh request group
+suffered a separate 35--50 second prefill/admission stall before entering the
+fast decode window. Those wall-time values are explicitly rejected as kernel
+throughput; fixing the recurrent-state/admission control-plane gap is now a
+separate priority.

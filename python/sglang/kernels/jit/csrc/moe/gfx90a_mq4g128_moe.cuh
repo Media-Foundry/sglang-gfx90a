@@ -120,7 +120,7 @@ __global__ void mq4g128_sorter_kernel(
   }
 }
 
-template <uint32_t K>
+template <uint32_t K, bool Symmetric = false>
 __device__ __forceinline__ float mq4g128_dot_row(
     const uint8_t* __restrict__ row, const float* __restrict__ x,
     uint32_t lane) {
@@ -130,14 +130,23 @@ __device__ __forceinline__ float mq4g128_dot_row(
   for (uint32_t group = 0; group < K / 128; ++group) {
     const uint8_t* block = row + group * 72;
     const float scale = *reinterpret_cast<const float*>(block);
-    const float zero = *reinterpret_cast<const float*>(block + 4);
+    const float zero = Symmetric
+        ? 0.0f
+        : *reinterpret_cast<const float*>(block + 4);
     const uint16_t packed =
         *reinterpret_cast<const uint16_t*>(block + 8 + lane * 2);
     const uint32_t base = group * 128 + lane * 4;
-    acc += (scale * static_cast<float>(packed & 15) + zero) * x[base];
-    acc += (scale * static_cast<float>((packed >> 4) & 15) + zero) * x[base + 1];
-    acc += (scale * static_cast<float>((packed >> 8) & 15) + zero) * x[base + 2];
-    acc += (scale * static_cast<float>((packed >> 12) & 15) + zero) * x[base + 3];
+    if constexpr (Symmetric) {
+      acc += scale * static_cast<float>(static_cast<int32_t>(packed & 15) - 8) * x[base];
+      acc += scale * static_cast<float>(static_cast<int32_t>((packed >> 4) & 15) - 8) * x[base + 1];
+      acc += scale * static_cast<float>(static_cast<int32_t>((packed >> 8) & 15) - 8) * x[base + 2];
+      acc += scale * static_cast<float>(static_cast<int32_t>((packed >> 12) & 15) - 8) * x[base + 3];
+    } else {
+      acc += (scale * static_cast<float>(packed & 15) + zero) * x[base];
+      acc += (scale * static_cast<float>((packed >> 4) & 15) + zero) * x[base + 1];
+      acc += (scale * static_cast<float>((packed >> 8) & 15) + zero) * x[base + 2];
+      acc += (scale * static_cast<float>((packed >> 12) & 15) + zero) * x[base + 3];
+    }
   }
 #pragma unroll
   for (uint32_t offset = 16; offset != 0; offset >>= 1)
@@ -270,7 +279,7 @@ __global__ void mq4g128_expert_owned_sorter_kernel(
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t W>
+          uint32_t W, bool Symmetric = false>
 __global__ __launch_bounds__(32 * W) void mq4g128_expert_owned_kernel(
     const float* __restrict__ x, const uint8_t* __restrict__ weight,
     const int32_t* __restrict__ offsets,
@@ -289,7 +298,7 @@ __global__ __launch_bounds__(32 * W) void mq4g128_expert_owned_kernel(
       weight + (static_cast<uint64_t>(expert) * N + row) * kRowBytes;
   for (int32_t index = begin; index < end; ++index) {
     const int32_t assignment = assignments[index];
-    const float value = mq4g128_dot_row<K>(
+    const float value = mq4g128_dot_row<K, Symmetric>(
         wrow, x + static_cast<size_t>(assignment / T) * K, lane);
     if (lane == 0)
       out[static_cast<uint64_t>(assignment) * N + row] = value;
@@ -407,7 +416,7 @@ struct Gfx90aMq4g128ExpertOwnedSorter {
 };
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
-          uint32_t W>
+          uint32_t W, bool Symmetric = false>
 struct Gfx90aMq4g128ExpertOwned {
   static void run(const tvm::ffi::TensorView x,
                   const tvm::ffi::TensorView weight,
@@ -423,7 +432,7 @@ struct Gfx90aMq4g128ExpertOwned {
     TensorMatcher({M * T}).with_dtype<int32_t>().with_device(device).verify(assignments);
     TensorMatcher({M, T, N}).with_dtype<float>().with_device(device).verify(out);
     LaunchKernel(dim3((N + W - 1) / W, E), 32 * W, x.device())(
-        mq4g128_expert_owned_kernel<E, M, T, N, K, W>,
+        mq4g128_expert_owned_kernel<E, M, T, N, K, W, Symmetric>,
         static_cast<const float*>(x.data_ptr()),
         static_cast<const uint8_t*>(weight.data_ptr()),
         static_cast<const int32_t*>(offsets.data_ptr()),

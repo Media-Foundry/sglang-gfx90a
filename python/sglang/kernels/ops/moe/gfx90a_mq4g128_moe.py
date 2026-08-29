@@ -67,11 +67,18 @@ def _expert_owned_sorter_module(e: int, m: int, t: int) -> Module:
 
 @cache_once
 def _expert_owned_module(
-    e: int, m: int, t: int, n: int, k: int, waves: int = 2
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    waves: int = 2,
+    symmetric: bool = False,
 ) -> Module:
-    args = make_cpp_args(e, m, t, n, k, waves)
+    args = make_cpp_args(e, m, t, n, k, waves, symmetric)
+    suffix = "symmetric" if symmetric else "affine"
     return load_jit(
-        "gfx90a_mq4g128_expert_owned",
+        f"gfx90a_mq4g128_expert_owned_{suffix}",
         *args,
         cuda_files=["moe/gfx90a_mq4g128_moe.cuh"],
         cuda_wrappers=[
@@ -221,7 +228,11 @@ def mq4g128_indexed(
             expert_ids, offsets, assignments
         )
         waves = 4 if (m, t) in ((32, 10), (64, 10), (128, 10)) else 8
-        _expert_owned_module(e, m, t, n, k, waves).run(
+        symmetric = (
+            os.environ.get("SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0")
+            == "1"
+        )
+        _expert_owned_module(e, m, t, n, k, waves, symmetric).run(
             x, weight, offsets, assignments, out
         )
         return out

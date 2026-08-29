@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 
 import torch
 import torch.nn.functional as F
@@ -92,17 +93,34 @@ def swiglu_fwht128(gate_up: torch.Tensor) -> torch.Tensor:
     return fwht128(intermediate)
 
 
-def quantize_mq4g128(weight: torch.Tensor) -> torch.Tensor:
+def quantize_mq4g128(
+    weight: torch.Tensor, *, symmetric: bool = False
+) -> torch.Tensor:
     """Rotate K groups and encode affine INT4 as [..., K/128, 72] bytes."""
     if weight.ndim < 2:
         raise ValueError("MQ4G128 weight must have at least two dimensions")
     k = weight.shape[-1]
     rotated = fwht128(weight)
     groups = rotated.reshape(*weight.shape[:-1], k // GROUP_SIZE, GROUP_SIZE)
-    lo = groups.amin(dim=-1)
-    hi = groups.amax(dim=-1)
-    scale = ((hi - lo) / 15.0).clamp_min(torch.finfo(torch.float32).tiny)
-    q = torch.round((groups - lo.unsqueeze(-1)) / scale.unsqueeze(-1)).clamp_(0, 15).to(torch.uint8)
+    if symmetric:
+        # A small clipping margin materially improves symmetric INT4 MSE on
+        # the rotated Qwen expert rows (about 0.108 versus 0.117 relative L2
+        # at pure min/max) while preserving the zero-free decode expression.
+        scale = (groups.abs().amax(dim=-1) * (0.85 / 7.0)).clamp_min(
+            torch.finfo(torch.float32).tiny
+        )
+        q = (
+            torch.round(groups / scale.unsqueeze(-1))
+            .clamp_(-7, 7)
+            .add_(8)
+            .to(torch.uint8)
+        )
+        lo = -8.0 * scale
+    else:
+        lo = groups.amin(dim=-1)
+        hi = groups.amax(dim=-1)
+        scale = ((hi - lo) / 15.0).clamp_min(torch.finfo(torch.float32).tiny)
+        q = torch.round((groups - lo.unsqueeze(-1)) / scale.unsqueeze(-1)).clamp_(0, 15).to(torch.uint8)
     packed = q[..., 0::2] | (q[..., 1::2] << 4)
     out = torch.empty((*groups.shape[:-1], GROUP_BYTES), dtype=torch.uint8, device=weight.device)
     out[..., :4] = scale.contiguous().view(torch.uint8).reshape(*scale.shape, 4)
@@ -147,7 +165,15 @@ def _requantize_checkpoint_fp8_mq4g128(
     for begin in range(0, e, expert_chunk):
         end = min(e, begin + expert_chunk)
         chunk = _dequant_checkpoint_fp8(weight[begin:end], scale[begin:end])
-        packed[begin:end].copy_(quantize_mq4g128(chunk))
+        packed[begin:end].copy_(
+            quantize_mq4g128(
+                chunk,
+                symmetric=os.environ.get(
+                    "SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC", "0"
+                )
+                == "1",
+            )
+        )
         del chunk
     return packed
 
