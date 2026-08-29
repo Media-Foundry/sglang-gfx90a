@@ -3305,3 +3305,23 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Keep `SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT=0`. Its combined CTA/LDS work
   does not improve the production graph, so do not enable it merely from launch
   count reasoning.
+
+### TP4 grouped-FP4 E8M0 half-scale ISA oracle (2026-08-30)
+
+- Tested direct construction of the E8M0 half-scale (and an edge fallback) so
+  the hot grouped gate/down dot would nominally replace
+  `x_scale * weight_scale * 0.5`. For real quant activation scales, exponents
+  7--254 were bitwise identical; the guarded candidate then kept gate BF16
+  intermediate, down FP32 partial and final BF16 output exact across 100 input
+  mutations. Three artificial extreme float cases still differed outside the
+  real quant-scale domain.
+- Seven-round ABBA nevertheless regressed: gate trimmed
+  `255.997 -> 259.725 us` (+1.46%), down `171.614 -> 172.227 us` (+0.36%), and
+  full routed stage `441.754 -> 444.336 us` (+0.58%). Production was never
+  wired and the oracle source changes were removed.
+- HSACO explains the result: baseline and candidate both contain 24
+  `v_mul_f32`, 21 `global_load_dwordx4`, and 64 `ds_read_b32`; the candidate
+  adds four compares and 41 disassembly lines. hipcc already folds the original
+  scale expression. It also CSEs gate/up activation loads: each group has only
+  two dwordx4 activation loads (offsets 0/16) shared by both projections.
+  Do not revisit half-scale construction or explicit gate/up xq-load sharing.
