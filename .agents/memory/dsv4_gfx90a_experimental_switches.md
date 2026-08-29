@@ -3622,6 +3622,27 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   explicit staged chain into production. Continue to treat routed FP4 MoE as
   the dominant exact-native TP4/BS32 target.
 
+### TP4 M32 grouped-down R2 row-prefetch oracle (2026-08-30)
+
+- Added an oracle-only A4/R2/W8/D832 grouped-down variant which requests both
+  same-group R2 packed 16-byte weight rows and E8M0 bytes before decoding or
+  consuming row0. It does not predecode weights, prefetch activations, change
+  cache policy, or alter SDOT/shuffle/FP32 accumulation order. Baseline ISA had
+  issued row1 only after completing row0 SDOT; candidate ISA emitted row0 and
+  row1 `global_load_dwordx4` plus both scale requests before row0 LDS decode,
+  retaining row1 in flight at `vmcnt(2)`.
+- Static resources were unchanged at `50 VGPR`, `36 SGPR`, `0` VGPR/SGPR
+  spills, `0` scratch and the same 1-KiB LDS LUT. On the real diverse
+  pass37/layer34 route, 100 mutated activations/router weights preserved the
+  intermediate BF16, down FP32 partial and final BF16 tensors bitwise exactly.
+- Seven-round ABBA moved down trimmed mean from `172.325` to `170.342 us`
+  (`-1.15%`) and full routed stage from `440.387` to `436.333 us` (`-0.92%`).
+  The prefetch is real and correct but misses the predeclared continuation
+  gates of down `<=127 us` and full `<=395 us`; do not add a production
+  selector. Reusable files are
+  `python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_fp4_expert_down_row_prefetch_oracle.cuh`
+  and `scripts/rocm/bench_dsv4_tp4_down_row_prefetch_oracle.py`.
+
 ### TP4 M32 exact-two-round gate-grid rejection (2026-08-30)
 
 - Real diverse pass37/layer34 has 113 A4 scans and 256 gate row tiles, hence
