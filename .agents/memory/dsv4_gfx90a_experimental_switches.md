@@ -3535,3 +3535,17 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   Default flat `global_load_dwordx4` remains the correct production choice;
   do not revisit cache flags unless a future compiler exposes an SLC-only flat
   load with identical addressing and code shape.
+
+### TP4 M32 rows2 four-wave geometry closure (2026-08-30)
+
+- Rechecked four-wave workgroups without the rows1 confounder. All candidates
+  retained A4/R2 arithmetic and were bitwise exact. W4/G1664/D1664 measured
+  about `439.46--440.50 us` versus surrounding W8/G2080/D832
+  `437.20--438.82 us`, so it is neutral-to-slower.
+- W4/G2080/D1664 was the only small win: two candidate centers were
+  `432.529/432.881 us` versus adjacent W8 centers `436.855/436.876 us`, about
+  `4.1 us` or `0.99%`. This misses the predeclared 3% component gate and is
+  below the noise/graph-hiding budget established by prior service A/Bs.
+- Keep these geometries in the standalone oracle for reproducibility, but do
+  not add a runner waves selector or start a service experiment for this
+  sub-1% component result.
