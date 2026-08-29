@@ -321,6 +321,9 @@ class Envs:
     # default; generic SGLang remains opt-in.
     SGLANG_QWEN4_GFX90A_MQ4G128_SYMMETRIC = EnvBool(False)
     SGLANG_QWEN4_GFX90A_MQ4G128_SDOT_M32 = EnvBool(False)
+    # CK XDL specialization for the exact BS32 shared-expert down projection
+    # [32,640] x [2560,640]^T. Generic profiles remain opt-in.
+    SGLANG_QWEN4_GFX90A_CK_SHARED_DOWN_M32 = EnvBool(False)
     # Fuse the BS1 MQ4 router-weight multiply, slot reduction and BF16 cast.
     # This preserves the original expert-dot output and ATen reduction order.
     SGLANG_QWEN4_GFX90A_MQ4G128_FUSED_REDUCE = EnvBool(True)

@@ -449,6 +449,24 @@ struct Gfx90aMq4g128ExpertOwned {
   }
 };
 
+template <uint32_t Control>
+__device__ __forceinline__ float mq4g128_dpp_add(float value) {
+  const uint32_t moved = __builtin_amdgcn_update_dpp(
+      0u, __builtin_bit_cast(uint32_t, value), Control, 0xf, 0xf, false);
+  return value + __builtin_bit_cast(float, moved);
+}
+
+__device__ __forceinline__ float mq4g128_wave32_sum(float value) {
+  // Cross the two 16-lane DPP rows first, then preserve the original
+  // shuffle-down 8/4/2/1 addition tree with row_shl DPP instructions.
+  value += __shfl_down(value, 16, 32);
+  value = mq4g128_dpp_add<0x108u>(value);
+  value = mq4g128_dpp_add<0x104u>(value);
+  value = mq4g128_dpp_add<0x102u>(value);
+  value = mq4g128_dpp_add<0x101u>(value);
+  return value;
+}
+
 template <uint32_t K>
 __device__ __forceinline__ float mq4g128_symmetric_sdot_row(
     const uint8_t* __restrict__ row, const int8_t* __restrict__ x,
@@ -477,10 +495,7 @@ __device__ __forceinline__ float mq4g128_symmetric_sdot_row(
         static_cast<int32_t>(weight_i8), input_i8, 0, false);
     acc += static_cast<float>(dot) * (weight_scale * x_scale[group]);
   }
-#pragma unroll
-  for (uint32_t offset = 16; offset != 0; offset >>= 1)
-    acc += __shfl_down(acc, offset, 32);
-  return acc;
+  return mq4g128_wave32_sum(acc);
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,

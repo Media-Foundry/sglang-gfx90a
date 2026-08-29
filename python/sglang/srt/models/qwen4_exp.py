@@ -1311,6 +1311,12 @@ class Qwen4ExpLayerExtensionMixin:
                 )
                 if is_unquantized and selected:
                     module._qwen4_gfx90a_wave64_bf16 = True
+                if (
+                    is_unquantized
+                    and envs.SGLANG_QWEN4_GFX90A_CK_SHARED_DOWN_M32.get()
+                    and name.endswith("shared_expert.down_proj")
+                ):
+                    module._qwen4_gfx90a_ck_shared_down_m32 = True
 
 
     def _prepare_qwen4_exp_attn(
