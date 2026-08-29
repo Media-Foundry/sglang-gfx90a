@@ -2683,3 +2683,28 @@ remained present in both control and candidate and is therefore not attributed
 to this numerically close HC replacement. The stable throughput improvement
 against adjacent normal control rounds is about 7.5%. This is retained as the
 new BS32 checkpoint, while BS1/BS16 continue to use their established paths.
+
+## 2026-08-29: post-CK BS32 collective and MQ4 affine screens rejected
+
+The retained TP4/EP4/no-A2A service was re-established at a three-round
+native-AR BS32 median of `684.62 tok/s` (`683.52/684.62/685.84`), with all 32
+requests completing exactly 256 tokens.  Enabling stock AIter all-reduce plus
+next-layer residual/RMSNorm fusion produced only
+`675.58/677.71/678.72 tok/s` (median `677.71`), about 1% slower.  A return
+control recovered `681.59 tok/s` before one ordinary slow-state round.  The
+fusion remains disabled; the BS1-neutral result does not become a BS32 win.
+
+A second module oracle tested algebraically factoring each MQ4 affine group
+from four `(scale*q + zero)*x` terms into
+`scale*sum(q*x) + zero*sum(x)`.  Despite fewer apparent source operations,
+the compiled gfx90a kernel regressed: gate/up changed from `263.91` to
+`275.67 us`, and down from `138.18` to `148.49 us`.  Relative L2 error stayed
+below `2.3e-7` and 1000 replays were bitwise stable, but the slower path and
+its selector/oracle were fully removed.
+
+Finally, SGLang's in-process GPU profiler again wedged while automatically
+stopping over a captured multi-rank graph, leaving ROCm queue-interposition
+signal handlers spinning after the profiled request had completed.  The exact
+profiler-created service processes were terminated and no trace proportions
+were accepted.  Future timing must use graph-safe module events or the already
+validated external attach procedure rather than `/start_profile` auto-stop.
