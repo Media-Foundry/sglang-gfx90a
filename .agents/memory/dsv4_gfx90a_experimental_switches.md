@@ -4128,3 +4128,40 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   candidate `15.563 us` (`-5.335 us`, 1.522x slower). It fails both the >=8-us
   saving and <=60% latency gates. Do not replace `moe_sorting`; the entire sort
   is only about 10 us, so fusing top-k with sort has a small absolute ceiling.
+### TP4 M32 unified-KV paged-decode core geometry oracle (2026-08-30)
+
+- Added only oracle escape hatches for launch `num_warps/num_stages` and an
+  independent benchmark; production defaults remain `(4,2)`. Fixed the actual
+  TP4 decode shape T32/H16/D512, BLOCK_H16, KV_SPLITS4, BLOCK_K16 and BF16 KV.
+- Swept warps 2/4/8 and launch stages 1/2/3 at uniform context lengths
+  256/512/768/1024. All nine profiles were BF16 bitwise equal at each length;
+  additionally, baseline `(4,2)` and candidate `(2,1)` were bitwise exact over
+  100 captured Q mutations per length.
+- Seven-round ABBA baselines `(4,2)` were 69.591/117.382/164.876/215.160 us.
+  Keeping production stages=2 and changing only to two warps measured
+  49.134/77.861/102.203/130.472 us, saving 20.458/39.522/62.673/84.688 us
+  (about 29--39% lower latency). The absolute best two-warp stage choice varied
+  only at sub-microsecond noise; launch stages do not materially affect this
+  kernel because its inner `tl.range` already carries an explicit pipeline.
+- Eight warps was 111.545/202.187/290.413/382.021 us and is decisively wrong.
+  Two warps passes the >=5-us / >=10% continuation gate at every tested length.
+  The next production experiment should change only `num_warps=2` for the
+  exact TP4 M32/H16/D512/BF16 split-K shape, retain stages=2, run the standard
+  teacher-forced bitwise check, then service ABBA. Do not generalize to other
+  head counts, graph tiers, FP8 KV, or fused single-split kernels.
+### TP4 M32 unified-KV two-warp service rejection (2026-08-30)
+
+- Added a default-off, rollback-safe selector restricted to gfx90a,
+  attention-TP4, T32/H16/D512, BF16 KV, split-K (`kv_splits>1`), BLOCK_H16
+  and BLOCK_K16. It changes only core `num_warps=4 -> 2` and keeps stages=2.
+- The 32-row teacher-forced response was bitwise identical to the adjacent
+  baseline for all output IDs, complete token-logprob rows and top-5 rows.
+- Five 512-token diverse-request rounds all passed France first-nine and
+  returned exactly 512 tokens. Resident throughput was
+  `621.821/623.186/622.691/622.048/624.003 tok/s`, median `622.691` and
+  trimmed mean `622.642`, versus the current issue-order-3 baseline around
+  `623.4 tok/s`. Thus the 29--39% isolated core reduction is hidden by the
+  full attention multistream graph and does not improve service throughput.
+- Removed the TP4 profile opt-in after the A/B. Keep the environment selector
+  default-off and retain the standalone geometry oracle; do not enable it by
+  default from microbenchmark results alone.

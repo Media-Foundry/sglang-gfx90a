@@ -700,6 +700,8 @@ def _sparse_attn_v4_paged_decode_triton(
     block_k: int | None = None,
     inverse_rope_freqs: torch.Tensor | None = None,
     inverse_rope_positions: torch.Tensor | None = None,
+    _oracle_num_warps: int | None = None,
+    _oracle_num_stages: int | None = None,
 ) -> torch.Tensor:
     """V4 sparse decode Triton implementation: split-K with FUSED fast path,
     exp2 softmax, CG-safe heuristic. ``block_h`` and ``kv_splits`` are
@@ -784,12 +786,42 @@ def _sparse_attn_v4_paged_decode_triton(
 
     qk_scale = float(softmax_scale) * LOG2E
     _bk, num_warps, num_stages = _kernel_config(block_h)
+    # Standalone geometry oracle only. Production callers leave both unset.
+    if _oracle_num_warps is not None:
+        num_warps = _oracle_num_warps
+    if _oracle_num_stages is not None:
+        num_stages = _oracle_num_stages
     if block_k is None:
         # fp8 dequant inflates per-tile ALU work ~4×; a wider K tile amortizes
         # the per-tile dequant cost (scale load + cast + multiply) over more
         # MFMA work. Empirically BLOCK_K=32 wins ~20% over BLOCK_K=16 on fp8
         # (bs=512 ctx=4096: 3000µs → 2300µs) without hurting bf16.
         block_k = 32 if quant_kv else _bk
+
+    # Exact gfx90a TP4/M32 BF16 split-K specialization. Math tiles and the
+    # fixed reduction stay unchanged; only the core launch uses two wave64
+    # warps. The default-off environment selector is the rollback path.
+    if (
+        _oracle_num_warps is None
+        and not quant_kv
+        and T == 32
+        and H == 16
+        and D == 512
+        and block_h == 16
+        and block_k == 16
+        and kv_splits > 1
+    ):
+        from sglang.srt.environ import envs
+        from sglang.srt.runtime_context import get_parallel
+        from sglang.srt.utils.common import is_gfx90a_supported
+
+        if (
+            is_gfx90a_supported()
+            and get_parallel().attn_tp_size == 4
+            and envs.SGLANG_DSV4_GFX90A_TP4_M32_PAGED_DECODE_WARPS2.get()
+        ):
+            num_warps = 2
+            num_stages = 2
 
     # Kernel reads (kv_scales_ptr, ks_stride_n) only when QUANT_KV — supply a
     # dummy 1-element fp32 tensor on the bf16 path so the launch signature
