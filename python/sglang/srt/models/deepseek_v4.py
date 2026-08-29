@@ -953,6 +953,12 @@ class MQALayer(MqaAttentionBase):
         if alt_streams is not None and (
             (_is_cuda and envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get())
             or (_is_npu and envs.SGLANG_NPU_USE_MULTI_STREAM.get())
+            or (
+                _is_hip
+                and envs.SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM.get()
+                and self.attn_tp_size == 4
+                and self.compress_ratio == 4
+            )
         ):
             self.alt_streams = alt_streams[:3]
             self.alt_streams_indexer = alt_streams[-2:]
@@ -1394,9 +1400,19 @@ class MQALayer(MqaAttentionBase):
             )
 
             token_to_kv_pool = get_token_to_kv_pool()
-            swa_loc = attn_backend.get_swa_out_cache_loc(forward_batch)
-            swa_cache = token_to_kv_pool.get_swa_raw_buffer(self.layer_id)
-            swa_page_size = token_to_kv_pool.swa_kv_pool.page_size
+            from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
+                is_unified_kv_triton,
+            )
+
+            unified_kv = is_unified_kv_triton()
+            if unified_kv:
+                swa_loc = attn_backend.get_unified_swa_loc(forward_batch)
+                swa_cache = token_to_kv_pool.get_unified_kv(self.layer_id)
+                swa_page_size = 1
+            else:
+                swa_loc = attn_backend.get_swa_out_cache_loc(forward_batch)
+                swa_cache = token_to_kv_pool.get_swa_raw_buffer(self.layer_id)
+                swa_page_size = token_to_kv_pool.swa_kv_pool.page_size
 
             q = fused_qk_norm_rope_swa_store(
                 q=q,
@@ -1414,6 +1430,7 @@ class MQALayer(MqaAttentionBase):
                 swa_page_size=swa_page_size,
                 q_out=q_out,
                 dtype=x.dtype,
+                bf16_store=unified_kv,
             )
             mark(13)
         else:
@@ -1436,6 +1453,7 @@ class MQALayer(MqaAttentionBase):
                 attn_backend=attn_backend,
                 skip_compressor=True,
             )
+            mark(15)
         elif self.compressor is not None:
             current_stream.wait_stream(stream_compressor)
 
@@ -1822,8 +1840,19 @@ class MQALayer(MqaAttentionBase):
                 (DeepseekV4AttnBackend, DeepseekV4HipRadixBackend),
             )
 
+        enable_tp4_m32_hip_streams = (
+            _is_hip
+            and envs.SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM.get()
+            and self.attn_tp_size == 4
+            and self.compress_ratio == 4
+            and x.shape[0] == 32
+            and forward_batch.forward_mode.is_decode_or_idle()
+        )
         enable_multi_stream = (
-            envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
+            (
+                envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
+                or enable_tp4_m32_hip_streams
+            )
             and self.alt_streams is not None
             and get_is_capture_mode()
             and (

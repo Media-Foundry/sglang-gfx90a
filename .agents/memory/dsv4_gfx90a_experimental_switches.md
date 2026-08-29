@@ -3218,3 +3218,29 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Gate-only DPP is a small real micro win and a weak service trend, but it fails
   the predeclared stable >=1% service gate. Production selectors were removed;
   keep the A/G/D/B oracle only. Do not combine gate+down DPP in the TP4 graph.
+
+### TP4 M32 C4 attention multistream checkpoint (2026-08-29)
+
+- The existing HIP multistream prepare path had remained unreachable and still
+  addressed the legacy raw-SWA pool. A narrow default-off selector now permits
+  only `gfx90a + attn-TP4 + C4 + native decode M32 + graph capture`; unified-KV
+  uses `get_unified_kv`, unified cache locations, page size 1 and BF16 store.
+  Other graph tiers and C128 layers retain the serial path.
+- The first capture exposed the stale raw-SWA dependency (`swa_kv_pool=None`),
+  which was fixed rather than bypassed. Seven valid four-rank coarse marker
+  groups then reduced C4 prepare from serial median `230.08 us` to `148.16 us`
+  (range `147.36--153.60`), saving `81.92 us/C4 layer`. The old fine marker
+  validator initially saw a stale slot15 because that marker was absent in the
+  multistream branch; slot15 is now written after the indexer consumer join.
+- Streaming resident ABBA with 32 distinct fixed input-ID prompts and 512 output
+  tokens gave serial A=`592.928 tok/s`; independent B services were
+  `613.866/613.277 tok/s`. Restoring all graph tiers 1--32 produced
+  `615.467 tok/s`; all 32 requests completed 512 tokens with `finish=length` and
+  France first-nine exact. Relative to adjacent A this is about +3.5--3.8%.
+- A single parallel-batch M32 teacher-forced oracle compared serial and both
+  quick/full-tier candidates: 32/32 next-token IDs, top-5 IDs, token logprobs
+  and complete returned rows were bitwise identical (`max logprob abs=0`). The
+  reusable checker is `scripts/rocm/check_dsv4_tp4_m32_next_token.py`.
+- Enable `SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM=1` by default only inside
+  the explicit TP4 BS32 profile. This is an exact native-AR scheduling change;
+  it does not alter weights, attention semantics, or speculative decoding.

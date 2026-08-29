@@ -1502,6 +1502,10 @@ class Envs:
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
+    # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
+    # generic overlap selector globally; this narrow gate lets the existing
+    # Q/core-compressor/index-compressor schedule be measured independently.
+    SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM = EnvBool(False)
     # TP8 M32 decode: run exact group32 activation quant and A4 expert sorting
     # as independent CTAs in one HIP launch.
     SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT = EnvBool(False)
