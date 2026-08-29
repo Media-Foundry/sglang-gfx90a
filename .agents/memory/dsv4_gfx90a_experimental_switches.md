@@ -3275,3 +3275,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Keep `scripts/rocm/bench_dsv4_tp4_attn_output_row_pipeline.py` as the exact
   oracle. Do not add row-pipeline streams or a production bmm selector; the C4
   attention-output tail has no locally demonstrated >=1% service candidate.
+
+### TP4 diverse-routing gate-grid revalidation after C4 overlap (2026-08-30)
+
+- Rechecked whether the production `gate_blocks=2080` choice had been biased by
+  its original repeated-prompt service test. Both services used the accepted C4
+  multistream path, graph tiers `1/8/16/24/32`, 32 fixed distinct input-ID
+  prompts, 512 native-AR output tokens and the common-resident BS32 window.
+- `gate_blocks=832` measured `610.670/610.643/611.815 tok/s`; the adjacent
+  `gate_blocks=2080` service measured `613.982/614.657/615.128 tok/s`.
+  Every round completed all 32 requests and passed the France first-nine-token
+  check. The larger gate grid remains about 0.6% faster even with diverse
+  routing and the new C4 stream overlap.
+- Keep 2080 as the TP4-BS32 profile default. Do not add a route-dependent grid
+  selector: the measured difference is small, but its sign is stable and the
+  lower-CTA alternative does not recover hidden overlap.
