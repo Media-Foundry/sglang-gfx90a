@@ -3261,3 +3261,17 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   notification cost can be diagnosed independently. Interval 8 measured
   `607.479 tok/s`, but formal comparisons remain at interval 1 because coarse
   notification shifts the observable common-resident boundary.
+
+### TP4 M32 attention-output local oracle (2026-08-29)
+
+- Isolated the C4 output chain (`wo_a`, layout restoration, `wo_b`) without
+  production wiring. Splitting M32 rows across two/four/eight streams measured
+  `94.10/141.45/271.81 us` versus the serial `73.99 us`, regressions of roughly
+  27/91/267%. The changed M shapes also changed GEMM reduction order
+  (`max_abs=0.0078125`), so this is neither fast nor bitwise exact.
+- Replacing the grouped einsum with a strided batched `bmm` was bitwise exact,
+  but the complete output chain improved only `73.99 -> 73.56 us` (+0.58%).
+  This is far below the predeclared 12-us/layer continuation threshold.
+- Keep `scripts/rocm/bench_dsv4_tp4_attn_output_row_pipeline.py` as the exact
+  oracle. Do not add row-pipeline streams or a production bmm selector; the C4
+  attention-output tail has no locally demonstrated >=1% service candidate.
