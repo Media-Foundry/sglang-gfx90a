@@ -3118,3 +3118,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - 新增显式`SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE=1`：选择TP4/EP1/no-A2A、A4、
   LDS LUT、rows2、gate/down 832 blocks，并捕获1--32全部tier。它不覆盖旧双TP4 M16
   profile，因为历史M16 A4端到端已判负。
+- 后续TP4 K512 down-consumer quant融合扩展了既有TP8 oracle：同一512-thread CTA的
+  32个16-lane subgroup各顺序量化两个group，保持group32除法/cast、down partial及
+  fixed-slot reduction次序。CTA4/8/12/16的partial和最终BF16均逐元素exact；100次
+  mutation和100次graph replay exact。最佳CTA16完整routed仅`449.428 -> 443.112 us`
+  （`-1.41%`），远低于`<=410 us`门槛，不接production selector。
+- A8/rows1虽减半accumulator，624/832/1040/1248 blocks最好仅约`504.8--522.9 us`，
+  仍慢于A4/R2约12%以上；不重访A8。显式`uint4` packed-weight load与gate/up成对SDOT
+  helper都让A4保持约`449--450 us`，证明hipcc已有等价load/CSE，源码均已撤销。
+- 将gate/down grid解耦后，down扩大到1040/1248明确退化；gate从832扩大时，完整stage
+  为g1040/d832 `444.385 us`、g1248 `442.529`、g1872 `441.529`、g2080
+  `441.513 us`，全部bitwise exact。只捕获1/32的完整服务上，g2080热稳态为
+  `729.878/732.760/731.938/732.667 tok/s`，相同重复请求g832约`722.7--726.4`，
+  端到端约+1%；因此单TP4-BS32 profile保留gate2080/down832的小收益。

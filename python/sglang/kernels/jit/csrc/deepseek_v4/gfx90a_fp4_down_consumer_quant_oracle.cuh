@@ -18,7 +18,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const int32_t* __restrict__ sorted_expert_ids,
         const int32_t* __restrict__ num_valid_ids,
         const float* __restrict__ topk_weights) {
-  static_assert(K == 256, "oracle is specialized for TP8 K=256");
+  static_assert(K == 256 || K == 512,
+                "oracle supports the TP8 K256 and TP4 K512 shards");
   static_assert(kAssignments == 4, "oracle keeps production A4 metadata");
   static_assert(kRows == 2 && kNumWaves == 8,
                 "oracle keeps production R2/W8 geometry");
@@ -65,36 +66,42 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   constexpr uint32_t kQuantSubgroup = 16;
   const uint32_t quant_subgroup = threadIdx.x / kQuantSubgroup;
   const uint32_t quant_lane = threadIdx.x % kQuantSubgroup;
-  const uint32_t quant_assignment = quant_subgroup / kGroups;
-  const uint32_t quant_group = quant_subgroup % kGroups;
-  const uint32_t quant_encoded = static_cast<uint32_t>(
-      sorted_ids[expert_block * kAssignments + quant_assignment]);
-  const uint32_t quant_token = quant_encoded & 0x00ffffffu;
-  const uint32_t quant_slot = quant_encoded >> 24;
-  const bool quant_valid = quant_token < M && quant_slot < T;
-  float x0 = 0.0f;
-  float x1 = 0.0f;
-  if (quant_valid) {
-    const size_t input_assignment =
-        static_cast<size_t>(quant_token) * T + quant_slot;
-    const size_t base = input_assignment * K + quant_group * 32;
-    x0 = cast<float>(intermediate[base + quant_lane]);
-    x1 = cast<float>(intermediate[base + 16 + quant_lane]);
-  }
-  float absmax = fmaxf(fabsf(x0), fabsf(x1));
+  constexpr uint32_t kQuantSubgroups =
+      (kNumWaves * kFp4ExpertWave) / kQuantSubgroup;
+  for (uint32_t quant_task = quant_subgroup;
+       quant_task < kAssignments * kGroups;
+       quant_task += kQuantSubgroups) {
+    const uint32_t quant_assignment = quant_task / kGroups;
+    const uint32_t quant_group = quant_task % kGroups;
+    const uint32_t quant_encoded = static_cast<uint32_t>(
+        sorted_ids[expert_block * kAssignments + quant_assignment]);
+    const uint32_t quant_token = quant_encoded & 0x00ffffffu;
+    const uint32_t quant_slot = quant_encoded >> 24;
+    const bool quant_valid = quant_token < M && quant_slot < T;
+    float x0 = 0.0f;
+    float x1 = 0.0f;
+    if (quant_valid) {
+      const size_t input_assignment =
+          static_cast<size_t>(quant_token) * T + quant_slot;
+      const size_t base = input_assignment * K + quant_group * 32;
+      x0 = cast<float>(intermediate[base + quant_lane]);
+      x1 = cast<float>(intermediate[base + 16 + quant_lane]);
+    }
+    float absmax = fmaxf(fabsf(x0), fabsf(x1));
 #pragma unroll
-  for (uint32_t offset = 8; offset > 0; offset >>= 1) {
-    absmax = fmaxf(absmax, __shfl_xor(absmax, offset, kQuantSubgroup));
-  }
-  const float scale = fmaxf(absmax, 1.0e-10f) / 127.0f;
-  const float q0 = fmaxf(-128.0f, fminf(127.0f, x0 / scale));
-  const float q1 = fmaxf(-128.0f, fminf(127.0f, x1 / scale));
-  q_lds[quant_assignment][quant_group * 32 + quant_lane] =
-      static_cast<int8_t>(q0);
-  q_lds[quant_assignment][quant_group * 32 + 16 + quant_lane] =
-      static_cast<int8_t>(q1);
-  if (quant_lane == 0) {
-    scale_lds[quant_assignment][quant_group] = scale;
+    for (uint32_t offset = 8; offset > 0; offset >>= 1) {
+      absmax = fmaxf(absmax, __shfl_xor(absmax, offset, kQuantSubgroup));
+    }
+    const float scale = fmaxf(absmax, 1.0e-10f) / 127.0f;
+    const float q0 = fmaxf(-128.0f, fminf(127.0f, x0 / scale));
+    const float q1 = fmaxf(-128.0f, fminf(127.0f, x1 / scale));
+    q_lds[quant_assignment][quant_group * 32 + quant_lane] =
+        static_cast<int8_t>(q0);
+    q_lds[quant_assignment][quant_group * 32 + 16 + quant_lane] =
+        static_cast<int8_t>(q1);
+    if (quant_lane == 0) {
+      scale_lds[quant_assignment][quant_group] = scale;
+    }
   }
   __syncthreads();
 

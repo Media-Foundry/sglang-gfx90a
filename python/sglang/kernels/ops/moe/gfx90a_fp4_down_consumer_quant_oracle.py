@@ -11,8 +11,10 @@ if TYPE_CHECKING:
 
 
 @cache_once
-def _jit_module(ctas_per_expert: int) -> Module:
-    args = make_cpp_args(256, 32, 6, 4096, 256, 4, 2, 8, ctas_per_expert)
+def _jit_module(intermediate_size: int, ctas_per_expert: int) -> Module:
+    args = make_cpp_args(
+        256, 32, 6, 4096, intermediate_size, 4, 2, 8, ctas_per_expert
+    )
     return load_jit(
         "gfx90a_fp4_down_consumer_quant_oracle",
         *args,
@@ -44,10 +46,15 @@ def gfx90a_fp4_down_consumer_quant_oracle(
 ) -> None:
     if not 1 <= ctas_per_expert <= 16:
         raise ValueError(f"unsupported ctas_per_expert={ctas_per_expert}")
-    _jit_module(ctas_per_expert).run(
+    intermediate_size = intermediate.shape[-1]
+    if intermediate_size not in (256, 512):
+        raise ValueError(f"unsupported intermediate_size={intermediate_size}")
+    _jit_module(intermediate_size, ctas_per_expert).run(
         intermediate,
         weight.view(torch.uint8),
-        weight_scale.view(torch.uint8).reshape(256, 4096, 8),
+        weight_scale.view(torch.uint8).reshape(
+            256, 4096, intermediate_size // 32
+        ),
         sorted_ids,
         sorted_expert_ids,
         num_valid_ids,

@@ -24,7 +24,7 @@ from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
 
-E, M, T, H, I, N = 256, 32, 6, 4096, 256, 4096
+E, M, T, H, N = 256, 32, 6, 4096, 4096
 ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS = 4, 2, 8, 832, 2
 
 
@@ -105,6 +105,13 @@ def main() -> None:
     parser.add_argument("--correctness-replays", type=int, default=100)
     parser.add_argument("--graph-replays", type=int, default=1000)
     parser.add_argument(
+        "--intermediate-size",
+        type=int,
+        choices=(256, 512),
+        default=256,
+        help="expert intermediate shard: TP8=256, TP4=512",
+    )
+    parser.add_argument(
         "--ctas-per-expert", type=int, nargs="+", default=[4, 6, 7, 8, 9, 10, 12]
     )
     args = parser.parse_args()
@@ -116,6 +123,7 @@ def main() -> None:
         raise RuntimeError(f"gfx90a required, got {arch}")
     torch.manual_seed(7)
     device = torch.device("cuda")
+    intermediate_size = args.intermediate_size
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
     raw = payload["logical_count"][args.pass_index, args.layer]
@@ -134,11 +142,21 @@ def main() -> None:
     x = torch.randn((M, H), dtype=torch.bfloat16, device=device)
     xq, xs = per_token_group_quant_int8(x, 32)
     topk_weights = torch.rand((M, T), dtype=torch.float32, device=device)
-    w13 = torch.randint(0, 256, (E, 2 * I, H // 2), dtype=torch.uint8, device=device)
-    w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device=device)
-    s13 = torch.full((E, 2 * I, H // 32), 127, dtype=torch.uint8, device=device)
-    s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device=device)
-    intermediate_a = torch.empty((M, T, I), dtype=torch.bfloat16, device=device)
+    w13 = torch.randint(
+        0, 256, (E, 2 * intermediate_size, H // 2), dtype=torch.uint8, device=device
+    )
+    w2 = torch.randint(
+        0, 256, (E, N, intermediate_size // 2), dtype=torch.uint8, device=device
+    )
+    s13 = torch.full(
+        (E, 2 * intermediate_size, H // 32), 127, dtype=torch.uint8, device=device
+    )
+    s2 = torch.full(
+        (E, N, intermediate_size // 32), 127, dtype=torch.uint8, device=device
+    )
+    intermediate_a = torch.empty(
+        (M, T, intermediate_size), dtype=torch.bfloat16, device=device
+    )
     intermediate_b = torch.empty_like(intermediate_a)
     partial_a = torch.empty((M, T, N), dtype=torch.float32, device=device)
     partial_b = torch.empty_like(partial_a)
@@ -146,10 +164,10 @@ def main() -> None:
     out_b = torch.empty_like(out_a)
 
     gate_module = _jit_gate_up_grouped(
-        E, M, T, I, H, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
+        E, M, T, intermediate_size, H, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
     )
     down_module = _jit_down_grouped(
-        E, M, T, N, I, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
+        E, M, T, N, intermediate_size, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
     )
 
     def gate(out: torch.Tensor) -> None:
