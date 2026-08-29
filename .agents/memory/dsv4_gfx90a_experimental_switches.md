@@ -3436,3 +3436,21 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   rejected. The small rows1 result is useful evidence but not a production
   checkpoint; the next representation must reduce real DRAM scans rather than
   only reshuffle occupancy.
+
+### TP4 M32 row-tile-major grouped-FP4 task order rejection (2026-08-30)
+
+- Tested a cache-only task permutation on the real diverse pass37/layer34
+  route: map `task -> (row tile, expert block)` instead of production's
+  `(expert block, row tile)`. It kept A4 accumulators, logical loads, partial
+  layout and fixed reduction unchanged, while placing adjacent A4 blocks for
+  one expert on nearby waves. Output was elementwise exact.
+- Five rounds measured production expert-major at median `437.423 us` and
+  row-tile-major at `677.518 us` (`+54.9%`). The permutation destroys the
+  current contiguous row traversal and grid-stride balance; neighboring waves
+  do not turn the small amount of same-expert traffic into useful cache reuse.
+- The diverse 128-pass distribution averages about 106.72 active experts and
+  113.37 A4 blocks, so only about 5.86% of blocks are second-or-later chunks of
+  an expert. This strict TP4 result agrees with the older, more favorable TP8
+  paired-A4 rejection. The experimental kernel/template code was removed; do
+  not revisit row-major ordering without a fundamentally different load-sharing
+  primitive and a substantially higher measured expert-run fraction.
