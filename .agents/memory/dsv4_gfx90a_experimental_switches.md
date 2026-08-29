@@ -3713,6 +3713,43 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   was `29.586 us`. This validates the isolated publication fix under graph
   mutation/replay; production service correctness and throughput still need a
   separate ABBA run before calling it a performance checkpoint.
+
+### DSV4 C4-indexer long-context scaling oracle (2026-08-30)
+
+- Added the service-free graph oracle
+  `scripts/rocm/bench_dsv4_c4_indexer_long_context.py` for the model's actual
+  indexer shape: batch 32, 64 index heads, head dimension 128, C4 page size 64
+  and Top-512. Synthetic KV pages preserve the production structure-of-arrays
+  byte layout (8192 FP8 value bytes followed by 64 FP32 scales per page), which
+  is required even though the public tensor view is `[page,64,1,132]`. The
+  current full-Triton kernel used its default `BLOCK_S=16`.
+- Seven-round alternating graph order measured median microseconds for
+  `(full-Triton logits / torch Top-512 / logical-to-physical slot / complete
+  chain)`: L513 `21.952 / 33.488 / 18.008 / 70.239`, L1024
+  `34.680 / 47.671 / 17.784 / 98.327`, L4096
+  `119.367 / 64.015 / 18.128 / 208.334`, and L16384
+  `453.763 / 54.567 / 18.176 / 534.530 us`. Slot conversion was checked
+  exactly against the page-table formula. This confirms that long-context
+  scaling is dominated by the O(L) index dot/score scan, while the separate
+  Top-K plus slot tail still costs roughly 72.7 us at L16384.
+- Full-Triton scores agreed with the BF16 torch reference at maximum relative
+  error `0.00150--0.00196` and mean absolute error about `0.066--0.068`.
+  Top-512 set exact rows for L513/1024/4096/16384 were `32/27/20/8` out of 32;
+  minimum set overlaps were `512/511/510/510` and mean overlaps
+  `512/511.844/511.562/511.125`. Thus disagreements are only one or two entries
+  at the Top-512 boundary under the expected BF16/Triton reduction difference,
+  not gross score or addressing errors.
+- The materialized FP32 logits write is 64.1 KiB, 128 KiB, 512 KiB and 2 MiB
+  for the four lengths. A two-level design in which each CTA scans a 4096-token
+  chunk and emits at most 512 `(FP32 score,int32 index)` candidates would write
+  128 KiB through L4096 and 512 KiB at L16384. It is not a byte win at L513,
+  ties at L1024, and reduces candidate/intermediate writes 4x at L4096/16384.
+  More importantly, it can remove the separate full-logits Top-K read and fold
+  physical-slot generation into merge. At L4096/16384 the measured explicit
+  Top-K plus slot budget is `82.14/72.74 us`; even allowing a 30--45 us merge,
+  the candidate path has a credible `>=20 us/layer` opportunity. Continue only
+  with a CTA-local selection micro-oracle first; do not replace production
+  until Top-512 boundary parity and graph behavior are validated.
 - Production follow-up used the exact 32-request diverse manifest, forced
   native AR, graph tiers 1/32 and three 64-token rounds. The default external
   AIter two-stage service kept France correct and had resident BS32 samples
