@@ -3823,3 +3823,30 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   optional, not a TP4 performance default. The benchmark retains optional
   token-position and common-wall-time bin reporting so future client-tail work
   cannot be mistaken for GPU decode optimization.
+
+### TP4 M32 C4 output-N projection+AG oracle rejection (2026-08-30)
+
+- Added standalone `scripts/rocm/bench_dsv4_tp4_output_n_projection_ag.py`
+  using the real layer-20 M32 activation and four projection weights. Baseline
+  A preserves the production GEMM boundaries N1536/N2048/N512/N64. Candidate B
+  concatenates global N4160 weights, gives each TP4 rank one contiguous N1040
+  full-K BF16 GEMM, runs AIter registered all-gather, then captures the
+  rank-major `[rank,token,1040]` to consumer-major `[token,4160]` restoration.
+  The qkv, core-compressor, index-compressor and index-weight segments were
+  checked independently, and a replay-local GEMM matched its gathered rank
+  slice bitwise, proving AG and rank-major restoration were not the error.
+- On the unmodified real activation all four consumer segments were bitwise
+  exact. Across 128 deterministic bounded mutations, however, 100 outputs
+  differed on every rank: qkv/core remained exact, while index-compressor and
+  index-weight differed on 94 and 25 mutations. Maximum absolute error was
+  `0.03125` and maximum relative L2 was `9.2931e-5`. An explicit replay check
+  confirmed the local-GEMM-to-AG slice itself was exact; the difference comes
+  from changing hipBLASLt reduction/solution shape across the original small-N
+  projection boundaries, consistent with the rejected TP8 output-N path.
+- Seven-sample four-slot ABBA rank-max gave A means `123.559 us`, B means
+  `67.669 us`, a real `55.890 us` (`45.23%`) local saving. It passes the
+  predeclared `>=30 us` performance gate but fails the required 100+ mutation
+  bitwise gate, so the combined-N TP4 path must not proceed to production.
+  Preserving four independent output-N boundaries would be required for exact
+  semantics, but prior TP8 segmented experiments show that several small local
+  GEMMs erase most or all of this gain.
