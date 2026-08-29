@@ -1340,14 +1340,24 @@ class MQALayer(MqaAttentionBase):
 
         mark(8)
 
-        if self.compressor is not None:
+        issue_order = envs.SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER.get()
+        if issue_order not in (0, 1, 2, 3):
+            raise ValueError(
+                "SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER must be 0..3"
+            )
+
+        def launch_core_compressor() -> None:
+            if self.compressor is None:
+                return
             stream_compressor.wait_stream(current_stream)
             with torch.cuda.stream(stream_compressor):
                 attn_backend.forward_core_compressor(
                     x, forward_batch, self.layer_id, self.compressor
                 )
 
-        if self.indexer is not None and stream_indexer_compressor is not None:
+        def launch_indexer_compressor() -> None:
+            if self.indexer is None or stream_indexer_compressor is None:
+                return
             stream_indexer_compressor.wait_stream(current_stream)
             with torch.cuda.stream(stream_indexer_compressor):
                 attn_backend.forward_indexer_compressor(
@@ -1356,6 +1366,11 @@ class MQALayer(MqaAttentionBase):
                     layer_id=self.indexer.layer_id,
                     compressor=self.indexer.compressor,
                 )
+
+        if issue_order in (0, 1):
+            launch_core_compressor()
+        if issue_order in (0, 2):
+            launch_indexer_compressor()
         mark(9)
 
         x_linear = x_quant if x_quant is not None else x
@@ -1374,6 +1389,11 @@ class MQALayer(MqaAttentionBase):
             q_lora, _ = self.wq_a(x_linear)
             qkv_a = None
         mark(10)
+
+        if issue_order in (2, 3):
+            launch_core_compressor()
+        if issue_order in (1, 3):
+            launch_indexer_compressor()
 
         if self.use_fused_qk_norm_rope:
             if _is_gfx95_supported:

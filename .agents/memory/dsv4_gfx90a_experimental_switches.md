@@ -4076,3 +4076,37 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   roughly 104 CUs. Increasing fan-in converges toward the original scheduler,
   but owner8 still fails the <10 us publication gate. Do not attach the exact
   consumer to these decompositions.
+
+### TP4 M32 C4 attention issue-order checkpoint (2026-08-30)
+
+- Re-captured the current HEAD layer-20 realtime marker after the accepted C4
+  multistream and DPP-gate/down-prefetch changes. Across 512 hot four-rank
+  groups, rank-max medians were MHC-entry `88.00 us`, prepare `154.72 us`,
+  attention core `51.84 us`, output/collective `132.48 us`, FFN entry
+  `95.84 us`, routed span `549.60 us`. Fine MoE medians were router `28.32`,
+  top-k `12.16`, routed experts `464.48`, join/add `4.00/4.32`, and TP4 AR tail
+  `41.44 us`. Marker logging reduced the HTTP resident rate to about 666 tok/s,
+  so these are localization data rather than a throughput checkpoint.
+- Added a default-zero issue-order selector for the narrow TP4/M32 multistream
+  path. Mode 0 is the accepted schedule (both C4 compressor branches launch
+  before q_lora); mode 1 delays only indexer-compressor, mode 2 delays only
+  core-compressor, and mode 3 computes q_lora first then launches both. No
+  tensor math, stream dependency, weights, cache layout or attention semantics
+  change.
+- Marker rank-max results rejected modes 1 and 2: prepare increased to
+  `175.20/169.12 us`. Mode 3 reduced prepare to `149.60 us` and the following
+  attention-core interval to `40.40 us`, versus `154.72/51.84 us` for mode 0,
+  a combined `16.56 us` C4-layer reduction. Its q-lora projection interval was
+  `44.80 us` rather than the contended baseline `68.32 us`; delayed compressor
+  tail rose to `27.04 us` but remained hidden more effectively by later work.
+- A 32-distinct-input teacher-forced comparison between independently started
+  mode-0 and mode-3 services was JSON-exact for every output ID, complete
+  logprob row and top-5 entry. Five 512-token no-marker resident rounds were
+  mode 0=`620.047/620.541/619.931/621.008/619.928 tok/s` (median `620.047`,
+  trimmed `620.173`) and first mode 3=`623.917/623.478/623.272/623.655/623.794`
+  (median `623.655`, trimmed `623.642`). An independent second mode-3 service
+  measured `621.916/626.753/623.392` (median `623.392`). The stable gain is
+  about `0.52--0.58%` in the HTTP-resident metric.
+- Enable issue order 3 only in `SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE`; the
+  environment selector remains a zero-default rollback outside that profile.
+  This is a verified small scheduling win, not a 1500 tok/s checkpoint.

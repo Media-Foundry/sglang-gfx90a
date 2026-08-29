@@ -1510,6 +1510,11 @@ class Envs:
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
     SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM = EnvBool(False)
+    # Experimental issue-order sweep for the TP4/M32 C4 attention branches:
+    # 0 launches both compressors before q_lora, 1 delays the indexer
+    # compressor, 2 delays the core compressor, and 3 delays both until after
+    # q_lora.  The default preserves the validated production schedule.
+    SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER = EnvInt(0)
     # TP8 M32 decode: run exact group32 activation quant and A4 expert sorting
     # as independent CTAs in one HIP launch.
     SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT = EnvBool(False)

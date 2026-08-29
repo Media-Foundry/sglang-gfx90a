@@ -71,6 +71,10 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # TP4 has twice TP8's local Q heads.  At M32 its longer Q branch hides the
   # C4 core/index compressor branches; lower tiers retain the serial path.
   export SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM:-1}"
+  # Run the latency-sensitive q_lora projection before issuing the two C4
+  # compressor branches. The compressors then overlap q_norm/wq_b and the
+  # attention core without doubling q_lora's isolated latency.
+  export SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER="${SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER:-3}"
 fi
 
 HOST="${HOST:-127.0.0.1}"
