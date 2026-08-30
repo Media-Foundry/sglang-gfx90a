@@ -382,3 +382,33 @@ independent-service centers `983.408/991.421 tok/s`, this is only about
 Keep the exact M64 selector as a non-regressing small specialization, but do
 not attribute a material end-to-end gain to it or spend another service cycle
 on nearby MHC geometry.
+
+## M64 AIter BF16 tuned-GEMM closure (2026-08-30)
+
+The service startup log reported untuned BF16 shapes `(M,N,K) =
+(64,{512,1024,2048},4096)` and selected AIter's torch fallback. An exhaustive
+gfx90a tuner pass enumerated about 2200 hipBLASLt solutions per shape. An
+independent seven-round CUDA-Graph ABBA check, rather than the tuner's profiler
+ranking, measured:
+
+| N | torch graph | hipBLASLt graph | micro speedup | solution |
+|---:|---:|---:|---:|---:|
+| 512 | 28.960 us | 21.713 us | 33.37% | 3963 |
+| 1024 | 33.670 us | 24.600 us | 36.87% | 3990 |
+| 2048 | 44.022 us | 37.578 us | 17.15% | 5087 |
+
+All candidates were finite and bitwise stable across repeated graph replays.
+Their relative L2 difference from torch was `3.49e-5--8.28e-5`, reflecting a
+different valid BF16 accumulation order. The fixed 64-row full-model
+teacher-forced oracle nevertheless matched the accepted checkpoint JSON-exact
+for output IDs, token logprobs, and complete top-5 rows.
+
+The real-diverse service result did not inherit the micro win. Two resident
+rounds were `984.076/983.614 tok/s` (center `983.845`), while the adjacent
+rows=2 baseline center was `983.907 tok/s`. Scheduler/model timing was
+`992.156 tok/s` versus `992.019 tok/s`, also noise. Every request completed at
+256 tokens with `finish=length` and the France oracle exact. These GEMMs are
+hidden by the current side-stream schedule or are not rank-max critical.
+Do not add the tuned rows to the production AIter config merely because their
+isolated kernels are faster; prioritize routed FP4 and attention consumer
+boundaries instead.
