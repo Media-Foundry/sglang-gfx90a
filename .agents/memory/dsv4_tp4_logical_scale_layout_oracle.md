@@ -106,6 +106,36 @@ A later static-only change prepared the down-only experiment for service A/B:
 GPU test was run for this wiring, and it was not committed; production
 teacher-forced and throughput validation is delegated to the reviewing agent.
 
+## R2-packed logical down-scale oracle
+
+The accepted logical-down micro was extended with a scale-only layout
+`[E,N/2,K/32,2]` (passed through the existing equal-numel tensor contract).
+For each same-group R2 task, the low/high E8M0 bytes are fetched by one aligned
+`uint16` load and extracted in registers. Packed FP4 weights, activation loads,
+LUT decode, SDOT, FP32 accumulation and the fixed reduction order are unchanged.
+The byte count remains 16 MiB/layer.
+
+Testing began with `amd-smi process` showing all eight GCDs idle. On the real
+pass37/layer34 route, 100 activation/router-weight mutations were bitwise exact
+through gate BF16, INT8 values/scales, down FP32 partial and final BF16 output.
+
+Seven-round ABBA trimmed means:
+
+| stage | CK shuffled | logical down | R2-packed logical down |
+|---|---:|---:|---:|
+| gate/up | 244.708 us | 244.797 us | 244.705 us |
+| quant | 42.122 us | 42.316 us | 42.375 us |
+| down | 169.459 us | 160.213 us | 159.662 us |
+| reduce | 3.839 us | 3.755 us | 3.870 us |
+| full routed | 422.248 us | 416.720 us | 415.754 us |
+
+R2-packed scales improve down by 6.14% and full routed by 1.56% versus CK
+shuffled scales, passing the >=0.5% continuation gate. Relative to ordinary
+logical-down, the extra packing saves about 0.55 us in down and 0.97 us in the
+full measurement. This remains an independent oracle only; no production
+cache, selector or load-time conversion was changed for R2 packing, and no
+commit was made.
+
 ## Production validation
 
 The first two fail-loud startup attempts exposed two load-time assumptions

@@ -15,7 +15,8 @@ union Gfx90aFp4PackedRow16 {
 // row1's pure VMEM can overlap row0's LDS decode and assignment consumers.
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kNumWaves,
-          uint32_t kPrepacked, bool kLogicalScale = false>
+          uint32_t kPrepacked, bool kLogicalScale = false,
+          bool kR2PackedScale = false>
 __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     gfx90a_fp4_expert_down_row_prefetch_kernel(
         float* __restrict__ partial, const int8_t* __restrict__ xq,
@@ -86,6 +87,18 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
       // Both row requests are source-level independent and issued before any
       // LUT decode or activation load.  Do not use nontemporal/cache modifiers.
+      if constexpr (kR2PackedScale) {
+        static_assert(kLogicalScale, "R2 packed scale is a logical layout");
+        const size_t pair_offset =
+            ((static_cast<size_t>(expert) * (N / 2) + row0 / 2) *
+                 (K / 32) +
+             group) *
+            2;
+        const uint16_t pair = *reinterpret_cast<const uint16_t*>(
+            weight_scale + pair_offset);
+        scale_raw[0] = static_cast<uint8_t>(pair);
+        scale_raw[1] = static_cast<uint8_t>(pair >> 8);
+      }
 #pragma unroll
       for (uint32_t r = 0; r < kRows; ++r) {
         const uint32_t row = row0 + r;
@@ -94,10 +107,13 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
               (static_cast<size_t>(expert) * N + row) * (K / 2) + group * 16;
           packed[r].vector =
               *reinterpret_cast<const uint4*>(weight + weight_base);
-          scale_raw[r] = weight_scale[
-              kLogicalScale
-                  ? (static_cast<size_t>(expert) * N + row) * (K / 32) + group
-                  : gfx90a_down_scale_offset<E, N, K>(expert, row, group)];
+          if constexpr (!kR2PackedScale) {
+            scale_raw[r] = weight_scale[
+                kLogicalScale
+                    ? (static_cast<size_t>(expert) * N + row) * (K / 32) +
+                          group
+                    : gfx90a_down_scale_offset<E, N, K>(expert, row, group)];
+          }
         } else {
           packed[r].vector = make_uint4(0, 0, 0, 0);
           scale_raw[r] = 0;
@@ -153,7 +169,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kAssignments, uint32_t kNumWaves, uint32_t kBlocks,
-          uint32_t kPrepacked = 2, bool kLogicalScale = false>
+          uint32_t kPrepacked = 2, bool kLogicalScale = false,
+          bool kR2PackedScale = false>
 struct Gfx90aFp4ExpertDownRowPrefetchOracle {
   static void run_partial(const tvm::ffi::TensorView xq,
                           const tvm::ffi::TensorView x_scale,
@@ -177,7 +194,7 @@ struct Gfx90aFp4ExpertDownRowPrefetchOracle {
     LaunchKernel(kBlocks, kNumWaves * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_row_prefetch_kernel<
             E, M, T, N, K, kAssignments, kNumWaves, kPrepacked,
-            kLogicalScale>,
+            kLogicalScale, kR2PackedScale>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

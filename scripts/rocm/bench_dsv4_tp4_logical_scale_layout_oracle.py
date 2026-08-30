@@ -43,6 +43,19 @@ def down(logical: bool):
     )
 
 
+@cache_once
+def down_r2_packed():
+    args = make_cpp_args(E, M, T, N, I, A, W, D, LUT, True, True)
+    return load_jit(
+        "gfx90a_fp4_down_r2_packed_scale_oracle", *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_down_row_prefetch_oracle.cuh"],
+        cuda_wrappers=[
+            ("run_partial", f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::run_partial"),
+            ("reduce", f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::reduce"),
+        ], extra_cuda_cflags=["-O3"],
+    )
+
+
 def gate_logical(s: torch.Tensor) -> torch.Tensor:
     # physical [E,N1,K1,klane,nlane,kpack,gate_up]
     return s.reshape(E, I // 16, (H // 32) // 8, 4, 16, 2, 2).permute(
@@ -54,6 +67,13 @@ def down_logical(s: torch.Tensor) -> torch.Tensor:
     # physical [E,N1,K1,klane,nlane,kpack,npack]
     return s.reshape(E, N // 32, (I // 32) // 8, 4, 16, 2, 2).permute(
         0, 1, 6, 4, 2, 5, 3
+    ).contiguous().reshape(E, N, I // 32)
+
+
+def down_r2_scale(s: torch.Tensor) -> torch.Tensor:
+    # Adjacent output rows become the low/high byte of one uint16 load.
+    return s.reshape(E, N // 2, 2, I // 32).permute(
+        0, 1, 3, 2
     ).contiguous().reshape(E, N, I // 32)
 
 
@@ -82,18 +102,20 @@ def main():
     s13=torch.randint(110,135,(E,2*I,H//32),dtype=torch.uint8,device="cuda")
     w2=torch.randint(0,256,(E,N,I//2),dtype=torch.uint8,device="cuda")
     s2=torch.randint(110,135,(E,N,I//32),dtype=torch.uint8,device="cuda")
-    ls13=gate_logical(s13); ls2=down_logical(s2)
+    ls13=gate_logical(s13); ls2=down_logical(s2); ps2=down_r2_scale(ls2)
     print(f"MEMORY gate_bytes={ls13.numel()} down_bytes={ls2.numel()} per_layer_mib={(ls13.numel()+ls2.numel())/2**20:.3f} layers43_gib={(ls13.numel()+ls2.numel())*43/2**30:.3f}")
     tw=torch.rand((M,T),dtype=torch.float32,device="cuda")
     states={}
-    # A: all CK-shuffled; B: both logical; C: shuffled gate + logical down.
+    # A: all CK-shuffled; B: both logical; C: logical down; D: R2-packed down.
     for name, gate_logical_mode, down_logical_mode in (
-        ("A", False, False), ("B", True, True), ("C", False, True)
+        ("A", False, False), ("B", True, True), ("C", False, True),
+        ("D", False, "r2"),
     ):
         st={"mid":torch.empty((M,T,I),dtype=torch.bfloat16,device="cuda"),"part":torch.empty((M,T,N),dtype=torch.float32,device="cuda"),"out":torch.empty((M,N),dtype=torch.bfloat16,device="cuda")}
-        gm=gate(gate_logical_mode); dm=down(down_logical_mode)
+        gm=gate(gate_logical_mode)
+        dm=down_r2_packed() if down_logical_mode == "r2" else down(down_logical_mode)
         gs=ls13 if gate_logical_mode else s13
-        ds=ls2 if down_logical_mode else s2
+        ds=ps2 if down_logical_mode == "r2" else ls2 if down_logical_mode else s2
         def g(gm=gm,gs=gs,st=st): gm.run(xq,xs,w13,gs,md.sorted_ids,md.sorted_experts,md.valid,st["mid"],10.0)
         def q(st=st): st["iq"],st["isc"]=per_token_group_quant_int8(st["mid"],32)
         def d(dm=dm,ds=ds,st=st): dm.run_partial(st["iq"],st["isc"],w2,ds,md.sorted_ids,md.sorted_experts,md.valid,tw,st["part"])
@@ -103,20 +125,20 @@ def main():
     mut=torch.empty_like(x)
     for i in range(a.mutations):
         mut.normal_(); q,s=per_token_group_quant_int8(mut,32); xq.copy_(q);xs.copy_(s);tw.uniform_()
-        for n in "ABC": states[n][1]["full"]()
+        for n in "ABCD": states[n][1]["full"]()
         torch.cuda.synchronize()
         for key in ("mid","iq","isc","part","out"):
-            for n in "BC":
+            for n in "BCD":
                 if not torch.equal(states["A"][0][key],states[n][0][key]):
                     raise RuntimeError(f"mutation={i} profile={n} key={key} mismatch")
     print(f"CORRECTNESS mutations={a.mutations} all_exact=True")
-    timings={k:{"A":[],"B":[],"C":[]} for k in ("gate","quant","down","reduce","full")}
+    timings={k:{"A":[],"B":[],"C":[],"D":[]} for k in ("gate","quant","down","reduce","full")}
     for _ in range(a.rounds):
-        for n in ("A","B","C","C","B","A"):
+        for n in ("A","B","C","D","D","C","B","A"):
             for k in timings: timings[k][n].append(time_us(states[n][1][k]))
     for k,v in timings.items():
         aa=trim(v["A"])
-        for n,label in (("B","both_logical"),("C","down_only_logical")):
+        for n,label in (("B","both_logical"),("C","down_only_logical"),("D","down_r2_packed_scale")):
             bb=trim(v[n]); print(f"RESULT stage={k} profile={label} shuffled_us={aa:.3f} candidate_us={bb:.3f} delta_us={bb-aa:.3f} gain_pct={(aa/bb-1)*100:.3f}")
 
 
