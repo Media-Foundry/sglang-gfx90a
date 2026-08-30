@@ -241,6 +241,32 @@ Enable `SGLANG_DSV4_GFX90A_M64_DPP_GATE=1` by default only inside the explicit
 TP4 profile. It remains an environment rollback and is unreachable at all
 other graph tiers.
 
+## M64 logical W2-scale and row-prefetch oracle
+
+The existing M32 logical-scale oracle was generalized to accept runtime batch
+size and recorder world size, then run on the same real M64 pass20/layer34
+route. It compares the CK-shuffled scale, logical down-only scale, and R2-packed
+logical down scale using the exact grouped row-prefetch kernel.
+
+All four layouts passed 100 activation/router-weight mutations bitwise at gate
+BF16, quantized INT8 value/scale, down FP32 partial and final BF16 output.
+Seven-round trimmed results were:
+
+| stage | shuffled | logical down | R2-packed logical down |
+|---|---:|---:|---:|
+| gate | 406.005 us | 405.816 us | 405.997 us |
+| quant | 46.456 us | 46.835 us | 46.186 us |
+| down | 299.809 us | 279.496 us | 279.634 us |
+| reduce | 5.349 us | 5.399 us | 5.257 us |
+| full | 724.681 us | 703.627 us | 703.213 us |
+
+Ordinary logical-down improves down by 7.27% and full routed by 2.99%.
+R2-packing changes full time by only another 0.414 us, so it is not worth a
+second layout/protocol. A down-only logical cache costs 16 MiB/layer or about
+688 MiB/GCD across 43 layers. This passes the 3% routed continuation threshold
+within rounding and proceeds to a strict M64 production/service experiment;
+it is not yet a delivered default.
+
 ## Occupancy evidence
 
 Across warm passes 16--47 and all 43 layers:

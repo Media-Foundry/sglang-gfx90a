@@ -89,13 +89,22 @@ def trim(v): return statistics.mean(sorted(v)[1:-1])
 
 
 def main():
+    global M
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--recorder", default="/tmp/expert_distribution_recorder_1787803355.1855972.pt")
     p.add_argument("--pass-index",type=int,default=37); p.add_argument("--layer",type=int,default=34)
+    p.add_argument("--batch-size",type=int,default=M)
+    p.add_argument("--recorded-world-size",type=int,default=8)
     p.add_argument("--mutations",type=int,default=100); p.add_argument("--rounds",type=int,default=7)
-    a=p.parse_args(); payload=torch.load(a.recorder,map_location="cpu",weights_only=False)
-    counts=payload["logical_count"][a.pass_index,a.layer]//8
-    md=make_metadata(reconstruct_topk_from_counts(counts).cuda(),assignments=A)
+    a=p.parse_args(); M=a.batch_size
+    payload=torch.load(a.recorder,map_location="cpu",weights_only=False)
+    raw=payload["logical_count"][a.pass_index,a.layer]
+    if torch.any(raw.remainder(a.recorded_world_size) != 0):
+        raise RuntimeError("recorded counts are not divisible by world size")
+    counts=raw//a.recorded_world_size
+    md=make_metadata(
+        reconstruct_topk_from_counts(counts,M,T).cuda(),assignments=A
+    )
     torch.manual_seed(20260830)
     x=torch.randn((M,H),dtype=torch.bfloat16,device="cuda"); xq,xs=per_token_group_quant_int8(x,32)
     w13=torch.randint(0,256,(E,2*I,H//2),dtype=torch.uint8,device="cuda")
