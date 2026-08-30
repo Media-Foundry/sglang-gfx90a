@@ -82,6 +82,9 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # At the M64 tier the longer Q path can hide the C128 core-compressor tail.
   # The strict model-side guard leaves all other tiers and C4 unchanged.
   export SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM:-1}"
+  # Native CK-style MFMA split/reduce is ~41% faster than Triton standalone
+  # and retains ~1% at service level for the exact M64 C128 BF16 tier.
+  export SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE:-1}"
   # Gate-only wave64 DPP preserves the established reduction tree and improves
   # the real M64 routed stage without enabling the service-negative down DPP.
   export SGLANG_DSV4_GFX90A_M64_DPP_GATE="${SGLANG_DSV4_GFX90A_M64_DPP_GATE:-1}"
