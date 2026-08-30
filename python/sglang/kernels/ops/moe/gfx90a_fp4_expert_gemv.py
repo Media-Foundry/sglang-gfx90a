@@ -119,6 +119,28 @@ def _jit_gate_up_grouped_dpp(
 
 
 @cache_once
+def _jit_gate_up_grouped_dpp_fp16_accum(
+    e: int, m: int, t: int, i: int, k: int,
+    assignments: int, rows: int, waves: int, blocks: int, prepacked: int,
+) -> Module:
+    args = make_cpp_args(
+        e, m, t, i, k, assignments, rows, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_gate_up_grouped_dpp_fp16_accum",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[
+            (
+                "run",
+                f"sglang::Gfx90aFp4ExpertGateUpGroupedDppFp16AccumKernel<{args}>::run",
+            )
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_gate_up_mfma32(
     e: int,
     m: int,
