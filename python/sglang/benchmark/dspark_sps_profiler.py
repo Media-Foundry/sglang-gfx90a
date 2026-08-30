@@ -44,8 +44,8 @@ try:
     )
 except ImportError as exc:
     logger.warning(
-        "Full sglang runtime unavailable (%s); using a torch-free fallback import. "
-        "The 'fit' subcommand works; 'run' requires the full sglang install.",
+        "Full benchmark runtime unavailable (%s); using local tokenizer and "
+        "capacity helpers so SPS run/fit remain usable.",
         exc,
     )
     _benchmark_dir = Path(__file__).resolve().parent
@@ -57,9 +57,30 @@ except ImportError as exc:
     load_sps_table_from_path = _table_module.load_sps_table_from_path
     profile_sps_table = _table_module.profile_sps_table
     DEFAULT_TIMEOUT = 60
-    get_tokenizer = None
-    should_skip_due_to_max_running_requests = None
-    should_skip_due_to_token_capacity = None
+
+    def get_tokenizer(pretrained_model_name_or_path: str):
+        # The SPS runner only needs ``len(tokenizer)``.  Avoid importing the
+        # benchmark dataset registry here: an unrelated optional dataset (or a
+        # circular import in it) must not disable profiling an already-running
+        # server.
+        from transformers import AutoTokenizer
+
+        return AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path, trust_remote_code=True
+        )
+
+    def should_skip_due_to_max_running_requests(
+        batch_size, skip_max_running_requests_threshold
+    ):
+        return batch_size > skip_max_running_requests_threshold
+
+    def should_skip_due_to_token_capacity(
+        batch_size, input_len, output_len, skip_token_capacity_threshold
+    ):
+        return (
+            batch_size * (input_len + output_len)
+            > skip_token_capacity_threshold
+        )
 
 DEFAULT_OUT = "dspark_sps.json"
 DEFAULT_MAX_BATCH_SIZE = 256

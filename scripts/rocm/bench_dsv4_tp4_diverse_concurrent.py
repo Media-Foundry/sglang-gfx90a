@@ -266,6 +266,14 @@ def main() -> None:
             result.get("meta_info", {}).get("finish_reason", {}).get("type")
             for _, result, _ in results
         ]
+        spec_accept_lengths = [
+            result.get("meta_info", {}).get("spec_accept_length")
+            for _, result, _ in results
+        ]
+        spec_accept_rates = [
+            result.get("meta_info", {}).get("spec_accept_rate")
+            for _, result, _ in results
+        ]
         token_samples = [samples for _, _, samples in results]
         steady_start = max(samples[0][0] for samples in token_samples)
         steady_end = min(samples[-1][0] for samples in token_samples)
@@ -368,6 +376,19 @@ def main() -> None:
             "resident_time_bins": resident_time_bins,
             "lengths": lengths,
             "finish_reasons": finish_reasons,
+            "spec_accept_length_mean": (
+                statistics.mean(
+                    value for value in spec_accept_lengths if value is not None
+                )
+                if any(value is not None for value in spec_accept_lengths)
+                else None
+            ),
+            "spec_accept_rate_mean": (
+                statistics.mean(value for value in spec_accept_rates if value is not None)
+                if any(value is not None for value in spec_accept_rates)
+                else None
+            ),
+            "spec_accept_lengths": spec_accept_lengths,
             "france_first9_exact": france_exact,
             "france_semantic_paris": france_semantic,
             "completion_sha256": [

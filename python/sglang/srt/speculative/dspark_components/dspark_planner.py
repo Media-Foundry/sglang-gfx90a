@@ -53,6 +53,13 @@ from sglang.srt.utils.invariants import (
 
 logger = logging.getLogger(__name__)
 
+
+def should_use_uniform_verify_all_layout(
+    *, is_verify_all: bool, forced_budget_frac: Optional[float]
+) -> bool:
+    """The profiler's forced budget must bypass the uninitialized-table shortcut."""
+    return bool(is_verify_all and forced_budget_frac is None)
+
 # DSpark confidence is a per-token score that must stay in [0, 1].
 _CONFIDENCE = Invariant(
     "dspark.planner.confidence", Bucket.GUARD, InClosedRange(0.0, 1.0)
@@ -417,7 +424,18 @@ class DSparkVerifyPlanner:
     ) -> Optional[RaggedVerifyLayout]:
         if self._ragged_verify_mode is RaggedVerifyMode.STATIC:
             return None
-        if self._is_verify_all and self._ragged_verify_mode is RaggedVerifyMode.COMPACT:
+        forced_budget_frac = (
+            self._budget_planner.forced_budget_frac
+            if self._budget_planner is not None
+            else None
+        )
+        if (
+            self._ragged_verify_mode is RaggedVerifyMode.COMPACT
+            and should_use_uniform_verify_all_layout(
+                is_verify_all=self._is_verify_all,
+                forced_budget_frac=forced_budget_frac,
+            )
+        ):
             # Verify-all: the uniform layout (or None, past the captured grid)
             # is constant per (bs, tier); serve it from cache instead of paying
             # the per-step schedule and its host<->device round-trips.

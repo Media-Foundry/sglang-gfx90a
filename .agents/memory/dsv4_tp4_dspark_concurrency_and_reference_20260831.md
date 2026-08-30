@@ -84,3 +84,29 @@ France divergence.
   and needs a configuration/worktree regression audit before reuse as baseline.
 - Eager gamma-1 DSpark was only 5.78 tok/s; it is a correctness oracle, not a
   performance configuration.
+
+## Restored native target baseline
+
+An old diagnostic environment had carried
+`SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR=0` into later services.  This was the
+concrete cause of the apparent native M32 regression:
+
+| Target projection profile | Scheduler decode | Host step |
+|---|---:|---:|
+| BF16 attention linear disabled | about 453 tok/s | about 70 ms |
+| BF16 attention linear enabled | 721--740 tok/s | 43.25--44.38 ms |
+
+With the shipped default restored, France was exact and semantic Paris.  Three
+256-token, 32-code-request rounds produced common-resident throughput of
+633.30, 643.85, and 649.47 tok/s.  Aggregate wall throughput remained unstable
+because intake/stream seams added long non-resident intervals in two rounds;
+scheduler and common-resident numbers are the reliable target-side baseline.
+
+## Markov W2 rejection
+
+The original FP32 replicated Markov W2 was tested against the optimized BF16,
+TP-sharded path.  At gamma 5 / BS32 it retained essentially the same poor draft
+quality (mean accept length 1.565, draft-position accept rate 11.0%) while
+running slower.  France remained semantic Paris.  The W2 dtype/sharding
+optimization is therefore not the cause of low acceptance and should remain
+enabled.
