@@ -237,6 +237,11 @@ def main() -> None:
     parser.add_argument("--baseline-gate-blocks", type=int, default=832)
     parser.add_argument("--baseline-down-blocks", type=int, default=832)
     parser.add_argument("--two-bucket", action="store_true")
+    parser.add_argument(
+        "--concurrent-buckets",
+        action="store_true",
+        help="issue disjoint occupancy buckets on independent HIP streams",
+    )
     parser.add_argument("--a1-gate-blocks", type=int, default=416)
     parser.add_argument("--rest-gate-blocks", type=int, default=1664)
     parser.add_argument("--a1-down-blocks", type=int, default=416)
@@ -316,6 +321,26 @@ def main() -> None:
     partial_b = torch.empty_like(partial_a)
     out_a = torch.empty((M, N), dtype=torch.bfloat16, device=device)
     out_b = torch.empty_like(out_a)
+    bucket_streams = [
+        torch.cuda.Stream() for _ in range(max(0, len(bucket_metadata) - 1))
+    ]
+
+    def invoke_buckets_concurrently(items, invoke) -> None:
+        """Issue items[1:] first on side streams, item[0] on the caller stream.
+
+        Each side stream waits at the caller stream's current position before
+        the caller enqueues bucket zero.  This preserves producer dependencies
+        without serializing the disjoint bucket kernels behind bucket zero.
+        The caller joins every side stream before the common consumer.
+        """
+        current = torch.cuda.current_stream()
+        for stream, item in zip(bucket_streams, items[1:]):
+            stream.wait_stream(current)
+            with torch.cuda.stream(stream):
+                invoke(item)
+        invoke(items[0])
+        for stream in bucket_streams[: max(0, len(items) - 1)]:
+            current.wait_stream(stream)
 
     def run_a() -> torch.Tensor:
         invoke_gate(
@@ -331,13 +356,40 @@ def main() -> None:
 
     def make_b(profile: BlockProfile):
         def run_b() -> torch.Tensor:
-            for metadata, blocks in zip(bucket_metadata, profile.gate):
-                invoke_gate(metadata, blocks, xq, xs, w13, s13, intermediate_b)
-            iq, isc = per_token_group_quant_int8(intermediate_b, 32)
-            for metadata, blocks in zip(bucket_metadata, profile.down):
-                invoke_down_partial(
-                    metadata, blocks, iq, isc, w2, s2, topk_weights, partial_b
+            gate_items = tuple(zip(bucket_metadata, profile.gate))
+            if args.concurrent_buckets:
+                invoke_buckets_concurrently(
+                    gate_items,
+                    lambda item: invoke_gate(
+                        item[0], item[1], xq, xs, w13, s13, intermediate_b
+                    ),
                 )
+            else:
+                for metadata, blocks in gate_items:
+                    invoke_gate(
+                        metadata, blocks, xq, xs, w13, s13, intermediate_b
+                    )
+            iq, isc = per_token_group_quant_int8(intermediate_b, 32)
+            down_items = tuple(zip(bucket_metadata, profile.down))
+            if args.concurrent_buckets:
+                invoke_buckets_concurrently(
+                    down_items,
+                    lambda item: invoke_down_partial(
+                        item[0], item[1], iq, isc, w2, s2, topk_weights, partial_b
+                    ),
+                )
+            else:
+                for metadata, blocks in down_items:
+                    invoke_down_partial(
+                        metadata,
+                        blocks,
+                        iq,
+                        isc,
+                        w2,
+                        s2,
+                        topk_weights,
+                        partial_b,
+                    )
             reduce_once(partial_b, out_b)
             return out_b
 
@@ -407,8 +459,19 @@ def main() -> None:
             )
 
         def gate_b() -> None:
-            for metadata, blocks in zip(bucket_metadata, profile.gate):
-                invoke_gate(metadata, blocks, xq, xs, w13, s13, intermediate_b)
+            items = tuple(zip(bucket_metadata, profile.gate))
+            if args.concurrent_buckets:
+                invoke_buckets_concurrently(
+                    items,
+                    lambda item: invoke_gate(
+                        item[0], item[1], xq, xs, w13, s13, intermediate_b
+                    ),
+                )
+            else:
+                for metadata, blocks in items:
+                    invoke_gate(
+                        metadata, blocks, xq, xs, w13, s13, intermediate_b
+                    )
 
         # Gate outputs are already proven exact, so one common quantized input
         # isolates the down producer without changing its numerical path.
@@ -422,17 +485,33 @@ def main() -> None:
             )
 
         def down_b() -> None:
-            for metadata, blocks in zip(bucket_metadata, profile.down):
-                invoke_down_partial(
-                    metadata,
-                    blocks,
-                    iq_fixed,
-                    isc_fixed,
-                    w2,
-                    s2,
-                    topk_weights,
-                    partial_b,
+            items = tuple(zip(bucket_metadata, profile.down))
+            if args.concurrent_buckets:
+                invoke_buckets_concurrently(
+                    items,
+                    lambda item: invoke_down_partial(
+                        item[0],
+                        item[1],
+                        iq_fixed,
+                        isc_fixed,
+                        w2,
+                        s2,
+                        topk_weights,
+                        partial_b,
+                    ),
                 )
+            else:
+                for metadata, blocks in items:
+                    invoke_down_partial(
+                        metadata,
+                        blocks,
+                        iq_fixed,
+                        isc_fixed,
+                        w2,
+                        s2,
+                        topk_weights,
+                        partial_b,
+                    )
 
         gate_a_samples, gate_b_samples = abba_pair(
             gate_a,

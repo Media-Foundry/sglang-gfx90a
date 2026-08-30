@@ -412,3 +412,34 @@ hidden by the current side-stream schedule or are not rank-max critical.
 Do not add the tuned rows to the production AIter config merely because their
 isolated kernels are faster; prioritize routed FP4 and attention consumer
 boundaries instead.
+
+## Concurrent occupancy-bucket closure (2026-08-30)
+
+The earlier A1/A2/A4 experiment launched the three specialized gate kernels
+and then the three down kernels serially. A follow-up standalone option issued
+the disjoint buckets on three independent HIP streams and joined them only
+before the common quantization or fixed-order reduction. Side streams wait at
+the caller stream's pre-launch position, so the dependency does not serialize
+them behind bucket zero. No production selector was added.
+
+On the real TP4 M64 pass-20/layer-34 route, the buckets were 61 A1 blocks, 36
+A2 blocks and 77 A4-rest blocks. Every tested geometry matched the A4 gate
+intermediate, FP32 partial and BF16 output bitwise; the first profile also
+passed 100 mutated inputs bitwise. Seven-round ABBA results were decisively
+negative:
+
+| gate/down bucket grids | A4 baseline | concurrent buckets | regression |
+|---|---:|---:|---:|
+| 832/416/416 | 751.309 us | 863.225 us | +14.90% |
+| 624/208/208, down 832/416/416 | 751.447 us | 926.273 us | +23.27% |
+| 416/208/208, down 832/416/416 | 751.761 us | 912.246 us | +21.35% |
+| 624/208/208 | 752.004 us | 996.552 us | +32.52% |
+| 416/104/104, down 624/208/208 | 752.010 us | 1028.168 us | +36.72% |
+
+For the best profile, gate changed `425.912→478.495 us` and down
+`302.857→354.873 us`. Concurrent scans of disjoint expert weights contend for
+HBM/L2 and reduce each kernel's effective bandwidth; stream overlap cannot
+hide the bucket launches. Do not wire multi-stream buckets into production.
+A future occupancy-aware path must be one physical kernel launch and avoid
+allocating the A4 worst-case register footprint to A1/A2 tasks, otherwise the
+existing unified A4 remains preferable.
