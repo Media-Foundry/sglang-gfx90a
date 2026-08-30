@@ -443,3 +443,34 @@ hide the bucket launches. Do not wire multi-stream buckets into production.
 A future occupancy-aware path must be one physical kernel launch and avoid
 allocating the A4 worst-case register footprint to A1/A2 tasks, otherwise the
 existing unified A4 remains preferable.
+
+## Same-wave persistent expert-run rejection (2026-08-30)
+
+To avoid both multi-launch bucket overhead and A8's eight-accumulator VGPR
+footprint, an oracle-only template assigned each expert-run's first A4 block
+and one output-row tile to a wave. That wave then processed all subsequent A4
+chunks of the same expert sequentially, retaining only four accumulators at a
+time. The sorter, packed FP4/E8M0 representation, vector loads, DPP/shuffle
+trees, FP32 partial layout and fixed reduction were unchanged. Unlike the
+earlier row-tile-major experiment, consecutive chunks executed on the same
+wave, targeting hot L0/L1/L2 weight re-reads without LDS staging or barriers.
+
+Both the real diverse M32 route and the real diverse M64 route passed 100
+activation/router-weight mutations and 1000 captured graph replays bitwise at
+the intermediate BF16, down FP32 partial and final BF16 boundaries. Performance
+was nevertheless negative:
+
+| route | active/A4 blocks | multi-block experts | A4 baseline | persistent | regression |
+|---|---:|---:|---:|---:|---:|
+| M32 pass37/layer34 | 106/113 | 7 | 422.902 us | 498.019 us | +17.77% |
+| M64 pass20/layer34 | 146/174 | 21 | 731.877 us | 835.287 us | +14.13% |
+
+At M32, gate changed `246.618→286.624 us` and down
+`166.647→199.424 us`. At M64, gate changed `415.215→467.721 us` and down
+`297.276→347.965 us`. Making non-first waves exit transfers their work to a
+smaller set of first waves and loses latency hiding; the limited same-expert
+cache reuse cannot compensate. The candidate misses the required routed-stage
+gates of M32 `<=325 us` and M64 `<=615 us` decisively. All temporary production
+header/wrapper templates and the benchmark were removed. Do not revisit
+same-wave serial expert runs without a primitive that shares one physical
+weight request across chunks while preserving broad wave parallelism.
