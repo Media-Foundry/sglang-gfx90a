@@ -1512,6 +1512,9 @@ class Envs:
     # Exact TP4/M32 gate schedule: request both same-group R2 packed rows and
     # scales before row0 decode/SDOT. Strict-shape guarded and default-off.
     SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH = EnvBool(False)
+    # M64 counterpart.  It retains the exact DPP reduction tree and changes
+    # only the issue order of the two R2 packed-weight/scale requests.
+    SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH = EnvBool(False)
     # Cache a logical-contiguous W2 E8M0 scale copy for only the strict TP4/M32
     # grouped-down row-prefetch experiment. Costs 16 MiB per routed layer.
     SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE = EnvBool(False)

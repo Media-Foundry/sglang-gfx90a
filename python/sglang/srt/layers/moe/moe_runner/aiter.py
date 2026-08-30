@@ -649,9 +649,15 @@ class AiterRunnerCore(MoeRunnerCore):
                             f"{logical_down_scale.dtype}/contiguous="
                             f"{logical_down_scale.is_contiguous()}"
                         )
-                use_m32_gate_row_prefetch = (
-                    use_m32_dpp_down_prefetch
-                    and envs.SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH.get()
+                use_gate_row_prefetch = (
+                    (
+                        use_m32_dpp_down_prefetch
+                        and envs.SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH.get()
+                    )
+                    or (
+                        use_m64_dpp_gate
+                        and envs.SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH.get()
+                    )
                 )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
@@ -686,7 +692,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         use_dpp_reduction=(
                             use_m32_dpp_down_prefetch or use_m64_dpp_gate
                         ),
-                        use_row_prefetch=use_m32_gate_row_prefetch,
+                        use_row_prefetch=use_gate_row_prefetch,
                     )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
