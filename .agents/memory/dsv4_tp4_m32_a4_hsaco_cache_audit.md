@@ -127,3 +127,47 @@ static instruction economics and duplicates the rejected UDOT8 principle. No
 kernel should be written unless the activation representation itself changes;
 that would no longer be an exact load/decode-only oracle.
 
+## Weight-only flat GLC oracle result
+
+The proposed oracle was implemented as a standalone JIT specialization and
+tested before any production connection. Opaque inline flat VMEM requires an
+explicit wait: the first attempt correctly formed 64-bit flat addresses but
+clang did not insert `s_waitcnt` before consuming inline-asm outputs, producing
+incorrect tensors. The corrected helper issues both R2 packed-row requests and
+`s_waitcnt vmcnt(0)` in one asm block. This prevents compiler motion across the
+wait and keeps the two row requests paired.
+
+Final HSACO checks:
+
+- gate: exactly four packed-weight loads are `flat_load_dwordx4 ... glc`, no
+  `slc`, 91 VGPR, 52 SGPR, 1 KiB LDS, zero scratch;
+- down: exactly two packed-weight loads are `flat_load_dwordx4 ... glc`, no
+  `slc`, 48 VGPR, 37 SGPR, 1 KiB LDS, zero scratch;
+- all activation, scale, metadata and output VMEM instructions retain the
+  default cache policy.
+
+On real pass37/layer34 routing (106 active experts, 192 assignments, 113 A4
+scans), A/G/D/B passed 100 eager input/router-weight mutations and 1000 graph
+mutation replays bitwise exactly at intermediate BF16, quantized values/scales,
+FP32 partial and final BF16 output.
+
+Seven-round `A/G/D/B/B/D/G/A`, trimmed means:
+
+| stage | A default | G gate GLC | D down GLC | B both GLC |
+|---|---:|---:|---:|---:|
+| gate | 246.625 us | 251.977 us | 246.446 us | 252.139 us |
+| quant | 40.795 us | 40.912 us | 40.868 us | 40.875 us |
+| down | 160.877 us | 160.810 us | 162.143 us | 162.211 us |
+| reduce | 3.596 us | 3.628 us | 3.610 us | 3.619 us |
+| full routed | 421.546 us | 426.159 us | 422.587 us | 427.105 us |
+
+Both-GLC is **1.30% slower**, rather than at least 3% faster. Gate-only is the
+main regression; down-only is also slightly slower in the full chain. The
+default L1 policy is therefore beneficial or, at minimum, cheaper than the
+explicit flat-load/wait sequence. Reject this direction and do not connect a
+selector or repeat it with `slc`.
+
+Artifacts retained outside production were the benchmark log
+`/tmp/dsv4_tp4_m32_weight_glc_oracle.log` and extracted HSACO directory
+`/tmp/glc-final.IQY6` for the current boot. The experimental source plumbing
+was removed after the negative decision.
