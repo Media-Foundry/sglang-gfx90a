@@ -16,6 +16,7 @@ from pathlib import Path
 
 
 FRANCE_EXPECTED = [671, 6102, 294, 8760, 344, 2619, 51119, 42499, 1]
+FRANCE_PARIS_TOKEN = 11111
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,6 +48,16 @@ def parse_args() -> argparse.Namespace:
         help="tokens per streamed update; larger values reduce HTTP/host overhead",
     )
     parser.add_argument("--timeout", type=float, default=1200.0)
+    parser.add_argument(
+        "--allow-france-mismatch",
+        action="store_true",
+        help="record an incorrect speculative baseline instead of aborting",
+    )
+    parser.add_argument(
+        "--allow-no-resident-window",
+        action="store_true",
+        help="retain aggregate timing when staggered requests have no common window",
+    )
     parser.add_argument(
         "--incremental-streaming-output",
         action="store_true",
@@ -156,8 +167,11 @@ def main() -> None:
             raise ValueError("stream intervals must be positive")
         args.rounds = len(interval_sequence)
     manifest_requests = json.loads(args.inputs.read_text())["requests"]
-    if args.request_count not in (32, 64):
-        raise ValueError("--request-count currently supports 32 or 64")
+    if not 1 <= args.request_count <= min(64, len(manifest_requests)):
+        raise ValueError(
+            "--request-count must be between 1 and the manifest size "
+            f"({len(manifest_requests)})"
+        )
     if len(manifest_requests) < args.request_count:
         raise ValueError(
             f"input manifest has {len(manifest_requests)} requests, "
@@ -166,6 +180,9 @@ def main() -> None:
     requests = list(manifest_requests[: args.request_count])
     if len({tuple(x["input_ids"]) for x in requests}) != len(requests):
         raise ValueError("selected input token sequences must all be distinct")
+    first_is_france_oracle = requests[0].get("prompt", "").strip() == (
+        "What is the capital of France?"
+    )
 
     rounds = []
     round_output_ids: list[list[list[int]]] = []
@@ -230,7 +247,18 @@ def main() -> None:
         lengths = [len(value) for value in ids]
         if lengths != [args.tokens] * len(requests):
             raise RuntimeError(f"round {rep}: completion lengths={lengths}")
-        if ids[0][: len(FRANCE_EXPECTED)] != FRANCE_EXPECTED:
+        france_exact = (
+            ids[0][: len(FRANCE_EXPECTED)] == FRANCE_EXPECTED
+            if first_is_france_oracle
+            else None
+        )
+        france_semantic = (
+            france_exact
+            or (FRANCE_PARIS_TOKEN in ids[0][:16] and 1 in ids[0][:16])
+            if first_is_france_oracle
+            else None
+        )
+        if first_is_france_oracle and not france_exact and not args.allow_france_mismatch:
             raise RuntimeError(
                 f"round {rep}: France oracle={ids[0][:len(FRANCE_EXPECTED)]}"
             )
@@ -255,11 +283,12 @@ def main() -> None:
             for samples in token_samples
         )
         steady_wall = steady_end - steady_start
-        if steady_wall <= 0 or steady_tokens <= 0:
+        if (steady_wall <= 0 or steady_tokens <= 0) and not args.allow_no_resident_window:
             raise RuntimeError(
                 f"round {rep}: no common resident decode window "
                 f"wall={steady_wall} tokens={steady_tokens}"
             )
+        has_resident_window = steady_wall > 0 and steady_tokens > 0
         position_bins = []
         if args.position_bin_size > 0:
             for lo in range(0, args.tokens, args.position_bin_size):
@@ -330,20 +359,26 @@ def main() -> None:
             "stream_interval": stream_interval,
             "group_wall_s": wall,
             "aggregate_tok_s": sum(lengths) / wall,
-            "resident_bs32_wall_s": steady_wall,
-            "resident_bs32_tokens": steady_tokens,
-            "resident_bs32_tok_s": steady_tokens / steady_wall,
+            "resident_bs32_wall_s": steady_wall if has_resident_window else None,
+            "resident_bs32_tokens": steady_tokens if has_resident_window else None,
+            "resident_bs32_tok_s": (
+                steady_tokens / steady_wall if has_resident_window else None
+            ),
             "position_bins": position_bins,
             "resident_time_bins": resident_time_bins,
             "lengths": lengths,
             "finish_reasons": finish_reasons,
-            "france_first9_exact": True,
+            "france_first9_exact": france_exact,
+            "france_semantic_paris": france_semantic,
             "completion_sha256": [
                 hashlib.sha256(
                     json.dumps(value, separators=(",", ":")).encode()
                 ).hexdigest()
                 for value in ids
             ],
+            # Compact first-divergence witness without storing every generated
+            # token from every BS32 round.
+            "completion_first16_ids": [value[:16] for value in ids],
             "request_wall_s": [elapsed for elapsed, _, _ in results],
             "decode_moments_delta": moments_delta,
             "decode_step_count": moments_delta[0] if moments_delta else None,
@@ -371,7 +406,11 @@ def main() -> None:
 
     speeds = [item["aggregate_tok_s"] for item in rounds]
     trimmed = sorted(speeds)[1:-1] if len(speeds) > 2 else speeds
-    resident_speeds = [item["resident_bs32_tok_s"] for item in rounds]
+    resident_speeds = [
+        item["resident_bs32_tok_s"]
+        for item in rounds
+        if item["resident_bs32_tok_s"] is not None
+    ]
     resident_trimmed = (
         sorted(resident_speeds)[1:-1]
         if len(resident_speeds) > 2
@@ -390,7 +429,7 @@ def main() -> None:
 
     per_request_sequences = [
         [round_ids[request_index] for round_ids in round_output_ids]
-        for request_index in range(32)
+        for request_index in range(len(requests))
     ]
     first_divergence_by_request = [
         first_divergence(sequences) for sequences in per_request_sequences
@@ -402,6 +441,7 @@ def main() -> None:
         "format": "dsv4-tp4-diverse-concurrent-v1",
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
+        "first_request_is_france_oracle": first_is_france_oracle,
         "tokens": args.tokens,
         "request_count": len(requests),
         "stream_interval": args.stream_interval,
@@ -410,10 +450,14 @@ def main() -> None:
         "round_count": len(rounds),
         "median_tok_s": statistics.median(speeds),
         "trimmed_mean_tok_s": statistics.mean(trimmed),
-        "resident_bs32_median_tok_s": statistics.median(resident_speeds),
-        "resident_bs32_trimmed_mean_tok_s": statistics.mean(resident_trimmed),
+        "resident_bs32_median_tok_s": (
+            statistics.median(resident_speeds) if resident_speeds else None
+        ),
+        "resident_bs32_trimmed_mean_tok_s": (
+            statistics.mean(resident_trimmed) if resident_trimmed else None
+        ),
         "cross_round_exact_requests": cross_round_exact_requests,
-        "cross_round_all_exact": cross_round_exact_requests == 32,
+        "cross_round_all_exact": cross_round_exact_requests == len(requests),
         "first_divergence_by_request": first_divergence_by_request,
         "rounds": rounds,
     }

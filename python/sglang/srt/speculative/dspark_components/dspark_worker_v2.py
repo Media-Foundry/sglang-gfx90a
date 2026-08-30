@@ -167,6 +167,14 @@ class DSparkWorkerV2(BaseSpecWorker):
         )
         self.gamma = runtime_config.gamma
         self.verify_num_draft_tokens = runtime_config.verify_num_draft_tokens
+        # The checkpoint advertises the training block size, while the server
+        # may intentionally run a shorter prefix.  Keep model-side confidence
+        # reshapes and block metadata on the same runtime gamma as the worker;
+        # otherwise a divisible hidden width can silently reinterpret rows.
+        if hasattr(self.draft_model, "gamma"):
+            self.draft_model.gamma = self.gamma
+        if hasattr(self.draft_model, "block_size"):
+            self.draft_model.block_size = self.gamma
         self.sample_from_anchor = bool(self.draft_model.sample_from_anchor)
         self.query_token_num = self.gamma if self.sample_from_anchor else self.gamma + 1
         self.speculative_num_draft_tokens = self.verify_num_draft_tokens

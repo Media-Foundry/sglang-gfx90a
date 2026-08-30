@@ -55,6 +55,20 @@ _is_npu = is_npu()
 _VERIFY_DRAFT_PROBS = Invariant("dspark.verify.draft_probs", Bucket.GUARD, NotNaN())
 
 
+def bonus_for_correct_len(
+    *,
+    target_logits: torch.Tensor,
+    correct_len: torch.Tensor,
+    bs: int,
+    verify_num_draft_tokens: int,
+) -> torch.Tensor:
+    """Re-select target bonuses after an external accept-length override."""
+    predicts = torch.argmax(target_logits, dim=-1).view(
+        int(bs), int(verify_num_draft_tokens)
+    )
+    return predicts.gather(1, correct_len.to(torch.int64).view(-1, 1)).squeeze(1)
+
+
 def verify_logits_adjustments_are_noop(sampling_info) -> bool:
     if sampling_info is None:
         return True
@@ -136,6 +150,17 @@ class TargetVerifyExecutor:
         if self._simulate_acc_len > 0:
             correct_len = self._simulated_correct_len(
                 bs=bs, dtype=correct_len.dtype, device=correct_len.device
+            )
+            if target_logits is None:
+                raise RuntimeError(
+                    "DSpark simulated acceptance requires target logits to "
+                    "recompute bonus after overriding correct_len."
+                )
+            bonus = bonus_for_correct_len(
+                target_logits=target_logits,
+                correct_len=correct_len,
+                bs=bs,
+                verify_num_draft_tokens=self.verify_num_draft_tokens,
             )
 
         finalized = FinalizeAcceptLens.execute(

@@ -315,6 +315,33 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ -n "${BATCH_NOTIFY_SIZE:-}" ]]; then
+  server_args+=(--batch-notify-size "${BATCH_NOTIFY_SIZE}")
+fi
+if [[ -n "${PREFILL_MAX_REQUESTS:-}" ]]; then
+  server_args+=(--prefill-max-requests "${PREFILL_MAX_REQUESTS}")
+fi
+if [[ "${ENABLE_PREFILL_DELAYER:-0}" == "1" ]]; then
+  server_args+=(--enable-prefill-delayer)
+  if [[ -n "${PREFILL_DELAYER_QUEUE_MIN_RATIO:-}" ]]; then
+    server_args+=(
+      --prefill-delayer-queue-min-ratio
+      "${PREFILL_DELAYER_QUEUE_MIN_RATIO}"
+    )
+  fi
+  if [[ -n "${PREFILL_DELAYER_MAX_DELAY_MS:-}" ]]; then
+    server_args+=(
+      --prefill-delayer-max-delay-ms
+      "${PREFILL_DELAYER_MAX_DELAY_MS}"
+    )
+  fi
+  if [[ -n "${PREFILL_DELAYER_MAX_DELAY_PASSES:-}" ]]; then
+    server_args+=(
+      --prefill-delayer-max-delay-passes
+      "${PREFILL_DELAYER_MAX_DELAY_PASSES}"
+    )
+  fi
+fi
 if [[ -n "${KV_CACHE_DTYPE:-}" ]]; then
   server_args+=(--kv-cache-dtype "${KV_CACHE_DTYPE}")
 fi
@@ -427,6 +454,21 @@ if [[ "${DSPARK_MODE}" == "1" ]]; then
     --speculative-algorithm DSPARK
     --speculative-dspark-block-size "${SPECULATIVE_DSPARK_BLOCK_SIZE:-5}"
   )
+  if [[ -n "${SPECULATIVE_DSPARK_SPS_TABLE_PATH:-}" ]]; then
+    server_args+=(
+      --speculative-dspark-sps-table-path
+      "${SPECULATIVE_DSPARK_SPS_TABLE_PATH}"
+    )
+  fi
+  if [[ -n "${SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH:-}" ]]; then
+    server_args+=(
+      --speculative-dspark-confidence-sts-path
+      "${SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH}"
+    )
+  fi
+  if [[ "${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-0}" == "1" ]]; then
+    server_args+=(--speculative-dspark-align-verify-tokens-to-graph-tier)
+  fi
 else
   for var_name in "${speculative_env_vars[@]}"; do
     if [[ -n "${!var_name:-}" && "${!var_name}" != "0" ]]; then
