@@ -43,8 +43,8 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
   const uint32_t valid = max(num_valid_ids[0], 0);
   const uint32_t valid_blocks =
       (valid + kAssignments - 1) / kAssignments;
-  static_assert(kBlocks == 1 || kBlocks == 4 || kBlocks == 8,
-                "oracle owner CTA fan-in must be 1/4/8");
+  static_assert(kBlocks == 1 || kBlocks == 4 || kBlocks == 8 || kBlocks == 16,
+                "oracle owner CTA fan-in must be 1/4/8/16");
   const uint32_t expert_block = blockIdx.x / kBlocks;
   const uint32_t owner_shard = blockIdx.x % kBlocks;
   if (expert_block >= valid_blocks) return;

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import statistics
+from pathlib import Path
 
 import torch
 
@@ -72,7 +73,9 @@ def timed(fn, warmup: int, iterations: int) -> float:
 
 
 def main() -> None:
+    global M
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--m", type=int, choices=(32, 64), default=64)
     ap.add_argument("--recorder", default="/tmp/expert_distribution_recorder_1788072257.651073.pt")
     ap.add_argument("--pass-index", type=int, default=20)
     ap.add_argument("--layer", type=int, default=34)
@@ -83,14 +86,28 @@ def main() -> None:
     ap.add_argument("--rounds", type=int, default=7)
     ap.add_argument("--mutations", type=int, default=100)
     args = ap.parse_args()
+    M = args.m
 
     if not torch.version.hip or torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0] != "gfx90a":
         raise RuntimeError("gfx90a ROCm required")
-    payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
-    raw = payload["logical_count"][args.pass_index, args.layer]
-    if torch.any(raw.remainder(4) != 0):
-        raise RuntimeError("TP4 recorder counts must be divisible by four")
-    counts = raw // 4
+    recorder = Path(args.recorder)
+    if recorder.is_file():
+        payload = torch.load(recorder, map_location="cpu", weights_only=False)
+        raw = payload["logical_count"][args.pass_index, args.layer]
+        if torch.any(raw.remainder(4) != 0):
+            raise RuntimeError("TP4 recorder counts must be divisible by four")
+        counts = raw // 4
+    elif M == 32:
+        counts = torch.zeros(E, dtype=torch.int64)
+        counts[:7] = 5
+        counts[7:65] = 2
+        counts[65:106] = 1
+        print(
+            f"recorder {recorder} missing; using synthetic diverse M32 route "
+            "(assignments=192 active=106 a4_blocks=113)"
+        )
+    else:
+        raise FileNotFoundError(recorder)
     device = torch.device("cuda")
     topk = reconstruct_topk(counts).to(device)
     ids, experts = metadata(topk)

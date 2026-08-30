@@ -3,6 +3,7 @@
 
 import argparse
 import statistics
+from pathlib import Path
 
 import torch
 
@@ -59,8 +60,23 @@ def main():
     p.add_argument("--recorder", default="/tmp/expert_distribution_recorder_1787803355.1855972.pt")
     args = p.parse_args()
 
-    payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
-    counts = payload["logical_count"][37, 34] // 8
+    recorder = Path(args.recorder)
+    if recorder.is_file():
+        payload = torch.load(recorder, map_location="cpu", weights_only=False)
+        counts = payload["logical_count"][37, 34] // 8
+    else:
+        # Recorder files are intentionally ephemeral.  Preserve the measured
+        # diverse-request occupancy envelope when the original dump has been
+        # cleaned: 192 assignments, 106 active experts and 113 padded A4
+        # blocks (seven experts span two A4 blocks).
+        counts = torch.zeros(E, dtype=torch.int64)
+        counts[:7] = 5
+        counts[7:65] = 2
+        counts[65:106] = 1
+        print(
+            f"recorder {recorder} missing; using synthetic diverse route "
+            "(assignments=192 active=106 a4_blocks=113)"
+        )
     metadata = make_metadata(reconstruct_topk_from_counts(counts).cuda(), assignments=A4)
     expert_blocks = metadata.sorted_experts.numel()
     torch.manual_seed(20260830)
@@ -70,7 +86,7 @@ def main():
     s = torch.full((E, 2 * I, H // 32), 127, dtype=torch.uint8, device="cuda")
     ref_out = torch.empty((M, T, I), dtype=torch.bfloat16, device="cuda")
     ref = _jit_gate_up_grouped_dpp(E, M, T, I, H, A4, R2, W8, G, LUT)
-    owner_ctas_values = (1, 4, 8)
+    owner_ctas_values = (1, 4, 8, 16)
     states = {
         ctas: {
             "out": torch.empty_like(ref_out),
