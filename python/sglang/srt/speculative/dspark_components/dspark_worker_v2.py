@@ -368,6 +368,12 @@ class DSparkWorkerV2(BaseSpecWorker):
     def init_attention_backends(self):
         with self._draft_context():
             self._draft_worker.init_attention_backends()
+        if envs.SGLANG_DSPARK_FULL_BLOCK_ATTN.get():
+            setattr(
+                self.draft_model_runner.attn_backend,
+                "_dspark_full_block_attention",
+                True,
+            )
         self._need_mamba_verify_commit = mambaish_config(
             self.model_runner.model_config
         ) is not None and hasattr(

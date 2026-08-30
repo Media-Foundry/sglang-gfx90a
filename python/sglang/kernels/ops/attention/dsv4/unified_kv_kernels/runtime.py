@@ -300,6 +300,41 @@ def build_decode_streams(
     return swa_i, swa_p, hca_i, hca_p, csa_i, csa_p
 
 
+def build_swa_decode_stream(
+    *,
+    state_slot: torch.Tensor,
+    positions: torch.Tensor,
+    swa_len: torch.Tensor,
+    win: int,
+    ring_stride: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build only the SWA ragged stream for a caller-defined visible window."""
+    device = state_slot.device
+    n = state_slot.shape[0]
+    state_slot = state_slot.to(torch.int32).contiguous()
+    positions = positions.to(torch.int32).contiguous()
+    swa_len = swa_len.to(torch.int32).contiguous()
+    indptr = _lengths_to_indptr(swa_len)
+    indices = torch.empty(n * win, dtype=torch.int32, device=device)
+    if n > 0:
+        batch_id = torch.arange(n, dtype=torch.int32, device=device)
+        write_v4_paged_decode_indices(
+            state_slot_per_seq=state_slot,
+            batch_id_per_token=batch_id,
+            positions=positions,
+            swa_indptr=indptr,
+            csa_indptr=indptr,
+            hca_indptr=indptr,
+            swa_indices=indices,
+            csa_indices=indices,
+            hca_indices=indices,
+            T=n,
+            win=win,
+            ring_stride=ring_stride,
+        )
+    return indices, indptr
+
+
 # ---------------------------------------------------------------------------
 # Prefill index builder (ragged-packed: paged prefix + flat extend)
 # ---------------------------------------------------------------------------

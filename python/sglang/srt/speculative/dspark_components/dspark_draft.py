@@ -81,6 +81,23 @@ def _make_num_token_non_padded(
     ).to(device, non_blocking=True)
 
 
+def resolve_draft_backend_cpu_lens(
+    *, prefix_lens_cpu: torch.Tensor, prefix_lens_sum: int, query_token_num: int
+) -> tuple[torch.Tensor, int]:
+    """Keep CPU lens in prefix form for backends that add verify width.
+
+    The HIP DSV4 TARGET_VERIFY metadata builder adds ``query_token_num`` to
+    both device and CPU sequence lengths.  Pre-adding it here makes the CPU
+    side prefix+2*gamma while the device side remains prefix+gamma, corrupting
+    causal expansion.  ``seq_lens_sum`` still describes the final expanded
+    batch and therefore includes the query rows exactly once.
+    """
+    return (
+        prefix_lens_cpu,
+        int(prefix_lens_sum) + int(prefix_lens_cpu.numel()) * int(query_token_num),
+    )
+
+
 class DraftBlockResult(msgspec.Struct, frozen=True):
     draft_tokens: torch.Tensor
     corrected_logits: Optional[torch.Tensor]
@@ -411,11 +428,17 @@ class DraftBlockProposer:
             )
 
         if batch.seq_lens_cpu is not None:
-            draft_seq_lens_cpu = batch.seq_lens_cpu + query_token_num
-            draft_seq_lens_sum = int(draft_seq_lens_cpu.sum())
+            draft_seq_lens_cpu, draft_seq_lens_sum = resolve_draft_backend_cpu_lens(
+                prefix_lens_cpu=batch.seq_lens_cpu,
+                prefix_lens_sum=int(batch.seq_lens_cpu.sum()),
+                query_token_num=query_token_num,
+            )
         elif draft_input.nxt_kv_lens_cpu is not None:
-            draft_seq_lens_cpu = draft_input.nxt_kv_lens_cpu
-            draft_seq_lens_sum = int(draft_input.nxt_kv_lens_sum)
+            draft_seq_lens_cpu, draft_seq_lens_sum = resolve_draft_backend_cpu_lens(
+                prefix_lens_cpu=draft_input.nxt_kv_lens_cpu,
+                prefix_lens_sum=int(draft_input.nxt_kv_lens_sum),
+                query_token_num=query_token_num,
+            )
         else:
             raise RuntimeError("DSpark decode expected batch.seq_lens_cpu, got None")
 

@@ -1141,9 +1141,47 @@ class DeepseekV4HipRadixBackend(
         state_slot = state_slot[:N]
         if core.unified is None:
             core.unified = UnifiedKvMetadata()
+        if getattr(self, "_dspark_full_block_attention", False):
+            block = int(self.target_verify_num_draft_tokens)
+            if block <= 0 or N % block:
+                raise RuntimeError(
+                    f"DSpark full-block attention needs N divisible by block: "
+                    f"N={N}, block={block}"
+                )
+            block_end = (
+                core.positions_casual.view(-1, block)[:, -1]
+                .repeat_interleave(block)
+                .contiguous()
+            )
+            visible_win = pool.unified_swa_window + block
+            full_len = torch.minimum(
+                block_end.to(torch.int32) + 1,
+                torch.full_like(block_end, visible_win, dtype=torch.int32),
+            )
+            (
+                core.unified.swa_indices,
+                core.unified.swa_indptr,
+            ) = runtime.build_swa_decode_stream(
+                state_slot=state_slot,
+                positions=block_end,
+                swa_len=full_len,
+                win=visible_win,
+                ring_stride=pool.unified_swa_ring_size,
+            )
+        else:
+            (
+                core.unified.swa_indices,
+                core.unified.swa_indptr,
+            ) = runtime.build_swa_decode_stream(
+                state_slot=state_slot,
+                positions=core.positions_casual,
+                swa_len=core.swa_topk_lengths,
+                win=pool.unified_swa_window,
+                ring_stride=pool.unified_swa_ring_size,
+            )
         (
-            core.unified.swa_indices,
-            core.unified.swa_indptr,
+            _,
+            _,
             core.unified.hca_indices,
             core.unified.hca_indptr,
             core.unified.csa_indices,

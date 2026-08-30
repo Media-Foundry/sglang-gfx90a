@@ -1669,7 +1669,14 @@ class MQALayer(MqaAttentionBase):
                 bf16_store=bf16_store,
             )
             mark(13)
-            kv = None
+            # unified TARGET_VERIFY deliberately passes no cache destination
+            # to the fused kernel: the backend must first store this complete
+            # causal candidate block, then consume it through its per-row
+            # decode streams.  Dropping ``kv`` here silently told the backend
+            # that the store had already happened, so verify attention read
+            # stale ring slots and changed greedy target tokens.
+            if not (unified and fuse_verify):
+                kv = None
 
             if not unified and use_cp:
                 # DSA CP: keep bf16 kv around for the cross-rank all-gather, then
@@ -1988,6 +1995,10 @@ class MQALayer(MqaAttentionBase):
         # save_kv_cache=False). When kv is not None (target-verify, or DSA-CP),
         # _forward_prepare* deliberately left the store off and the backend does
         # its normal causally-indexed store from attn_k = kv.
+        if unified_kv and forward_batch.forward_mode.is_target_verify() and kv is None:
+            raise RuntimeError(
+                "unified-KV TARGET_VERIFY must preserve BF16 KV for the backend store"
+            )
         attn_k = kv if kv is not None else q
         fuse_inverse_rope = (
             unified_kv

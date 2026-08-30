@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
         default=root / ".agents/memory/dsv4_tp8_diverse_32_input_ids.json",
     )
     parser.add_argument("--tokens", type=int, default=256)
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument(
         "--request-count",
@@ -206,7 +207,7 @@ def main() -> None:
             payload = {
                 "input_ids": item["input_ids"],
                 "sampling_params": {
-                    "temperature": 0,
+                    "temperature": args.temperature,
                     "max_new_tokens": args.tokens,
                     "ignore_eos": True,
                     "stream_interval": stream_interval,
@@ -464,6 +465,7 @@ def main() -> None:
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "first_request_is_france_oracle": first_is_france_oracle,
         "tokens": args.tokens,
+        "temperature": args.temperature,
         "request_count": len(requests),
         "stream_interval": args.stream_interval,
         "stream_interval_sequence": interval_sequence,

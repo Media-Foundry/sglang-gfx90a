@@ -575,6 +575,10 @@ class Envs:
     SGLANG_DSPARK_FOLDED_PROPOSAL = EnvBool(True)
     SGLANG_DSPARK_STACKED_CTX_KV = EnvBool(True)
     SGLANG_DSPARK_EMBED_IN_GRAPH = EnvBool(True)
+    # DeepSeek-V4 DSpark was trained with every query attending the complete
+    # draft block in addition to committed SWA history.  The generic target-
+    # verify backend is causal; opt into the model-specific index layout.
+    SGLANG_DSPARK_FULL_BLOCK_ATTN = EnvBool(False)
     SGLANG_DSPARK_OPT_MARKOV_W2_BF16 = EnvBool(True)
     SGLANG_DSPARK_OPT_MARKOV_W2_TP_SHARD = EnvBool(True)
     SGLANG_DSPARK_OPT_FUSED_GREEDY_MARKOV = EnvBool(False)
