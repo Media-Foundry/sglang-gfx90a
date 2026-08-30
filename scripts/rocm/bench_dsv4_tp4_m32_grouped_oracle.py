@@ -446,10 +446,16 @@ def main() -> None:
 
         run()
         torch.cuda.synchronize()
+        first_output = output.clone()
+        run()
+        torch.cuda.synchronize()
+        self_exact = torch.equal(output, first_output)
+        self_diff = (output.float() - first_output.float()).abs().max()
         outputs[name] = output.clone()
         print(
             f"profile={name} scans={metadata.sorted_experts.numel()} "
-            f"padded={metadata.sorted_ids.numel()}", flush=True,
+            f"padded={metadata.sorted_ids.numel()} self_exact={self_exact} "
+            f"self_max_abs={float(self_diff):.8g}", flush=True,
         )
         for _ in range(args.rounds):
             timings[name].append(time_us(run, args.warmup, args.iterations))

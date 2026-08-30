@@ -108,7 +108,10 @@ def make_metadata(
     for token, experts in enumerate(topk_ids.cpu().tolist()):
         for slot, expert in enumerate(experts):
             buckets[expert].append((slot << 24) | token)
-    sentinel = M
+    # The padding token must be invalid for the runtime shape.  Using the
+    # module's historical M32 constant here aliases a real token at M64 and
+    # turns padded assignments into racing writes to token 32.
+    sentinel = topk_ids.shape[0]
     ids: list[int] = []
     experts: list[int] = []
     for expert, bucket in enumerate(buckets):

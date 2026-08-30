@@ -22,7 +22,18 @@ oracle accepts an explicit batch size and recorded world size. The shared
 deterministic count reconstruction remains duplicate-free and defaults to the
 old M32 behavior.
 
-## Gate grid
+## Initial oracle defect and correction
+
+The first geometry run exposed a test-only metadata bug: `make_metadata()`
+used the historical module constant `M=32` as its padding sentinel. At M64,
+token 32 is valid, so padded assignments raced with real writes and made every
+profile non-self-exact. Production AIter sorting was not affected. The helper
+now derives the invalid sentinel from `topk_ids.shape[0]`; all geometry results
+below must be regenerated after this correction. The pre-correction timing and
+cross-profile exactness tables are retained only as provenance and must not be
+used to select a grid.
+
+## Pre-correction gate grid (invalid for selection)
 
 Fixed A4/R2/W8/LDS and down D832 on pass 20/layer 34:
 
@@ -36,12 +47,10 @@ Fixed A4/R2/W8/LDS and down D832 on pass 20/layer 34:
 | 3120 | 1082.266 us | no |
 | 4160 | 1071.604 us | no |
 
-The non-exact candidates have very large final-output errors (roughly
-15k--22k max absolute), not harmless rounding differences. The current grid is
-part of the fixed task-coverage mapping rather than a freely tunable occupancy
-knob. Apparent timing wins from changing it are invalid.
+These non-exact results came from the M32 padding-sentinel alias, not from a
+proven structural grid constraint.
 
-## Down grid
+## Pre-correction down grid (invalid for selection)
 
 Fixed gate G2080 and A4/R2/W8/LDS:
 
@@ -53,18 +62,52 @@ Fixed gate G2080 and A4/R2/W8/LDS:
 | 1248 | 1053.328 us | no |
 | 1664 | 1055.728 us | no |
 
-D832 is likewise structural. No geometry-only change is accepted.
+These exactness results likewise require regeneration.
 
-## A8 closure
+## Pre-correction A8 screen (timing indicative, correctness invalid)
 
 A8/R1/W4 reduced the real route from 174 A4 scans to 153 A8 scans, but the
 complete stage regressed from 1046.245 us to 1726--1814 us for the tested
 B832/B1248/B1664/B2080 variants. The candidates were also not exact against
 production A4. A8 is rejected for TP4 M64.
 
+## Corrected geometry results
+
+After deriving the padding sentinel from runtime M, every tested A4 grid was
+repeat-self-exact and cross-profile bitwise exact. The grid-stride kernels
+therefore behave as their source indicates; block count is not a mathematical
+coverage constraint.
+
+Corrected gate sweep with down D832:
+
+| gate grid | full stage median |
+|---:|---:|
+| 832 | 770.292 us |
+| 1248 | 769.793 us |
+| 1664 | 760.782 us |
+| 2080 | **752.980 us** |
+| 2496 | 758.449 us |
+| 3120 | 759.083 us |
+| 4160 | 760.542 us |
+
+Corrected down sweep with gate G2080:
+
+| down grid | full stage median |
+|---:|---:|
+| 624 | 801.598 us |
+| 832 | **753.768 us** |
+| 1040 | 770.225 us |
+| 1248 | 770.171 us |
+| 1664 | 749.575 us |
+
+The isolated D1664 result appeared 0.56% faster, but an adjacent two-profile
+repeat measured D832/D1664 at `752.052/752.572 us`; it did not reproduce.
+Production remains G2080/D832.
+
 ## Production stage budget
 
-Seven-round isolated medians for exact A4/R2/W8/G2080/D832 are:
+The pre-correction table below is invalid because padded assignments aliased a
+real M64 token. It is retained only to explain the original diagnosis:
 
 | stage | median |
 |---|---:|
@@ -74,8 +117,40 @@ Seven-round isolated medians for exact A4/R2/W8/G2080/D832 are:
 | fixed reduction | 4.877 us |
 | full routed stage | 1063.246 us |
 
-Gate and down dominate. Quantization and final reduction cannot supply the
-roughly 410 us/layer reduction implied by the 1300 tok/s target.
+Corrected adjacent medians for exact A4/R2/W8/G2080/D832 are:
+
+```text
+gate/up                 425.225 us
+intermediate INT8 quant  42.091 us
+down                    304.117 us
+fixed reduction           4.939 us
+full routed stage       752.052 us
+```
+
+Production AIter sorting already used a correct invalid sentinel and never had
+the test-only race.
+
+## BS64 service marker budget
+
+A marker-only service generated 128 tokens for all 64 distinct requests, with
+every finish reason `length` and the France oracle exact. Across 16 four-rank
+groups, layer-20 rank-max medians were:
+
+```text
+attention-entry MHC        91.76 us
+attention prepare         245.92 us
+attention core             74.40 us
+attention output          163.68 us
+FFN-entry MHC             100.32 us
+MoE coarse                931.12 us
+router                     46.56 us
+top-k                      16.16 us
+routed experts            805.92 us
+TP4 all-reduce tail        64.80 us
+```
+
+Its roughly 946 tok/s resident value is not a formal performance result because
+the markers add work; the trace is used only for localization.
 
 ## Occupancy evidence
 
@@ -94,8 +169,7 @@ rejected multiple-bucket-launch design.
 
 ## Decision
 
-- Keep production G2080/D832 and A4.
-- Treat grid block counts as structural correctness parameters until the task
-  mapping itself is redesigned.
-- Next prototype: one static-buffer launch that selects A1/A2/A4 work per
+- Keep production G2080/D832 and A4; corrected grid sweeps confirm both.
+- Treat all pre-correction exactness and component timing as invalid provenance.
+- Then prototype one static-buffer launch that selects A1/A2/A4 work per
   expert while preserving vectorized loads and exact fixed-slot reduction.
