@@ -1506,6 +1506,10 @@ class Envs:
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
+    # Maximum routed-token tier allowed to use the packed-FP4 E2M1 LDS LUT.
+    # M64 was the original validated ceiling; TP4 DSpark may opt M84/M96 in
+    # after a route-specific exact oracle and service-level correctness A/B.
+    SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS = EnvInt(64)
     # TP4/M32 oracle-backed combo: DPP gate reduction plus grouped-down row
     # prefetch. Exact-shape guarded in the AIter runner and default-off until
     # service scheduler-throughput A/B completes.

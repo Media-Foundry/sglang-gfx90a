@@ -549,7 +549,8 @@ class AiterRunnerCore(MoeRunnerCore):
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL.get()
                 )
                 use_lds_unpack = (
-                    num_prefill_tokens <= 64
+                    num_prefill_tokens
+                    <= envs.SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS.get()
                     and envs.SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK.get()
                 )
                 grouped_assignments = (

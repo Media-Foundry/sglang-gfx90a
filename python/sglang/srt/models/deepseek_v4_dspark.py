@@ -17,6 +17,9 @@ from sglang.kernels.ops.speculative.dspark.dspark_draft_model import (
     CommitKvProj,
 )
 from sglang.srt.configs.deepseek_v4 import DeepSeekV4Config
+from sglang.srt.eplb.expert_distribution import (
+    get_global_expert_distribution_recorder,
+)
 from sglang.srt.environ import envs
 from sglang.srt.layers.dp_attention import is_dp_attention_enabled
 from sglang.srt.layers.layernorm import RMSNorm
@@ -843,8 +846,15 @@ class DeepseekV4ForCausalLMDSpark(nn.Module):
         if input_embeds is None:
             input_embeds = self.forward_embed(input_ids)
         x = input_embeds
-        for stage in self.stages:
-            x = stage(positions, x, forward_batch)
+        # The target-model recorder owns the public routing statistics.  DSpark
+        # stages use a block-shaped top-k tensor during draft graph capture,
+        # while the EPLB per-pass gatherer expects the target's two-dimensional
+        # [tokens, topk] layout.  As with the other MTP/next-n models, exclude
+        # the draft region so enabling target occupancy recording cannot break
+        # speculative graph capture or mix proposal routes into target counts.
+        with get_global_expert_distribution_recorder().disable_this_region():
+            for stage in self.stages:
+                x = stage(positions, x, forward_batch)
 
         return LogitsProcessorOutput(next_token_logits=None, hidden_states=x)
 
