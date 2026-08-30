@@ -91,6 +91,10 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Request both same-group R2 gate/up rows before consuming row 0.  The
   # strict M64 specialization is exact and retains a small service-level win.
   export SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH:-1}"
+  # The exact M64 router shape uses the independently validated hipBLASLt
+  # solution 4358.  It changes internal BF16 association but preserves the
+  # real 64-request teacher outputs and retains a small service-level gain.
+  export SGLANG_DSV4_GFX90A_M64_ROUTER_HIPBLASLT="${SGLANG_DSV4_GFX90A_M64_ROUTER_HIPBLASLT:-1}"
   # Speed profile: cache logical W2 scales for the exact M64 row-prefetch down
   # kernel. Set to zero when the extra 3840-token KV capacity is preferable.
   export SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE="${SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE:-1}"

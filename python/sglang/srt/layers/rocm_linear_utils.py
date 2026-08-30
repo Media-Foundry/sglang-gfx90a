@@ -3,6 +3,8 @@ from aiter.ops.triton.fused_kv_cache import fused_qk_rope_cat_and_cache_mla
 from aiter.ops.triton.fused_qk_concat import fused_qk_rope_cat
 from aiter.tuned_gemm import tgemm
 
+from sglang.srt.environ import envs
+
 __all__ = ["fused_qk_rope_cat", "fused_qk_rope_cat_and_cache_mla"]
 
 
@@ -11,6 +13,17 @@ def aiter_dsv3_router_gemm(
     weight: torch.Tensor,
 ):
     """Use aiter tuned GEMM dispatcher (tgemm.mm) to automatically select the GEMM kernel."""
+    if (
+        envs.SGLANG_DSV4_GFX90A_M64_ROUTER_HIPBLASLT.get()
+        and torch.version.hip
+        and hidden_states.shape == (64, 4096)
+        and weight.shape == (256, 4096)
+        and hidden_states.dtype == torch.bfloat16
+        and weight.dtype == torch.bfloat16
+    ):
+        from aiter.tuned_gemm import hipb_gemm
+
+        return hipb_gemm(hidden_states, weight.detach(), 4358)
     return tgemm.mm(hidden_states, weight.detach(), otype=hidden_states.dtype)
 
 

@@ -1515,6 +1515,10 @@ class Envs:
     # M64 counterpart.  It retains the exact DPP reduction tree and changes
     # only the issue order of the two R2 packed-weight/scale requests.
     SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH = EnvBool(False)
+    # Experimental M64 router GEMM. hipBLASLt solution 4358 is faster for the
+    # exact BF16 [64,4096]x[256,4096] shape but changes accumulation order, so
+    # keep it default-off until router/TopK/full-model correctness is proven.
+    SGLANG_DSV4_GFX90A_M64_ROUTER_HIPBLASLT = EnvBool(False)
     # Cache a logical-contiguous W2 E8M0 scale copy for only the strict TP4/M32
     # grouped-down row-prefetch experiment. Costs 16 MiB per routed layer.
     SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE = EnvBool(False)
