@@ -79,6 +79,9 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # compressor branches. The compressors then overlap q_norm/wq_b and the
   # attention core without doubling q_lora's isolated latency.
   export SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER="${SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER:-3}"
+  # At the M64 tier the longer Q path can hide the C128 core-compressor tail.
+  # The strict model-side guard leaves all other tiers and C4 unchanged.
+  export SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM:-1}"
 fi
 
 HOST="${HOST:-127.0.0.1}"

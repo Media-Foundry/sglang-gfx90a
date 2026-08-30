@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture one teacher-forced M32 next-token/logprob oracle from /generate."""
+"""Capture one teacher-forced concurrent next-token/logprob oracle."""
 
 from __future__ import annotations
 
@@ -20,11 +20,17 @@ def main() -> None:
         default=root / ".agents/memory/dsv4_tp8_diverse_32_input_ids.json",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--request-count", type=int, default=32)
     args = parser.parse_args()
 
     requests = json.loads(args.inputs.read_text())["requests"]
-    if len(requests) != 32 or len({tuple(x["input_ids"]) for x in requests}) != 32:
-        raise ValueError("oracle requires exactly 32 distinct input-ID prompts")
+    if len(requests) < args.request_count:
+        raise ValueError(
+            f"oracle needs {args.request_count} requests, got {len(requests)}"
+        )
+    requests = requests[: args.request_count]
+    if len({tuple(x["input_ids"]) for x in requests}) != args.request_count:
+        raise ValueError("oracle requires distinct input-ID prompts")
     payload = {
         "input_ids": [item["input_ids"] for item in requests],
         "sampling_params": {
@@ -45,8 +51,10 @@ def main() -> None:
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with opener.open(request, timeout=1200) as response:
         results = json.loads(response.read())
-    if not isinstance(results, list) or len(results) != 32:
-        raise RuntimeError(f"expected 32 results, got {type(results)}")
+    if not isinstance(results, list) or len(results) != args.request_count:
+        raise RuntimeError(
+            f"expected {args.request_count} results, got {type(results)}"
+        )
 
     rows = []
     for result in results:
@@ -59,7 +67,8 @@ def main() -> None:
             }
         )
     record = {
-        "format": "dsv4-tp4-m32-next-token-v1",
+        "format": "dsv4-tp4-next-token-v2",
+        "request_count": args.request_count,
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "rows": rows,

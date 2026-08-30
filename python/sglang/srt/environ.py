@@ -1516,6 +1516,9 @@ class Envs:
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
     SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM = EnvBool(False)
+    # Experimental C128 counterpart for the fixed TP4/M64 decode graph tier.
+    # Kept separate because the same schedule regressed at M32.
+    SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM = EnvBool(False)
     # Two-wave unified-KV split core for exact TP4/M32/H16/D512 BF16 decode.
     SGLANG_DSV4_GFX90A_TP4_M32_PAGED_DECODE_WARPS2 = EnvBool(False)
     # Experimental issue-order sweep for the TP4/M32 C4 attention branches:

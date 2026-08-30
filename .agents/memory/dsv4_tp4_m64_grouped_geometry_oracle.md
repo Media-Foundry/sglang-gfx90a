@@ -152,6 +152,43 @@ TP4 all-reduce tail        64.80 us
 Its roughly 946 tok/s resident value is not a formal performance result because
 the markers add work; the trace is used only for localization.
 
+## TP4 M64 C128 attention multistream checkpoint
+
+Source audit showed that C4 M64 already uses the profile's multistream path,
+while C128 layers never allocate HIP alternate streams. A strict default-off
+selector was added for gfx90a, TP4, C128, decode M64 and graph capture only.
+It reuses the established producer schedule: the core compressor runs on its
+side stream and is joined before its consumer; Q/K math is unchanged.
+
+The layer-21 baseline/candidate C128 prepare rank-max medians were
+`168.32/156.24 us`, saving about `12.08 us` per C128 layer. Other coarse
+intervals were unchanged within marker noise. The no-indexer C128 path also
+now writes marker slot15 after the compressor join so the trace validator does
+not read a stale C4 value.
+
+Two no-marker candidate rounds with 64 distinct requests and 256 generated
+tokens measured:
+
+```text
+HTTP common-resident 953.322 / 953.351 tok/s
+center               953.337 tok/s
+scheduler/model      961.454 tok/s
+mean decode step      66.566 ms
+```
+
+Against the adjacent accepted BS64 baseline center `949.923 tok/s` and model
+rate `956.989 tok/s`, this is approximately +0.36% HTTP and +0.47% scheduler.
+Both rounds completed 64/64 requests at length 256 with `finish=length` and the
+France oracle exact.
+
+Because long autoregressive hashes drift even between repetitions of one
+service, correctness used a fixed 64-row teacher-forced one-token oracle.
+Baseline and candidate matched 64/64 output IDs, 64/64 output token-logprob
+rows and 64/64 complete top-5 logprob rows JSON-exactly.
+
+Enable `SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM=1` by default inside
+the explicit TP4 profile. The environment variable remains an exact rollback.
+
 ## M64 DPP reduction closure
 
 The existing shuffle-versus-DPP A/G/D/B oracle was rerun at M64 on the real

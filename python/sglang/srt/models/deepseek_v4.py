@@ -959,6 +959,12 @@ class MQALayer(MqaAttentionBase):
                 and self.attn_tp_size == 4
                 and self.compress_ratio == 4
             )
+            or (
+                _is_hip
+                and envs.SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM.get()
+                and self.attn_tp_size == 4
+                and self.compress_ratio == 128
+            )
         ):
             self.alt_streams = alt_streams[:3]
             self.alt_streams_indexer = alt_streams[-2:]
@@ -1476,6 +1482,9 @@ class MQALayer(MqaAttentionBase):
             mark(15)
         elif self.compressor is not None:
             current_stream.wait_stream(stream_compressor)
+            # C128 has no indexer, but the realtime validator uses slot 15 as
+            # the consumer-join boundary for both attention variants.
+            mark(15)
 
         mark(14)
 
@@ -1868,10 +1877,19 @@ class MQALayer(MqaAttentionBase):
             and x.shape[0] == 32
             and forward_batch.forward_mode.is_decode_or_idle()
         )
+        enable_tp4_m64_c128_hip_streams = (
+            _is_hip
+            and envs.SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM.get()
+            and self.attn_tp_size == 4
+            and self.compress_ratio == 128
+            and x.shape[0] == 64
+            and forward_batch.forward_mode.is_decode_or_idle()
+        )
         enable_multi_stream = (
             (
                 envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
                 or enable_tp4_m32_hip_streams
+                or enable_tp4_m64_c128_hip_streams
             )
             and self.alt_streams is not None
             and get_is_capture_mode()
