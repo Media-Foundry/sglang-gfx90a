@@ -97,6 +97,7 @@ def _fused_qk_norm_rope_store_kernel(
     SWA_PAGE_SIZE: tl.constexpr,
     BF16_STORE: tl.constexpr,
     IS_FNUZ: tl.constexpr,
+    HAS_Q: tl.constexpr,
 ):
     pid_m = tl.program_id(0).to(tl.int64)
     pid_h = tl.program_id(1).to(tl.int64)
@@ -113,7 +114,7 @@ def _fused_qk_norm_rope_store_kernel(
     d_cos_offs = d_pe_offs // 2
 
     # ===== Q path =====
-    if pid_h < NUM_LOCAL_HEADS:
+    if HAS_Q and pid_h < NUM_LOCAL_HEADS:
         head_id = pid_h.to(tl.int32)
         offs_n = head_id * HEAD_DIM + offs_d_full
 
@@ -315,6 +316,7 @@ def fused_qk_norm_rope_swa_store(
     q_out: Optional[torch.Tensor] = None,
     dtype: torch.dtype = torch.bfloat16,
     bf16_store: bool = False,
+    _oracle_q_off: bool = False,
 ) -> torch.Tensor:
     """Fused Q norm + KV norm + RoPE + optional SWA store.
 
@@ -364,7 +366,12 @@ def fused_qk_norm_rope_swa_store(
     BLOCK_SIZE_M = min(4, triton.next_power_of_2(M)) if M < 4 else 4
     num_warps = 4
 
-    grid = (triton.cdiv(M, BLOCK_SIZE_M), num_local_heads + 1)
+    # Oracle-only escape hatch used to measure a hypothetical free wq_b Q
+    # epilogue. Production callers retain the Q+KV grid unchanged.
+    grid = (
+        triton.cdiv(M, BLOCK_SIZE_M),
+        1 if _oracle_q_off else num_local_heads + 1,
+    )
     _fused_qk_norm_rope_store_kernel[grid](
         q,
         q_out,
@@ -405,6 +412,7 @@ def fused_qk_norm_rope_swa_store(
         SWA_PAGE_SIZE=swa_page_size,
         BF16_STORE=bf16_store,
         IS_FNUZ=_fp8_fnuz,
+        HAS_Q=not _oracle_q_off,
         num_warps=num_warps,
     )
     return q_out
