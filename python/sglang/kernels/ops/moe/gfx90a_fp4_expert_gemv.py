@@ -611,13 +611,8 @@ def gfx90a_fp4_expert_down_grouped(
     if use_row_prefetch:
         assert e == 256 and m in (32, 64)
         assert (topk, n, k) == (6, 4096, 512)
-        assert (assignments, rows, waves, blocks, weight_mode) == (
-            4,
-            2,
-            8,
-            832,
-            2,
-        )
+        assert (assignments, rows, blocks, weight_mode) == (4, 2, 832, 2)
+        assert waves == 8 or (m == 64 and waves == 4)
         assert prepacked_weight is None and use_lds_lut
         if use_logical_scale:
             assert weight_scale.shape == (256, 4096, 16)

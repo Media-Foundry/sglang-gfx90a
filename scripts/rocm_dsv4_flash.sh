@@ -91,6 +91,9 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Speed profile: cache logical W2 scales for the exact M64 row-prefetch down
   # kernel. Set to zero when the extra 3840-token KV capacity is preferable.
   export SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE="${SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE:-1}"
+  # Four waves improve the exact M64 logical-scale row-prefetch down kernel by
+  # ~4.1% standalone and ~0.8% resident service throughput. Other tiers keep W8.
+  export SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4="${SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4:-1}"
 fi
 
 HOST="${HOST:-127.0.0.1}"

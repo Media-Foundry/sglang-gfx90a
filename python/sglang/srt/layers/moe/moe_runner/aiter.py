@@ -761,6 +761,13 @@ class AiterRunnerCore(MoeRunnerCore):
                 use_down_row_prefetch = (
                     use_m32_dpp_down_prefetch or use_m64_logical_down_scale
                 )
+                down_waves = (
+                    4
+                    if use_m64_logical_down_scale
+                    and envs.SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4.get()
+                    and runner_input.hidden_states.shape == (64, 4096)
+                    else 8
+                )
                 if use_m32_down_consumer:
                     from sglang.kernels.ops.moe.gfx90a_fp4_down_consumer_quant_oracle import (
                         gfx90a_fp4_down_consumer_quant_oracle,
@@ -841,6 +848,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         out=direct_out,
                         assignments=grouped_assignments,
                         rows=grouped_down_rows,
+                        waves=down_waves,
                         blocks=down_blocks,
                         use_lds_lut=use_lds_unpack,
                         zero_partial=(
