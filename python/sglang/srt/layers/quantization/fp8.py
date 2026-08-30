@@ -1683,6 +1683,32 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                     layer.w2_weight_scale_inv.data
                 )
 
+            # The direct gfx90a kernels keep checkpoint-order packed weights,
+            # so their logical scale cache must be captured before the AIter
+            # scale shuffle.  The CKTile-only W2 row permutation above is not
+            # active in that direct profile.
+            if (
+                is_gfx90a_supported()
+                and envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get()
+                and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
+            ):
+                logical_scale = layer.w2_weight_scale_inv.data
+                expected = (256, 4096, 16)
+                if (
+                    tuple(logical_scale.shape) != expected
+                    or logical_scale.dtype
+                    not in (torch.uint8, torch.float8_e8m0fnu)
+                ):
+                    raise RuntimeError(
+                        "logical W2 scale cache requires E8M0 bytes "
+                        f"{expected}, got {tuple(logical_scale.shape)}/"
+                        f"{logical_scale.dtype}"
+                    )
+                layer.w2_weight_scale_logical = torch.nn.Parameter(
+                    logical_scale.contiguous().view(torch.uint8).clone(),
+                    requires_grad=False,
+                )
+
             for scale_name in ("w13_weight_scale_inv", "w2_weight_scale_inv"):
                 scale = getattr(layer, scale_name)
                 num_experts, num_rows, _ = scale.shape
@@ -2887,6 +2913,7 @@ class Fp8MoEMethod(FusedMoEMethodBase):
             quant_type=quant_type,
             w13_scale=w13_scale,
             w2_scale=w2_scale,
+            w2_scale_logical=getattr(layer, "w2_weight_scale_logical", None),
             expert_mask=layer.dispatcher.expert_mask_gpu if _use_aiter else None,
             swiglu_limit=self.moe_runner_config.swiglu_limit or 0.0,
             hidden_pad=getattr(layer, "hidden_pad", 0),

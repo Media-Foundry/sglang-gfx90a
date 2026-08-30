@@ -83,3 +83,49 @@ Expose it as an optional field of `AiterMoeQuantInfo`, and only substitute its
 pointer when the existing strict TP4/M32 DPP/down-row-prefetch selector is true.
 All other AIter/CK paths must continue consuming the shuffled scale. This is an
 assessment only; no production cache or selector was added in this experiment.
+
+## Default-off production experiment wiring
+
+A later static-only change prepared the down-only experiment for service A/B:
+
+- `SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE` is default false globally and
+  explicitly remains `0` in the TP4 BS32 profile unless the caller opts in.
+- During FP4 post-load processing, only the existing strict gfx90a DSV4 CKTile
+  shape clones the reordered logical W2 scale before the normal CK
+  `shuffle_scale`. The clone is required to be uint8 `[256,4096,16]` and
+  contiguous; otherwise explicit opt-in fails loudly.
+- `AiterMoeQuantInfo` carries the optional logical pointer. The runner validates
+  it again and substitutes it only after the existing exact TP4/M32 DPP plus
+  down-row-prefetch selector and the final D832 condition are both true.
+  Every other tier, MFMA path, down-consumer path and grouped fallback continues
+  to receive the original shuffled scale.
+- A separate cached JIT specialization instantiates the existing row-prefetch
+  kernel with `kLogicalScale=true`; the default specialization is unchanged.
+
+`py_compile`, `bash -n` and `git diff --check` passed. No service or additional
+GPU test was run for this wiring, and it was not committed; production
+teacher-forced and throughput validation is delegated to the reviewing agent.
+
+## Production validation
+
+The first two fail-loud startup attempts exposed two load-time assumptions
+without executing an incorrect graph: direct FP4 mode does not enter the
+CKTile W2-row-reorder condition, and the checkpoint scale tensor is typed
+`float8_e8m0fnu` before AIter's shuffle. The accepted loader therefore captures
+the direct profile's checkpoint-order scale immediately before shuffle and
+bit-views the E8M0 payload as uint8 for the HIP kernel.
+
+The corrected service captured graph tiers 1--32 successfully. Its 32-distinct
+teacher-forced record was JSON-identical to the accepted issue-order-3 oracle,
+including output IDs, full output logprob rows and top-5 entries. Five diverse
+512-token runs with logical down scales measured
+`628.668/628.315/629.111/629.411/627.703 tok/s` (median `628.668`, trimmed mean
+`628.698`). A fresh same-HEAD independent control service measured
+`620.921/624.157/623.861/624.565/625.078 tok/s` (median `624.157`, trimmed mean
+`624.194`). All requests completed 512 tokens with `finish=length`, and every
+round passed the France first-nine-token check.
+
+The independent-service gain is 0.72% by both median and trimmed mean, in the
+same direction as the exact routed micro's 1.30%. Enable the cache by default
+only in the strict TP4 BS32 profile; the global environment default remains
+false and callers can set it to zero to recover about 688 MiB/GCD.

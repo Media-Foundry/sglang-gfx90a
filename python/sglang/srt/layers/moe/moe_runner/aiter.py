@@ -104,6 +104,9 @@ class AiterMoeQuantInfo(MoeQuantInfo):
     quant_type: AiterQuantType = AiterQuantType.NONE
     w13_scale: Optional[torch.Tensor] = None
     w2_scale: Optional[torch.Tensor] = None
+    # Optional unshuffled logical [E,N,K/32] E8M0 cache. It is consumed only
+    # by the exact TP4/M32 grouped-down row-prefetch selector.
+    w2_scale_logical: Optional[torch.Tensor] = None
     a13_scale: Optional[torch.Tensor] = None
     a2_scale: Optional[torch.Tensor] = None
     b13: Optional[torch.Tensor] = None
@@ -596,6 +599,27 @@ class AiterRunnerCore(MoeRunnerCore):
                     and use_lds_unpack
                     and not use_mfma32_prefill
                 )
+                use_m32_logical_down_scale = (
+                    use_m32_dpp_down_prefetch
+                    and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
+                )
+                logical_down_scale = quant_info.w2_scale_logical
+                if use_m32_logical_down_scale:
+                    if logical_down_scale is None:
+                        raise RuntimeError(
+                            "logical W2 scale experiment enabled but load-time cache is missing"
+                        )
+                    if (
+                        logical_down_scale.shape != (256, 4096, 16)
+                        or logical_down_scale.dtype != torch.uint8
+                        or not logical_down_scale.is_contiguous()
+                    ):
+                        raise RuntimeError(
+                            "invalid logical W2 scale cache: expected contiguous "
+                            f"uint8 [256,4096,16], got {logical_down_scale.shape}/"
+                            f"{logical_down_scale.dtype}/contiguous="
+                            f"{logical_down_scale.is_contiguous()}"
+                        )
                 use_m32_gate_row_prefetch = (
                     use_m32_dpp_down_prefetch
                     and envs.SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH.get()
@@ -684,6 +708,11 @@ class AiterRunnerCore(MoeRunnerCore):
                 use_m32_dpp_down_prefetch = (
                     use_m32_dpp_down_prefetch and down_blocks == 832
                 )
+                # Never feed the logical scale to a fallback grouped kernel;
+                # it is valid only for the exact row-prefetch specialization.
+                use_m32_logical_down_scale = (
+                    use_m32_logical_down_scale and use_m32_dpp_down_prefetch
+                )
                 if use_m32_down_consumer:
                     from sglang.kernels.ops.moe.gfx90a_fp4_down_consumer_quant_oracle import (
                         gfx90a_fp4_down_consumer_quant_oracle,
@@ -743,7 +772,11 @@ class AiterRunnerCore(MoeRunnerCore):
                         down_prequant[0],
                         down_prequant[1],
                         quant_info.w2_weight,
-                        quant_info.w2_scale,
+                        (
+                            logical_down_scale
+                            if use_m32_logical_down_scale
+                            else quant_info.w2_scale
+                        ),
                         sorted_ids,
                         sorted_expert_ids,
                         num_valid_ids,
@@ -757,6 +790,7 @@ class AiterRunnerCore(MoeRunnerCore):
                             envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
                         ),
                         use_row_prefetch=use_m32_dpp_down_prefetch,
+                        use_logical_scale=use_m32_logical_down_scale,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

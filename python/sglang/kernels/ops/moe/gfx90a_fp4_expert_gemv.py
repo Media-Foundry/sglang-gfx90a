@@ -266,6 +266,34 @@ def _jit_down_grouped_row_prefetch(
 
 
 @cache_once
+def _jit_down_grouped_row_prefetch_logical_scale(
+    e: int, m: int, t: int, n: int, k: int, assignments: int,
+    waves: int, blocks: int, prepacked: int,
+) -> Module:
+    args = make_cpp_args(
+        e, m, t, n, k, assignments, waves, blocks, prepacked, True
+    )
+    return load_jit(
+        "gfx90a_fp4_expert_down_row_prefetch_logical_scale",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_expert_down_row_prefetch_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_gate_up_grouped_row_prefetch(
     e: int, m: int, t: int, i: int, k: int, assignments: int,
     rows: int, waves: int, blocks: int, prepacked: int,
@@ -517,6 +545,7 @@ def gfx90a_fp4_expert_down_grouped(
     use_lds_lut: bool = False,
     zero_partial: bool = False,
     use_row_prefetch: bool = False,
+    use_logical_scale: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -557,7 +586,15 @@ def gfx90a_fp4_expert_down_grouped(
             2,
         )
         assert prepacked_weight is None and use_lds_lut
-        module = _jit_down_grouped_row_prefetch(
+        if use_logical_scale:
+            assert weight_scale.shape == (256, 4096, 16)
+            assert weight_scale.dtype == torch.uint8 and weight_scale.is_contiguous()
+        module_loader = (
+            _jit_down_grouped_row_prefetch_logical_scale
+            if use_logical_scale
+            else _jit_down_grouped_row_prefetch
+        )
+        module = module_loader(
             e,
             m,
             topk,

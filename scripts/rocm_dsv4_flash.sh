@@ -68,6 +68,10 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS:-2080}"
   export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS:-832}"
   export SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH="${SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH:-1}"
+  # The logical W2-scale cache reduces the M32 down-kernel scale footprint.
+  # It costs 16 MiB per routed layer and is exact; other graph tiers retain
+  # the shuffled AIter scale.
+  export SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE="${SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE:-1}"
   # TP4 has twice TP8's local Q heads.  At M32 its longer Q branch hides the
   # C4 core/index compressor branches; lower tiers retain the serial path.
   export SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM:-1}"

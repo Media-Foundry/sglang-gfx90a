@@ -1509,6 +1509,9 @@ class Envs:
     # Exact TP4/M32 gate schedule: request both same-group R2 packed rows and
     # scales before row0 decode/SDOT. Strict-shape guarded and default-off.
     SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH = EnvBool(False)
+    # Cache a logical-contiguous W2 E8M0 scale copy for only the strict TP4/M32
+    # grouped-down row-prefetch experiment. Costs 16 MiB per routed layer.
+    SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
