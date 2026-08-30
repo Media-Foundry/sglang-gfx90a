@@ -49,7 +49,10 @@ fi
 # geometry, while keeping the fixed-slot FP32 reduction bitwise identical.
 GFX90A_TP4_BS32_PROFILE="${SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE:-0}"
 if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
-  DEFAULT_GPUS="0,1,2,3"
+  # Keep the throughput replica on the second four-GCD group by default so
+  # repeated tuning does not continuously load the first MI250 pair. Callers
+  # can still override this explicitly through HIP_VISIBLE_DEVICES.
+  DEFAULT_GPUS="4,5,6,7"
   DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="32"
   DEFAULT_MAX_TOTAL_TOKENS="32768"
   TP_SIZE="${TP_SIZE:-4}"
