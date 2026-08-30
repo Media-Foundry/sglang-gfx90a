@@ -1542,6 +1542,7 @@ class Envs:
     # TP8 M32 decode: quantize each A4 intermediate tile in LDS and consume it
     # directly in the FP4 down projection, avoiding the global quant tensor.
     SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER = EnvBool(False)
+    SGLANG_DSV4_GFX90A_M64_DOWN_CONSUMER = EnvBool(False)
     # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K
     # split. This reduces repeated FP4 weight scans for large prefill chunks.
     SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL = EnvBool(False)

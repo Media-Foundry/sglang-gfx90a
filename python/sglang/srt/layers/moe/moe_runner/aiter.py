@@ -704,8 +704,16 @@ class AiterRunnerCore(MoeRunnerCore):
                 )
             use_m32_down_consumer = (
                 use_grouped_prefill
-                and envs.SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER.get()
-                and runner_input.hidden_states.shape == (32, 4096)
+                and (
+                    (
+                        envs.SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER.get()
+                        and runner_input.hidden_states.shape == (32, 4096)
+                    )
+                    or (
+                        envs.SGLANG_DSV4_GFX90A_M64_DOWN_CONSUMER.get()
+                        and runner_input.hidden_states.shape == (64, 4096)
+                    )
+                )
                 and quant_info.w2_weight.shape == (256, 4096, 128)
                 and grouped_assignments == 4
                 and grouped_down_rows == 2
@@ -762,13 +770,13 @@ class AiterRunnerCore(MoeRunnerCore):
                         direct_out
                         if direct_out is not None
                         else torch.empty(
-                            (32, 4096),
+                            (runner_input.hidden_states.shape[0], 4096),
                             dtype=torch.bfloat16,
                             device=intermediate.device,
                         )
                     )
                     partial = torch.empty(
-                        (32, 6, 4096),
+                        (runner_input.hidden_states.shape[0], 6, 4096),
                         dtype=torch.float32,
                         device=intermediate.device,
                     )
@@ -784,7 +792,16 @@ class AiterRunnerCore(MoeRunnerCore):
                         ctas_per_expert=16,
                     )
                     _jit_down_grouped(
-                        256, 32, 6, 4096, 256, 4, 2, 8, down_blocks, 2
+                        256,
+                        runner_input.hidden_states.shape[0],
+                        6,
+                        4096,
+                        256,
+                        4,
+                        2,
+                        8,
+                        down_blocks,
+                        2,
                     ).reduce(partial, output)
                 elif use_mfma32_prefill:
                     output = gfx90a_fp4_expert_down_mfma32(
