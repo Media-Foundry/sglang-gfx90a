@@ -34,6 +34,24 @@ from sglang.srt.utils.invariants import Bucket, Invariant, NotNaN, expect
 logger = logging.getLogger(__name__)
 
 
+def build_eager_draft_input_embeds(
+    *, draft_model, embed_module, draft_block_ids: torch.Tensor
+) -> torch.Tensor:
+    """Build model-ready embeddings when draft embedding is outside the graph.
+
+    Some draft models need more than a vocabulary lookup.  DeepSeek-V4 DSpark,
+    for example, expands every H-wide embedding into ``hc_mult`` residual
+    streams before the first hyper-connection block.  Calling only the shared
+    target embedding silently produces ``[..., H]`` while the stage expects
+    ``[..., hc_mult, H]``.  Reuse the model's own preparation hook whenever it
+    exists; generic drafts retain the historical flattened lookup path.
+    """
+    if hasattr(draft_model, "forward_embed"):
+        return draft_model.forward_embed(draft_block_ids.reshape(-1))
+    embedding = embed_module(draft_block_ids)
+    return embedding.reshape(-1, embedding.shape[-1])
+
+
 def _one_hot_token0(probs: torch.Tensor) -> torch.Tensor:
     degenerate = torch.isnan(probs[:, :1])
     one_hot = torch.zeros_like(probs)
@@ -386,8 +404,11 @@ class DraftBlockProposer:
         )
         draft_input_embeds: Optional[torch.Tensor] = None
         if not draft_owns_embed:
-            noise_embedding = embed_module(draft_block_ids)
-            draft_input_embeds = noise_embedding.view(-1, noise_embedding.shape[-1])
+            draft_input_embeds = build_eager_draft_input_embeds(
+                draft_model=self.draft_model,
+                embed_module=embed_module,
+                draft_block_ids=draft_block_ids,
+            )
 
         if batch.seq_lens_cpu is not None:
             draft_seq_lens_cpu = batch.seq_lens_cpu + query_token_num
