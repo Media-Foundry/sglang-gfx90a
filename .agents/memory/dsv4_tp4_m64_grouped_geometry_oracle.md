@@ -152,6 +152,27 @@ TP4 all-reduce tail        64.80 us
 Its roughly 946 tok/s resident value is not a formal performance result because
 the markers add work; the trace is used only for localization.
 
+## M64 DPP reduction closure
+
+The existing shuffle-versus-DPP A/G/D/B oracle was rerun at M64 on the real
+pass20/layer34 route. One hundred mutated activation/router-weight cases were
+bitwise exact at intermediate BF16, FP32 partial and final BF16 boundaries.
+Gate-only and down-only candidates each passed 1000 captured replays exactly.
+
+Seven-round ABBA trimmed full-stage centers were:
+
+```text
+A / shuffle reference  748.79--749.25 us
+G / DPP gate only       734.82 us   (about -1.87%)
+D / DPP down only       745.17 us   (about -0.55%)
+B / DPP gate+down       731.40 us   (about -2.36%)
+```
+
+The combined candidate saves about 17.7 us/layer in isolation but fails the
+predeclared 5% service-continuation gate. M32 history also showed that the DPP
+micro win could worsen graph/service CU scheduling. Do not wire M64 DPP into
+production from this result.
+
 ## Occupancy evidence
 
 Across warm passes 16--47 and all 43 layers:
