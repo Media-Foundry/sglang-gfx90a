@@ -21,9 +21,6 @@ using namespace device;
 constexpr uint32_t kGfx90aMhcK = 4 * 4096;
 constexpr uint32_t kGfx90aMhcN = 24;
 constexpr uint32_t kGfx90aMhcWave = 64;
-constexpr uint32_t kGfx90aMhcRowsPerBlock = 3;
-constexpr uint32_t kGfx90aMhcBlocksPerToken =
-    kGfx90aMhcN / kGfx90aMhcRowsPerBlock;
 
 __device__ __forceinline__ float gfx90a_wave64_sum(float value) {
 #pragma unroll
@@ -33,19 +30,21 @@ __device__ __forceinline__ float gfx90a_wave64_sum(float value) {
   return value;
 }
 
+template <uint32_t kRowsPerBlock>
 __global__ void __launch_bounds__(kGfx90aMhcWave)
     gfx90a_mhc_pre_mix_kernel(const bf16_t* __restrict__ residual,
                               const float* __restrict__ fn,
                               float* __restrict__ mixes,
                               float rms_eps) {
-  const uint32_t token = blockIdx.x / kGfx90aMhcBlocksPerToken;
+  constexpr uint32_t kBlocksPerToken = kGfx90aMhcN / kRowsPerBlock;
+  const uint32_t token = blockIdx.x / kBlocksPerToken;
   const uint32_t row0 =
-      (blockIdx.x % kGfx90aMhcBlocksPerToken) * kGfx90aMhcRowsPerBlock;
+      (blockIdx.x % kBlocksPerToken) * kRowsPerBlock;
   const uint32_t lane = threadIdx.x;
   const bf16_t* x = residual + static_cast<size_t>(token) * kGfx90aMhcK;
 
   float sumsq = 0.0f;
-  float acc[kGfx90aMhcRowsPerBlock] = {};
+  float acc[kRowsPerBlock] = {};
 
   // Two BF16 values per lane load: 128 iterations, no CTA barrier. Re-reading
   // the small 32 KiB activation per row buys enough parallelism to hide the
@@ -58,7 +57,7 @@ __global__ void __launch_bounds__(kGfx90aMhcWave)
     sumsq = fmaf(x0, x0, sumsq);
     sumsq = fmaf(x1, x1, sumsq);
  #pragma unroll
-    for (uint32_t r = 0; r < kGfx90aMhcRowsPerBlock; ++r) {
+    for (uint32_t r = 0; r < kRowsPerBlock; ++r) {
       const float* w = fn + static_cast<size_t>(row0 + r) * kGfx90aMhcK;
       acc[r] = fmaf(w[k], x0, acc[r]);
       acc[r] = fmaf(w[k + 1], x1, acc[r]);
@@ -67,7 +66,7 @@ __global__ void __launch_bounds__(kGfx90aMhcWave)
 
   sumsq = gfx90a_wave64_sum(sumsq);
 #pragma unroll
-  for (uint32_t r = 0; r < kGfx90aMhcRowsPerBlock; ++r) {
+  for (uint32_t r = 0; r < kRowsPerBlock; ++r) {
     acc[r] = gfx90a_wave64_sum(acc[r]);
   }
 
@@ -75,17 +74,18 @@ __global__ void __launch_bounds__(kGfx90aMhcWave)
     const float scale = rsqrtf(sumsq / static_cast<float>(kGfx90aMhcK) + rms_eps);
     float* out = mixes + static_cast<size_t>(token) * kGfx90aMhcN + row0;
 #pragma unroll
-    for (uint32_t r = 0; r < kGfx90aMhcRowsPerBlock; ++r) {
+    for (uint32_t r = 0; r < kRowsPerBlock; ++r) {
       out[r] = acc[r] * scale;
     }
   }
 }
 
 struct Gfx90aMhcPreMixKernel {
-  static void run(const tvm::ffi::TensorView residual,
-                  const tvm::ffi::TensorView fn,
-                  const tvm::ffi::TensorView mixes,
-                  float rms_eps) {
+  template <uint32_t kRowsPerBlock>
+  static void run_impl(const tvm::ffi::TensorView residual,
+                       const tvm::ffi::TensorView fn,
+                       const tvm::ffi::TensorView mixes,
+                       float rms_eps) {
     using namespace host;
     auto T = SymbolicSize{"num_tokens"};
     auto device = SymbolicDevice{};
@@ -104,13 +104,28 @@ struct Gfx90aMhcPreMixKernel {
         .with_device(device)
         .verify(mixes);
 
-    LaunchKernel(static_cast<uint32_t>(T.unwrap()) * kGfx90aMhcBlocksPerToken,
+    constexpr uint32_t kBlocksPerToken = kGfx90aMhcN / kRowsPerBlock;
+    LaunchKernel(static_cast<uint32_t>(T.unwrap()) * kBlocksPerToken,
                  kGfx90aMhcWave,
-                 device.unwrap())(gfx90a_mhc_pre_mix_kernel,
+                 device.unwrap())(gfx90a_mhc_pre_mix_kernel<kRowsPerBlock>,
                                   static_cast<const bf16_t*>(residual.data_ptr()),
                                   static_cast<const float*>(fn.data_ptr()),
                                   static_cast<float*>(mixes.data_ptr()),
                                   rms_eps);
+  }
+
+  static void run(const tvm::ffi::TensorView residual,
+                  const tvm::ffi::TensorView fn,
+                  const tvm::ffi::TensorView mixes,
+                  float rms_eps) {
+    run_impl<3>(residual, fn, mixes, rms_eps);
+  }
+
+  static void run_m64(const tvm::ffi::TensorView residual,
+                      const tvm::ffi::TensorView fn,
+                      const tvm::ffi::TensorView mixes,
+                      float rms_eps) {
+    run_impl<2>(residual, fn, mixes, rms_eps);
   }
 };
 

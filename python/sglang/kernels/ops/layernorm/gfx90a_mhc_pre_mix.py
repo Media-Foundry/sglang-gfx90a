@@ -15,7 +15,10 @@ def _jit_gfx90a_mhc_pre_mix_module() -> Module:
     return load_jit(
         "gfx90a_mhc_pre_mix_wave64",
         cuda_files=["gemm/gfx90a_mhc_pre_mix.cuh"],
-        cuda_wrappers=[("run", "sglang::Gfx90aMhcPreMixKernel::run")],
+        cuda_wrappers=[
+            ("run", "sglang::Gfx90aMhcPreMixKernel::run"),
+            ("run_m64", "sglang::Gfx90aMhcPreMixKernel::run_m64"),
+        ],
         extra_cuda_cflags=["-O3"],
     )
 
@@ -49,5 +52,9 @@ def gfx90a_mhc_pre_mix_wave64(
     mixes = torch.empty(
         (residual.shape[0], 1, 24), dtype=torch.float32, device=residual.device
     )
-    _jit_gfx90a_mhc_pre_mix_module().run(residual, fn, mixes, rms_eps)
+    module = _jit_gfx90a_mhc_pre_mix_module()
+    if residual.shape[0] == 64:
+        module.run_m64(residual, fn, mixes, rms_eps)
+    else:
+        module.run(residual, fn, mixes, rms_eps)
     return mixes

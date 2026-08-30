@@ -343,3 +343,42 @@ rejected multiple-bucket-launch design.
 - Treat all pre-correction exactness and component timing as invalid provenance.
 - Then prototype one static-buffer launch that selects A1/A2/A4 work per
   expert while preserving vectorized loads and exact fixed-slot reduction.
+
+## Native HIP MHC pre-mix M64 geometry (2026-08-30)
+
+The TP4/EP1 path was audited before changing MHC. Contrary to the earlier
+working assumption, M64 does not fall back to AIter/Triton: the explicit TP4
+profile already reaches the native gfx90a wave64 pre-mix. Production used the
+historical three output rows per CTA geometry, originally selected under the
+lower-batch/Mori workload.
+
+An isolated native-HIP oracle swept `1/2/3/4/6/8` output rows per CTA at
+`T=64`, retaining the exact wave64 reduction order within every row. All six
+variants matched the rows=3 reference bitwise, and the complete sweep passed
+100 random activation/weight mutations bitwise. Seven symmetric timing rounds
+gave:
+
+| rows/CTA | median | trimmed |
+|---:|---:|---:|
+| 1 | 45.970 us | 45.967 us |
+| 2 | **37.686 us** | **37.685 us** |
+| 3 | 39.450 us | 39.450 us |
+| 4 | 48.907 us | 48.911 us |
+| 6 | 45.340 us | 45.339 us |
+| 8 | 50.684 us | 50.687 us |
+
+Rows=2 is 4.47% faster than rows=3 in isolation. Production therefore selects
+rows=2 only when the runtime token count is exactly 64; every other graph tier
+retains rows=3. Graph tiers 1/32/64 captured successfully. A fixed 64-row
+teacher-forced request matched the preceding logical-W2 checkpoint JSON-exact
+for all output IDs, token logprobs, and complete top-5 rows.
+
+Two same-service real-diverse rounds measured resident throughput of
+`984.257/983.556 tok/s`, center `983.907 tok/s`. The second round's scheduler
+rate was `992.019 tok/s` with mean step `64.515 ms`. Against the preceding
+independent-service centers `983.408/991.421 tok/s`, this is only about
+`+0.05/+0.06%`, below a meaningful service checkpoint. Both rounds completed
+64/64 requests at 256 tokens with `finish=length` and the France oracle exact.
+Keep the exact M64 selector as a non-regressing small specialization, but do
+not attribute a material end-to-end gain to it or spend another service cycle
+on nearby MHC geometry.
