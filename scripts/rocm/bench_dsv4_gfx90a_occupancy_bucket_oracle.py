@@ -222,7 +222,7 @@ def abba_pair(fn_a, fn_b, *, warmup: int, iterations: int, rounds: int):
 
 
 def main() -> None:
-    global I
+    global I, M
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorder", required=True)
     parser.add_argument("--pass-index", type=int, default=37)
@@ -233,6 +233,7 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--correctness-replays", type=int, default=100)
     parser.add_argument("--intermediate-size", type=int, default=I)
+    parser.add_argument("--batch-size", type=int, default=M)
     parser.add_argument("--baseline-gate-blocks", type=int, default=832)
     parser.add_argument("--baseline-down-blocks", type=int, default=832)
     parser.add_argument("--two-bucket", action="store_true")
@@ -242,6 +243,7 @@ def main() -> None:
     parser.add_argument("--rest-down-blocks", type=int, default=832)
     args = parser.parse_args()
     I = args.intermediate_size
+    M = args.batch_size
     profiles = PROFILES
     if args.two_bucket:
         profiles = (
@@ -265,7 +267,7 @@ def main() -> None:
     if torch.any(raw.remainder(args.world_size) != 0):
         raise RuntimeError("recorder counts are not divisible by TP world size")
     counts = raw // args.world_size
-    topk_ids = reconstruct_topk_from_counts(counts).to(device)
+    topk_ids = reconstruct_topk_from_counts(counts, M, T).to(device)
 
     metadata_begin = time.perf_counter_ns()
     a4 = make_metadata(topk_ids, assignments=4)

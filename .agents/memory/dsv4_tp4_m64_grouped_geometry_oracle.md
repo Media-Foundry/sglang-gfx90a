@@ -298,6 +298,30 @@ a loss of 3840 tokens or 5.86%. Enable the selector by default in the explicit
 TP4 speed profile to advance the throughput target; set
 `SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE=0` for the maximum-context profile.
 
+## M64 occupancy-bucket closure
+
+The existing exact A1/A2/A4 oracle was generalized to M64 and run on the real
+pass20/layer34 route. The 384 assignments split into 61 A1 expert blocks, 36
+A2 blocks and 77 A4-rest blocks. All five geometry profiles were bitwise exact
+at gate intermediate, FP32 partial and final output; the best profile also
+passed 100 mutated-input exactness checks.
+
+Nevertheless every multi-launch bucket profile regressed the complete routed
+stage:
+
+| profile | baseline | bucket | regression |
+|---|---:|---:|---:|
+| gate/down 832/416/416 | 426.008 us | 459.061 us | +7.76% |
+| smaller A2/A4 gate grids | 426.392 us | 465.008 us | +9.06% |
+| smallest tested grids | 425.933 us | 541.549 us | +27.14% |
+
+For the best profile, gate changed `224.483→249.851 us` and down
+`186.605→193.211 us`. Separate bucket launches and reduced latency hiding cost
+more than the smaller A1/A2 accumulator templates save. Do not connect the
+multi-launch occupancy sorter to production at M64. Any follow-up must remain
+one GPU launch or materially change weight reuse rather than repeating bucket
+launches.
+
 ## Occupancy evidence
 
 Across warm passes 16--47 and all 43 layers:
