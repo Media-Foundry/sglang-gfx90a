@@ -599,6 +599,18 @@ class AiterRunnerCore(MoeRunnerCore):
                     and use_lds_unpack
                     and not use_mfma32_prefill
                 )
+                use_m64_dpp_gate = (
+                    envs.SGLANG_DSV4_GFX90A_M64_DPP_GATE.get()
+                    and _is_runtime_gfx90a()
+                    and runner_input.hidden_states.shape == (64, 4096)
+                    and runner_input.topk_ids.shape == (64, 6)
+                    and quant_info.w13_weight.shape == (256, 1024, 2048)
+                    and grouped_assignments == 4
+                    and grouped_gate_rows == 2
+                    and gate_blocks == 2080
+                    and use_lds_unpack
+                    and not use_mfma32_prefill
+                )
                 use_m32_logical_down_scale = (
                     use_m32_dpp_down_prefetch
                     and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
@@ -654,7 +666,9 @@ class AiterRunnerCore(MoeRunnerCore):
                         rows=grouped_gate_rows,
                         blocks=gate_blocks,
                         use_lds_lut=use_lds_unpack,
-                        use_dpp_reduction=use_m32_dpp_down_prefetch,
+                        use_dpp_reduction=(
+                            use_m32_dpp_down_prefetch or use_m64_dpp_gate
+                        ),
                         use_row_prefetch=use_m32_gate_row_prefetch,
                     )
             else:

@@ -1506,6 +1506,9 @@ class Envs:
     # prefetch. Exact-shape guarded in the AIter runner and default-off until
     # service scheduler-throughput A/B completes.
     SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH = EnvBool(False)
+    # M64 uses only the exact gate reduction; the M32 down-prefetch/DPP stack
+    # has different graph occupancy and remains independently guarded.
+    SGLANG_DSV4_GFX90A_M64_DPP_GATE = EnvBool(False)
     # Exact TP4/M32 gate schedule: request both same-group R2 packed rows and
     # scales before row0 decode/SDOT. Strict-shape guarded and default-off.
     SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH = EnvBool(False)

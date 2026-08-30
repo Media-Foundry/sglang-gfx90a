@@ -208,7 +208,38 @@ B / DPP gate+down       731.40 us   (about -2.36%)
 The combined candidate saves about 17.7 us/layer in isolation but fails the
 predeclared 5% service-continuation gate. M32 history also showed that the DPP
 micro win could worsen graph/service CU scheduling. Do not wire M64 DPP into
-production from this result.
+production from this result alone; the narrower gate-only follow-up below adds
+the required service evidence.
+
+### Gate-only production follow-up
+
+Because gate-only DPP had previously shown a weak positive M32 service trend,
+it was connected behind a separate strict gfx90a/TP4/M64/A4/R2/W8/G2080/LDS
+selector. Down remains the production shuffle D832 kernel; the service-negative
+combined DPP path is not enabled. The production wrapper's DPP contract was
+expanded from M32 to M32-or-M64 while retaining all other exact shape guards.
+
+The fixed 64-row teacher-forced comparison against the accepted baseline was
+JSON-exact for every output ID, output token-logprob row and full top-5 row.
+The standalone mutation and graph oracle had already passed 100 mutations and
+1000 replays at intermediate BF16, FP32 partial and final BF16 boundaries.
+
+Two independent candidate services, each running 64 distinct requests for 256
+tokens, measured:
+
+| service | HTTP resident | scheduler/model | mean step |
+|---:|---:|---:|---:|
+| 1 | 967.572 tok/s | 975.903 tok/s | 65.580 ms |
+| 2 | 965.672 tok/s | 973.934 tok/s | 65.713 ms |
+| center | **966.622 tok/s** | **974.919 tok/s** | about 65.65 ms |
+
+Relative to the C128-overlap baseline `953.337/961.454 tok/s`, the independent
+center improves by approximately 1.39% HTTP and 1.40% scheduler. Every request
+completed at length 256 with `finish=length` and the France oracle exact.
+
+Enable `SGLANG_DSV4_GFX90A_M64_DPP_GATE=1` by default only inside the explicit
+TP4 profile. It remains an environment rollback and is unreachable at all
+other graph tiers.
 
 ## Occupancy evidence
 
