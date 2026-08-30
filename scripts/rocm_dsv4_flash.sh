@@ -113,6 +113,13 @@ case "${COMMAND}" in
     DSPARK_MODE=1
     ;;
 esac
+if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
+  # Compact verification already pays for a captured token tier.  Fill the
+  # tier's padding slots instead of discarding them: on gfx90a BS32/M96 this
+  # increased accepted output at essentially unchanged graph time.  Scope the
+  # default to this measured profile; callers can still set zero for A/B.
+  SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER="${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-1}"
+fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"
   PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_dspark.pid}"

@@ -110,3 +110,23 @@ quality (mean accept length 1.565, draft-position accept rate 11.0%) while
 running slower.  France remained semantic Paris.  The W2 dtype/sharding
 optimization is therefore not the cause of low acceptance and should remain
 enabled.
+
+## M96 graph-tier alignment ABBA
+
+With target BF16 attention restored, forced budget fraction 0.2 selected the
+M96 graph at BS32 but scheduled only 64 real verify tokens.  Alignment fills
+the already-paid padding slots without selecting a larger graph.
+
+| Order | Alignment | Resident tok/s | Scheduler tok/s | Mean accept |
+|---|---|---:|---:|---:|
+| A1 | off | 276.66 | 335.58 | 1.425 |
+| B1 | on | 321.72 | 372.98 | 1.634 |
+| B2 | on | 275.80 | 343.58 | 1.376 |
+| A2 | off | 276.32 | unavailable | 1.470 |
+
+The two-point center is 276.49 tok/s for A and 298.76 tok/s for B, an 8.1%
+resident improvement.  Step time stayed in the same M96 range (roughly
+91--100 ms); France remained semantic Paris.  Because B is noisy, future
+checkpoints should retain multiple real-prompt rounds, but the mechanism and
+ABBA center justify enabling alignment by default only in the measured
+gfx90a TP4 BS32 DSpark profile.  It remains explicitly overridable with zero.
