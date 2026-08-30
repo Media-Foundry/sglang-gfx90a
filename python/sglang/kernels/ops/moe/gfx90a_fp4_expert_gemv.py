@@ -466,24 +466,20 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
     if use_row_prefetch:
-        assert e == 256 and m in (32, 64)
+        assert e == 256 and m in (32, 51, 64)
         assert (topk, i, k) == (6, 512, 4096)
-        assert (assignments, rows, waves, blocks, weight_mode) == (
-            4,
-            2,
-            8,
-            2080,
-            2,
+        assert (assignments, rows, waves, weight_mode) == (4, 2, 8, 2)
+        assert (
+            (m == 51 and blocks == 1664)
+            or (m in (32, 64) and blocks == 2080)
         )
     elif use_dpp_reduction:
-        assert e == 256 and m in (32, 64)
+        assert e == 256 and m in (32, 51, 64)
         assert (topk, i, k) == (6, 512, 4096)
-        assert (assignments, rows, waves, blocks, weight_mode) == (
-            4,
-            2,
-            8,
-            2080,
-            2,
+        assert (assignments, rows, waves, weight_mode) == (4, 2, 8, 2)
+        assert (
+            (m == 51 and blocks == 1664)
+            or (m in (32, 64) and blocks == 2080)
         )
     gate_module = (
         _jit_gate_up_grouped_row_prefetch
@@ -610,10 +606,10 @@ def gfx90a_fp4_expert_down_grouped(
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
     if use_row_prefetch:
-        assert e == 256 and m in (32, 64)
+        assert e == 256 and m in (32, 51, 64)
         assert (topk, n, k) == (6, 4096, 512)
         assert (assignments, rows, blocks, weight_mode) == (4, 2, 832, 2)
-        assert waves == 8 or (m == 64 and waves == 4)
+        assert waves == 8 or (m in (51, 64) and waves == 4)
         assert prepacked_weight is None and use_lds_lut
         if use_logical_scale:
             assert weight_scale.shape == (256, 4096, 16)

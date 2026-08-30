@@ -126,6 +126,11 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # increased accepted output at essentially unchanged graph time.  Scope the
   # default to this measured profile; callers can still set zero for A/B.
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER="${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-1}"
+  # Compact block-size-2 verification lands on M51.  The strict runner guard
+  # selects the oracle-backed G1664/W4 routed kernel only for that exact tier.
+  # Keep it opt-in: its isolated 10.5% gain retained only ~1% resident and no
+  # scheduler gain in real-code service ABBA.
+  export SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION="${SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION:-0}"
 fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"

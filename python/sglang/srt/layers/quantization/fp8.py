@@ -1693,6 +1693,7 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                 and (
                     envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
                     or envs.SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE.get()
+                    or envs.SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION.get()
                 )
             ):
                 logical_scale = layer.w2_weight_scale_inv.data

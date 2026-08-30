@@ -1533,6 +1533,10 @@ class Envs:
     # M64 counterpart; costs the same 16 MiB/layer cache and uses the exact
     # grouped-down row-prefetch kernel without changing packed FP4 weights.
     SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE = EnvBool(False)
+    # Exact TP4 DSpark compact-verify specialization.  It is shape-guarded to
+    # M=51 in the AIter runner and combines the oracle-backed G1664 DPP gate
+    # with logical-scale W2 row prefetch and four down waves.
+    SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.

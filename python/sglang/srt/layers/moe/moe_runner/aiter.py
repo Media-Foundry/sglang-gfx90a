@@ -594,6 +594,21 @@ class AiterRunnerCore(MoeRunnerCore):
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
                     )
                 )
+                use_dspark_m51_specialization = (
+                    envs.SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION.get()
+                    and _is_runtime_gfx90a()
+                    and runner_input.hidden_states.shape == (51, 4096)
+                    and runner_input.topk_ids.shape == (51, 6)
+                    and quant_info.w13_weight.shape == (256, 1024, 2048)
+                    and quant_info.w2_weight.shape == (256, 4096, 256)
+                    and grouped_assignments == 4
+                    and grouped_gate_rows == 2
+                    and grouped_down_rows == 2
+                    and use_lds_unpack
+                    and not use_mfma32_prefill
+                )
+                if use_dspark_m51_specialization:
+                    gate_blocks = 1664
                 use_m32_dpp_down_prefetch = (
                     envs.SGLANG_DSV4_GFX90A_M32_DPP_GATE_DOWN_PREFETCH.get()
                     and _is_runtime_gfx90a()
@@ -620,6 +635,9 @@ class AiterRunnerCore(MoeRunnerCore):
                     and use_lds_unpack
                     and not use_mfma32_prefill
                 )
+                use_dpp_gate = (
+                    use_m64_dpp_gate or use_dspark_m51_specialization
+                )
                 use_m32_logical_down_scale = (
                     use_m32_dpp_down_prefetch
                     and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
@@ -630,8 +648,15 @@ class AiterRunnerCore(MoeRunnerCore):
                     and quant_info.w2_weight.shape == (256, 4096, 256)
                     and grouped_down_rows == 2
                 )
+                use_dspark_m51_logical_down_scale = (
+                    use_dspark_m51_specialization
+                    and quant_info.w2_weight.shape == (256, 4096, 256)
+                    and grouped_down_rows == 2
+                )
                 use_logical_down_scale = (
-                    use_m32_logical_down_scale or use_m64_logical_down_scale
+                    use_m32_logical_down_scale
+                    or use_m64_logical_down_scale
+                    or use_dspark_m51_logical_down_scale
                 )
                 logical_down_scale = quant_info.w2_scale_logical
                 if use_logical_down_scale:
@@ -659,6 +684,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         use_m64_dpp_gate
                         and envs.SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH.get()
                     )
+                    or use_dspark_m51_specialization
                 )
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
@@ -690,9 +716,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         rows=grouped_gate_rows,
                         blocks=gate_blocks,
                         use_lds_lut=use_lds_unpack,
-                        use_dpp_reduction=(
-                            use_m32_dpp_down_prefetch or use_m64_dpp_gate
-                        ),
+                        use_dpp_reduction=(use_m32_dpp_down_prefetch or use_dpp_gate),
                         use_row_prefetch=use_gate_row_prefetch,
                     )
             else:
@@ -762,17 +786,29 @@ class AiterRunnerCore(MoeRunnerCore):
                 use_m64_logical_down_scale = (
                     use_m64_logical_down_scale and down_blocks == 832
                 )
+                use_dspark_m51_logical_down_scale = (
+                    use_dspark_m51_logical_down_scale and down_blocks == 832
+                )
                 use_logical_down_scale = (
-                    use_m32_logical_down_scale or use_m64_logical_down_scale
+                    use_m32_logical_down_scale
+                    or use_m64_logical_down_scale
+                    or use_dspark_m51_logical_down_scale
                 )
                 use_down_row_prefetch = (
-                    use_m32_dpp_down_prefetch or use_m64_logical_down_scale
+                    use_m32_dpp_down_prefetch
+                    or use_m64_logical_down_scale
+                    or use_dspark_m51_logical_down_scale
                 )
                 down_waves = (
                     4
-                    if use_m64_logical_down_scale
-                    and envs.SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4.get()
-                    and runner_input.hidden_states.shape == (64, 4096)
+                    if (
+                        use_dspark_m51_logical_down_scale
+                        or (
+                            use_m64_logical_down_scale
+                            and envs.SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4.get()
+                            and runner_input.hidden_states.shape == (64, 4096)
+                        )
+                    )
                     else 8
                 )
                 if use_m32_down_consumer:
