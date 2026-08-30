@@ -267,6 +267,37 @@ second layout/protocol. A down-only logical cache costs 16 MiB/layer or about
 within rounding and proceeds to a strict M64 production/service experiment;
 it is not yet a delivered default.
 
+### Logical-down production checkpoint
+
+Production wiring clones the checkpoint-order E8M0 W2 scale before AIter's
+shuffle when the M64 selector is enabled. The runner requires the already
+accepted strict M64 gate-DPP shape, W2 `[256,4096,256]`, A4/R2/W8/D832/LDS,
+and then selects the exact row-prefetch logical-scale down specialization.
+The wrapper permits M32 or M64 only; every other tier remains on shuffled
+scales and the generic down kernel.
+
+Graph tiers 1/32/64 captured successfully. The fixed 64-row teacher-forced
+oracle matched the accepted baseline JSON-exactly for all output IDs, output
+token-logprob rows and complete top-5 rows. Both real-request runs completed
+64/64 requests at 256 tokens with `finish=length` and the France oracle exact.
+
+Two independent services measured:
+
+| service | HTTP resident | scheduler/model | mean step |
+|---:|---:|---:|---:|
+| 1 | 985.429 tok/s | 993.524 tok/s | 64.417 ms |
+| 2 | 981.386 tok/s | 989.317 tok/s | 64.691 ms |
+| center | **983.408 tok/s** | **991.421 tok/s** | about 64.55 ms |
+
+Relative to the accepted M64 gate-DPP center `966.622/974.919 tok/s`, the
+gain is approximately +1.74% HTTP and +1.69% scheduler.
+
+The down-only cache costs about 688 MiB/GCD. With the same requested
+`MAX_TOTAL_TOKENS=65536`, the server's admitted pool falls from 65536 to 61696,
+a loss of 3840 tokens or 5.86%. Enable the selector by default in the explicit
+TP4 speed profile to advance the throughput target; set
+`SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE=0` for the maximum-context profile.
+
 ## Occupancy evidence
 
 Across warm passes 16--47 and all 43 layers:

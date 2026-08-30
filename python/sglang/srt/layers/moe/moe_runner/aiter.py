@@ -615,8 +615,17 @@ class AiterRunnerCore(MoeRunnerCore):
                     use_m32_dpp_down_prefetch
                     and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
                 )
+                use_m64_logical_down_scale = (
+                    envs.SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE.get()
+                    and use_m64_dpp_gate
+                    and quant_info.w2_weight.shape == (256, 4096, 256)
+                    and grouped_down_rows == 2
+                )
+                use_logical_down_scale = (
+                    use_m32_logical_down_scale or use_m64_logical_down_scale
+                )
                 logical_down_scale = quant_info.w2_scale_logical
-                if use_m32_logical_down_scale:
+                if use_logical_down_scale:
                     if logical_down_scale is None:
                         raise RuntimeError(
                             "logical W2 scale experiment enabled but load-time cache is missing"
@@ -727,6 +736,15 @@ class AiterRunnerCore(MoeRunnerCore):
                 use_m32_logical_down_scale = (
                     use_m32_logical_down_scale and use_m32_dpp_down_prefetch
                 )
+                use_m64_logical_down_scale = (
+                    use_m64_logical_down_scale and down_blocks == 832
+                )
+                use_logical_down_scale = (
+                    use_m32_logical_down_scale or use_m64_logical_down_scale
+                )
+                use_down_row_prefetch = (
+                    use_m32_dpp_down_prefetch or use_m64_logical_down_scale
+                )
                 if use_m32_down_consumer:
                     from sglang.kernels.ops.moe.gfx90a_fp4_down_consumer_quant_oracle import (
                         gfx90a_fp4_down_consumer_quant_oracle,
@@ -788,7 +806,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         quant_info.w2_weight,
                         (
                             logical_down_scale
-                            if use_m32_logical_down_scale
+                            if use_logical_down_scale
                             else quant_info.w2_scale
                         ),
                         sorted_ids,
@@ -803,8 +821,8 @@ class AiterRunnerCore(MoeRunnerCore):
                         zero_partial=(
                             envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
                         ),
-                        use_row_prefetch=use_m32_dpp_down_prefetch,
-                        use_logical_scale=use_m32_logical_down_scale,
+                        use_row_prefetch=use_down_row_prefetch,
+                        use_logical_scale=use_logical_down_scale,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

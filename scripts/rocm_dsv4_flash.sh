@@ -85,6 +85,9 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Gate-only wave64 DPP preserves the established reduction tree and improves
   # the real M64 routed stage without enabling the service-negative down DPP.
   export SGLANG_DSV4_GFX90A_M64_DPP_GATE="${SGLANG_DSV4_GFX90A_M64_DPP_GATE:-1}"
+  # Speed profile: cache logical W2 scales for the exact M64 row-prefetch down
+  # kernel. Set to zero when the extra 3840-token KV capacity is preferable.
+  export SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE="${SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE:-1}"
 fi
 
 HOST="${HOST:-127.0.0.1}"

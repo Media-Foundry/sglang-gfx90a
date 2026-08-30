@@ -1515,6 +1515,9 @@ class Envs:
     # Cache a logical-contiguous W2 E8M0 scale copy for only the strict TP4/M32
     # grouped-down row-prefetch experiment. Costs 16 MiB per routed layer.
     SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE = EnvBool(False)
+    # M64 counterpart; costs the same 16 MiB/layer cache and uses the exact
+    # grouped-down row-prefetch kernel without changing packed FP4 weights.
+    SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.

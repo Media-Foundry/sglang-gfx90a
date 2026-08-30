@@ -1690,7 +1690,10 @@ class Fp8MoEMethod(FusedMoEMethodBase):
             if (
                 is_gfx90a_supported()
                 and envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get()
-                and envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
+                and (
+                    envs.SGLANG_DSV4_GFX90A_M32_LOGICAL_DOWN_SCALE.get()
+                    or envs.SGLANG_DSV4_GFX90A_M64_LOGICAL_DOWN_SCALE.get()
+                )
             ):
                 logical_scale = layer.w2_weight_scale_inv.data
                 expected = (256, 4096, 16)
