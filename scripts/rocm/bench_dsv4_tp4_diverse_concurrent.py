@@ -10,6 +10,7 @@ import json
 import statistics
 import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -28,6 +29,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument(
+        "--stream-interval-sequence",
+        type=str,
+        help="comma-separated per-round intervals, e.g. 1,8,32,32,8,1",
+    )
     parser.add_argument(
         "--stream-interval",
         type=int,
@@ -54,6 +60,37 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
+
+
+def get_url(url: str, timeout: float, as_json: bool = True, optional: bool = False):
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(url, timeout=timeout) as response:
+            body = response.read().decode()
+    except urllib.error.HTTPError:
+        if not optional:
+            raise
+        return None if as_json else ""
+    return json.loads(body) if as_json else body
+
+
+def decode_moments(snapshot: dict) -> list[float] | None:
+    loads = snapshot.get("loads") or []
+    if len(loads) != 1:
+        return None
+    value = loads[0].get("decode_moments")
+    return [float(x) for x in value] if value else None
+
+
+def metric_value(text: str, name: str, category: str = "decode") -> float | None:
+    total = 0.0
+    found = False
+    for line in text.splitlines():
+        if not line.startswith(name + "{") or f'category="{category}"' not in line:
+            continue
+        total += float(line.rsplit(None, 1)[1])
+        found = True
+    return total if found else None
 
 
 def post_stream(
@@ -104,6 +141,14 @@ def completion_ids(result: dict) -> list[int]:
 
 def main() -> None:
     args = parse_args()
+    interval_sequence = None
+    if args.stream_interval_sequence:
+        interval_sequence = [
+            int(value) for value in args.stream_interval_sequence.split(",")
+        ]
+        if not interval_sequence or any(value < 1 for value in interval_sequence):
+            raise ValueError("stream intervals must be positive")
+        args.rounds = len(interval_sequence)
     requests = json.loads(args.inputs.read_text())["requests"]
     if len(requests) != 32 or len({tuple(x["input_ids"]) for x in requests}) != 32:
         raise ValueError("input manifest must contain exactly 32 distinct requests")
@@ -111,6 +156,18 @@ def main() -> None:
     rounds = []
     round_output_ids: list[list[list[int]]] = []
     for rep in range(args.rounds):
+        stream_interval = (
+            interval_sequence[rep] if interval_sequence else args.stream_interval
+        )
+        loads_before = get_url(
+            args.base_url.rstrip("/") + "/v1/loads?include=core", args.timeout
+        )
+        metrics_before = get_url(
+            args.base_url.rstrip("/") + "/metrics",
+            args.timeout,
+            as_json=False,
+            optional=True,
+        )
         barrier = threading.Barrier(33)
         nonce = time.time_ns()
 
@@ -121,7 +178,7 @@ def main() -> None:
                     "temperature": 0,
                     "max_new_tokens": args.tokens,
                     "ignore_eos": True,
-                    "stream_interval": args.stream_interval,
+                    "stream_interval": stream_interval,
                 },
                 "cache_salt": f"tp4-diverse-{rep}-{index}-{nonce}",
                 "stream": True,
@@ -145,6 +202,15 @@ def main() -> None:
             barrier.wait()
             results = [future.result() for future in futures]
         wall = time.perf_counter() - begin
+        loads_after = get_url(
+            args.base_url.rstrip("/") + "/v1/loads?include=core", args.timeout
+        )
+        metrics_after = get_url(
+            args.base_url.rstrip("/") + "/metrics",
+            args.timeout,
+            as_json=False,
+            optional=True,
+        )
         ids = [completion_ids(result) for _, result, _ in results]
         round_output_ids.append(ids)
         lengths = [len(value) for value in ids]
@@ -226,8 +292,27 @@ def main() -> None:
                         "tok_s": bin_tokens / (bin_end - bin_start),
                     }
                 )
+        moments_before = decode_moments(loads_before)
+        moments_after = decode_moments(loads_after)
+        moments_delta = (
+            [b - a for a, b in zip(moments_before, moments_after)]
+            if moments_before and moments_after
+            else None
+        )
+        gpu_seconds_before = metric_value(
+            metrics_before, "sglang:forward_execution_seconds_total"
+        )
+        gpu_seconds_after = metric_value(
+            metrics_after, "sglang:forward_execution_seconds_total"
+        )
+        gpu_seconds_delta = (
+            gpu_seconds_after - gpu_seconds_before
+            if gpu_seconds_before is not None and gpu_seconds_after is not None
+            else None
+        )
         record = {
             "round": rep,
+            "stream_interval": stream_interval,
             "group_wall_s": wall,
             "aggregate_tok_s": sum(lengths) / wall,
             "resident_bs32_wall_s": steady_wall,
@@ -245,6 +330,26 @@ def main() -> None:
                 for value in ids
             ],
             "request_wall_s": [elapsed for elapsed, _, _ in results],
+            "decode_moments_delta": moments_delta,
+            "decode_step_count": moments_delta[0] if moments_delta else None,
+            "scheduler_decode_tok_s": (
+                moments_delta[5] / (moments_delta[2] / 1e6)
+                if moments_delta and moments_delta[2] > 0
+                else None
+            ),
+            "host_mean_decode_step_ms": (
+                moments_delta[2] / moments_delta[0] / 1e3
+                if moments_delta and moments_delta[0] > 0
+                else None
+            ),
+            "gpu_forward_seconds_delta": gpu_seconds_delta,
+            "gpu_mean_forward_ms": (
+                gpu_seconds_delta * 1e3 / moments_delta[0]
+                if gpu_seconds_delta is not None
+                and moments_delta
+                and moments_delta[0] > 0
+                else None
+            ),
         }
         rounds.append(record)
         print(json.dumps(record, separators=(",", ":")), flush=True)
@@ -284,6 +389,7 @@ def main() -> None:
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "tokens": args.tokens,
         "stream_interval": args.stream_interval,
+        "stream_interval_sequence": interval_sequence,
         "incremental_streaming_output": args.incremental_streaming_output,
         "round_count": len(rounds),
         "median_tok_s": statistics.median(speeds),
