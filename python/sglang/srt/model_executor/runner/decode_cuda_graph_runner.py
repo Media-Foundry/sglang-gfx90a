@@ -312,6 +312,11 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                     if is_deepseek_dsa(hf_config)
                     else getattr(hf_config, "index_topk", None)
                 )
+                # DeepSeek-V4's indexer ranks C4-compressed rows. Runtime
+                # ForwardBatch lengths are raw-token lengths, so dispatch to
+                # the sparse graph only after raw_len > index_topk * 4.
+                if is_deepseek_v4(hf_config):
+                    self.dsa_index_topk *= 4
             assert self.dsa_index_topk is not None
             self.dsa_dual_graph = True
             self.dsa_dense_only_graph = (

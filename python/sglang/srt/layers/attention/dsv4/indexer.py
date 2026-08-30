@@ -52,7 +52,7 @@ from sglang.srt.model_executor.runner_backend_utils.tc_piecewise_cuda_graph impo
 from sglang.srt.runtime_context import get_exec, get_parallel
 from sglang.srt.state_capturer.indexer_topk import get_global_indexer_capturer
 from sglang.srt.utils import add_prefix, is_cuda, is_hip, is_xpu
-from sglang.srt.utils.common import is_sm120_supported
+from sglang.srt.utils.common import is_gfx90a_supported, is_sm120_supported
 
 if TYPE_CHECKING:
     from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
@@ -765,10 +765,18 @@ class C4IndexerBackendMixin:
         # paged MQA logits are then unnecessary; a dummy score matrix fed to the
         # existing topk_transform produces the same page-slot indices.
         fb = forward_batch
+        # index_topk is expressed in C4-cache rows, while ForwardBatch
+        # seq_lens are full-resolution token positions.  Comparing the latter
+        # directly to 512 enabled the expensive sparse-indexer graph four
+        # times too early (at raw position 512, where only ~128 C4 rows exist
+        # and Top-512 necessarily selects all of them).
+        raw_skip_limit = c4_indexer.index_topk * int(
+            getattr(c4_indexer.compressor, "ratio", 4)
+        )
         if fb.forward_mode.is_extend_without_speculative():
             if fb.seq_lens_cpu is None or fb.seq_lens_cpu.numel() == 0:
                 return False
-            return int(fb.seq_lens_cpu.max().item()) <= c4_indexer.index_topk
+            return int(fb.seq_lens_cpu.max().item()) <= raw_skip_limit
 
         if not (
             fb.forward_mode.is_decode_or_idle()
@@ -797,7 +805,7 @@ class C4IndexerBackendMixin:
             max_kv_len = int(fb.seq_lens.max().item())
         else:
             return False
-        return max_kv_len <= c4_indexer.index_topk
+        return max_kv_len <= raw_skip_limit
 
     def _forward_prepare_multi_stream(
         self,
@@ -1337,6 +1345,19 @@ class C4Indexer(nn.Module):
             params_dtype=torch.bfloat16,
             prefix=add_prefix("weights_proj", prefix),
         )
+        # The full C4 indexer turns on abruptly once KV length exceeds
+        # index_topk.  Its replicated 1024->8192 query projection otherwise
+        # stays on the generic block-FP8 small-M path on gfx90a, which is much
+        # slower than the BF16 decode GEMM and caused the observed throughput
+        # cliff at absolute position 512.  Reuse the existing attention BF16
+        # cache policy for both indexer-only projections; the short-context
+        # skip graph remains unchanged.
+        if (
+            is_gfx90a_supported()
+            and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get()
+        ):
+            self.wq_b._cache_block_fp8_weight_as_bf16 = True
+            self.weights_proj._cache_block_fp8_weight_as_bf16 = True
         self.compressor = Compressor(
             config,
             self.layer_id,
