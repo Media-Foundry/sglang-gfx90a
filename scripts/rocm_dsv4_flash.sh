@@ -252,6 +252,15 @@ export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PR
 export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
 export SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY="${SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY:-${DEFAULT_GFX90A_MHC_TP_ONLY_GEOMETRY}}"
 
+# A single request cannot consume more raw tokens than the complete token
+# pool. C4 stores one row per four raw tokens, so this is a correctness-safe
+# static graph bound and avoids capturing logits at the model's full 1M
+# page-table width for small/medium deployments.
+if [[ -z "${SGLANG_DSV4_INDEXER_MAX_C4_SEQ_LEN:-}" ]]; then
+  _dsv4_pool_tokens="${MAX_TOTAL_TOKENS:-${DEFAULT_MAX_TOTAL_TOKENS}}"
+  export SGLANG_DSV4_INDEXER_MAX_C4_SEQ_LEN="$(( (_dsv4_pool_tokens + 3) / 4 ))"
+fi
+
 # AIter may optionally shrink the fixed Mori MXFP4 quantization grid.  DSV4
 # routes six experts per token, so the static grid must cover every row that a
 # captured decode tier can make live.  Zero keeps AIter's fully general grid.

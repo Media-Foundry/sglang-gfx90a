@@ -1568,6 +1568,11 @@ class Envs:
     # Decode FP8 indexer operands to fp16 before the gfx90a MFMA dot. The
     # accumulator and logits remain fp32; opt-in until top-k parity is proven.
     SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT = EnvBool(False)
+    # Optional graph-safe upper bound for C4 logits width. A request cannot
+    # exceed the whole KV token pool, so launch harnesses may set this to
+    # ceil(max_total_tokens / 4) instead of capturing the model's full 1M
+    # page-table width for every sparse decode graph.
+    SGLANG_DSV4_INDEXER_MAX_C4_SEQ_LEN = EnvInt(0)
     # HIP DSV4 normally captures both short-context (k-only) and long-context
     # (full indexer) decode graphs. Large speculative verify tiers may keep only
     # the short-context graph when the benchmark cannot enter the indexer path.

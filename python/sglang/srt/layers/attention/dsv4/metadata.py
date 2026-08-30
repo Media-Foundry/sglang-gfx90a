@@ -175,7 +175,11 @@ class PagedIndexerMetadata:
 
     @property
     def max_c4_seq_len(self) -> int:
-        return self.page_table.shape[1] * self.c4_page_size
+        full_capacity = self.page_table.shape[1] * self.c4_page_size
+        configured_cap = envs.SGLANG_DSV4_INDEXER_MAX_C4_SEQ_LEN.get()
+        if configured_cap > 0:
+            return min(full_capacity, configured_cap)
+        return full_capacity
 
     def copy_(self, other: PagedIndexerMetadata):
         if is_hip():
