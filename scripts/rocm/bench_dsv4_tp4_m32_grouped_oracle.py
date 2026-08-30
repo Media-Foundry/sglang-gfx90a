@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sweep the TP4 M32 grouped FP4 routed stage on a recorded diverse route.
+"""Sweep the TP4 grouped FP4 routed stage on a recorded diverse route.
 
 This is a production-shape oracle: E256, top-k 6, H4096 and the TP4 expert
 intermediate shard I512.  It keeps the quantization and fixed-slot reduction
@@ -90,12 +90,13 @@ def time_us(fn, warmup: int, iterations: int) -> float:
 
 
 def main() -> None:
-    global I
+    global I, M
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorder", required=True)
     parser.add_argument("--pass-index", type=int, default=37)
     parser.add_argument("--layer", type=int, default=34)
     parser.add_argument("--recorded-world-size", type=int, default=8)
+    parser.add_argument("--batch-size", type=int, default=M)
     parser.add_argument(
         "--intermediate-size", type=int, default=I,
         help="Local expert intermediate width (512=TP4, 2048=TP1)",
@@ -112,15 +113,26 @@ def main() -> None:
         "--dpp-only", action="store_true",
         help="ABBA the isolated shuffle-versus-DPP A4 TP4 kernels",
     )
+    parser.add_argument(
+        "--stage-breakdown",
+        action="store_true",
+        help="also time gate, intermediate quantization, down and reduction",
+    )
     args = parser.parse_args()
     I = args.intermediate_size
+    M = args.batch_size
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
     raw = payload["logical_count"][args.pass_index, args.layer]
     if torch.any(raw.remainder(args.recorded_world_size) != 0):
         raise RuntimeError("recorded counts are not divisible by world size")
     counts = raw // args.recorded_world_size
-    topk_ids = reconstruct_topk_from_counts(counts).cuda()
+    topk_ids = reconstruct_topk_from_counts(counts, M, T).cuda()
+    if topk_ids.shape != (M, T):
+        raise RuntimeError(
+            f"recorded route reconstructs {tuple(topk_ids.shape)}, "
+            f"expected {(M, T)}"
+        )
 
     torch.manual_seed(7)
     x = torch.randn((M, H), dtype=torch.bfloat16, device="cuda")
@@ -325,6 +337,8 @@ def main() -> None:
         ("a8_r1_b832", 8, 1, 832, 832, LDS_LUT),
         ("a8_r1_b1040", 8, 1, 1040, 1040, LDS_LUT),
         ("a8_r1_b1248", 8, 1, 1248, 1248, LDS_LUT),
+        ("a8_r1_b1664", 8, 1, 1664, 1664, LDS_LUT),
+        ("a8_r1_b2080", 8, 1, 2080, 2080, LDS_LUT),
         ("a4_r2_b624", 4, 2, 624, 624, LDS_LUT),
         ("a4_r2_g2080_d832_nolds", 4, 2, 2080, 832, 0),
         ("a4_r2_g2080_d832_prepacked", 4, 2, 2080, 832, 1),
@@ -338,6 +352,12 @@ def main() -> None:
         ("a4_r2_g1824_d832", 4, 2, 1824, 832, LDS_LUT),
         ("a4_r2_g1872_d832", 4, 2, 1872, 832, LDS_LUT),
         ("a4_r2_g2080_d832", 4, 2, 2080, 832, LDS_LUT),
+        ("a4_r2_g2080_d624", 4, 2, 2080, 624, LDS_LUT),
+        ("a4_r2_g2080_d1040", 4, 2, 2080, 1040, LDS_LUT),
+        ("a4_r2_g2080_d1248", 4, 2, 2080, 1248, LDS_LUT),
+        ("a4_r2_g2496_d832", 4, 2, 2496, 832, LDS_LUT),
+        ("a4_r2_g3120_d832", 4, 2, 3120, 832, LDS_LUT),
+        ("a4_r2_g4160_d832", 4, 2, 4160, 832, LDS_LUT),
         ("a4_r2_g1664_d1664", 4, 2, 1664, 1664, LDS_LUT),
         ("a4_r2_g2080_d1664", 4, 2, 2080, 1664, LDS_LUT),
         ("a4_r2_g832_d1040", 4, 2, 832, 1040, LDS_LUT),
@@ -393,19 +413,36 @@ def main() -> None:
             E, M, T, N, I, assignments, down_rows, args.waves, down_blocks, lds_lut
         )
 
-        def run() -> None:
+        state: dict[str, torch.Tensor] = {}
+
+        def gate_stage() -> None:
             gate_weight = w13_prepacked if lds_lut == 1 else w13
-            down_weight = w2_prepacked if lds_lut == 1 else w2
             gate.run(
                 xq, xs, gate_weight, s13, metadata.sorted_ids,
                 metadata.sorted_experts, metadata.valid, intermediate, 10.0,
             )
-            iq, isc = per_token_group_quant_int8(intermediate, 32)
-            down.run_partial(
-                iq, isc, down_weight, s2, metadata.sorted_ids, metadata.sorted_experts,
-                metadata.valid, topk_weights, partial,
+
+        def quant_stage() -> None:
+            state["iq"], state["isc"] = per_token_group_quant_int8(
+                intermediate, 32
             )
+
+        def down_stage() -> None:
+            down_weight = w2_prepacked if lds_lut == 1 else w2
+            down.run_partial(
+                state["iq"], state["isc"], down_weight, s2,
+                metadata.sorted_ids, metadata.sorted_experts, metadata.valid,
+                topk_weights, partial,
+            )
+
+        def reduce_stage() -> None:
             down.reduce(partial, output)
+
+        def run() -> None:
+            gate_stage()
+            quant_stage()
+            down_stage()
+            reduce_stage()
 
         run()
         torch.cuda.synchronize()
@@ -416,6 +453,23 @@ def main() -> None:
         )
         for _ in range(args.rounds):
             timings[name].append(time_us(run, args.warmup, args.iterations))
+        if args.stage_breakdown:
+            for stage_name, stage in (
+                ("gate", gate_stage),
+                ("quant", quant_stage),
+                ("down", down_stage),
+                ("reduce", reduce_stage),
+            ):
+                values = [
+                    time_us(stage, args.warmup, args.iterations)
+                    for _ in range(args.rounds)
+                ]
+                print(
+                    f"STAGE profile={name} stage={stage_name} samples_us="
+                    + ",".join(f"{value:.3f}" for value in values)
+                    + f" median_us={statistics.median(values):.3f}",
+                    flush=True,
+                )
 
     reference = outputs.get(
         "a8_r2_b624_nolds",

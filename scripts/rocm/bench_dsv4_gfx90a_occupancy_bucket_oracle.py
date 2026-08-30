@@ -66,28 +66,33 @@ PROFILES = (
 )
 
 
-def reconstruct_topk_from_counts(counts: torch.Tensor) -> torch.Tensor:
-    """Deterministically place exact counts into duplicate-free [32,6] rows."""
+def reconstruct_topk_from_counts(
+    counts: torch.Tensor, m: int = M, topk: int = T
+) -> torch.Tensor:
+    """Deterministically place exact counts into duplicate-free rows."""
     counts = counts.to(torch.int64).cpu()
-    if counts.shape != (E,) or counts.sum().item() != M * T:
-        raise ValueError(f"expected [256] counts summing to 192, got {counts.shape}")
-    rows: list[list[int]] = [[] for _ in range(M)]
+    if counts.shape != (E,) or counts.sum().item() != m * topk:
+        raise ValueError(
+            f"expected [256] counts summing to {m * topk}, got "
+            f"shape={counts.shape} sum={counts.sum().item()}"
+        )
+    rows: list[list[int]] = [[] for _ in range(m)]
     for expert in torch.argsort(counts, descending=True).tolist():
         for _ in range(int(counts[expert])):
             choices = [
                 token
-                for token in range(M)
-                if len(rows[token]) < T and expert not in rows[token]
+                for token in range(m)
+                if len(rows[token]) < topk and expert not in rows[token]
             ]
             if not choices:
                 raise RuntimeError(f"cannot place expert {expert} without duplicates")
             token = min(choices, key=lambda value: (len(rows[value]), value))
             rows[token].append(expert)
     result = torch.tensor(rows, dtype=torch.int32)
-    if result.shape != (M, T):
+    if result.shape != (m, topk):
         raise RuntimeError(f"bad reconstructed shape {tuple(result.shape)}")
     for row in result.tolist():
-        if len(set(row)) != T:
+        if len(set(row)) != topk:
             raise RuntimeError("duplicate expert in reconstructed top-k row")
     return result
 

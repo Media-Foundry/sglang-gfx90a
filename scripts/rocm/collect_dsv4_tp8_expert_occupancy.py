@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Collect a warm BS32 DeepSeek-V4 expert-occupancy recorder window.
+"""Collect a warm DeepSeek-V4 expert-occupancy recorder window.
 
 The target server must be started with ``--expert-distribution-recorder-mode
 stat`` and a buffer of at least ``warmup + window + tail + 2``.  The client
-uses 32 different, fixed token-ID prompts, records one concurrent native-AR
+uses different, fixed token-ID prompts, records one concurrent native-AR
 generation, and asks SGLang to dump the result.  Analyze the dump with
 ``.agents/memory/analyze_tp8_bs32_expert_occupancy.py``.
 """
@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--warmup-passes", type=int, default=32)
     parser.add_argument("--window-passes", type=int, default=128)
+    parser.add_argument("--request-count", type=int, default=32)
     parser.add_argument(
         "--tail-tokens",
         type=int,
@@ -71,14 +72,15 @@ def main() -> None:
     args = parse_args()
     manifest = json.loads(args.inputs.read_text())
     requests = manifest["requests"]
-    if len(requests) != 32:
+    if len(requests) < args.request_count:
         raise ValueError(
-            "the occupancy corpus must contain exactly 32 requests, "
-            f"got {len(requests)}"
+            f"the occupancy corpus has {len(requests)} requests, "
+            f"need {args.request_count}"
         )
+    requests = requests[: args.request_count]
     ids = [tuple(item["input_ids"]) for item in requests]
-    if len(set(ids)) != 32:
-        raise ValueError("all 32 fixed input_id sequences must be distinct")
+    if len(set(ids)) != args.request_count:
+        raise ValueError("all selected input_id sequences must be distinct")
     if any(not sequence or sequence[0] != 0 for sequence in ids):
         raise ValueError("every DSV4 request must start with BOS token 0")
 
@@ -87,7 +89,7 @@ def main() -> None:
     before = dump_files(args.dump_dir)
     request_json(base_url + "/start_expert_distribution_record", None, args.timeout)
 
-    barrier = threading.Barrier(33)
+    barrier = threading.Barrier(args.request_count + 1)
     salt = time.time_ns()
 
     def generate(index: int, item: dict) -> tuple[float, dict]:
@@ -111,7 +113,9 @@ def main() -> None:
     results: list[tuple[float, dict]] = []
     begin = time.perf_counter()
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=args.request_count
+        ) as pool:
             futures = [
                 pool.submit(generate, index, item)
                 for index, item in enumerate(requests)
@@ -129,7 +133,7 @@ def main() -> None:
 
     output_ids = [result.get("output_ids") or [] for _, result in results]
     lengths = [len(tokens) for tokens in output_ids]
-    if lengths != [total_tokens] * 32:
+    if lengths != [total_tokens] * args.request_count:
         raise RuntimeError(f"completion lengths are not all {total_tokens}: {lengths}")
     france_exact = output_ids[0][: len(FRANCE_EXPECTED)] == FRANCE_EXPECTED
     if not france_exact:
@@ -152,16 +156,17 @@ def main() -> None:
         raise RuntimeError(f"no new recorder dump appeared in {args.dump_dir}")
 
     result = {
-        "format": "dsv4-tp8-diverse-occupancy-collection-v1",
+        "format": "dsv4-diverse-occupancy-collection-v2",
         "base_url": base_url,
         "inputs": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "warmup_passes": args.warmup_passes,
         "window_passes": args.window_passes,
         "tail_tokens": args.tail_tokens,
+        "request_count": args.request_count,
         "generated_tokens_per_request": total_tokens,
         "group_wall_seconds": wall,
-        "aggregate_tokens_per_second": 32 * total_tokens / wall,
+        "aggregate_tokens_per_second": args.request_count * total_tokens / wall,
         "france_first9_exact": france_exact,
         "completion_sha256": [
             hashlib.sha256(json.dumps(tokens, separators=(",", ":")).encode()).hexdigest()
