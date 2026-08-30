@@ -30,6 +30,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument(
+        "--request-count",
+        type=int,
+        default=32,
+        help="number of concurrent requests; 64 expands the 32-prompt manifest with unique continuations",
+    )
+    parser.add_argument(
         "--stream-interval-sequence",
         type=str,
         help="comma-separated per-round intervals, e.g. 1,8,32,32,8,1",
@@ -149,9 +155,17 @@ def main() -> None:
         if not interval_sequence or any(value < 1 for value in interval_sequence):
             raise ValueError("stream intervals must be positive")
         args.rounds = len(interval_sequence)
-    requests = json.loads(args.inputs.read_text())["requests"]
-    if len(requests) != 32 or len({tuple(x["input_ids"]) for x in requests}) != 32:
-        raise ValueError("input manifest must contain exactly 32 distinct requests")
+    manifest_requests = json.loads(args.inputs.read_text())["requests"]
+    if args.request_count not in (32, 64):
+        raise ValueError("--request-count currently supports 32 or 64")
+    if len(manifest_requests) < args.request_count:
+        raise ValueError(
+            f"input manifest has {len(manifest_requests)} requests, "
+            f"need {args.request_count}"
+        )
+    requests = list(manifest_requests[: args.request_count])
+    if len({tuple(x["input_ids"]) for x in requests}) != len(requests):
+        raise ValueError("selected input token sequences must all be distinct")
 
     rounds = []
     round_output_ids: list[list[list[int]]] = []
@@ -168,7 +182,7 @@ def main() -> None:
             as_json=False,
             optional=True,
         )
-        barrier = threading.Barrier(33)
+        barrier = threading.Barrier(len(requests) + 1)
         nonce = time.time_ns()
 
         def generate(index: int, item: dict) -> tuple[float, dict, list[tuple[float, int]]]:
@@ -194,7 +208,7 @@ def main() -> None:
             return time.perf_counter() - begin, result, samples
 
         begin = time.perf_counter()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(requests)) as pool:
             futures = [
                 pool.submit(generate, index, item)
                 for index, item in enumerate(requests)
@@ -214,7 +228,7 @@ def main() -> None:
         ids = [completion_ids(result) for _, result, _ in results]
         round_output_ids.append(ids)
         lengths = [len(value) for value in ids]
-        if lengths != [args.tokens] * 32:
+        if lengths != [args.tokens] * len(requests):
             raise RuntimeError(f"round {rep}: completion lengths={lengths}")
         if ids[0][: len(FRANCE_EXPECTED)] != FRANCE_EXPECTED:
             raise RuntimeError(
@@ -312,6 +326,7 @@ def main() -> None:
         )
         record = {
             "round": rep,
+            "request_count": len(requests),
             "stream_interval": stream_interval,
             "group_wall_s": wall,
             "aggregate_tok_s": sum(lengths) / wall,
@@ -388,6 +403,7 @@ def main() -> None:
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "tokens": args.tokens,
+        "request_count": len(requests),
         "stream_interval": args.stream_interval,
         "stream_interval_sequence": interval_sequence,
         "incremental_streaming_output": args.incremental_streaming_output,
