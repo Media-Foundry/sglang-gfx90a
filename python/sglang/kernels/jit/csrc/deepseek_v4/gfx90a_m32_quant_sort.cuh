@@ -15,11 +15,7 @@ namespace sglang {
 
 using namespace device;
 
-constexpr uint32_t kM32QsGroups = 32 * (4096 / 32);
-constexpr uint32_t kM32QsGroupsPerBlock = 16;
-constexpr uint32_t kM32QsQuantBlocks =
-    kM32QsGroups / kM32QsGroupsPerBlock;
-
+template <int kM>
 __global__ void gfx90a_m32_quant_sort_kernel(
     const bf16_t* __restrict__ input,
     const int32_t* __restrict__ topk_ids,
@@ -28,19 +24,20 @@ __global__ void gfx90a_m32_quant_sort_kernel(
     int32_t* __restrict__ sorted_ids,
     int32_t* __restrict__ sorted_experts,
     int32_t* __restrict__ num_valid) {
-  constexpr int kM = 32;
   constexpr int kTopK = 6;
   constexpr int kExperts = 256;
   constexpr int kAssignments = 4;
   constexpr int kWave = 64;
   constexpr int kSubgroup = 16;
 
-  if (blockIdx.x < kM32QsQuantBlocks) {
+  constexpr uint32_t kGroupsPerBlock = 16;
+  constexpr uint32_t kQuantBlocks = kM * (4096 / 32) / kGroupsPerBlock;
+  if (blockIdx.x < kQuantBlocks) {
     const uint32_t lane = threadIdx.x & (kWave - 1);
     const uint32_t wave = threadIdx.x / kWave;
     const uint32_t subgroup = lane / kSubgroup;
     const uint32_t subgroup_lane = lane & (kSubgroup - 1);
-    const uint32_t group = blockIdx.x * kM32QsGroupsPerBlock +
+    const uint32_t group = blockIdx.x * kGroupsPerBlock +
                            wave * 4 + subgroup;
     const size_t base = static_cast<size_t>(group) * 32;
     const float x0 = cast<float>(input[base + subgroup_lane]);
@@ -61,15 +58,16 @@ __global__ void gfx90a_m32_quant_sort_kernel(
 
   __shared__ int32_t counts[kExperts];
   __shared__ int32_t scan[kExperts];
-  __shared__ int32_t cursors[kExperts];
   const int tid = threadIdx.x;
   counts[tid] = 0;
-  for (int index = tid; index < 768; index += blockDim.x) {
+  for (int index = tid; index < kM * kTopK * kAssignments;
+       index += blockDim.x) {
     sorted_ids[index] = (kTopK << 24) | kM;
   }
   __syncthreads();
-  if (tid < kM * kTopK) {
-    const int expert = topk_ids[tid];
+  for (int assignment = tid; assignment < kM * kTopK;
+       assignment += blockDim.x) {
+    const int expert = topk_ids[assignment];
     if (expert >= 0 && expert < kExperts) atomicAdd(counts + expert, 1);
   }
   __syncthreads();
@@ -93,17 +91,24 @@ __global__ void gfx90a_m32_quant_sort_kernel(
   }
   const int block_begin = scan[tid];
   const int blocks = (counts[tid] + kAssignments - 1) / kAssignments;
-  cursors[tid] = block_begin * kAssignments;
   for (int block = 0; block < blocks; ++block) {
     sorted_experts[block_begin + block] = tid;
   }
   __syncthreads();
-  if (tid < kM * kTopK) {
-    const int expert = topk_ids[tid];
+  // Preserve AIter's original token-major assignment order. Atomic cursor
+  // insertion is race ordered and can silently permute same-expert rows.
+  for (int assignment = tid; assignment < kM * kTopK;
+       assignment += blockDim.x) {
+    const int expert = topk_ids[assignment];
     if (expert >= 0 && expert < kExperts) {
-      const int token = tid / kTopK;
-      const int slot = tid - token * kTopK;
-      sorted_ids[atomicAdd(cursors + expert, 1)] = (slot << 24) | token;
+      int local_rank = 0;
+      for (int prior = 0; prior < assignment; ++prior) {
+        local_rank += topk_ids[prior] == expert;
+      }
+      const int token = assignment / kTopK;
+      const int slot = assignment - token * kTopK;
+      sorted_ids[scan[expert] * kAssignments + local_rank] =
+          (slot << 24) | token;
     }
   }
   __syncthreads();
@@ -116,7 +121,8 @@ __global__ void gfx90a_m32_quant_sort_kernel(
   }
 }
 
-struct Gfx90aM32QuantSort {
+template <int kM>
+struct Gfx90aQuantSort {
   static void run(const tvm::ffi::TensorView input,
                   const tvm::ffi::TensorView topk_ids,
                   const tvm::ffi::TensorView output,
@@ -127,15 +133,16 @@ struct Gfx90aM32QuantSort {
     using namespace host;
     auto device = SymbolicDevice{};
     device.set_options<kDLCUDA>();
-    TensorMatcher({32, 4096}).with_dtype<bf16_t>().with_device(device).verify(input);
-    TensorMatcher({32, 6}).with_dtype<int32_t>().with_device(device).verify(topk_ids);
-    TensorMatcher({32, 4096}).with_dtype<int8_t>().with_device(device).verify(output);
-    TensorMatcher({32, 128}).with_dtype<float>().with_device(device).verify(scales);
-    TensorMatcher({768}).with_dtype<int32_t>().with_device(device).verify(sorted_ids);
-    TensorMatcher({192}).with_dtype<int32_t>().with_device(device).verify(sorted_experts);
+    TensorMatcher({kM, 4096}).with_dtype<bf16_t>().with_device(device).verify(input);
+    TensorMatcher({kM, 6}).with_dtype<int32_t>().with_device(device).verify(topk_ids);
+    TensorMatcher({kM, 4096}).with_dtype<int8_t>().with_device(device).verify(output);
+    TensorMatcher({kM, 128}).with_dtype<float>().with_device(device).verify(scales);
+    TensorMatcher({kM * 6 * 4}).with_dtype<int32_t>().with_device(device).verify(sorted_ids);
+    TensorMatcher({kM * 6}).with_dtype<int32_t>().with_device(device).verify(sorted_experts);
     TensorMatcher({2}).with_dtype<int32_t>().with_device(device).verify(num_valid);
-    LaunchKernel(kM32QsQuantBlocks + 1, 256, input.device())(
-        gfx90a_m32_quant_sort_kernel,
+    constexpr uint32_t kQuantBlocks = kM * (4096 / 32) / 16;
+    LaunchKernel(kQuantBlocks + 1, 256, input.device())(
+        gfx90a_m32_quant_sort_kernel<kM>,
         static_cast<const bf16_t*>(input.data_ptr()),
         static_cast<const int32_t*>(topk_ids.data_ptr()),
         static_cast<int8_t*>(output.data_ptr()),
@@ -145,5 +152,8 @@ struct Gfx90aM32QuantSort {
         static_cast<int32_t*>(num_valid.data_ptr()));
   }
 };
+
+using Gfx90aM32QuantSort = Gfx90aQuantSort<32>;
+using Gfx90aM64QuantSort = Gfx90aQuantSort<64>;
 
 }  // namespace sglang

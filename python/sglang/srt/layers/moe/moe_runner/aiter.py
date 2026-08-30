@@ -453,9 +453,17 @@ class AiterRunnerCore(MoeRunnerCore):
             fused_quant_sort = None
             if runner_input.hidden_states.shape[0] > 1:
                 if (
-                    envs.SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT.get()
-                    and runner_input.hidden_states.shape == (32, 4096)
-                    and runner_input.topk_ids.shape == (32, 6)
+                    (
+                        envs.SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT.get()
+                        and runner_input.hidden_states.shape == (32, 4096)
+                    )
+                    or (
+                        envs.SGLANG_DSV4_GFX90A_M64_FUSED_QUANT_SORT.get()
+                        and runner_input.hidden_states.shape == (64, 4096)
+                    )
+                ) and (
+                    runner_input.topk_ids.shape
+                    == (runner_input.hidden_states.shape[0], 6)
                     and quant_info.w13_weight.shape[1] == 512
                     and get_int_env_var(
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS", 8

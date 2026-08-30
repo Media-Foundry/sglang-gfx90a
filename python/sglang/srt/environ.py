@@ -1538,6 +1538,7 @@ class Envs:
     # TP8 M32 decode: run exact group32 activation quant and A4 expert sorting
     # as independent CTAs in one HIP launch.
     SGLANG_DSV4_GFX90A_M32_FUSED_QUANT_SORT = EnvBool(False)
+    SGLANG_DSV4_GFX90A_M64_FUSED_QUANT_SORT = EnvBool(False)
     # TP8 M32 decode: quantize each A4 intermediate tile in LDS and consume it
     # directly in the FP4 down projection, avoiding the global quant tensor.
     SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER = EnvBool(False)
