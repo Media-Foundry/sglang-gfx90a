@@ -257,3 +257,90 @@ bitwise equality at every intermediate and a 50-us complete-stage saving.
 GPU execution remains deferred.  At the checkpoint, GCD 4 was occupied by an
 external BIO process and GCDs 0--3 by another service.  No process was killed,
 and the oracle was not moved to another GCD.
+
+## Formal GPU rejection
+
+The later formal run made one explicit placement exception.  Physical GCD 4
+was still occupied by the external BIO workload, while a fresh `amd-smi`
+process scan confirmed physical GCD 5 was idle.  The parent experiment owner
+therefore authorized the single-GPU oracle on GCD 5 rather than killing or
+disturbing the external process.  No other GCD was used and no four-GCD
+service/AR test was run.
+
+The run used the same real record 117 / forward pass 64 / learned layer 20
+route and passed the complete correctness contract:
+
+```text
+100 activation/router mutations: bitwise exact at every checked boundary
+1,000 HIP Graph replays:          bitwise exact
+```
+
+Seven-round symmetric ABBA produced 14 samples per arm.  Exact microsecond
+samples and robust centers were:
+
+```text
+gate A:
+386.054484, 384.774462, 385.014502, 386.011791,
+384.934489, 385.777124, 385.259819, 385.051791,
+385.190487, 385.345141, 385.147826, 385.499795,
+385.035833, 384.870466
+median 385.169156; trimmed mean 385.261589
+
+gate B:
+704.967435, 703.874143, 706.482124, 704.978116,
+704.754130, 705.330149, 704.567464, 704.700788,
+704.930115, 703.943443, 705.047480, 705.959447,
+705.996768, 706.274160
+median 704.972776; trimmed mean 705.120791
+
+down A:
+258.235470, 258.715471, 258.235439, 258.571466,
+258.747466, 257.878129, 258.203459, 258.059470,
+258.043464, 258.267466, 258.230098, 259.606139,
+258.843470, 258.358129
+median 258.251468; trimmed mean 258.375906
+
+down B:
+456.204033, 458.316040, 457.339986, 455.889352,
+455.436007, 455.756028, 456.545353, 456.614685,
+456.604036, 456.060028, 456.177362, 456.934706,
+456.486702, 455.638695
+median 456.345367; trimmed mean 456.354247
+
+full A:
+660.716693, 660.802015, 661.554019, 660.924657,
+660.908635, 661.180687, 660.956637, 661.458015,
+661.324692, 661.431313, 661.783346, 661.772664,
+661.943309, 660.876656
+median 661.252689; trimmed mean 661.247778
+
+full B:
+1189.816920, 1187.891642, 1188.435618, 1188.222249,
+1189.267604, 1193.614324, 1187.966283, 1188.755544,
+1189.080938, 1187.955602, 1190.099589, 1190.030289,
+1190.259552, 1190.792974
+median 1189.174271; trimmed mean 1189.223597
+```
+
+Quantization remained essentially unchanged (`20.468958 -> 20.803178 us`),
+and fixed reduction changed only `5.094239 -> 5.381358 us`.  The multicast
+decomposition itself caused the loss:
+
+```text
+gate: 385.261589 -> 705.120791 us  (+319.859203 us, +83.02%)
+down: 258.375906 -> 456.354247 us  (+197.978342 us, +76.62%)
+full: 661.247778 -> 1189.223597 us (+527.975819 us, +79.85%)
+declared saving: -527.975819 us
+```
+
+The 26.85% reduction in source-level packed-weight loads is overwhelmed by
+CTA-wide LDS decode/read traffic, repeated barriers, four-wave ownership, and
+the cold/hot split-launch cost.  Exact arithmetic and slot preservation are
+not the problem.
+
+**Decision: formally reject CTA weight multicast.**  Do not add a production
+selector, do not run AR/E2E, and do not revisit nearby K-tile/barrier geometry.
+The miss is over 0.5 ms/layer and cannot plausibly be recovered by replacing
+ordinary cooperative loads with direct MUBUF-to-LDS or by a small grid sweep.
+The complete artifact is
+`/tmp/dsv4_dspark_m64_cta_weight_multicast_gpu5.json`.
