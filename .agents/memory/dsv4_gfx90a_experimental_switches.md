@@ -4255,3 +4255,15 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - An apparent ~488 tok/s regression during bring-up was a launch error, not a
   kernel result: the profile variable was misspelled, omitting
   `--enable-single-batch-overlap`.  Always verify the process command line.
+
+### DSpark gamma-3 M128 CK sparse-decode rejection (2026-08-31)
+
+- Generalizing CK/MFMA split-2 to M128 looked 39--41% faster than the oracle's
+  forced Triton split-4 at contexts 128/256/512 and passed 100 mutations plus
+  1000 graph replays.  That comparison was not the production geometry.
+- Production M128 has enough `T*H` parallelism to select fused Triton
+  `kv_splits=1`.  Layer-20 markers measured CK around 68--71 us and warm Triton
+  around 68 us.  Real-code medians were control 901.625 versus CK 891.940
+  tok/s; acceptance-normalized results also favored control.
+- Removed the strict target-only selector and restored the wrapper's M96 cap.
+  Future M128 oracles must use the production split-1 heuristic as baseline.
