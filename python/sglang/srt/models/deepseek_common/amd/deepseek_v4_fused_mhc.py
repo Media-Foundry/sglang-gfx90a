@@ -357,7 +357,10 @@ def apply_mhc_post_pre_boundary(
     norm_weight: Optional[torch.Tensor],
     norm_eps: Optional[float],
     *,
-    fn_transpose: bool,
+    fn_transpose: bool = False,
+    global_batch_size: Optional[int] = None,
+    fn_bf16: Optional[torch.Tensor] = None,
+    fn_fp16: Optional[torch.Tensor] = None,
 ) -> Optional[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, bool]]:
     # Try the aiter/Triton fused post+pre kernels first; if neither fires,
     # fall back to the TileLang fused kernel, else return None so the caller
@@ -409,6 +412,9 @@ def apply_mhc_post_pre_boundary(
         sinkhorn_iters,
         norm_weight=norm_weight,
         norm_eps=norm_eps,
+        global_batch_size=global_batch_size,
+        fn_bf16=fn_bf16,
+        fn_fp16=fn_fp16,
     )
     post_out = post_out.squeeze(-1) if post_out.ndim == 3 else post_out
     return residual, layer_input_out, post_out, comb_out, True

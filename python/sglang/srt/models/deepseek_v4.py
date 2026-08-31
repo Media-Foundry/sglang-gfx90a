@@ -3225,6 +3225,9 @@ class DeepseekV4DecoderLayer(nn.Module):
                 post_attn_norm_weight,
                 self.post_attention_layernorm.variance_epsilon,
                 fn_transpose=True,
+                global_batch_size=forward_batch.batch_size,
+                fn_bf16=getattr(self, "_hc_ffn_fn_bf16", None),
+                fn_fp16=getattr(self, "_hc_ffn_fn_fp16", None),
             )
             if fused is not None:
                 residual, hidden_states, post, comb, norm_fused = fused
@@ -3648,6 +3651,9 @@ class DeepseekV4DecoderLayer(nn.Module):
                 post_attn_norm_weight,
                 self.post_attention_layernorm.variance_epsilon,
                 fn_transpose=True,
+                global_batch_size=state.forward_batch.batch_size,
+                fn_bf16=getattr(self, "_hc_ffn_fn_bf16", None),
+                fn_fp16=getattr(self, "_hc_ffn_fn_fp16", None),
             )
             if fused is not None:
                 ffn_residual, hidden_states, post, comb, norm_fused = fused

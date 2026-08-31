@@ -1,3 +1,5 @@
+import sys
+import types
 import unittest
 from unittest import mock
 
@@ -185,6 +187,57 @@ class TestAmdFusedMhcCrossLayerGating(unittest.TestCase):
         mock_aiter.assert_called_once()
         # fn_transpose=True must hand the Triton kernel the transposed fn.
         self.assertEqual(mock_triton.call_args.args[4], "transposed_fn")
+
+    @mock.patch.object(
+        deepseek_v4_fused_mhc, "try_mhc_fused_post_pre_boundary", return_value=None
+    )
+    @mock.patch.object(
+        deepseek_v4_fused_mhc, "_is_fused_mhc_post_pre_enabled", return_value=True
+    )
+    def test_apply_boundary_forwards_gfx90a_shape_metadata(
+        self, _mock_enabled, _mock_fast_boundary
+    ):
+        post_out = mock.Mock(ndim=2)
+        mhc_fused_post_pre = mock.Mock(
+            return_value=("res", post_out, "comb", "layer_input")
+        )
+        fake_ops = mock.Mock(mhc_fused_post_pre=mhc_fused_post_pre)
+        post = mock.Mock(ndim=3)
+        fn_bf16 = object()
+        fn_fp16 = object()
+
+        fake_model_module = types.ModuleType("sglang.srt.models.deepseek_v4")
+        fake_model_module._get_mhc_ops = mock.Mock(return_value=fake_ops)
+        with mock.patch.dict(
+            sys.modules,
+            {"sglang.srt.models.deepseek_v4": fake_model_module},
+        ):
+            result = deepseek_v4_fused_mhc.apply_mhc_post_pre_boundary(
+                layer_input=mock.Mock(),
+                residual=mock.Mock(),
+                post=post,
+                comb=mock.Mock(),
+                hc_fn=mock.Mock(),
+                hc_scale=mock.Mock(),
+                hc_base=mock.Mock(),
+                hc_mult=4,
+                rms_eps=1e-6,
+                hc_eps=1e-6,
+                hc_post_mult=2.0,
+                sinkhorn_iters=20,
+                norm_weight=mock.Mock(),
+                norm_eps=1e-6,
+                global_batch_size=32,
+                fn_bf16=fn_bf16,
+                fn_fp16=fn_fp16,
+            )
+
+        self.assertEqual(result, ("res", "layer_input", post_out, "comb", True))
+        self.assertEqual(
+            mhc_fused_post_pre.call_args.kwargs["global_batch_size"], 32
+        )
+        self.assertIs(mhc_fused_post_pre.call_args.kwargs["fn_bf16"], fn_bf16)
+        self.assertIs(mhc_fused_post_pre.call_args.kwargs["fn_fp16"], fn_fp16)
 
 
 class TestAmdFusedMhcAttnBoundaryFallback(unittest.TestCase):
