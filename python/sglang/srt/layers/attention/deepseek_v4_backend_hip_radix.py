@@ -1484,11 +1484,23 @@ class DeepseekV4HipRadixBackend(
             forward_batch.forward_mode.is_decode_or_idle()
             and self.speculative_num_steps > 1
         )
+        # DSpark's draft TARGET_VERIFY graph receives live request slots and
+        # positions through graph-stable input buffers, but ``UnifiedKvMetadata``
+        # historically rebound ``swa_loc`` at replay.  Rebinding a Python field
+        # cannot change the tensor pointer already captured by the KV-store
+        # kernel, so gamma>3 replay could write every draft stage through the
+        # synthetic capture-time locations.  Recompute inside the draft graph;
+        # target verification and native AR retain the cached fast path.
+        is_dspark_draft_verify = (
+            self.is_dspark_draft
+            and forward_batch.forward_mode.is_target_verify()
+        )
         if (
             cached is not None
             and not forward_batch.forward_mode.is_idle()
             and cached.shape[0] == positions.shape[0]
             and not is_multistep_draft_decode
+            and not is_dspark_draft_verify
         ):
             result = cached
         else:
