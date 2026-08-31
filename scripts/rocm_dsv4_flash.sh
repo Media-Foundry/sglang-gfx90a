@@ -72,7 +72,11 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Compact DSpark's dominant full-BS32 target tier is M84.  The existing
   # packed-FP4 LDS LUT is exact there and removes roughly 27% from the isolated
   # routed stage; keep the ceiling profile-local for service ABBA rollback.
-  export SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS="${SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS:-96}"
+  export SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS="${SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS:-128}"
+  # Gamma-three's resident BS32 target graph is exactly M128.  The generic
+  # prefill grid under-fills this decode-shaped route; the M64--M96 G2080/D832
+  # geometry is bitwise equal and cuts the target step by about five percent.
+  export SGLANG_DSV4_GFX90A_M128_DECODE_GEOMETRY="${SGLANG_DSV4_GFX90A_M128_DECODE_GEOMETRY:-1}"
   export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS:-4}"
   export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_ROWS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_ROWS:-2}"
   export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_ROWS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_ROWS:-2}"

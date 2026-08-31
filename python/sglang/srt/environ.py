@@ -1513,6 +1513,9 @@ class Envs:
     # M64 was the original validated ceiling; TP4 DSpark may opt M84/M96 in
     # after a route-specific exact oracle and service-level correctness A/B.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK_MAX_ROWS = EnvInt(64)
+    # DSpark gamma-three verifies exactly M128 at resident BS32. Reuse the
+    # decode-oriented grouped-FP4 grid instead of the generic prefill grid.
+    SGLANG_DSV4_GFX90A_M128_DECODE_GEOMETRY = EnvBool(False)
     # TP4/M32 oracle-backed combo: DPP gate reduction plus grouped-down row
     # prefetch. Exact-shape guarded in the AIter runner and default-off until
     # service scheduler-throughput A/B completes.

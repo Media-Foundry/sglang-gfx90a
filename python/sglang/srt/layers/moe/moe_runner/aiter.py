@@ -529,6 +529,14 @@ class AiterRunnerCore(MoeRunnerCore):
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 )
                 num_prefill_tokens = runner_input.hidden_states.shape[0]
+                use_m128_decode_geometry = (
+                    envs.SGLANG_DSV4_GFX90A_M128_DECODE_GEOMETRY.get()
+                    and _is_runtime_gfx90a()
+                    and runner_input.hidden_states.shape == (128, 4096)
+                    and runner_input.topk_ids.shape == (128, 6)
+                    and quant_info.w13_weight.shape == (256, 1024, 2048)
+                    and quant_info.w2_weight.shape == (256, 4096, 256)
+                )
                 grouped_gate_rows = (
                     2
                     if num_prefill_tokens >= 128
@@ -584,16 +592,20 @@ class AiterRunnerCore(MoeRunnerCore):
                         runner_input.hidden_states.dtype,
                         block_size=grouped_assignments,
                     )
-                gate_blocks = (
-                    416
-                    if use_mfma64_prefill
-                    else 1040 if num_prefill_tokens >= 2048
-                    else 416
-                    if num_prefill_tokens >= 128
-                    else get_int_env_var(
+                if use_mfma64_prefill:
+                    gate_blocks = 416
+                elif num_prefill_tokens >= 2048:
+                    gate_blocks = 1040
+                elif use_m128_decode_geometry:
+                    gate_blocks = get_int_env_var(
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
                     )
-                )
+                elif num_prefill_tokens >= 128:
+                    gate_blocks = 416
+                else:
+                    gate_blocks = get_int_env_var(
+                        "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
+                    )
                 use_dspark_m51_specialization = (
                     envs.SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION.get()
                     and _is_runtime_gfx90a()
@@ -768,13 +780,15 @@ class AiterRunnerCore(MoeRunnerCore):
                 else None
             )
             if use_grouped_prefill:
-                down_blocks = (
-                    312
-                    if runner_input.hidden_states.shape[0] >= 128
-                    else get_int_env_var(
+                if (
+                    runner_input.hidden_states.shape[0] >= 128
+                    and not use_m128_decode_geometry
+                ):
+                    down_blocks = 312
+                else:
+                    down_blocks = get_int_env_var(
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS", 208
                     )
-                )
                 use_m32_dpp_down_prefetch = (
                     use_m32_dpp_down_prefetch and down_blocks == 832
                 )
