@@ -98,6 +98,13 @@ def resolve_draft_backend_cpu_lens(
     )
 
 
+def flatten_draft_window(
+    metadata_2d: torch.Tensor, query_token_num: int
+) -> torch.Tensor:
+    """Select the draft columns and return graph/eager-compatible metadata."""
+    return metadata_2d[:, :query_token_num].contiguous().view(-1)
+
+
 class DraftBlockResult(msgspec.Struct, frozen=True):
     draft_tokens: torch.Tensor
     corrected_logits: Optional[torch.Tensor]
@@ -413,8 +420,17 @@ class DraftBlockProposer:
         draft_block_ids = buf[:bs]
 
         draft_block_ids[:, 0].copy_(draft_input.bonus_tokens.view(-1))
-        draft_positions = positions_2d[:, :query_token_num].reshape(-1)
-        draft_cache_loc = verify_cache_loc_2d[:, :query_token_num].reshape(-1)
+        # For gamma shorter than the checkpoint block, slicing the first
+        # columns preserves the parent row stride (for example stride=2 for
+        # gamma=1).  CUDA-graph staging copies these views into contiguous
+        # buffers and used to hide the issue, while eager DSpark forwards pass
+        # them directly to AOT fused norm/RoPE kernels that require contiguous
+        # metadata.  Materialize the draft-only window explicitly; this path is
+        # speculative-only and does not affect native AR batches.
+        draft_positions = flatten_draft_window(positions_2d, query_token_num)
+        draft_cache_loc = flatten_draft_window(
+            verify_cache_loc_2d, query_token_num
+        )
 
         draft_owns_embed = envs.SGLANG_DSPARK_EMBED_IN_GRAPH.get() and hasattr(
             self.draft_model, "forward_embed"
