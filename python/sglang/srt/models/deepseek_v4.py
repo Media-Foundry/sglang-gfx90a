@@ -2989,12 +2989,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         prev_residual: Optional[torch.Tensor] = None,
         prev_post: Optional[torch.Tensor] = None,
         prev_comb: Optional[torch.Tensor] = None,
-    ) -> Tuple[
-        torch.Tensor,
-        Optional[torch.Tensor],
-        Optional[torch.Tensor],
-        Optional[torch.Tensor],
-    ]:
+        return_completed_prev: bool = False,
+    ):
         realtime_trace = self._gfx90a_realtime_trace
 
         def mark(slot: int) -> None:
@@ -3007,6 +3003,7 @@ class DeepseekV4DecoderLayer(nn.Module):
 
         mark(0)
         use_fused = self.use_fused_mhc_post_pre
+        completed_prev = None
         debug_stage_dir = os.getenv("SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR")
         debug_target_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
         debug_target_layer = int(
@@ -3100,6 +3097,8 @@ class DeepseekV4DecoderLayer(nn.Module):
             )
             if fused is not None:
                 residual, hidden_states, post, comb, norm_fused = fused
+                if return_completed_prev:
+                    completed_prev = residual
                 if not norm_fused:
                     # The Triton fused post+pre returns the layer input WITHOUT
                     # the input layernorm applied (norm_fused=False). Apply it
@@ -3126,6 +3125,8 @@ class DeepseekV4DecoderLayer(nn.Module):
                     hidden_states, prev_residual, prev_post, prev_comb
                 )
                 residual = hidden_states
+                if return_completed_prev:
+                    completed_prev = residual
                 hidden_states, post, comb, norm_fused = self.hc_pre(
                     hidden_states,
                     self.hc_attn_fn,
@@ -3301,10 +3302,14 @@ class DeepseekV4DecoderLayer(nn.Module):
         if not use_fused:
             hidden_states = self.hc_post(hidden_states, residual, post, comb)
             dump_stage("ffn_hc_post", hidden_states)
+            if return_completed_prev:
+                return hidden_states, None, None, None, completed_prev
             return hidden_states, None, None, None
 
         # Return the deferred FFN hc_post state; the next layer consumes it with
         # cross-layer fusion, and the final layer is completed in DeepseekV4Model.
+        if return_completed_prev:
+            return hidden_states, residual, post, comb, completed_prev
         return hidden_states, residual, post, comb
 
     def _run_moe_ffn_dp_sync(
@@ -4397,8 +4402,14 @@ class DeepseekV4Model(nn.Module):
                     if check_cuda_graph_backend(Phase.PREFILL, Backend.TC_PIECEWISE)
                     else get_global_expert_distribution_recorder().with_current_layer(i)
                 )
+                capture_completed_prev = (
+                    capture_dspark
+                    and use_fused
+                    and i > self.start_layer
+                    and (i - 1) in self.dspark_layers_to_capture
+                )
                 with ctx:
-                    hidden_states, prev_residual, prev_post, prev_comb = layer(
+                    layer_out = layer(
                         positions=positions,
                         hidden_states=hidden_states,
                         forward_batch=forward_batch,
@@ -4407,15 +4418,27 @@ class DeepseekV4Model(nn.Module):
                         prev_residual=prev_residual,
                         prev_post=prev_post,
                         prev_comb=prev_comb,
+                        return_completed_prev=capture_completed_prev,
                     )
-                if capture_dspark and i in self.dspark_layers_to_capture:
-                    if use_fused:
-                        completed = layer.hc_post(
-                            hidden_states, prev_residual, prev_post, prev_comb
+                if capture_completed_prev:
+                    (
+                        hidden_states,
+                        prev_residual,
+                        prev_post,
+                        prev_comb,
+                        completed_prev,
+                    ) = layer_out
+                    if completed_prev is None:
+                        raise RuntimeError(
+                            "DSpark aux capture expected the fused boundary to "
+                            f"complete layer {i - 1}"
                         )
-                    else:
-                        completed = hidden_states
-                    dspark_aux_hidden_states.append(completed.mean(dim=1))
+                    dspark_aux_hidden_states.append(completed_prev.mean(dim=1))
+                else:
+                    hidden_states, prev_residual, prev_post, prev_comb = layer_out
+                if capture_dspark and i in self.dspark_layers_to_capture:
+                    if not use_fused:
+                        dspark_aux_hidden_states.append(hidden_states.mean(dim=1))
                 if debug_dump:
                     completed = (
                         layer.hc_post(hidden_states, prev_residual, prev_post, prev_comb)
@@ -4434,6 +4457,11 @@ class DeepseekV4Model(nn.Module):
                 hidden_states = last_layer.hc_post(
                     hidden_states, prev_residual, prev_post, prev_comb
                 )
+                if (
+                    capture_dspark
+                    and last_layer.layer_id in self.dspark_layers_to_capture
+                ):
+                    dspark_aux_hidden_states.append(hidden_states.mean(dim=1))
 
         # CP all-gather only on the last PP rank; PP IPC carries CP-split tensors.
         if (
