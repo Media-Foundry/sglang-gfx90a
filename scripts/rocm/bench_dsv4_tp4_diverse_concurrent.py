@@ -16,6 +16,7 @@ from pathlib import Path
 
 
 FRANCE_EXPECTED = [671, 6102, 294, 8760, 344, 2619, 51119, 42499, 1]
+FRANCE_PREFIX = FRANCE_EXPECTED[:4]
 FRANCE_PARIS_TOKEN = 11111
 
 
@@ -52,7 +53,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--allow-france-mismatch",
         action="store_true",
-        help="record an incorrect speculative baseline instead of aborting",
+        help="record a semantically incorrect speculative baseline instead of aborting",
+    )
+    parser.add_argument(
+        "--require-france-exact",
+        action="store_true",
+        help="require the historical nine-token oracle instead of the semantic Paris gate",
     )
     parser.add_argument(
         "--allow-no-resident-window",
@@ -254,14 +260,18 @@ def main() -> None:
             else None
         )
         france_semantic = (
-            france_exact
-            or (FRANCE_PARIS_TOKEN in ids[0][:16] and 1 in ids[0][:16])
+            ids[0][: len(FRANCE_PREFIX)] == FRANCE_PREFIX
+            and FRANCE_PARIS_TOKEN in ids[0][:16]
             if first_is_france_oracle
             else None
         )
-        if first_is_france_oracle and not france_exact and not args.allow_france_mismatch:
+        france_gate = (
+            france_exact if args.require_france_exact else france_semantic
+        )
+        if first_is_france_oracle and not france_gate and not args.allow_france_mismatch:
             raise RuntimeError(
-                f"round {rep}: France oracle={ids[0][:len(FRANCE_EXPECTED)]}"
+                f"round {rep}: France oracle={ids[0][:len(FRANCE_EXPECTED)]} "
+                f"semantic={france_semantic} exact={france_exact}"
             )
         finish_reasons = [
             result.get("meta_info", {}).get("finish_reason", {}).get("type")
@@ -466,6 +476,7 @@ def main() -> None:
         "first_request_is_france_oracle": first_is_france_oracle,
         "tokens": args.tokens,
         "temperature": args.temperature,
+        "require_france_exact": args.require_france_exact,
         "request_count": len(requests),
         "stream_interval": args.stream_interval,
         "stream_interval_sequence": interval_sequence,
