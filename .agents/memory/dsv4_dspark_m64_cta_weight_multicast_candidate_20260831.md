@@ -197,3 +197,63 @@ The local MI200 ISA copy used for this review is:
 Relevant sections are 2.2.1 (64-KiB, 32-bank LDS), 9.1.9 (memory-buffer load
 directly to LDS), 12.5 (`S_BARRIER` and `S_WAITCNT`), and 12.12
 (`DS_WRITE_B128`/`DS_READ_B128`).
+
+## Oracle-only implementation checkpoint
+
+The first implementation is deliberately unreachable from production:
+
+```text
+python/sglang/kernels/jit/csrc/deepseek_v4/
+  gfx90a_fp4_cta_weight_multicast_oracle.cuh
+python/sglang/kernels/ops/moe/
+  gfx90a_fp4_cta_weight_multicast_oracle.py
+scripts/rocm/
+  bench_dsv4_dspark_gamma1_m64_cta_weight_multicast.py
+scripts/rocm/csrc/
+  dsv4_m64_cta_weight_multicast_resource.hip
+```
+
+The gate core uses four K1024 phases.  Lanes 0--31 retain groups `0..31` then
+`64..95`; lanes 32--63 retain groups `32..63` then `96..127`.  Thus every lane
+visits exactly the same two K groups and in the same order as the accepted
+wave64 kernel.  The down core retains one subgroup16 per R2 output tile and
+maps the four waves only across consecutive A4 chunks.  Original encoded
+`(slot << 24) | token` values are never renumbered, so candidate partial writes
+land in the unchanged `[M,T,N]` slots.
+
+ROCm 7.14 `hipcc --offload-arch=gfx90a -O3` parsing and explicit code-object
+instantiation passed without touching a GPU.  Final metadata after reducing
+the gate tile from K2048 to K1024 is:
+
+| core | VGPR | SGPR | LDS | scratch | spills | workgroup |
+|---|---:|---:|---:|---:|---:|---:|
+| gate/up | 108 | 100 | 5,248 B | 0 | 0 | 256 |
+| down | 64 | 85 | 5,248 B | 0 | 0 | 256 |
+
+The gate initially compiled at VGPR103/LDS9,472 B; it was not retained because
+it exceeded the declared 8-KiB LDS gate.  K1024 adds two work-group barriers
+per K half but brings both kernels under the LDS limit.  Runtime occupancy is
+still unproven and remains a mandatory stop gate.
+
+CPU-only descriptor auditing on the real record 117 / forward pass 64 / layer
+20 produced:
+
+```text
+active experts:       105
+A4 blocks:            149
+hot blocks:            69
+cold singleton blocks: 80
+multicast descriptors: 29
+physical weight loads: 109
+load reduction:        26.8456%
+```
+
+The descriptor builder proved that all 149 blocks are partitioned once and
+that all 384 valid `(token,slot)` pairs are unique and covered.  This passes
+the predeclared 20% load-reduction gate.  The runnable harness composes the
+accepted cold kernel and multicast hot kernel sequentially, then requires
+bitwise equality at every intermediate and a 50-us complete-stage saving.
+
+GPU execution remains deferred.  At the checkpoint, GCD 4 was occupied by an
+external BIO process and GCDs 0--3 by another service.  No process was killed,
+and the oracle was not moved to another GCD.
