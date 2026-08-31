@@ -4240,3 +4240,18 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   0.7% below the retained A4 checkpoint median near `887.837 tok/s`.
 - Correctness passed in all rounds (France first-nine exact/Paris and 32x256
   `finish=length`).  Keep A4; do not change global AIter geometry or AR.
+
+### DSpark gamma-3 anchor occupancy and quant-only rejection (2026-08-31)
+
+- Forty real heterogeneous M128 target forwards (1,720 layer samples) show a
+  mean 107.18 active experts and 63.88 singleton experts per layer.  A4 needs
+  113.17 weight blocks versus 134.24 for A2; A8 only falls to 108.25.  This is
+  a diffuse-routing workload: keep A4 and stop pursuing long expert runs.
+- A strict target-only HIP kernel quantized only 32 anchor rows and was bitwise
+  equal over 100 mutations plus 1000 graph replays.  It reduced the isolated
+  quant from about 38.0 to 9.33 us, but corrected service medians were control
+  901.62 versus candidate 895.65 tok/s (-0.66%); acceptance-normalized results
+  also favored control.  The kernel and all production wiring were removed.
+- An apparent ~488 tok/s regression during bring-up was a launch error, not a
+  kernel result: the profile variable was misspelled, omitting
+  `--enable-single-batch-overlap`.  Always verify the process command line.
