@@ -4,6 +4,21 @@
 `scripts/rocm_dsv4_flash.sh`。这里不把目标仓库的普通上游开关当成我们新增的
 调试开关。当前测试口径仍是 TP4/EP4、Mori、batch=1、原生 AR。
 
+## DSpark gamma-three M128 anchor-only checkpoint（2026-08-31）
+
+- TP4 BS32 `start-dspark` 现在默认 gamma=3，并启用严格 M128 anchor-only
+  routed selector。每请求布局为 `[anchor,draft,draft,draft]`；anchor 保留完整
+  routed MoE，draft 保留 shared expert 与其他全部模型路径，但省略 routed MoE。
+- 命中条件固定为 gfx90a + `TARGET_VERIFY` + BS32 + width4 + M128 + 显式环境
+  开关。强制打开开关的原生 AR 服务通过 France 与 32 条异质 64-token 请求，且
+  无 speculative 字段，证明 AR 路径不可达。
+- 真实异质 32 请求 B-A-B 中位数为 B1 `877.649`、A gamma-one `826.172`、
+  B2 `874.359 tok/s`；候选中心 `876.004`，提升 `+6.03%`。无手工覆盖的最终
+  默认配置三轮为 `839.533/899.225/887.837`，中位 `887.837 tok/s`。所有轮次
+  France 首九 token 精确、语义 Paris，且全部请求生成 256 token、`finish=length`。
+- 详细记录：
+  `.agents/memory/dsv4_dspark_gamma3_m128_anchor_only_checkpoint_20260831.md`。
+
 ## GPU 实验前置检查（强制）
 
 每次启动性能 probe、服务 A/B 或 profiler 之前，先运行：

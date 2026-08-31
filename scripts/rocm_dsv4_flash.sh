@@ -144,24 +144,27 @@ case "${COMMAND}" in
     ;;
 esac
 if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
-  # On 32 real heterogeneous requests, gamma=1 shortens the speculative step
-  # enough to outweigh its lower accepted length: independent-service ABBA
-  # improved resident/scheduler throughput by 8.8%/10.8% versus gamma=2.
-  # Scope this to the measured TP4 throughput profile; every other DSpark
-  # command retains its historical gamma=5 default below.
-  SPECULATIVE_DSPARK_BLOCK_SIZE="${SPECULATIVE_DSPARK_BLOCK_SIZE:-1}"
+  # With routed MoE retained only on exact anchor rows, gamma=3 raises accepted
+  # length enough to beat gamma=1 despite its longer attention path. Two
+  # independent candidate services centered near 876 tok/s versus 826 tok/s
+  # for gamma=1 (+6.0%) on 32 real heterogeneous requests. Scope this to the
+  # measured TP4 throughput profile; other DSpark commands retain their
+  # historical gamma=5 default below.
+  SPECULATIVE_DSPARK_BLOCK_SIZE="${SPECULATIVE_DSPARK_BLOCK_SIZE:-3}"
   # Compact verification already pays for a captured token tier.  Fill the
   # tier's padding slots instead of discarding them: on gfx90a BS32/M96 this
   # increased accepted output at essentially unchanged graph time.  Scope the
   # default to this measured profile; callers can still set zero for A/B.
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER="${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-1}"
-  # Approximate only the bonus-producing draft rows of gamma-one target
-  # verification: anchor rows retain the full routed MoE, while draft rows
-  # retain the shared expert.  Strict model guards require TARGET_VERIFY,
-  # width=2, BS32 and M64, so native AR and every other graph tier are inert.
-  # Real-code B-A-B improved resident throughput by about 11.6%; France stayed
-  # exact/Paris in all rounds. Set zero for exact target bonus logits.
+  # Preserve the older gamma-one rollback profile. Its strict model guard
+  # requires TARGET_VERIFY, width=2, BS32 and M64, so it is inert under the new
+  # gamma-three default and under native AR.
   export SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED:-1}"
+  # Gamma-three target verification is row-major [anchor,draft,draft,draft].
+  # Keep the exact anchor routed MoE and let bonus-producing rows use the
+  # shared expert. The strict TARGET_VERIFY/width=4/BS32/M128 guard makes this
+  # unreachable from AR. Set zero to recover exact target bonus logits.
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-1}"
   # Compact block-size-2 verification lands on M51.  The strict runner guard
   # selects the oracle-backed G1664/W4 routed kernel only for that exact tier.
   # Keep it opt-in: its isolated 10.5% gain retained only ~1% resident and no
