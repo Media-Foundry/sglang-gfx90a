@@ -742,17 +742,23 @@ with socket.create_connection((host, port), timeout=2):
 PY
     then
       # The HTTP process can accept TCP before the tokenizer manager has
-      # installed its scheduler RPC state.  Freeze only after the server's own
-      # ready marker, and retry here rather than during application startup.
+      # installed its scheduler RPC state. Freeze only once after the server's
+      # own ready marker rather than probing during application startup.
       local freeze_ok=0
-      for _ in {1..10}; do
-        if curl --noproxy '*' -sS --fail --max-time 15 -X POST \
-          "${BASE_URL}/freeze_gc" >/dev/null 2>&1; then
-          freeze_ok=1
-          break
-        fi
-        sleep 1
-      done
+      # The ready marker is authoritative. Issue freeze_gc once after it
+      # appears; never turn an HTTP endpoint into a readiness polling loop.
+      if "${PYTHON_BIN}" - "${BASE_URL}/freeze_gc" <<'PY'
+import sys
+import urllib.request
+
+request = urllib.request.Request(sys.argv[1], data=b"", method="POST")
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+with opener.open(request, timeout=15):
+    pass
+PY
+      then
+        freeze_ok=1
+      fi
       if [[ "${freeze_ok}" == "1" ]]; then
         echo "ready: ${BASE_URL} (GC frozen)"
       else
