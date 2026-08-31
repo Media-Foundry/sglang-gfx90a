@@ -86,6 +86,23 @@ logger = logging.getLogger(__name__)
 _is_npu = is_npu()
 
 
+def _resolve_observer_target_logits(
+    *, target_logits, folded_accept: bool, epilogue, bs: int, stride: int
+):
+    """Return the target-logit view that produced the folded accept decision.
+
+    Compact CUDA graphs consume logits inside ``DsparkVerifyEpilogue`` and may
+    leave ``LogitsProcessorOutput.next_token_logits`` unset.  The epilogue's
+    strided buffer is graph-stable and is the exact tensor used by accept, so
+    diagnostics must read it instead of disabling the folded fast path.
+    """
+    if target_logits is not None:
+        return target_logits
+    if not folded_accept or epilogue is None or epilogue.strided_logits is None:
+        return None
+    return epilogue.strided_logits[: bs * stride]
+
+
 class DSparkWorkerV2(BaseSpecWorker):
 
     def __init__(
@@ -783,13 +800,21 @@ class DSparkWorkerV2(BaseSpecWorker):
             )
         logits_output.hidden_states = None
 
+        observer_target_logits = _resolve_observer_target_logits(
+            target_logits=logits_output.next_token_logits,
+            folded_accept=folded_accept,
+            epilogue=epilogue,
+            bs=bs,
+            stride=self.verify_num_draft_tokens,
+        )
+
         self._observers.observe_verify_step(
             forward_ct=int(batch.forward_iter),
             reqs=batch.reqs,
             bs=bs,
             proposal_folded=proposal.folded,
             verify_ids_2d=verify_ids_2d,
-            target_logits=logits_output.next_token_logits,
+            target_logits=observer_target_logits,
             layout=layout,
             confidence=confidence,
             prefix_lens=prefix_lens,

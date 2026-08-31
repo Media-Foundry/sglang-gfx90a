@@ -44,6 +44,7 @@ class StsDataRecorder:
         self._logits_buffer: list[torch.Tensor] = []
         self._prefix_mask_buffer: list[torch.Tensor] = []
         self._shard_ct = 0
+        self._sample_count = 0
 
     def record(
         self, *, confidence_raw: torch.Tensor, num_correct_drafts: torch.Tensor
@@ -56,7 +57,8 @@ class StsDataRecorder:
         prefix_mask = (positions < counts).to(torch.float32)
         self._logits_buffer.append(logits)
         self._prefix_mask_buffer.append(prefix_mask)
-        if len(self._logits_buffer) >= self.flush_every:
+        self._sample_count += int(logits.shape[0])
+        if self._sample_count >= self.flush_every:
             self.flush()
 
     def flush(self) -> None:
@@ -73,4 +75,5 @@ class StsDataRecorder:
         )
         self._logits_buffer.clear()
         self._prefix_mask_buffer.clear()
+        self._sample_count = 0
         self._shard_ct += 1

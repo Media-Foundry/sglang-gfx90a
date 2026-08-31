@@ -770,6 +770,7 @@ class DsparkStepObservers:
             )
         self._sts_collect_path = envs.SGLANG_DSPARK_STS_COLLECT_PATH.get()
         self._sts_recorder: Optional[StsDataRecorder] = None
+        self._sts_skip_reasons: set[str] = set()
 
     # --- step lifecycle -------------------------------------------------
 
@@ -840,12 +841,18 @@ class DsparkStepObservers:
         dp_tier_num_tokens: Optional[int],
     ) -> None:
         planner = self._planner
+        # The production fast path folds proposal/confidence into the draft
+        # graph.  Its replay still refreshes confidence_raw and target logits,
+        # so STS collection must remain reachable there; otherwise enabling
+        # SGLANG_DSPARK_STS_COLLECT_PATH silently records nothing on the exact
+        # path the resulting calibration is meant to serve.
+        self._maybe_record_sts_collect(
+            verify_ids_2d=verify_ids_2d,
+            target_logits=target_logits,
+            confidence=confidence,
+            bs=bs,
+        )
         if not proposal_folded:
-            self._maybe_record_sts_collect(
-                verify_ids_2d=verify_ids_2d,
-                target_logits=target_logits,
-                bs=bs,
-            )
             self._confidence_probe.maybe_observe(
                 carries_confidence=planner.carries_confidence,
                 is_compact_mode=planner.is_compact_mode,
@@ -933,15 +940,33 @@ class DsparkStepObservers:
         *,
         verify_ids_2d: torch.Tensor,
         target_logits: Optional[torch.Tensor],
+        confidence: Optional[torch.Tensor],
         bs: int,
     ) -> None:
         if not self._sts_collect_path:
             return
         if not self._planner.carries_confidence:
+            self._warn_sts_skip_once("confidence head is unavailable")
+            return
+        if target_logits is None:
+            self._warn_sts_skip_once("target logits are unavailable")
             return
         confidence_raw = self._planner.last_confidence_raw
-        if confidence_raw is None:
+        if confidence_raw is None and confidence is None:
+            self._warn_sts_skip_once("raw confidence logits are unavailable")
             return
+        if confidence is not None and (
+            confidence_raw is None or confidence_raw.shape != confidence.shape
+        ):
+            # Folded graph capture can leave `_last_confidence_raw` pointing at
+            # the warmup batch while the graph-stable confidence output has the
+            # live BS. Collection forbids non-identity STS above, hence
+            # confidence == sigmoid(raw) and logit recovers the needed value.
+            eps = torch.finfo(torch.float32).eps
+            confidence_raw = torch.logit(
+                confidence.float().clamp(min=eps, max=1.0 - eps)
+            )
+            self._warn_sts_reconstruct_once()
         if self._sts_recorder is None:
             self._sts_recorder = StsDataRecorder(
                 path_stem=self._sts_collect_path,
@@ -959,3 +984,20 @@ class DsparkStepObservers:
             confidence_raw=confidence_raw,
             num_correct_drafts=num_correct_drafts,
         )
+
+    def _warn_sts_skip_once(self, reason: str) -> None:
+        if reason in self._sts_skip_reasons:
+            return
+        self._sts_skip_reasons.add(reason)
+        logger.warning(
+            "DSpark STS collection skipped: %s (path=%s)",
+            reason,
+            self._sts_collect_path,
+        )
+
+    def _warn_sts_reconstruct_once(self) -> None:
+        reason = "reconstructed raw confidence from folded graph output"
+        if reason in self._sts_skip_reasons:
+            return
+        self._sts_skip_reasons.add(reason)
+        logger.info("DSpark STS collection: %s", reason)
