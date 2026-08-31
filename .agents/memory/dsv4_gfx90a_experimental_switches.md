@@ -4230,3 +4230,13 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   dots and scales cross the wave boundary separately, but this CTA-cooperative
   design is decisively unsuitable for production.  Do not revisit it without
   eliminating the LDS exchange and CTA barriers altogether.
+
+### DSpark gamma-3 M128 global A2 rejection (2026-08-31)
+
+- Screened `SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS=2` only in the
+  existing gamma-3 `TARGET_VERIFY` service, using 32 heterogeneous code
+  requests and the common resident BS32 window.  No code/default changed.
+- Three rounds were `900.880/875.145/881.829 tok/s`, median `881.829`, about
+  0.7% below the retained A4 checkpoint median near `887.837 tok/s`.
+- Correctness passed in all rounds (France first-nine exact/Paris and 32x256
+  `finish=length`).  Keep A4; do not change global AIter geometry or AR.
