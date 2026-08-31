@@ -1,0 +1,20 @@
+diff --git a/csrc/include/custom_all_reduce.cuh b/csrc/include/custom_all_reduce.cuh
+--- a/csrc/include/custom_all_reduce.cuh
++++ b/csrc/include/custom_all_reduce.cuh
+@@ -1644,5 +1644,16 @@ class CustomAllreduce
+                               (size / world_size_ + (threads / world_size_) - 1) /
+                                   (threads / world_size_));
++            // The generic 64-block choice for a TP4 512-KiB BF16 payload was
++            // never tuned on CDNA2. Keep the default unchanged, but expose a
++            // narrow experiment hook for the exact DSV4 M64 collective.
++            if(arch.find("gfx90a") != std::string::npos &&
++               world_size_ == 4 && bytes == 512 * 1024)
++            {
++                if(const char* value = std::getenv("AITER_GFX90A_AR_512K_BLOCKS"))
++                {
++                    blocks = std::max(1, std::min(kMaxBlocks, std::atoi(value)));
++                }
++            }
+             if (world_size_ == 8 && bytes > 512 * 4096 * 2 && arch.find("gfx942") != std::string::npos) {
+                 use_write_mode = true;
+             }

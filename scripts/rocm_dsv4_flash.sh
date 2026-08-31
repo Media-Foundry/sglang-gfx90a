@@ -108,6 +108,13 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Four waves improve the exact M64 logical-scale row-prefetch down kernel by
   # ~4.1% standalone and ~0.8% resident service throughput. Other tiers keep W8.
   export SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4="${SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4:-1}"
+  # AIter's generic TP4 512-KiB two-stage all-reduce launches 64 CTAs. On
+  # gfx90a, 16 CTAs preserve the fixed owner/reduction order while reducing
+  # the exact graph latency by about 30% and the DSpark BS32 host step by
+  # roughly 3.5%. This requires applying
+  # scripts/rocm/patches/aiter_gfx90a_ar_512k_blocks.patch before rebuilding
+  # module_custom_all_reduce.so; an unpatched AIter safely ignores the env.
+  export AITER_GFX90A_AR_512K_BLOCKS="${AITER_GFX90A_AR_512K_BLOCKS:-16}"
 fi
 
 HOST="${HOST:-127.0.0.1}"
