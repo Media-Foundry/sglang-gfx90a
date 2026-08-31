@@ -14,7 +14,7 @@ namespace ck_tile::dsv4 {
 
 inline constexpr int kHeadDim = 512;
 inline constexpr int kLocalHeads = 16;
-inline constexpr int kDecodeM = 64;
+inline constexpr int kMaxDecodeM = 96;
 inline constexpr int kThreads = 256;
 inline constexpr int kWaveSize = 64;
 inline constexpr int kDefaultHeadGroup = 4;
@@ -38,7 +38,8 @@ inline bool is_supported(const UnifiedSparseDecodeArgs& args)
 {
     return args.q != nullptr && args.unified_kv != nullptr && args.kv_indices != nullptr &&
            args.kv_indptr != nullptr && args.attn_sink != nullptr && args.output != nullptr &&
-           args.tokens == kDecodeM && args.heads == kLocalHeads && args.pool_slots > 0;
+           args.tokens > 0 && args.tokens <= kMaxDecodeM &&
+           args.heads == kLocalHeads && args.pool_slots > 0;
 }
 
 // Semantically complete direct-ragged baseline. One workgroup owns one

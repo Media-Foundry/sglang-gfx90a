@@ -55,6 +55,10 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   DEFAULT_GPUS="4,5,6,7"
   DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="32"
   DEFAULT_MAX_TOTAL_TOKENS="32768"
+  # The target plus bundled DSpark head and the fixed C128 state need more
+  # than the generic 0.80 budget on a 64-GiB GCD.  0.90 is the validated
+  # checkpoint value; max-total-tokens still caps the actual KV pool at 32768.
+  DEFAULT_MEM_FRACTION_STATIC="0.90"
   TP_SIZE="${TP_SIZE:-4}"
   EP_SIZE="${EP_SIZE:-1}"
   MOE_A2A_BACKEND="${MOE_A2A_BACKEND:-none}"
@@ -347,6 +351,9 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ -n "${RANDOM_SEED:-}" ]]; then
+  server_args+=(--random-seed "${RANDOM_SEED}")
+fi
 if [[ -n "${BATCH_NOTIFY_SIZE:-}" ]]; then
   server_args+=(--batch-notify-size "${BATCH_NOTIFY_SIZE}")
 fi

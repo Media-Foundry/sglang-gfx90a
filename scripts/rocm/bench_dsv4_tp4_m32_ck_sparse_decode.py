@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ABBA oracle for the gfx90a TP4 M32 CK-style sparse decode candidate."""
+"""ABBA oracle for the gfx90a TP4 CK-style sparse decode candidate."""
 
 import argparse
 import statistics
@@ -44,16 +44,18 @@ def trimmed(values):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--tokens", type=int, default=96)
     parser.add_argument("--contexts", default="128,256,512")
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--mutations", type=int, default=100)
+    parser.add_argument("--graph-replays", type=int, default=1000)
     parser.add_argument("--max-abs", type=float, default=0.008)
     parser.add_argument("--max-rel-l2", type=float, default=0.005)
     args = parser.parse_args()
 
     torch.manual_seed(20260831)
-    tokens, heads, dim = 32, 16, 512
+    tokens, heads, dim = args.tokens, 16, 512
     for context in (int(value) for value in args.contexts.split(",")):
         q = torch.randn((tokens, heads, dim), dtype=torch.bfloat16, device="cuda")
         kv = torch.randn(
@@ -139,6 +141,19 @@ def main():
 
         triton_graph, _ = capture(triton_run)
         ck_graph, _ = capture(ck_run)
+        q.normal_()
+        ck_run()
+        torch.cuda.synchronize()
+        graph_expected = ck_out.clone()
+        for _ in range(args.graph_replays):
+            ck_graph.replay()
+        torch.cuda.synchronize()
+        if not torch.equal(graph_expected, ck_out):
+            graph_delta = (graph_expected.float() - ck_out.float()).abs().max().item()
+            raise RuntimeError(
+                f"ctx={context} graph replay changed output: max_abs={graph_delta}"
+            )
+        print(f"GRAPH ctx={context} replays={args.graph_replays} bitwise_exact=True")
         values = {"triton": [], "ck": []}
         for _ in range(args.rounds):
             for provider in ("triton", "ck", "ck", "triton"):

@@ -18,11 +18,12 @@ struct Gfx90aDsv4UnifiedSparseDecode {
                   const tvm::ffi::TensorView output,
                   const tvm::ffi::TensorView workspace,
                   double softmax_scale) {
-    if (q.ndim() != 3 || q.size(0) != 64 || q.size(1) != 16 ||
+    const auto tokens = q.size(0);
+    if (q.ndim() != 3 || tokens <= 0 || tokens > 96 || q.size(1) != 16 ||
         q.size(2) != 512 || unified_kv.ndim() != 2 ||
         unified_kv.size(1) != 512 || output.ndim() != 3 ||
-        output.size(0) != 64 || output.size(1) != 16 ||
-        output.size(2) != 512 || kv_indptr.size(0) != 65) {
+        output.size(0) != tokens || output.size(1) != 16 ||
+        output.size(2) != 512 || kv_indptr.size(0) != tokens + 1) {
       throw std::runtime_error("gfx90a DSV4 sparse decode shape mismatch");
     }
 
@@ -33,7 +34,7 @@ struct Gfx90aDsv4UnifiedSparseDecode {
         static_cast<const int32_t*>(kv_indptr.data_ptr()),
         static_cast<const float*>(attn_sink.data_ptr()),
         static_cast<ck::bhalf_t*>(output.data_ptr()),
-        64,
+        static_cast<int32_t>(tokens),
         16,
         static_cast<int32_t>(unified_kv.size(0)),
         static_cast<float>(softmax_scale)};

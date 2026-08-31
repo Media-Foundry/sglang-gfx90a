@@ -1549,6 +1549,7 @@ class Envs:
     # CK-style native MFMA unified sparse decode for the exact TP4/M64 C128
     # BF16 graph tier. It uses a persistent 4 MiB split-K workspace per rank.
     SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE = EnvBool(False)
+    SGLANG_DSV4_GFX90A_TP4_M96_CK_SPARSE_DECODE = EnvBool(False)
     # Experimental issue-order sweep for the TP4/M32 C4 attention branches:
     # 0 launches both compressors before q_lora, 1 delays the indexer
     # compressor, 2 delays the core compressor, and 3 delays both until after

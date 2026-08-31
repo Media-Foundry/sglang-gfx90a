@@ -771,14 +771,14 @@ def _sparse_attn_v4_paged_decode_triton(
         rope_freqs_arg = q.new_empty((1, 64), dtype=torch.float32)
         rope_positions_arg = q.new_zeros((T,), dtype=torch.int64)
 
-    # Exact TP4/M64 C128 BF16 candidate. Keep this before Triton's geometry
+    # Exact TP4/M64-or-M96 C128 BF16 candidate. Keep this before Triton's geometry
     # selection and allocation so the two-launch CK-style HIP path owns the
     # complete split/reduce boundary. All other shapes and dtypes retain the
     # established Triton implementation.
     if (
         not quant_kv
         and not fuse_inverse_rope
-        and T == 64
+        and T in (64, 96)
         and H == 16
         and D == 512
         and q.dtype == torch.bfloat16
@@ -795,8 +795,12 @@ def _sparse_attn_v4_paged_decode_triton(
         from sglang.srt.runtime_context import get_parallel
         from sglang.srt.utils.common import is_gfx90a_supported
 
+        use_ck_shape = (
+            (T == 64 and envs.SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE.get())
+            or (T == 96 and envs.SGLANG_DSV4_GFX90A_TP4_M96_CK_SPARSE_DECODE.get())
+        )
         if (
-            envs.SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE.get()
+            use_ck_shape
             and is_gfx90a_supported()
             and get_parallel().attn_tp_size == 4
         ):
@@ -806,7 +810,7 @@ def _sparse_attn_v4_paged_decode_triton(
             )
 
             workspace = torch.empty(
-                workspace_size_bytes(), dtype=torch.uint8, device=q.device
+                workspace_size_bytes(tokens=T), dtype=torch.uint8, device=q.device
             )
             run_gfx90a_ck_sparse_decode(
                 q,
