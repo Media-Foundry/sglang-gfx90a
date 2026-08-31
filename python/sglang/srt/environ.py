@@ -1548,6 +1548,11 @@ class Envs:
     # M=51 in the AIter runner and combines the oracle-backed G1664 DPP gate
     # with logical-scale W2 row prefetch and four down waves.
     SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION = EnvBool(False)
+    # Speculative-only approximation oracle: for the exact gamma-one
+    # TARGET_VERIFY M64 layout, keep routed MoE on anchor rows and let draft
+    # rows use only the shared expert. Native AR cannot satisfy the model-side
+    # ForwardMode/spec-width guards. Default-off pending France/code E2E.
+    SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED = EnvBool(False)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.

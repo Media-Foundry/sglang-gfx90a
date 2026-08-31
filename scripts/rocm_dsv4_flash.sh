@@ -155,6 +155,13 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # increased accepted output at essentially unchanged graph time.  Scope the
   # default to this measured profile; callers can still set zero for A/B.
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER="${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-1}"
+  # Approximate only the bonus-producing draft rows of gamma-one target
+  # verification: anchor rows retain the full routed MoE, while draft rows
+  # retain the shared expert.  Strict model guards require TARGET_VERIFY,
+  # width=2, BS32 and M64, so native AR and every other graph tier are inert.
+  # Real-code B-A-B improved resident throughput by about 11.6%; France stayed
+  # exact/Paris in all rounds. Set zero for exact target bonus logits.
+  export SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED:-1}"
   # Compact block-size-2 verification lands on M51.  The strict runner guard
   # selects the oracle-backed G1664/W4 routed kernel only for that exact tier.
   # Keep it opt-in: its isolated 10.5% gain retained only ~1% resident and no

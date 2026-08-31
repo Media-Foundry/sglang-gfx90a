@@ -1071,6 +1071,27 @@ class DeepseekV2MoE(nn.Module):
             and not get_exec().moe.enable_eplb
         )
 
+    @staticmethod
+    def _use_dspark_m64_anchor_only_routed(
+        hidden_states: torch.Tensor,
+        forward_batch: Optional[ForwardBatch],
+    ) -> bool:
+        """Match only gamma-one DSpark's ``[anchor, draft] * 32`` target tier."""
+        spec_info = (
+            getattr(forward_batch, "spec_info", None)
+            if forward_batch is not None
+            else None
+        )
+        return (
+            envs.SGLANG_DSV4_GFX90A_DSPARK_M64_ANCHOR_ONLY_ROUTED.get()
+            and is_gfx90a_supported()
+            and forward_batch is not None
+            and forward_batch.forward_mode.is_target_verify()
+            and forward_batch.batch_size == 32
+            and getattr(spec_info, "num_tokens_per_req", None) == 2
+            and hidden_states.shape == (64, 4096)
+        )
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -1148,6 +1169,9 @@ class DeepseekV2MoE(nn.Module):
                 gfx90a_realtime_marker(realtime_trace, slot)
 
         mark(16)
+        anchor_only_routed = self._use_dspark_m64_anchor_only_routed(
+            hidden_states, forward_batch
+        )
         # Note(kpham-sgl): issue order satisfies 3 constraints:
         # - no stream explosion: main (routed) issued before alt block -> capture reuses 1 alt stream;
         # - PDL overlap: routed is the last main-stream kernel (fuses w/ residual add);
@@ -1199,6 +1223,8 @@ class DeepseekV2MoE(nn.Module):
                 expert_location_dispatch_info=dispatch_info,
                 **topk_kwargs,
             )
+            if anchor_only_routed:
+                topk_output.topk_ids[1::2].fill_(-1)
         mark(18)
         deferred_finalize = (
             has_shared_output
@@ -1220,6 +1246,8 @@ class DeepseekV2MoE(nn.Module):
             )
         else:
             final_hidden_states = self.experts(hidden_states, topk_output)
+        if anchor_only_routed:
+            final_hidden_states[1::2].zero_()
         mark(19)
         if (
             not _is_cuda
@@ -1293,6 +1321,9 @@ class DeepseekV2MoE(nn.Module):
                 gfx90a_realtime_marker(realtime_trace, slot)
 
         mark(16)
+        anchor_only_routed = self._use_dspark_m64_anchor_only_routed(
+            hidden_states, forward_batch
+        )
         split_moe_dp = self._split_moe_dp_fast_path
         if split_moe_dp and get_parallel().moe_dp_rank != 0:
             # Shared expert is computed once by MoE-DP0; its TP4 partial joins
@@ -1353,6 +1384,8 @@ class DeepseekV2MoE(nn.Module):
                 expert_location_dispatch_info=dispatch_info,
                 **topk_kwargs,
             )
+            if anchor_only_routed:
+                topk_output.topk_ids[1::2].fill_(-1)
             if split_moe_dp:
                 # Keep ownership visible to every downstream MoE path. The
                 # direct gfx90a kernel additionally specializes this same slot
@@ -1410,6 +1443,8 @@ class DeepseekV2MoE(nn.Module):
                 hidden_states,
                 topk_output,
             )
+        if anchor_only_routed:
+            final_hidden_states[1::2].zero_()
         mark(20)
         if (
             not _is_cuda
