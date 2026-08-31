@@ -27,5 +27,18 @@ default off because the ABBA center does not clear the 5% checkpoint gate.
 Future work should fuse anchor gather with quant/sort and avoid the full-output
 zero/scatter seam before another service A/B.
 
+Follow-up graph replay timing on physical GCD4 bounded those tensor seams:
+
+```text
+M128 -> M32 gather:       6.735 us
+M32 -> M128 zero/scatter: 8.080 us
+combined captured chain: 10.936 us/layer
+```
+
+Even deleting the combined chain entirely saves only about 0.47 ms per
+43-layer target pass, well below the 40-us/layer continuation threshold.
+Therefore do not build a complex strided carrier solely for these copies; the
+remaining opportunity is router/TopK/attention/aux-logits work, not memcpy.
+
 Artifacts: `/tmp/dsv4_m128_prerouter_b.json`,
 `/tmp/dsv4_m128_dpp_a.json`, `/tmp/dsv4_m128_prerouter_b2.json`.
