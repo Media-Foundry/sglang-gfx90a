@@ -42,3 +42,36 @@ remaining opportunity is router/TopK/attention/aux-logits work, not memcpy.
 
 Artifacts: `/tmp/dsv4_m128_prerouter_b.json`,
 `/tmp/dsv4_m128_dpp_a.json`, `/tmp/dsv4_m128_prerouter_b2.json`.
+
+## Current-stack revalidation and promotion
+
+The candidate was re-run after the strict target occupancy/graph fixes on the
+same physical GCDs 4--7, with five rounds of 32 heterogeneous requests, 256
+tokens each and stream interval one. The adjacent control was a separately
+loaded service with the compact flag explicitly disabled.
+
+| arm | resident rounds (tok/s) | median | trimmed mean | France semantic |
+|---|---|---:|---:|---:|
+| compact=1 | 1127.65 / 1119.62 / 1126.92 / 1139.34 / 1074.32 | **1126.92** | **1124.73** | 5/5 |
+| compact=0 | 1095.87 / 1042.95 / 1168.34 / 1096.17 / 1074.50 | 1095.87 | 1088.85 | 2/5 |
+
+The current-stack gain is +2.83% by median and +3.30% by trimmed mean. Every
+request in both arms generated 256 tokens with `finish=length`; the control's
+France failures make it unsuitable as a quality-approved checkpoint despite
+being useful as a timing arm. The compact profile kept semantic Paris in all
+five rounds. As expected for the already-declared anchor-only approximation,
+cross-round completion hashes were not exact and are not represented as
+strict target correctness.
+
+Because this direction now improves both the resident critical path and the
+observed semantic stability, the TP4 BS32 DSpark profile defaults
+`SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT=1`. The model-side
+TARGET_VERIFY/BS32/width-4/M128 parent guard remains the authoritative AR
+negative guard.
+
+Current artifacts:
+
+```text
+/tmp/dsv4_gamma3_prerouter_5r.json
+/tmp/dsv4_gamma3_prerouter_control_allow_5r.json
+```
