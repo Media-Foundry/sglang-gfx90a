@@ -121,6 +121,12 @@ case "${COMMAND}" in
     ;;
 esac
 if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
+  # On 32 real heterogeneous requests, gamma=1 shortens the speculative step
+  # enough to outweigh its lower accepted length: independent-service ABBA
+  # improved resident/scheduler throughput by 8.8%/10.8% versus gamma=2.
+  # Scope this to the measured TP4 throughput profile; every other DSpark
+  # command retains its historical gamma=5 default below.
+  SPECULATIVE_DSPARK_BLOCK_SIZE="${SPECULATIVE_DSPARK_BLOCK_SIZE:-1}"
   # Compact verification already pays for a captured token tier.  Fill the
   # tier's padding slots instead of discarding them: on gfx90a BS32/M96 this
   # increased accepted output at essentially unchanged graph time.  Scope the
@@ -978,7 +984,8 @@ bench_dspark_concurrent() {
   local tokens="${1:-256}"
   local requests="${2:-4}"
   local reps="${3:-1}"
-  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" <<'PY'
+  "${PYTHON_BIN}" - "${BASE_URL}" "${tokens}" "${requests}" "${reps}" \
+    "${SPECULATIVE_DSPARK_BLOCK_SIZE:-5}" <<'PY'
 import concurrent.futures
 import hashlib
 import json
@@ -988,7 +995,7 @@ import time
 import urllib.request
 
 base_url = sys.argv[1]
-tokens, requests, reps = map(int, sys.argv[2:5])
+tokens, requests, reps, gamma = map(int, sys.argv[2:6])
 generate_url = base_url + "/generate"
 server_info_url = base_url + "/server_info"
 prompt = "<｜begin▁of▁sentence｜><｜User｜>Explain why 2+2=4 in one sentence.<｜Assistant｜><think>"
@@ -1039,7 +1046,7 @@ for rep in range(reps):
     accept_before = server_accept_length()
     print(
         f"BEGIN rep={rep} tokens={tokens} requests={requests} "
-        f"mode=DSpark-gamma5 accept_before={accept_before}",
+        f"mode=DSpark-gamma{gamma} accept_before={accept_before}",
         flush=True,
     )
     with concurrent.futures.ThreadPoolExecutor(max_workers=requests) as pool:
