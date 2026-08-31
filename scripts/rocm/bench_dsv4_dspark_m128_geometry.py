@@ -91,6 +91,11 @@ def main() -> None:
     parser.add_argument("--graph-replays", type=int, default=1000)
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--iterations", type=int, default=30)
+    parser.add_argument(
+        "--screen-a8",
+        action="store_true",
+        help="also compare A8/R1/W4 decode geometries against production A4",
+    )
     args = parser.parse_args()
     if args.mutations < 100 or args.graph_replays < 1000 or args.rounds != 7:
         raise ValueError("formal oracle requires 100 mutations, 1000 replays, 7 rounds")
@@ -99,10 +104,15 @@ def main() -> None:
 
     counts = load_real_counts(args.recorder, args.layer)
     topk_ids = reconstruct_topk_from_counts(counts, m=M, topk=T).cuda()
-    metadata = make_metadata(topk_ids, assignments=ASSIGNMENTS)
+    metadata_a4 = make_metadata(topk_ids, assignments=ASSIGNMENTS)
+    metadata_a8 = make_metadata(topk_ids, assignments=8)
     print(
         f"ROUTE layer={args.layer} active={int((counts > 0).sum())} "
-        f"a4_scans={metadata.sorted_experts.numel()} max_occ={int(counts.max())}",
+        f"a4_scans={metadata_a4.sorted_experts.numel()} "
+        f"a8_scans={metadata_a8.sorted_experts.numel()} "
+        f"a4_valid={metadata_a4.valid.cpu().tolist()} "
+        f"a8_valid={metadata_a8.valid.cpu().tolist()} "
+        f"max_occ={int(counts.max())}",
         flush=True,
     )
 
@@ -116,25 +126,44 @@ def main() -> None:
     w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device="cuda")
     s2 = torch.full((E, N, I // 32), 127, dtype=torch.uint8, device="cuda")
 
-    geometries = {"prefill": (416, 312), "decode": (2080, 832)}
+    geometries = {
+        "prefill": (4, 2, 8, 416, 312),
+        "decode": (4, 2, 8, 2080, 832),
+    }
+    if args.screen_a8:
+        geometries.update(
+            {
+                "a8_g1664_d832": (8, 1, 4, 1664, 832),
+                "a8_g2080_d832": (8, 1, 4, 2080, 832),
+                "a8_g1664_d1248": (8, 1, 4, 1664, 1248),
+                "a8_g2080_d1248": (8, 1, 4, 2080, 1248),
+            }
+        )
     states: dict[str, dict[str, torch.Tensor]] = {}
     runs = {}
-    for name, (gate_blocks, down_blocks) in geometries.items():
+    for name, (
+        assignments,
+        rows,
+        waves,
+        gate_blocks,
+        down_blocks,
+    ) in geometries.items():
+        metadata = metadata_a4 if assignments == 4 else metadata_a8
         gate = _jit_gate_up_grouped(
-            E, M, T, I, H, ASSIGNMENTS, ROWS, WAVES, gate_blocks, LDS_LUT
+            E, M, T, I, H, assignments, rows, waves, gate_blocks, LDS_LUT
         )
         down = _jit_down_grouped(
-            E, M, T, N, I, ASSIGNMENTS, ROWS, WAVES, down_blocks, LDS_LUT
+            E, M, T, N, I, assignments, rows, waves, down_blocks, LDS_LUT
         )
         state = {
-            "intermediate": torch.empty((M, T, I), dtype=torch.bfloat16, device="cuda"),
-            "iq": torch.empty((M, T, I), dtype=torch.int8, device="cuda"),
-            "iscale": torch.empty((M, T, I // 32), dtype=torch.float32, device="cuda"),
-            "partial": torch.empty((M, T, N), dtype=torch.float32, device="cuda"),
-            "output": torch.empty((M, N), dtype=torch.bfloat16, device="cuda"),
+            "intermediate": torch.zeros((M, T, I), dtype=torch.bfloat16, device="cuda"),
+            "iq": torch.zeros((M, T, I), dtype=torch.int8, device="cuda"),
+            "iscale": torch.zeros((M, T, I // 32), dtype=torch.float32, device="cuda"),
+            "partial": torch.zeros((M, T, N), dtype=torch.float32, device="cuda"),
+            "output": torch.zeros((M, N), dtype=torch.bfloat16, device="cuda"),
         }
 
-        def run(gate=gate, down=down, state=state) -> None:
+        def run(gate=gate, down=down, state=state, metadata=metadata) -> None:
             gate.run(
                 xq,
                 xscale,
@@ -166,12 +195,16 @@ def main() -> None:
     def assert_exact(label: str) -> None:
         for tensor_name in states["prefill"]:
             expected = states["prefill"][tensor_name]
-            actual = states["decode"][tensor_name]
-            if not torch.equal(expected, actual):
-                delta = (expected.float() - actual.float()).abs()
-                raise RuntimeError(
-                    f"{label} {tensor_name} mismatch max_abs={delta.max().item()}"
-                )
+            for name, state in states.items():
+                actual = state[tensor_name]
+                if not torch.equal(expected, actual):
+                    delta = (expected.float() - actual.float()).abs()
+                    mismatch = torch.nonzero(delta, as_tuple=False)
+                    raise RuntimeError(
+                        f"{label} {name} {tensor_name} mismatch "
+                        f"max_abs={delta.max().item()} count={mismatch.shape[0]} "
+                        f"first={mismatch[:8].cpu().tolist()}"
+                    )
 
     for mutation in range(args.mutations):
         x.normal_()
@@ -179,12 +212,15 @@ def main() -> None:
         quant_into(x, xq, xscale)
         runs["prefill"]()
         runs["decode"]()
+        for name in states:
+            if name not in ("prefill", "decode"):
+                runs[name]()
         torch.cuda.synchronize()
         assert_exact(f"mutation={mutation}")
     print(f"CORRECT mutations={args.mutations} bitwise_exact=True", flush=True)
 
     graphs = {}
-    for name in ("prefill", "decode"):
+    for name in geometries:
         for _ in range(10):
             runs[name]()
         torch.cuda.synchronize()
@@ -203,8 +239,10 @@ def main() -> None:
     print(f"GRAPH replays={args.graph_replays} bitwise_exact=True", flush=True)
 
     values = {name: [] for name in graphs}
-    for _ in range(args.rounds):
-        for name in ("prefill", "decode", "decode", "prefill"):
+    profile_order = list(geometries)
+    for round_idx in range(args.rounds):
+        forward = profile_order if round_idx % 2 == 0 else list(reversed(profile_order))
+        for name in (*forward, *reversed(forward)):
             values[name].append(time_graph(graphs[name], args.iterations))
     prefill_us = trimmed(values["prefill"])
     decode_us = trimmed(values["decode"])
@@ -214,6 +252,18 @@ def main() -> None:
         f"gain_pct={(prefill_us / decode_us - 1.0) * 100.0:.3f}",
         flush=True,
     )
+    if args.screen_a8:
+        for name in geometries:
+            if not name.startswith("a8_"):
+                continue
+            candidate_us = trimmed(values[name])
+            print(
+                f"A8_RESULT name={name} current_a4_us={decode_us:.3f} "
+                f"candidate_us={candidate_us:.3f} "
+                f"saving_us={decode_us - candidate_us:.3f} "
+                f"gain_pct={(decode_us / candidate_us - 1.0) * 100.0:.3f}",
+                flush=True,
+            )
 
 
 if __name__ == "__main__":
