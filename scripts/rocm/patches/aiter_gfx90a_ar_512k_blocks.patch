@@ -1,7 +1,7 @@
 diff --git a/csrc/include/custom_all_reduce.cuh b/csrc/include/custom_all_reduce.cuh
 --- a/csrc/include/custom_all_reduce.cuh
 +++ b/csrc/include/custom_all_reduce.cuh
-@@ -1644,5 +1644,16 @@ class CustomAllreduce
+@@ -1644,5 +1644,27 @@ class CustomAllreduce
                                (size / world_size_ + (threads / world_size_) - 1) /
                                    (threads / world_size_));
 +            // The generic 64-block choice for a TP4 512-KiB BF16 payload was
@@ -11,6 +11,17 @@ diff --git a/csrc/include/custom_all_reduce.cuh b/csrc/include/custom_all_reduce
 +               world_size_ == 4 && bytes == 512 * 1024)
 +            {
 +                if(const char* value = std::getenv("AITER_GFX90A_AR_512K_BLOCKS"))
++                {
++                    blocks = std::max(1, std::min(kMaxBlocks, std::atoi(value)));
++                }
++            }
++            // DSpark gamma-three verifies M128 and reduces a 1-MiB BF16
++            // tensor at every MoE layer. Keep this independently tunable:
++            // the M64/512-KiB optimum does not imply the same CTA count.
++            if(arch.find("gfx90a") != std::string::npos &&
++               world_size_ == 4 && bytes == 1024 * 1024)
++            {
++                if(const char* value = std::getenv("AITER_GFX90A_AR_1M_BLOCKS"))
 +                {
 +                    blocks = std::max(1, std::min(kMaxBlocks, std::atoi(value)));
 +                }

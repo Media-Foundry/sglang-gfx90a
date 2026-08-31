@@ -67,7 +67,7 @@ def main():
     p.add_argument(
         "--tokens",
         type=int,
-        choices=(32, 64),
+        choices=(32, 64, 128),
         default=32,
         help="decode graph token tier to measure",
     )
