@@ -108,7 +108,8 @@ LDS 21,248 B / workgroup 256.  Pairing halves the core grid from 128 to 64 CTAs
 and its LDS permits only one CTA/CU, so the near-49% load bound must overcome
 reduced cross-CU occupancy.  The continuation gate remains 15 us/layer.
 
-The pending single-GPU harness is:
+The single-GPU harness was run on physical GCD 4 after `amd-smi` confirmed no
+resident processes:
 
 ```bash
 HIP_VISIBLE_DEVICES=4 python \
@@ -119,5 +120,35 @@ HIP_VISIBLE_DEVICES=4 python \
 
 It requires 100 data mutations to remain bitwise equal to the existing CK
 path, 1,000 graph replays to remain bitwise stable, and seven-round ABBA saving
-of at least 15 us.  GPU execution was intentionally deferred after static
-compilation pending explicit coordination.
+of at least 15 us.  Correctness passed completely:
+
+```text
+pair vs existing CK:       bitwise exact
+100 input mutations:       bitwise exact, max_abs = 0
+1,000 HIP graph replays:   bitwise exact
+production comparison:    max_abs = 0, rel_l2 = 0
+```
+
+Seven-round ABBA timing produced 14 samples per arm:
+
+```text
+existing CK (us): 31.024320, 30.971520, 31.011519, 30.965121,
+                  31.008310, 30.901120, 31.078720, 30.982721,
+                  30.958719, 30.973129, 30.937920, 31.069119,
+                  31.030719, 31.009920
+pair CK (us):     29.725101, 29.633911, 29.545901, 29.576311,
+                  29.464309, 29.565101, 29.672301, 29.472311,
+                  29.648309, 29.672310, 29.480309, 29.555509,
+                  29.555500, 29.528301
+trimmed mean:     30.995253 -> 29.575506 us
+saving / gain:    1.419747 us / 4.8004%
+```
+
+The exact oracle result is stored in
+`/tmp/dsv4_dspark_m64_pair_ck_sparse.json`.  Despite the nearly 49% theoretical
+KV-load reduction, the existing independent CTAs already benefit from cache
+reuse and the 512-thread paired CTA pays extra state/LDS and lower occupancy.
+The measured 1.42 us/layer misses the 15 us continuation gate by over 10x.
+Therefore this direction is **rejected for production integration**: keep the
+oracle as evidence, do not add a selector, and do not spend an AR/E2E cycle on
+it.
