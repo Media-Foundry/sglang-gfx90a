@@ -71,6 +71,10 @@ sources = [
     "csrc/moe/moe_topk_softmax_kernels.cu",
     "csrc/moe/moe_topk_sigmoid_kernels.cu",
     "csrc/speculative/eagle_utils.cu",
+    # NGRAM target verification uses the same paged target runner on ROCm;
+    # include its metadata reconstruction op in common_ops instead of exposing
+    # a Python wrapper whose torch operator is missing at runtime.
+    "csrc/speculative/ngram_utils.cu",
     "csrc/kvcacheio/transfer.cu",
     "csrc/memory/weak_ref_tensor.cpp",
     "csrc/elementwise/pos_enc.cu",
