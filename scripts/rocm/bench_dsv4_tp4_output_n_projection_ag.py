@@ -35,22 +35,41 @@ def args():
     parser.add_argument("--iters", type=int, default=200)
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--mode", choices=("full", "hybrid"), default="full")
+    parser.add_argument("--tokens", type=int, choices=(32, 128), default=32)
     return parser.parse_args()
 
 
 def load(case):
     prefix = f"layer_{case.layer}"
-    x = torch.load(case.dump_dir / f"{prefix}_attn_norm.pt", weights_only=True)
-    weights = [
-        torch.load(
-            case.dump_dir / f"{prefix}_projection_{name}.pt", weights_only=True
-        )
+    x_path = case.dump_dir / f"{prefix}_attn_norm.pt"
+    weight_paths = [
+        case.dump_dir / f"{prefix}_projection_{name}.pt"
         for name, _ in PROJECTIONS
     ]
-    assert x.shape == (32, HIDDEN) and x.dtype == torch.bfloat16
+    if x_path.exists() and all(path.exists() for path in weight_paths):
+        x = torch.load(x_path, weights_only=True)
+        weights = [torch.load(path, weights_only=True) for path in weight_paths]
+        if x.shape[0] < case.tokens:
+            repeats = (case.tokens + x.shape[0] - 1) // x.shape[0]
+            x = x.repeat(repeats, 1)
+        x = x[: case.tokens].contiguous()
+        source = "real_dump_tiled" if x.shape[0] != 32 else "real_dump"
+    else:
+        generator = torch.Generator().manual_seed(20260901)
+        x = torch.randn(
+            (case.tokens, HIDDEN), generator=generator, dtype=torch.bfloat16
+        )
+        weights = [
+            torch.randn((width, HIDDEN), generator=generator, dtype=torch.bfloat16)
+            .mul_(1 / 64)
+            .contiguous()
+            for _, width in PROJECTIONS
+        ]
+        source = "deterministic_fallback"
+    assert x.shape == (case.tokens, HIDDEN) and x.dtype == torch.bfloat16
     for weight, (_, width) in zip(weights, PROJECTIONS, strict=True):
         assert weight.shape == (width, HIDDEN) and weight.dtype == torch.bfloat16
-    return x.contiguous(), [weight.contiguous() for weight in weights]
+    return x.contiguous(), [weight.contiguous() for weight in weights], source
 
 
 def reference(x, weights):
@@ -117,7 +136,7 @@ def main():
     if world != 4:
         raise RuntimeError(f"requires TP4, got world={world}")
 
-    x_cpu, weights_cpu = load(case)
+    x_cpu, weights_cpu, source = load(case)
     x = x_cpu.cuda()
     base = x.clone()
     mutation = torch.linspace(-1, 1, x.numel(), device="cuda").reshape_as(x).to(
@@ -198,6 +217,7 @@ def main():
     all_correctness = [None] * world
     dist.all_gather_object(all_correctness, correctness)
     if rank == 0:
+        print(f"tokens={case.tokens} source={source}", flush=True)
         print(f"correctness={all_correctness}", flush=True)
 
     x.copy_(base)
