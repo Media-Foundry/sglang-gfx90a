@@ -92,3 +92,19 @@ and below the gamma=5 eager-draft result. The temporary width-five M128 anchor
 guard was therefore reverted; gamma=3 remains the accepted operating point.
 
 Evidence: `/tmp/dsv4_gamma4_m128_eager_draft_r1.json`.
+
+## Folded-proposal isolation
+
+One additional gamma=5 run kept both target and draft transformer graphs but
+set `SGLANG_DSPARK_FOLDED_PROPOSAL=0`. Base logits and Markov proposal were
+therefore recomputed eagerly from the graph-produced draft hidden states. It
+passed France and all 32 request-length gates, but reached only 782.09 resident
+BS32 tok/s with mean accepted length 2.553.
+
+This rules out the folded proposal tail hook as the primary acceptance loss.
+The M160 draft transformer graph replay itself (its inputs, attention metadata,
+or a graph-unsafe model kernel) differs from eager execution. The next useful
+artifact is a fixed-input first-divergence oracle over draft `raw_hidden`, not
+another E2E proposal switch.
+
+Evidence: `/tmp/dsv4_gamma5_m128_graph_unfolded_r1.json`.
