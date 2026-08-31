@@ -134,9 +134,13 @@ PORT="${PORT:-${DEFAULT_PORT}}"
 BASE_URL="http://${HOST}:${PORT}"
 COMMAND="${1:-}"
 DSPARK_MODE=0
+NGRAM_MODE=0
 case "${COMMAND}" in
   start-dspark|serve-dspark|bench-dspark|bench-dspark-concurrent)
     DSPARK_MODE=1
+    ;;
+  start-ngram|serve-ngram)
+    NGRAM_MODE=1
     ;;
 esac
 if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
@@ -490,6 +494,9 @@ speculative_env_vars=(
   SPECULATIVE_DSPARK_SPS_TABLE_PATH
   SPECULATIVE_DSPARK_CONFIDENCE_STS_PATH
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER
+  SPECULATIVE_NGRAM_EXTERNAL_CORPUS_PATH
+  SPECULATIVE_NGRAM_EXTERNAL_CORPUS_MAX_TOKENS
+  SPECULATIVE_NGRAM_EXTERNAL_SAM_BUDGET
 )
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   export SGLANG_RAGGED_VERIFY_MODE="${SGLANG_RAGGED_VERIFY_MODE:-static}"
@@ -515,6 +522,24 @@ if [[ "${DSPARK_MODE}" == "1" ]]; then
   fi
   if [[ "${SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER:-0}" == "1" ]]; then
     server_args+=(--speculative-dspark-align-verify-tokens-to-graph-tier)
+  fi
+elif [[ "${NGRAM_MODE}" == "1" ]]; then
+  server_args+=(
+    --speculative-algorithm NGRAM
+    --speculative-num-draft-tokens "${SPECULATIVE_NUM_DRAFT_TOKENS:-3}"
+    --speculative-eagle-topk 1
+    --speculative-ngram-min-bfs-breadth 1
+    --speculative-ngram-max-bfs-breadth 1
+  )
+  if [[ -n "${SPECULATIVE_NGRAM_EXTERNAL_CORPUS_PATH:-}" ]]; then
+    server_args+=(
+      --speculative-ngram-external-corpus-path
+      "${SPECULATIVE_NGRAM_EXTERNAL_CORPUS_PATH}"
+      --speculative-ngram-external-corpus-max-tokens
+      "${SPECULATIVE_NGRAM_EXTERNAL_CORPUS_MAX_TOKENS:-1000000}"
+      --speculative-ngram-external-sam-budget
+      "${SPECULATIVE_NGRAM_EXTERNAL_SAM_BUDGET:-1}"
+    )
   fi
 else
   for var_name in "${speculative_env_vars[@]}"; do
@@ -1427,6 +1452,12 @@ case "${1:-}" in
     start_server
     ;;
   serve-dspark)
+    serve_server
+    ;;
+  start-ngram)
+    start_server
+    ;;
+  serve-ngram)
     serve_server
     ;;
   bench-dspark)

@@ -44,6 +44,46 @@ logger = logging.getLogger(__name__)
 USE_FULL_MASK = True
 
 
+def _commit_accepted_target_kv(
+    *,
+    batch: ScheduleBatch,
+    accept_index: torch.Tensor,
+    accept_lens: torch.Tensor,
+    draft_token_num: int,
+    topk: int,
+    token_to_kv_pool_allocator,
+) -> None:
+    target_kv_cache = token_to_kv_pool_allocator.get_kvcache()
+    clear_unaccepted_c128 = getattr(
+        target_kv_cache, "clear_unaccepted_c128_draft_states", None
+    )
+    if clear_unaccepted_c128 is not None:
+        clear_unaccepted_c128(
+            batch.req_pool_indices,
+            batch.seq_lens,
+            accept_lens,
+            draft_token_num,
+        )
+
+    # A breadth-one chain is already stored in the contiguous req_to_token
+    # verify window.  Composite pools such as DSV4 deliberately expose this
+    # contract instead of pretending that their SWA/compressed/state regions
+    # support a generic slot-wise move.
+    if getattr(target_kv_cache, "speculative_chain_commit_is_identity", False):
+        if topk != 1:
+            raise RuntimeError(
+                "identity speculative KV commit requires a topk-one chain"
+            )
+        return
+
+    move_accept_tokens_to_target_kvcache(
+        batch,
+        accept_index,
+        accept_lens - 1,
+        token_to_kv_pool_allocator,
+    )
+
+
 def _derive_tree_links(
     mask: np.ndarray, bs: int, draft_token_num: int
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -485,6 +525,14 @@ class NGRAMWorker(BaseSpecWorker):
                 accept_index,
             ) = eagle_sample(verify_input, batch, logits_output, grammar_mask)
             new_seq_lens = batch.seq_lens + accept_lens
+            _commit_accepted_target_kv(
+                batch=batch,
+                accept_index=accept_index,
+                accept_lens=accept_lens,
+                draft_token_num=self.draft_token_num,
+                topk=self.topk,
+                token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
+            )
             commit_mamba_states_after_verify(
                 self.target_worker,
                 batch,
@@ -495,15 +543,6 @@ class NGRAMWorker(BaseSpecWorker):
             accept_tokens = predict[accept_index].flatten()
             next_token_ids = accept_tokens
 
-            # The KV mover expects drafts-only counts. NGRAM's
-            # accept_lens includes the bonus token, matching scheduler output.
-            num_correct_drafts_per_req = accept_lens - 1
-            move_accept_tokens_to_target_kvcache(
-                batch,
-                accept_index,
-                num_correct_drafts_per_req,
-                self.token_to_kv_pool_allocator,
-            )
             if batch.return_logprob:
                 compute_spec_logprobs(
                     batch,

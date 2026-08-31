@@ -461,6 +461,12 @@ class DeepSeekV4UnifiedKVPool:
 
 
 class DeepSeekV4TokenToKVPool(BaseSWAKVPool):
+    # A topk-one speculative verify window is allocated directly from
+    # req_to_token[seq_len:seq_len + draft_width].  Its accepted path is a
+    # contiguous prefix of that same window, so committing the chain requires
+    # no physical KV relocation.  General speculative trees are not covered:
+    # siblings need branch-local compressor state and real path compaction.
+    speculative_chain_commit_is_identity = True
 
     def __init__(
         self,

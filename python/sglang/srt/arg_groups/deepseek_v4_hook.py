@@ -150,11 +150,24 @@ def apply_deepseek_v4_defaults(server_args: ServerArgs, model_arch: str) -> None
         assert cfg.speculative_algorithm in (
             "EAGLE",
             "DSPARK",
-        ), f"Only EAGLE and DSPARK speculative algorithms are supported for {model_arch}"
+            "NGRAM",
+        ), (
+            "Only EAGLE, DSPARK and linear NGRAM speculative algorithms are "
+            f"supported for {model_arch}"
+        )
         if cfg.speculative_algorithm == "EAGLE":
             assert (
                 cfg.speculative_eagle_topk == 1
             ), f"Only EAGLE speculative algorithm with topk == 1 is supported for {model_arch}"
+        if cfg.speculative_algorithm == "NGRAM":
+            assert (
+                cfg.speculative_ngram_min_bfs_breadth == 1
+                and cfg.speculative_ngram_max_bfs_breadth == 1
+                and cfg.speculative_eagle_topk == 1
+            ), (
+                f"Only a breadth-one linear NGRAM chain is supported for {model_arch}; "
+                "tree siblings require branch-local compressor state"
+            )
 
 
 def validate_deepseek_v4_cp(server_args: ServerArgs) -> None:

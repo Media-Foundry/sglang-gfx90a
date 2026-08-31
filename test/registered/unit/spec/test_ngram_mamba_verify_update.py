@@ -93,6 +93,59 @@ class TestNgramLastCorrectStepIndices(CustomTestCase):
         self.assertTrue(torch.equal(result, expected))
 
 
+class TestNgramCompositeKVCommit(CustomTestCase):
+    def test_identity_chain_clears_rejected_c128_without_generic_move(self):
+        from sglang.srt.speculative.ngram_worker import _commit_accepted_target_kv
+
+        kv_cache = MagicMock()
+        kv_cache.speculative_chain_commit_is_identity = True
+        allocator = MagicMock()
+        allocator.get_kvcache.return_value = kv_cache
+        batch = MagicMock()
+        batch.req_pool_indices = torch.tensor([2, 5], dtype=torch.int32)
+        batch.seq_lens = torch.tensor([127, 255], dtype=torch.int64)
+        accept_lens = torch.tensor([2, 4], dtype=torch.int32)
+        accept_index = torch.tensor(
+            [[0, 1, -1, -1], [4, 5, 6, 7]], dtype=torch.int32
+        )
+
+        with patch(
+            "sglang.srt.speculative.ngram_worker.move_accept_tokens_to_target_kvcache"
+        ) as generic_move:
+            _commit_accepted_target_kv(
+                batch=batch,
+                accept_index=accept_index,
+                accept_lens=accept_lens,
+                draft_token_num=3,
+                topk=1,
+                token_to_kv_pool_allocator=allocator,
+            )
+
+        kv_cache.clear_unaccepted_c128_draft_states.assert_called_once_with(
+            batch.req_pool_indices, batch.seq_lens, accept_lens, 3
+        )
+        generic_move.assert_not_called()
+
+    def test_identity_commit_rejects_tree(self):
+        from sglang.srt.speculative.ngram_worker import _commit_accepted_target_kv
+
+        kv_cache = MagicMock()
+        kv_cache.speculative_chain_commit_is_identity = True
+        allocator = MagicMock()
+        allocator.get_kvcache.return_value = kv_cache
+        batch = MagicMock()
+
+        with self.assertRaisesRegex(RuntimeError, "topk-one chain"):
+            _commit_accepted_target_kv(
+                batch=batch,
+                accept_index=torch.empty((1, 1), dtype=torch.int32),
+                accept_lens=torch.ones(1, dtype=torch.int32),
+                draft_token_num=3,
+                topk=2,
+                token_to_kv_pool_allocator=allocator,
+            )
+
+
 class TestNgramMambaVerifyUpdate(CustomTestCase):
     def _make_mock_target_worker(self):
         target_worker = MagicMock()
