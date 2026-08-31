@@ -165,6 +165,9 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # shared expert. The strict TARGET_VERIFY/width=4/BS32/M128 guard makes this
   # unreachable from AR. Set zero to recover exact target bonus logits.
   export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-1}"
+  # Compact exact anchor rows before router/TopK as well as routed MoE. This
+  # avoids the discarded draft-row router work and the old post-router seam.
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT="${SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT:-0}"
   # Compact block-size-2 verification lands on M51.  The strict runner guard
   # selects the oracle-backed G1664/W4 routed kernel only for that exact tier.
   # Keep it opt-in: its isolated 10.5% gain retained only ~1% resident and no

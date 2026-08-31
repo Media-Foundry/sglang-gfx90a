@@ -1196,12 +1196,23 @@ class DeepseekV2MoE(nn.Module):
         m128_anchor_only_routed = self._use_dspark_m128_anchor_only_routed(
             hidden_states, forward_batch
         )
+        m128_pre_router_compact = (
+            m128_anchor_only_routed
+            and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT.get()
+        )
         # Note(kpham-sgl): issue order satisfies 3 constraints:
         # - no stream explosion: main (routed) issued before alt block -> capture reuses 1 alt stream;
         # - PDL overlap: routed is the last main-stream kernel (fuses w/ residual add);
         # - dispose_tensor: disabled during capture (CaptureFlags.disable_dispose_tensor) so the routed
         #   deep_gemm does not free hidden_states, which the shared expert reads on the alt stream.
         use_flashinfer_trtllm_bypass = get_forward().flashinfer_trtllm_bypass
+        if m128_pre_router_compact and use_flashinfer_trtllm_bypass:
+            raise RuntimeError("DSpark M128 pre-router compaction requires standard TopK")
+        routed_hidden_states = (
+            hidden_states[::4].contiguous()
+            if m128_pre_router_compact
+            else hidden_states
+        )
         current_stream = torch.cuda.current_stream()
         # Quantize-once (SGLANG_OPT_MOE_QUANT_ONCE) must happen on the main
         # stream BEFORE the alt-stream fork so both consumers see it.
@@ -1226,8 +1237,10 @@ class DeepseekV2MoE(nn.Module):
         router_logits = (
             precomputed_router.pop(self.layer_id)
             if precomputed_router is not None and self.layer_id in precomputed_router
-            else self.gate(hidden_states, gemm_output_zero_allocator)
+            else self.gate(routed_hidden_states, gemm_output_zero_allocator)
         )
+        if m128_pre_router_compact and router_logits.shape[0] == hidden_states.shape[0]:
+            router_logits = router_logits[::4].contiguous()
         mark(17)
         if use_flashinfer_trtllm_bypass:
             topk_output = BypassedTopKOutput(
@@ -1237,19 +1250,25 @@ class DeepseekV2MoE(nn.Module):
             )
         else:
             topk_kwargs = (
-                {"input_ids": input_ids_global}
+                {
+                    "input_ids": (
+                        input_ids_global[::4].contiguous()
+                        if m128_pre_router_compact
+                        else input_ids_global
+                    )
+                }
                 if getattr(self, "is_hash", False)
                 else {}
             )
             topk_output = self.topk(
-                hidden_states,
+                routed_hidden_states,
                 router_logits,
                 expert_location_dispatch_info=dispatch_info,
                 **topk_kwargs,
             )
             if anchor_only_routed:
                 topk_output.topk_ids[1::2].fill_(-1)
-            elif m128_anchor_only_routed:
+            elif m128_anchor_only_routed and not m128_pre_router_compact:
                 topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
         mark(18)
         deferred_finalize = (
@@ -1258,7 +1277,11 @@ class DeepseekV2MoE(nn.Module):
             and topk_output.format == TopKOutputFormat.BYPASSED
             and self.experts.supports_deferred_finalize
         )
-        if deferred_finalize:
+        if m128_pre_router_compact:
+            anchor_output = self.experts(routed_hidden_states, topk_output)
+            final_hidden_states = torch.zeros_like(hidden_states)
+            final_hidden_states[::4].copy_(anchor_output)
+        elif deferred_finalize:
             final_hidden_states = self.experts.forward_deferred_finalize(
                 hidden_states, topk_output
             )
@@ -1274,7 +1297,7 @@ class DeepseekV2MoE(nn.Module):
             final_hidden_states = self.experts(hidden_states, topk_output)
         if anchor_only_routed:
             final_hidden_states[1::2].zero_()
-        elif m128_anchor_only_routed:
+        elif m128_anchor_only_routed and not m128_pre_router_compact:
             final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
         mark(19)
         if (
