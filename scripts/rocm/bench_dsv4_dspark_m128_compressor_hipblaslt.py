@@ -92,6 +92,12 @@ def main() -> None:
 
         current_graph, current_out = graph_callable(current, x, w)
         candidate_graph, candidate_out = graph_callable(candidate, x, w)
+        # Capture records work but does not guarantee that the captured GEMM
+        # populated its output.  Establish the replay reference only after an
+        # explicit first launch; otherwise this compares against uninitialized
+        # graph-pool storage and falsely reports instability.
+        candidate_graph.replay()
+        torch.cuda.synchronize()
         expected = candidate_out.clone()
         stable = True
         replay_max_abs = 0.0

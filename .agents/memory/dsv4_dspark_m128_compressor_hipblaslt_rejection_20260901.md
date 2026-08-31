@@ -26,31 +26,43 @@ The AIter hipBLASLt tuner on physical GPU 4 selected:
 The standalone oracle is
 `scripts/rocm/bench_dsv4_dspark_m128_compressor_hipblaslt.py`.
 
-## Strict oracle result
+## Corrected strict oracle result
 
 The oracle used 100 mutated inputs/weights, 1000 HIP Graph replays, and ABBA
 timing on one otherwise-idle gfx90a GCD.
 
 | Shape | current | candidate | speedup | mutation max abs | max relative L2 | graph replay max abs |
 |---|---:|---:|---:|---:|---:|---:|
-| M128 N2048 K4096 | 59.381 us | 49.358 us | 1.2031x | 1 BF16 | 6.96e-5 | 306 |
-| M128 N256 K4096 | 42.083 us | 28.014 us | 1.5022x | 1 BF16 | 1.06e-4 | 272 |
+| M128 N2048 K4096 | 58.572 us | 48.086 us | 1.2181x | 1 BF16 | 6.96e-5 | 0 |
+| M128 N256 K4096 | 42.340 us | 28.435 us | 1.4890x | 1 BF16 | 1.06e-4 | 0 |
 
 Neither candidate was bitwise equal to the current path on any of the 100
-mutations.  More importantly, both explicit hipBLASLt solutions were grossly
-unstable under graph replay: the same captured graph and unchanged tensors
-produced maximum absolute output changes of 306 and 272.  This is not a
-minor reduction-order difference and blocks service integration.
+mutations, but both were stable over 1000 graph replays after correcting the
+oracle to launch the graph once before cloning its reference output.  The
+first run's large replay deltas were an oracle bug caused by cloning
+uninitialized capture storage and are superseded by the table above.
+
+## Service ABBA
+
+The candidate was wired behind an independent `DSPARK` algorithm guard plus
+the exact M128 and weight-shape guards. Native AR was unreachable. Both
+services used physical GCDs 4-7, TP4/EP1/no-A2A, gamma 3, and 32 heterogeneous
+code requests of 256 output tokens each.
+
+- candidate: 929.905 / 911.391 / 909.720 tok/s; median 911.391
+- control confirmation: 1045.539 / 974.480 / 1116.262 tok/s; median 1045.539
+- candidate delta versus control median: -12.83%
+
+All requests completed exactly 256 tokens with `finish=length`. The France
+probe retained completion hash `73fbc3570829b132` and semantic Paris output.
+The candidate therefore passed the service correctness screen but failed
+performance decisively. The likely explanation is that a faster standalone
+hipBLASLt GEMM consumes more CU or changes launch ordering enough to damage
+the existing compressor/indexer/attention overlap.
 
 ## Decision
 
-Reject both explicit hipBLASLt solutions for the captured DSpark service.
-Do not add them to the global AIter tuned CSV and do not dispatch them from
-`linear_bf16_fp32`; doing so could also affect an AR M128 workload.  The
-microbenchmark speedup is real in eager execution, but the graph correctness
-failure makes an E2E France-only check insufficient.
-
-If revisited, first investigate why `hipb_mm` solution replay is graph-unsafe
-on gfx90a (workspace lifetime, capture support, or solution-specific state).
-No service benchmark should be run until a 1000-replay fixed-input oracle is
-stable.
+Reject and remove the production selector. Keep only the standalone oracle
+and this record. Never add these entries to a global tuned CSV because that
+could affect an AR M128 workload. This is another concrete example of a
+microkernel win losing E2E because DSpark M128 relies on cross-branch overlap.
