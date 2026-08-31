@@ -346,12 +346,21 @@ def main() -> None:
                     count_at(samples, bin_end) - count_at(samples, bin_start)
                     for samples in token_samples
                 )
+                bin_events = sum(
+                    sum(bin_start < sample_time <= bin_end for sample_time, _ in samples)
+                    for samples in token_samples
+                )
                 resident_time_bins.append(
                     {
                         "bin": bin_id,
                         "wall_s": bin_end - bin_start,
                         "tokens": bin_tokens,
                         "tok_s": bin_tokens / (bin_end - bin_start),
+                        "stream_events": bin_events,
+                        "events_s": bin_events / (bin_end - bin_start),
+                        "tokens_per_event": (
+                            bin_tokens / bin_events if bin_events > 0 else None
+                        ),
                     }
                 )
         moments_before = decode_moments(loads_before)

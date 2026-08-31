@@ -4280,3 +4280,17 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
 - Fixed the occupancy oracle's `-1` handling: Python `buckets[-1]` had silently
   mapped dropped DSpark rows to expert255.  The helper now filters invalid IDs,
   matching production AIter sorting.
+
+### DSpark position acceptance and lean-graph rejection (2026-09-01)
+
+- The real32 1024-token resident-bin harness now records stream events/s and
+  tokens/event.  Events stayed roughly 400--430/s while tokens/event rose from
+  2.1--2.4 to 3.7--4.0; late 1.5--1.6k tok/s is acceptance/content driven, not
+  kernel warmup.  Treat it as a quality-sensitive DSpark result.
+- The 32K pool caused retraction/re-prefill in a long round.  A 49,152-token
+  pool plus BS1/BS32-only graph did fit and retained about 1425 resident tok/s,
+  but uncaptured drain tiers fell back to slow eager execution and eventually
+  hit `hipErrorIllegalAddress` at eager M14.  Reject the lean graph profile;
+  keep full 1--32 tiers.  This was a software path failure, not hardware.
+- Detailed evidence is in
+  `dsv4_dspark_position_acceptance_and_lean_graph_rejection_20260901.md`.
