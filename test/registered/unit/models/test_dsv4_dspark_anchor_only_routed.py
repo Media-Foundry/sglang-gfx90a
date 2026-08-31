@@ -47,3 +47,22 @@ def test_dspark_m128_anchor_only_routed_guard_is_speculative_only(monkeypatch):
     assert not guard(hidden, _batch(width=3))
     assert not guard(torch.empty((96, 4096)), _batch(width=4))
     assert not guard(hidden, None)
+
+
+def test_dspark_m128_anchor_topk_compacts_row_zero_of_each_request():
+    weights = torch.arange(128 * 6, dtype=torch.float32).view(128, 6)
+    ids = torch.arange(128 * 6, dtype=torch.int32).view(128, 6)
+    logits = torch.arange(128 * 8, dtype=torch.float32).view(128, 8)
+    topk = deepseek_v2.StandardTopKOutput(weights, ids, logits)
+
+    compact = deepseek_v2.DeepseekV2MoE._compact_dspark_m128_anchor_topk(topk)
+
+    assert compact.topk_weights.shape == (32, 6)
+    assert compact.topk_ids.shape == (32, 6)
+    assert compact.router_logits.shape == (32, 8)
+    torch.testing.assert_close(compact.topk_weights, weights[::4])
+    torch.testing.assert_close(compact.topk_ids, ids[::4])
+    torch.testing.assert_close(compact.router_logits, logits[::4])
+    assert compact.topk_weights.is_contiguous()
+    assert compact.topk_ids.is_contiguous()
+    assert compact.router_logits.is_contiguous()

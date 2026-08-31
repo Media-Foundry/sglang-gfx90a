@@ -165,6 +165,10 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # shared expert. The strict TARGET_VERIFY/width=4/BS32/M128 guard makes this
   # unreachable from AR. Set zero to recover exact target bonus logits.
   export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-1}"
+  # Sentinels alone leave the AIter runner at M128. Compact the exact anchor
+  # rows to M32 before routed MoE, then scatter their outputs back. Set zero
+  # for a same-code sentinel-only control.
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED:-1}"
   # Compact block-size-2 verification lands on M51.  The strict runner guard
   # selects the oracle-backed G1664/W4 routed kernel only for that exact tier.
   # Keep it opt-in: its isolated 10.5% gain retained only ~1% resident and no

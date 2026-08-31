@@ -19,6 +19,19 @@
 - 详细记录：
   `.agents/memory/dsv4_dspark_gamma3_m128_anchor_only_checkpoint_20260831.md`。
 
+### DSpark M128 anchor 物理压缩 checkpoint（2026-08-31）
+
+- 仅用 `-1` sentinel 时，layer20 marker 仍显示 routed FP4 为
+  `842--856 us`，因为 AIter runner 继续按 M128 quant/sort/launch。新路径在严格
+  M128 parent selector 内将 `hidden/topk/router[0::4]` 压成连续 M32，跑同一原始
+  权重 routed MoE 后散回 M128；shared expert 与其他模型路径不变。
+- 同代码 B-A-B 中位为 B1 `900.911`、sentinel A `832.898`、B2 `901.845`
+  tok/s；候选中心 `901.378`，提升 `+8.22%`。六轮均 France 首九精确/Paris，
+  32 条异质请求全部 256 token、`finish=length`。一轮达到 `1014.922`，但稳定中心
+  仍约 901，不能把单轮当作 1k checkpoint。
+- 强制 parent+compact 开关的原生 AR 负对照通过且无 speculative 字段。详细记录：
+  `.agents/memory/dsv4_dspark_m128_anchor_compaction_checkpoint_20260831.md`。
+
 ## GPU 实验前置检查（强制）
 
 每次启动性能 probe、服务 A/B 或 profiler 之前，先运行：

@@ -112,7 +112,12 @@ from sglang.srt.layers.moe.token_dispatcher.base import (
     CombineInput,
     DispatchOutput,
 )
-from sglang.srt.layers.moe.topk import BypassedTopKOutput, TopK, TopKOutputFormat
+from sglang.srt.layers.moe.topk import (
+    BypassedTopKOutput,
+    StandardTopKOutput,
+    TopK,
+    TopKOutputFormat,
+)
 from sglang.srt.layers.moe.utils import (
     RoutingMethodType,
     filter_moe_weight_param_global_expert,
@@ -1113,6 +1118,21 @@ class DeepseekV2MoE(nn.Module):
             and hidden_states.shape == (128, 4096)
         )
 
+    @staticmethod
+    def _compact_dspark_m128_anchor_topk(topk_output) -> StandardTopKOutput:
+        if topk_output.format != TopKOutputFormat.STANDARD:
+            raise RuntimeError(
+                "DSpark M128 anchor compaction requires STANDARD TopK output"
+            )
+        router_logits = topk_output.router_logits
+        return StandardTopKOutput(
+            topk_weights=topk_output.topk_weights[::4].contiguous(),
+            topk_ids=topk_output.topk_ids[::4].contiguous(),
+            router_logits=(
+                router_logits[::4].contiguous() if router_logits is not None else None
+            ),
+        )
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -1196,6 +1216,10 @@ class DeepseekV2MoE(nn.Module):
         m128_anchor_only_routed = self._use_dspark_m128_anchor_only_routed(
             hidden_states, forward_batch
         )
+        m128_compact_anchor_routed = (
+            m128_anchor_only_routed
+            and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED.get()
+        )
         # Note(kpham-sgl): issue order satisfies 3 constraints:
         # - no stream explosion: main (routed) issued before alt block -> capture reuses 1 alt stream;
         # - PDL overlap: routed is the last main-stream kernel (fuses w/ residual add);
@@ -1249,7 +1273,7 @@ class DeepseekV2MoE(nn.Module):
             )
             if anchor_only_routed:
                 topk_output.topk_ids[1::2].fill_(-1)
-            elif m128_anchor_only_routed:
+            elif m128_anchor_only_routed and not m128_compact_anchor_routed:
                 topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
         mark(18)
         deferred_finalize = (
@@ -1258,7 +1282,13 @@ class DeepseekV2MoE(nn.Module):
             and topk_output.format == TopKOutputFormat.BYPASSED
             and self.experts.supports_deferred_finalize
         )
-        if deferred_finalize:
+        if m128_compact_anchor_routed:
+            anchor_hidden = hidden_states[::4].contiguous()
+            anchor_topk = self._compact_dspark_m128_anchor_topk(topk_output)
+            anchor_output = self.experts(anchor_hidden, anchor_topk)
+            final_hidden_states = torch.zeros_like(hidden_states)
+            final_hidden_states[::4].copy_(anchor_output)
+        elif deferred_finalize:
             final_hidden_states = self.experts.forward_deferred_finalize(
                 hidden_states, topk_output
             )
@@ -1274,7 +1304,7 @@ class DeepseekV2MoE(nn.Module):
             final_hidden_states = self.experts(hidden_states, topk_output)
         if anchor_only_routed:
             final_hidden_states[1::2].zero_()
-        elif m128_anchor_only_routed:
+        elif m128_anchor_only_routed and not m128_compact_anchor_routed:
             final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
         mark(19)
         if (
@@ -1355,6 +1385,10 @@ class DeepseekV2MoE(nn.Module):
         m128_anchor_only_routed = self._use_dspark_m128_anchor_only_routed(
             hidden_states, forward_batch
         )
+        m128_compact_anchor_routed = (
+            m128_anchor_only_routed
+            and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED.get()
+        )
         split_moe_dp = self._split_moe_dp_fast_path
         if split_moe_dp and get_parallel().moe_dp_rank != 0:
             # Shared expert is computed once by MoE-DP0; its TP4 partial joins
@@ -1417,7 +1451,7 @@ class DeepseekV2MoE(nn.Module):
             )
             if anchor_only_routed:
                 topk_output.topk_ids[1::2].fill_(-1)
-            elif m128_anchor_only_routed:
+            elif m128_anchor_only_routed and not m128_compact_anchor_routed:
                 topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
             if split_moe_dp:
                 # Keep ownership visible to every downstream MoE path. The
@@ -1465,7 +1499,13 @@ class DeepseekV2MoE(nn.Module):
                 self.experts.dispatcher.register_post_combine_hook(_post_combine_hook)
             )
 
-        if pre_quant_input is not None:
+        if m128_compact_anchor_routed:
+            anchor_hidden = hidden_states[::4].contiguous()
+            anchor_topk = self._compact_dspark_m128_anchor_topk(topk_output)
+            anchor_output = self.experts(anchor_hidden, anchor_topk)
+            final_hidden_states = torch.zeros_like(hidden_states)
+            final_hidden_states[::4].copy_(anchor_output)
+        elif pre_quant_input is not None:
             final_hidden_states = self.experts(
                 hidden_states,
                 topk_output,
@@ -1478,7 +1518,7 @@ class DeepseekV2MoE(nn.Module):
             )
         if anchor_only_routed:
             final_hidden_states[1::2].zero_()
-        elif m128_anchor_only_routed:
+        elif m128_anchor_only_routed and not m128_compact_anchor_routed:
             final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
         mark(20)
         if (

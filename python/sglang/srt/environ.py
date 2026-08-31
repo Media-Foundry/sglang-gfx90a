@@ -1557,6 +1557,10 @@ class Envs:
     # four-row request window. Strict model guards keep it out of AR and every
     # other speculative width.
     SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED = EnvBool(False)
+    # Physically compact the 32 M128 anchor rows before routed MoE instead of
+    # relying only on draft-row -1 sentinels. Read only after the strict M128
+    # parent selector succeeds; disable for same-code service A/B.
+    SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED = EnvBool(True)
     # Experimental TP4/M32 C4 attention stream overlap.  HIP disables the
     # generic overlap selector globally; this narrow gate lets the existing
     # Q/core-compressor/index-compressor schedule be measured independently.
