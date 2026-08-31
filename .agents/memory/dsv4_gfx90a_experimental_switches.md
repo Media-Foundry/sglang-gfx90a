@@ -4267,3 +4267,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   tok/s; acceptance-normalized results also favored control.
 - Removed the strict target-only selector and restored the wrapper's M96 cap.
   Future M128 oracles must use the production split-1 heuristic as baseline.
+
+### DSpark gamma-3 M128 issue-order/down-quant rejections (2026-09-01)
+
+- M128 issue order 0 had seven-round median/trimmed resident throughput
+  `902.654/900.268 tok/s`, effectively equal to the mode-3 control median
+  `901.625`; keep mode 3.
+- Strict anchor-only intermediate quant reduced the isolated `[128,6,512]`
+  group-32 quant from 38.61 to 9.65 us and was bitwise exact, but the complete
+  routed stage only fell 378.330 -> 365.778 us.  Service median was 859.350,
+  so all candidate wiring was removed.
+- Fixed the occupancy oracle's `-1` handling: Python `buckets[-1]` had silently
+  mapped dropped DSpark rows to expert255.  The helper now filters invalid IDs,
+  matching production AIter sorting.

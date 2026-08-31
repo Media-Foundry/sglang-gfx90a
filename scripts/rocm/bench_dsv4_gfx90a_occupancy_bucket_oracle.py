@@ -107,6 +107,11 @@ def make_metadata(
     buckets: list[list[int]] = [[] for _ in range(E)]
     for token, experts in enumerate(topk_ids.cpu().tolist()):
         for slot, expert in enumerate(experts):
+            # Production sorters use -1 as a dropped-assignment sentinel.
+            # Python negative indexing would otherwise alias it to expert 255
+            # and silently create a completely different route.
+            if not 0 <= expert < E:
+                continue
             buckets[expert].append((slot << 24) | token)
     # The padding token must be invalid for the runtime shape.  Using the
     # module's historical M32 constant here aliases a real token at M64 and
