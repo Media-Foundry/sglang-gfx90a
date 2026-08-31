@@ -563,6 +563,15 @@ class Envs:
     SGLANG_DSPARK_DEBUG_CONFIDENCE_PREFIX_SCHEDULER = EnvBool(False)
     SGLANG_DSPARK_DEBUG_CONFIDENCE_METRICS = EnvBool(False)
     SGLANG_DSPARK_DEBUG_DUMP = EnvTuple(tuple())
+    # Additional exact token-count graph tiers for compact ragged target
+    # verification. Values are comma-separated positive integers. This does
+    # not affect static verification or native AR graph capture.
+    SGLANG_DSPARK_RAGGED_VERIFY_EXTRA_TOKEN_BUCKETS = EnvTuple(tuple())
+    # Replace (rather than extend) the derived compact-ragged token tiers.
+    # Intended for fixed-budget experiments where retaining the full-width
+    # tier would exceed graph memory. Request-slot capacity still comes from
+    # --cuda-graph-bs-decode, so a token tier may serve all BS32 requests.
+    SGLANG_DSPARK_RAGGED_VERIFY_TOKEN_BUCKETS = EnvTuple(tuple())
     SGLANG_DSPARK_LOG_SPS_PRED_INTERVAL = EnvInt(0)
     SGLANG_DSPARK_STS_COLLECT_PATH = EnvStr("")
     SGLANG_DSPARK_BLOCK_ACCEPT_ESTIMATE_PATH = EnvStr("")
@@ -578,6 +587,10 @@ class Envs:
     SGLANG_DSPARK_FOLDED_PROPOSAL = EnvBool(True)
     SGLANG_DSPARK_STACKED_CTX_KV = EnvBool(True)
     SGLANG_DSPARK_EMBED_IN_GRAPH = EnvBool(True)
+    # Keep the target verification graph but execute the DSpark draft model
+    # eagerly. Useful when a wider experimental draft graph would exceed
+    # memory; native AR has no draft worker and cannot observe this switch.
+    SGLANG_DSPARK_DISABLE_DRAFT_CUDA_GRAPH = EnvBool(False)
     # DeepSeek-V4 DSpark was trained with every query attending the complete
     # draft block in addition to committed SWA history.  The generic target-
     # verify backend is causal; opt into the model-specific index layout.

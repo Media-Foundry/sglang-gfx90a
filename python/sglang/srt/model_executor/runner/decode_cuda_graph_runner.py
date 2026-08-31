@@ -417,7 +417,15 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
 
         # Attention backend
         self.max_bs = max(self.capture_bs)
-        self.max_num_token = self.max_bs * self.captured_req_width
+        # Compact ragged verify is bounded by its captured token tiers, not by
+        # the rectangular ``max_bs * width`` envelope.  A fixed-budget DSpark
+        # profile can therefore retain 32 request slots while capturing only
+        # M128 for gamma five, instead of wasting every runner buffer at M192.
+        self.max_num_token = (
+            max(self.capture_num_tokens)
+            if self.ragged_verify_mode
+            else self.max_bs * self.captured_req_width
+        )
         self.attn_backend.init_cuda_graph_state(self.max_bs, self.max_num_token)
 
         # Init PDMux if needed
@@ -585,7 +593,33 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             self.model_runner.shared_read_done_event = read_done
 
     def _build_ragged_verify_token_buckets(self) -> list[int]:
-        buckets = sorted({bs * self.captured_req_width for bs in self.capture_bs})
+        max_tokens = max(self.capture_bs) * self.captured_req_width
+        override = envs.SGLANG_DSPARK_RAGGED_VERIFY_TOKEN_BUCKETS.get()
+        buckets = (
+            set()
+            if override
+            else {bs * self.captured_req_width for bs in self.capture_bs}
+        )
+        raw_buckets = (
+            override
+            if override
+            else envs.SGLANG_DSPARK_RAGGED_VERIFY_EXTRA_TOKEN_BUCKETS.get()
+        )
+        for raw in raw_buckets:
+            try:
+                token_count = int(raw)
+            except ValueError as exc:
+                raise ValueError(
+                    "DSpark ragged verify token buckets must "
+                    f"contain integers, got {raw!r}"
+                ) from exc
+            if not 0 < token_count <= max_tokens:
+                raise ValueError(
+                    "DSpark ragged verify token bucket entries "
+                    f"must be in [1,{max_tokens}], got {token_count}"
+                )
+            buckets.add(token_count)
+        buckets = sorted(buckets)
         assert buckets and buckets[0] > 0, f"{buckets=}"
         return buckets
 
@@ -1153,10 +1187,13 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             empty_cache=False,
         )
         # Reverse so cuda graphs share memory better.
+        capture_sizes = (
+            self.capture_num_tokens if self.ragged_verify_mode else self.capture_bs
+        )
         capture_range = (
-            tqdm.tqdm(list(reversed(self.capture_bs)))
+            tqdm.tqdm(list(reversed(capture_sizes)))
             if get_parallel().tp_rank == 0
-            else reversed(self.capture_bs)
+            else reversed(capture_sizes)
         )
         lora_variants = (
             [("lora", True), ("nolora", False)]
@@ -1184,7 +1221,14 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                 else [None]
             )
         )
-        for bs in capture_range:
+        for size in capture_range:
+            num_tokens = size if self.ragged_verify_mode else size * self.captured_req_width
+            compile_bs = (
+                size // self.captured_req_width
+                if self.ragged_verify_mode
+                and size % self.captured_req_width == 0
+                else size
+            )
             if get_parallel().tp_rank == 0:
                 avail_mem = get_available_gpu_memory(
                     self.model_runner.device,
@@ -1192,7 +1236,7 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                     empty_cache=False,
                 )
                 capture_range.set_description(
-                    f"Capturing batches ({bs=} {avail_mem=:.2f} GB)"
+                    f"Capturing batches (size={size} {num_tokens=} {avail_mem=:.2f} GB)"
                 )
 
             for variant_label, _variant_has_lora in lora_variants:
@@ -1201,17 +1245,17 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                     _set_capture_dsa_variant(dsa_variant)
                     with torch_compile_decoration.patch_model(
                         self.model_runner.model,
-                        bs in self.compile_bs,
-                        num_tokens=bs * self.captured_req_width,
+                        compile_bs in self.compile_bs,
+                        num_tokens=num_tokens,
                         tp_group=self.model_runner.tp_group,
                     ) as forward:
                         if dsa_variant is None:
                             self.capture_one_shape(
-                                bs, forward, stream_idx, variant_label
+                                size, forward, stream_idx, variant_label
                             )
                         else:
                             self.capture_one_shape(
-                                bs, forward, stream_idx, variant_label, dsa_variant
+                                size, forward, stream_idx, variant_label, dsa_variant
                             )
         _set_capture_dsa_variant(None)
 
@@ -1223,7 +1267,7 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         variant_label: Optional[str] = None,
         dsa_variant: Optional[str] = None,
     ):
-        num_tokens = size * self.captured_req_width
+        num_tokens = size if self.ragged_verify_mode else size * self.captured_req_width
         bs = self._ragged_capture_slots(num_tokens) if self.ragged_verify_mode else size
 
         # Sanity-check: --debug-cuda-graph requires breakable backend.

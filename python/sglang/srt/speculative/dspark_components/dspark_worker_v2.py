@@ -400,6 +400,13 @@ class DSparkWorkerV2(BaseSpecWorker):
 
     def init_cuda_graphs(self):
         capture_decode_cuda_graph = self._decode_graph_allowed
+        if envs.SGLANG_DSPARK_DISABLE_DRAFT_CUDA_GRAPH.get():
+            capture_decode_cuda_graph = False
+            logger.warning(
+                "DSpark draft CUDA graph disabled by "
+                "SGLANG_DSPARK_DISABLE_DRAFT_CUDA_GRAPH; target verification "
+                "graph capture is unchanged."
+            )
         if is_cuda() and capture_decode_cuda_graph:
             available_mem = get_available_gpu_memory(self.device, self.gpu_id)
             if available_mem < 1.0:

@@ -1113,6 +1113,42 @@ class DeepseekV2MoE(nn.Module):
             and hidden_states.shape == (128, 4096)
         )
 
+    @staticmethod
+    def _dspark_m128_ragged_anchor_rows(
+        hidden_states: torch.Tensor,
+        forward_batch: Optional[ForwardBatch],
+    ) -> Optional[torch.Tensor]:
+        """Return gamma-five ragged M128 anchor rows, or ``None``.
+
+        Compact verification stores each request contiguously and publishes
+        its starts in ``qo_indptr_device``.  Using those staged device values
+        avoids both a fixed-width assumption and any host synchronization.
+        The strict graph/width guard keeps this experimental speculative path
+        unreachable from native AR and from the retained static gamma-three
+        layout.
+        """
+        spec_info = (
+            getattr(forward_batch, "spec_info", None)
+            if forward_batch is not None
+            else None
+        )
+        layout = getattr(spec_info, "ragged_verify_layout", None)
+        if not (
+            envs.SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED.get()
+            and is_gfx90a_supported()
+            and forward_batch is not None
+            and forward_batch.forward_mode.is_target_verify()
+            and forward_batch.batch_size == 32
+            and getattr(spec_info, "num_tokens_per_req", None) == 6
+            and hidden_states.shape == (128, 4096)
+            and layout is not None
+            and layout.graph_num_tokens == 128
+            and layout.verify_lens.shape == (32,)
+            and layout.qo_indptr_device.shape == (33,)
+        ):
+            return None
+        return layout.qo_indptr_device[:-1].to(torch.int64)
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -1196,6 +1232,22 @@ class DeepseekV2MoE(nn.Module):
         m128_anchor_only_routed = self._use_dspark_m128_anchor_only_routed(
             hidden_states, forward_batch
         )
+        m128_ragged_anchor_rows = self._dspark_m128_ragged_anchor_rows(
+            hidden_states, forward_batch
+        )
+        m128_ragged_anchor_mask = None
+        if m128_ragged_anchor_rows is not None:
+            # Indexed assignment materializes a pageable host scalar during
+            # capture, while HIP's generic scatter kernel proved unstable on
+            # graph replay for this tiny mask.  A 128x32 equality reduction is
+            # conflict-free, wholly device resident, and cannot write out of
+            # bounds even if metadata publication is delayed.
+            row_ids = torch.arange(
+                hidden_states.shape[0], device=hidden_states.device
+            )
+            m128_ragged_anchor_mask = (
+                row_ids[:, None] == m128_ragged_anchor_rows[None, :]
+            ).any(dim=1)
         m128_pre_router_compact = (
             m128_anchor_only_routed
             and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT.get()
@@ -1270,6 +1322,10 @@ class DeepseekV2MoE(nn.Module):
                 topk_output.topk_ids[1::2].fill_(-1)
             elif m128_anchor_only_routed and not m128_pre_router_compact:
                 topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
+            elif m128_ragged_anchor_mask is not None:
+                topk_output.topk_ids.masked_fill_(
+                    ~m128_ragged_anchor_mask[:, None], -1
+                )
         mark(18)
         deferred_finalize = (
             has_shared_output
@@ -1299,6 +1355,10 @@ class DeepseekV2MoE(nn.Module):
             final_hidden_states[1::2].zero_()
         elif m128_anchor_only_routed and not m128_pre_router_compact:
             final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
+        elif m128_ragged_anchor_mask is not None:
+            final_hidden_states.masked_fill_(
+                ~m128_ragged_anchor_mask[:, None], 0
+            )
         mark(19)
         if (
             not _is_cuda
@@ -1378,6 +1438,17 @@ class DeepseekV2MoE(nn.Module):
         m128_anchor_only_routed = self._use_dspark_m128_anchor_only_routed(
             hidden_states, forward_batch
         )
+        m128_ragged_anchor_rows = self._dspark_m128_ragged_anchor_rows(
+            hidden_states, forward_batch
+        )
+        m128_ragged_anchor_mask = None
+        if m128_ragged_anchor_rows is not None:
+            row_ids = torch.arange(
+                hidden_states.shape[0], device=hidden_states.device
+            )
+            m128_ragged_anchor_mask = (
+                row_ids[:, None] == m128_ragged_anchor_rows[None, :]
+            ).any(dim=1)
         split_moe_dp = self._split_moe_dp_fast_path
         if split_moe_dp and get_parallel().moe_dp_rank != 0:
             # Shared expert is computed once by MoE-DP0; its TP4 partial joins
@@ -1442,6 +1513,10 @@ class DeepseekV2MoE(nn.Module):
                 topk_output.topk_ids[1::2].fill_(-1)
             elif m128_anchor_only_routed:
                 topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
+            elif m128_ragged_anchor_mask is not None:
+                topk_output.topk_ids.masked_fill_(
+                    ~m128_ragged_anchor_mask[:, None], -1
+                )
             if split_moe_dp:
                 # Keep ownership visible to every downstream MoE path. The
                 # direct gfx90a kernel additionally specializes this same slot
@@ -1503,6 +1578,10 @@ class DeepseekV2MoE(nn.Module):
             final_hidden_states[1::2].zero_()
         elif m128_anchor_only_routed:
             final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
+        elif m128_ragged_anchor_mask is not None:
+            final_hidden_states.masked_fill_(
+                ~m128_ragged_anchor_mask[:, None], 0
+            )
         mark(20)
         if (
             not _is_cuda
