@@ -81,3 +81,14 @@ Do not enable gamma=5 or these switches in the production TP4 BS32 profile.
 If revisited, build a fixed-input draft-proposal oracle comparing eager and
 graph `raw_hidden`, base logits, and per-step Markov tokens before another E2E
 service sweep.
+
+## Gamma=4 follow-up
+
+A gamma=4 compact run used the same M128 target tier with a 0.75 fixed budget
+(32 anchors + 96 draft rows) and eager draft. It also passed France and all
+32 heterogeneous 256-token requests, but achieved only 929.11 resident BS32
+tok/s with mean accepted length 2.849. This is 11.1% below the gamma=3 control
+and below the gamma=5 eager-draft result. The temporary width-five M128 anchor
+guard was therefore reverted; gamma=3 remains the accepted operating point.
+
+Evidence: `/tmp/dsv4_gamma4_m128_eager_draft_r1.json`.
