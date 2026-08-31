@@ -585,6 +585,11 @@ class Envs:
     SGLANG_DSPARK_OPT_MARKOV_W2_BF16 = EnvBool(True)
     SGLANG_DSPARK_OPT_MARKOV_W2_TP_SHARD = EnvBool(True)
     SGLANG_DSPARK_OPT_FUSED_GREEDY_MARKOV = EnvBool(False)
+    # Greedy-only DSpark oracle: select each rank's corrected-logit winner
+    # locally and exchange only (score, token-id) candidates.  This avoids the
+    # full-vocabulary TP all-gather but intentionally does not serve sampling
+    # requests, so keep it opt-in until its graph-level ABBA is accepted.
+    SGLANG_DSPARK_OPT_TP_LOCAL_GREEDY = EnvBool(False)
     SGLANG_DSPARK_ENABLE_MULTI_STREAM = EnvBool(True)
     SGLANG_DSPARK_CONFIDENCE_RELAY_LAG_STEPS = EnvInt(2)
 

@@ -487,6 +487,65 @@ class DSparkV4MarkovHead(nn.Module):
             full = step_local
         return full[..., : self.vocab_size]
 
+    def sample_block_tp_local_greedy(
+        self,
+        base_logits: torch.Tensor,
+        *,
+        first_prev_tokens: torch.Tensor,
+        hidden_states: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Greedy Markov proposal without a full-vocabulary TP all-gather.
+
+        Each rank forms exactly the same local BF16 corrected logits as
+        ``_apply_step_logits_sharded``, selects its first local maximum, and
+        exchanges one FP32 ``(score, global_token_id)`` pair per request.  BF16
+        scores and token ids below 2**24 are represented exactly in FP32.  Since
+        vocabulary shards are contiguous and rank ordered, ``torch.argmax`` on
+        the gathered scores preserves the full-vector first-index tie break.
+        """
+        del hidden_states
+        shard = self._tp_shard
+        if shard is None:
+            raise RuntimeError(
+                "TP-local DSpark greedy selection requires markov_w2 TP sharding."
+            )
+        if self._shard_group is None:
+            raise RuntimeError("TP-local DSpark greedy selection has no TP group.")
+
+        batch_size, proposal_len = base_logits.shape[:2]
+        sampled_tokens = []
+        prev_tokens = first_prev_tokens.long()
+        weight_local = self.markov_w2.weight[
+            shard.org_vocab_start : shard.org_vocab_end
+        ]
+        for step_idx in range(proposal_len):
+            latent = self.get_prev_embeddings(prev_tokens)
+            if self._opt_markov_w2_bf16:
+                bias = F.linear(latent.to(weight_local.dtype), weight_local)
+            else:
+                bias = F.linear(latent.float(), weight_local)
+            step_local = BuildStepLocal.execute(
+                bias=bias, base_local=base_logits[:, step_idx, :]
+            )
+            local_max, local_arg = torch.max(step_local, dim=-1)
+            local_arg = local_arg.add(shard.org_vocab_start)
+
+            if shard.tp_size > 1:
+                candidates = torch.stack(
+                    (local_max.float(), local_arg.float()), dim=-1
+                )
+                gathered = self._shard_group.all_gather(candidates, dim=0).view(
+                    shard.tp_size, batch_size, 2
+                )
+                best_rank = torch.argmax(gathered[..., 0], dim=0, keepdim=True)
+                prev_tokens = torch.gather(
+                    gathered[..., 1], 0, best_rank
+                ).view(-1).long()
+            else:
+                prev_tokens = local_arg.long()
+            sampled_tokens.append(prev_tokens)
+        return torch.stack(sampled_tokens, dim=1)
+
     def forward(self, token_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         embed = self.get_prev_embeddings(token_ids)
         logits = self.project_bias(embed)

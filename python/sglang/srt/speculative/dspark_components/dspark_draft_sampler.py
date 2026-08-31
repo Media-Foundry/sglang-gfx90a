@@ -59,6 +59,11 @@ class DsparkDraftSampler:
         # Resolved once: this sampler runs inside cuda-graph capture, so the
         # branch below is baked into the captured graph anyway.
         self._fused_greedy = envs.SGLANG_DSPARK_OPT_FUSED_GREEDY_MARKOV.get()
+        self._tp_local_greedy = (
+            not folded_sampling
+            and envs.SGLANG_DSPARK_OPT_TP_LOCAL_GREEDY.get()
+            and hasattr(self.markov_head, "sample_block_tp_local_greedy")
+        )
         if out is not None:
             assert out.shape == (max_bs * self.gamma,) and out.dtype == torch.int64
             self.out = out
@@ -127,8 +132,15 @@ class DsparkDraftSampler:
         # Gated/RNN subclasses return None (hidden-state-dependent bias); fall
         # through to the block sampler below.
         draft_tokens = None
+        if self._tp_local_greedy:
+            draft_tokens = self.markov_head.sample_block_tp_local_greedy(
+                base_logits,
+                first_prev_tokens=anchor,
+                hidden_states=sample_hidden,
+            )
         if (
-            not self.folded_sampling
+            draft_tokens is None
+            and not self.folded_sampling
             and self._fused_greedy
             and isinstance(self.markov_head, VanillaMarkov)
         ):
