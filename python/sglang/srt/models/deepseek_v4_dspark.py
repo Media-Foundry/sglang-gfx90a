@@ -256,10 +256,18 @@ class DSparkAttention(MqaAttentionBase):
         q_padded: Optional[torch.Tensor] = None
         q_out: Optional[torch.Tensor] = None
         if self.n_local_heads < _PAD_NUM_HEADS:
-            q_padded = hidden_states.new_empty(
-                hidden_states.shape[0], _PAD_NUM_HEADS, self.head_dim
-            )
-            q_out = q_padded[:, : self.n_local_heads, :]
+            if (
+                is_unified_kv_triton()
+                and envs.SGLANG_DSPARK_GFX90A_LOCAL_Q_HEADS.get()
+            ):
+                q_out = hidden_states.new_empty(
+                    hidden_states.shape[0], self.n_local_heads, self.head_dim
+                )
+            else:
+                q_padded = hidden_states.new_empty(
+                    hidden_states.shape[0], _PAD_NUM_HEADS, self.head_dim
+                )
+                q_out = q_padded[:, : self.n_local_heads, :]
 
         if enable_multi_stream:
             current_stream = torch.cuda.current_stream()

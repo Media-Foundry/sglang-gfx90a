@@ -93,6 +93,10 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # At the M64 tier the longer Q path can hide the C128 core-compressor tail.
   # The strict model-side guard leaves all other tiers and C4 unchanged.
   export SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM:-1}"
+  # Unified-KV consumes only TP4's 16 local Q heads.  Avoid constructing and
+  # evaluating the legacy 64-head padded DSpark draft tensor: the H16 kernel is
+  # bitwise equal on the local heads and retains a small positive service ABBA.
+  export SGLANG_DSPARK_GFX90A_LOCAL_Q_HEADS="${SGLANG_DSPARK_GFX90A_LOCAL_Q_HEADS:-1}"
   # Native CK-style MFMA split/reduce is ~41% faster than Triton standalone
   # and retains ~1% at service level for the exact M64 C128 BF16 tier.
   export SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE:-1}"
