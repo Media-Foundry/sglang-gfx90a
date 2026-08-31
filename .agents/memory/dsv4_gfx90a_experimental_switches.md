@@ -19,17 +19,16 @@
 - 详细记录：
   `.agents/memory/dsv4_dspark_gamma3_m128_anchor_only_checkpoint_20260831.md`。
 
-### DSpark M128 anchor 物理压缩 checkpoint（2026-08-31）
+### DSpark M128 anchor 物理压缩否证（2026-08-31）
 
-- 仅用 `-1` sentinel 时，layer20 marker 仍显示 routed FP4 为
-  `842--856 us`，因为 AIter runner 继续按 M128 quant/sort/launch。新路径在严格
-  M128 parent selector 内将 `hidden/topk/router[0::4]` 压成连续 M32，跑同一原始
-  权重 routed MoE 后散回 M128；shared expert 与其他模型路径不变。
-- 同代码 B-A-B 中位为 B1 `900.911`、sentinel A `832.898`、B2 `901.845`
-  tok/s；候选中心 `901.378`，提升 `+8.22%`。六轮均 France 首九精确/Paris，
-  32 条异质请求全部 256 token、`finish=length`。一轮达到 `1014.922`，但稳定中心
-  仍约 901，不能把单轮当作 1k checkpoint。
-- 强制 parent+compact 开关的原生 AR 负对照通过且无 speculative 字段。详细记录：
+- 服务 B-A-B 曾因 acceptance 波动呈现 B1 `900.911`、sentinel A `832.898`、B2
+  `901.845 tok/s`，但 host step 没有稳定缩短，不能归因于 kernel。
+- 后续同一 layer20 marker 给出决定性反证：sentinel-only M128 routed FP4 为
+  `842--856 us`，物理压成 M32 后完整分支反而为 `935--939 us`。strided gather、
+  TopK materialize、额外 quant/sort/output scatter 与实际 M32 runner 组合没有复现
+  standalone 的约439us结果。
+- 实现、环境变量和默认值已全部撤销；一轮 `1014.922 tok/s` 是 acceptance 高点，
+  不得作为性能 checkpoint。审计保留在
   `.agents/memory/dsv4_dspark_m128_anchor_compaction_checkpoint_20260831.md`。
 
 ## GPU 实验前置检查（强制）

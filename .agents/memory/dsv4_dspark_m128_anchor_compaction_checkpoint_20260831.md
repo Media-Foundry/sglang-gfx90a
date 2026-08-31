@@ -2,6 +2,13 @@
 
 Date: 2026-08-31
 
+> **Retracted after graph-marker validation.** The service B-A-B below was
+> confounded by accepted-length variation. A same-shape layer-20 marker showed
+> compact routed FP4 at `935--939 us`, slower than sentinel-only M128 at
+> `842--856 us`. The implementation and default were therefore fully removed
+> in the immediate corrective commit. This file is retained as a rejection
+> audit, not as an active checkpoint.
+
 ## Finding
 
 The gamma-three anchor-only checkpoint initially used `-1` sentinels for the
@@ -99,19 +106,15 @@ candidate medians are near 901 tok/s and both exceed the control median. One
 candidate round crossed 1,000 resident tok/s; this is not yet a stable 1k
 checkpoint and must not be reported as the center.
 
-## Decision
+## Corrected decision
 
-Enable physical M32 anchor compaction by default inside the TP4 BS32 gamma-three
-DSpark profile. It stacks on the gamma-three checkpoint and raises the stable
-resident center from roughly 876--888 to roughly 901 tok/s. It remains far from
-the 1.5k objective; the new default M128 attention/indexer/compressor path is
-now the largest remaining budget.
-
-Rollback:
-
-```text
-SGLANG_DSV4_GFX90A_DSPARK_M128_COMPACT_ANCHOR_ROUTED=0
-```
+**Reject physical M32 anchor compaction.** Marker evidence is causal and shows
+the complete compact branch is about `80--97 us/layer` slower than the
+sentinel-only M128 runner. The apparent service improvement came from higher
+accepted lengths in candidate rounds, not a lower target step: candidate host
+steps stayed around `63.7--66.3 ms`, overlapping the control's
+`64.0--71.0 ms`. The one 1014.9 tok/s round must not be reported as a kernel
+gain. Production is restored to the gamma-three M128 sentinel-only checkpoint.
 
 Artifacts:
 
@@ -122,5 +125,5 @@ Artifacts:
 /tmp/dsv4_m128_compact_b2.json
 /tmp/dsv4_ar_m128_compact_negative.json
 /tmp/sglang_dsv4_dspark_gamma3_trace.log
+/tmp/sglang_dsv4_dspark_compact_trace.log
 ```
-
