@@ -4367,3 +4367,20 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `992.34 tok/s`, acceptance 2.590, in the first real32 256-token round.
   France remained Paris, but graph savings did not offset lost drafts and
   M96 router/top-k work.  Remove all temporary M96 wiring.
+### DSpark draft trace and seeded heterogeneous workload (2026-09-01)
+
+- `SGLANG_DSPARK_GFX90A_REALTIME_TRACE_STAGE=<0..2>` is a default-off,
+  DSpark-only graph marker. At full BS32/gamma3, the marked draft graph is
+  about 8.23 ms rank-max: the three transformer stages account for about
+  5.59 ms, HC collapse + local LM head 0.48 ms, Markov proposal 2.15 ms, and
+  confidence only 0.004 ms. The independent draft interval remains about
+  10.0 ms; target verify remains about 58.5 ms.
+- Gamma3 greedy-only folded proposal (`SGLANG_DSPARK_FOLDED_SAMPLING=0`,
+  TP-local greedy off) was France-correct for five 32x1024 heterogeneous
+  rounds but centered at 1542.09 tok/s, indistinguishable from the accepted
+  1541-tok/s candidate center. Keep folded sampling enabled.
+- The diverse harness now supports `--request-seed` and
+  `--workload-output`, pins France at slot zero, and reports
+  `selected_workload_sha256`. Randomize once per experiment, then reuse the
+  exact same selected workload across every A/B arm.
+- Full details: `dsv4_dspark_draft_trace_and_seeded_workload_20260901.md`.

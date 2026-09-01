@@ -114,6 +114,23 @@ class DsparkDraftSampler:
         self.greedy_mask[:bs].copy_((sampling_info.top_ks <= 1).view(-1)[:bs])
 
     def __call__(self, hidden_states, input_ids):
+        realtime_trace = None
+        stages = getattr(self.model, "stages", None)
+        if stages:
+            realtime_trace = getattr(stages[0], "_gfx90a_realtime_trace", None)
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        # Slots 25--28 extend the draft-stage trace across the graph tail.  A
+        # normal DSpark model has no trace buffer, so this remains allocation-
+        # and launch-free unless the explicit gfx90a draft-stage selector is on.
+        mark(25)
         bs = hidden_states.shape[0] // self.query_token_num
         if self.sample_from_anchor:
             model_hidden = hidden_states
@@ -126,6 +143,7 @@ class DsparkDraftSampler:
             )
         base_logits, confidence_tap = self.model.compute_base_logits(model_hidden)
         base_logits = base_logits.view(bs, self.gamma, -1)
+        mark(26)
         anchor = input_ids.view(bs, self.query_token_num)[:, 0]
 
         # Fused greedy fast path: only valid for the greedy (non-sampling) fold.
@@ -177,6 +195,7 @@ class DsparkDraftSampler:
                 self.corrected_out[: bs * self.gamma].copy_(
                     corrected_logits.reshape(bs * self.gamma, -1)
                 )
+        mark(27)
 
         self.out[: draft_tokens.numel()].copy_(draft_tokens.reshape(-1))
         if self.confidence_out is not None:
@@ -187,6 +206,7 @@ class DsparkDraftSampler:
                 confidence_tap=confidence_tap,
             )
             self.confidence_out[:bs].copy_(confidence)
+        mark(28)
 
 
 def _resolve_folded_sampling(*, model, gamma, max_bs, device, tp_rank) -> bool:

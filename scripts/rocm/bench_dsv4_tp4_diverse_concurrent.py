@@ -7,6 +7,7 @@ import argparse
 import concurrent.futures
 import hashlib
 import json
+import random
 import statistics
 import threading
 import time
@@ -37,6 +38,20 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=32,
         help="number of concurrent requests; 64 expands the 32-prompt manifest with unique continuations",
+    )
+    parser.add_argument(
+        "--request-seed",
+        type=int,
+        help=(
+            "deterministically sample and order the heterogeneous request set once; "
+            "the France correctness sentinel remains request 0 and every round/arm "
+            "reuses the resulting input_ids"
+        ),
+    )
+    parser.add_argument(
+        "--workload-output",
+        type=Path,
+        help="write the selected request set as a reusable input manifest",
     )
     parser.add_argument(
         "--stream-interval-sequence",
@@ -163,6 +178,30 @@ def completion_ids(result: dict) -> list[int]:
     return ids
 
 
+def select_requests(
+    manifest_requests: list[dict], request_count: int, request_seed: int | None
+) -> list[dict]:
+    if request_seed is None:
+        return list(manifest_requests[:request_count])
+
+    france = next(
+        (
+            item
+            for item in manifest_requests
+            if item.get("prompt", "").strip() == "What is the capital of France?"
+        ),
+        None,
+    )
+    candidates = [item for item in manifest_requests if item is not france]
+    keep = request_count - int(france is not None)
+    if keep < 0 or keep > len(candidates):
+        raise ValueError(
+            f"cannot select {request_count} requests while pinning the France sentinel"
+        )
+    selected = random.Random(request_seed).sample(candidates, keep)
+    return ([france] if france is not None else []) + selected
+
+
 def main() -> None:
     args = parse_args()
     interval_sequence = None
@@ -184,12 +223,31 @@ def main() -> None:
             f"input manifest has {len(manifest_requests)} requests, "
             f"need {args.request_count}"
         )
-    requests = list(manifest_requests[: args.request_count])
+    requests = select_requests(
+        manifest_requests, args.request_count, args.request_seed
+    )
     if len({tuple(x["input_ids"]) for x in requests}) != len(requests):
         raise ValueError("selected input token sequences must all be distinct")
     first_is_france_oracle = requests[0].get("prompt", "").strip() == (
         "What is the capital of France?"
     )
+    selected_requests_encoded = json.dumps(
+        requests, sort_keys=True, separators=(",", ":")
+    ).encode()
+    selected_workload_sha256 = hashlib.sha256(selected_requests_encoded).hexdigest()
+    if args.workload_output:
+        args.workload_output.parent.mkdir(parents=True, exist_ok=True)
+        args.workload_output.write_text(
+            json.dumps(
+                {
+                    "format": "dsv4-diverse-input-ids-v1",
+                    "request_seed": args.request_seed,
+                    "requests": requests,
+                },
+                indent=2,
+            )
+            + "\n"
+        )
 
     rounds = []
     round_output_ids: list[list[list[int]]] = []
@@ -482,6 +540,11 @@ def main() -> None:
         "format": "dsv4-tp4-diverse-concurrent-v1",
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
+        "request_seed": args.request_seed,
+        "selected_workload_sha256": selected_workload_sha256,
+        "workload_output": (
+            str(args.workload_output.resolve()) if args.workload_output else None
+        ),
         "first_request_is_france_oracle": first_is_france_oracle,
         "tokens": args.tokens,
         "temperature": args.temperature,

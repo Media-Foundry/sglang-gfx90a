@@ -1599,6 +1599,53 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                         if markers is None:
                             continue
                         values = markers.detach().cpu().tolist()
+                        if (
+                            getattr(module, "_gfx90a_realtime_trace_kind", None)
+                            == "dspark_stage"
+                        ):
+                            coarse_order = list(range(8))
+                            tail_order = [7, 25, 26, 27, 28]
+                            moe_order = [6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 7]
+                            required_slots = sorted(
+                                set(coarse_order) | set(tail_order) | set(moe_order)
+                            )
+                            pairs = (
+                                list(zip(coarse_order, coarse_order[1:]))
+                                + list(zip(tail_order, tail_order[1:]))
+                                + list(zip(moe_order, moe_order[1:]))
+                            )
+                            if any(values[i] == 0 for i in required_slots) or any(
+                                values[end] < values[start] for start, end in pairs
+                            ):
+                                logger.warning(
+                                    "Invalid gfx90a realtime DSpark stage trace: "
+                                    "rank=%d ticks=%s; required marker slots must "
+                                    "be nonzero and monotonic",
+                                    get_parallel().tp_rank,
+                                    values,
+                                )
+                                break
+
+                            def trace_deltas(order):
+                                return [
+                                    round(
+                                        (values[order[i + 1]] - values[order[i]])
+                                        * 0.04,
+                                        3,
+                                    )
+                                    for i in range(len(order) - 1)
+                                ]
+
+                            logger.info(
+                                "gfx90a realtime DSpark stage trace: rank=%d "
+                                "ticks=%s coarse_us=%s tail_us=%s moe_us=%s",
+                                get_parallel().tp_rank,
+                                values,
+                                trace_deltas(coarse_order),
+                                trace_deltas(tail_order),
+                                trace_deltas(moe_order),
+                            )
+                            break
                         prepare_order = [2, 8, 9, 10, 11, 12, 13, 15, 14, 3]
                         moe_order = [6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 7]
                         required_slots = sorted(

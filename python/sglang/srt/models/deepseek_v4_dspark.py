@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Iterable, List, Optional, Tuple
 
 import msgspec
@@ -621,6 +622,25 @@ class DSparkV4Stage(DeepseekV4DecoderLayer):
         self.stage_id = stage_id
         self.dim = config.hidden_size
 
+        # The target-layer trace selector cannot address DSpark stages without
+        # also tracing target layers 0--2: DSpark's checkpoint feature IDs
+        # (40--42) are not its local stage IDs (0--2).  Keep a separate,
+        # default-off selector so a draft-only graph can be decomposed without
+        # changing native AR or inserting markers into the target graph.
+        trace_stage = int(
+            os.getenv("SGLANG_DSPARK_GFX90A_REALTIME_TRACE_STAGE", "-1")
+        )
+        if trace_stage == self.stage_id and self._gfx90a_realtime_trace is None:
+            del self._gfx90a_realtime_trace
+            self.register_buffer(
+                "_gfx90a_realtime_trace",
+                torch.zeros(32, dtype=torch.uint64, device="cuda"),
+                persistent=False,
+            )
+            self._gfx90a_realtime_trace_kind = "dspark_stage"
+            self.self_attn._gfx90a_realtime_trace = self._gfx90a_realtime_trace
+            self.mlp._gfx90a_realtime_trace = self._gfx90a_realtime_trace
+
         if stage_id == 0:
             if num_target_layers <= 0:
                 raise ValueError(
@@ -687,21 +707,44 @@ class DSparkV4Stage(DeepseekV4DecoderLayer):
         hidden_states: torch.Tensor,
         forward_batch: ForwardBatch,
     ) -> torch.Tensor:
+        realtime_trace = self._gfx90a_realtime_trace
+
+        def mark(slot: int) -> None:
+            if realtime_trace is not None:
+                from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                    gfx90a_realtime_marker,
+                )
+
+                gfx90a_realtime_marker(realtime_trace, slot)
+
+        # DSpark stages override DeepseekV4DecoderLayer.forward, so provide the
+        # four coarse boundaries that the inherited attention/MoE modules do
+        # not emit.  The attention still owns slots 2--5 and the routed MoE
+        # owns the fine-grained slots 16--24.  With tracing disabled
+        # `_gfx90a_realtime_trace` is None and this adds no device work.
+        mark(0)
         residual = hidden_states
         x, post, comb = self._hc_pre_block(
             hidden_states, self.hc_attn_fn, self.hc_attn_scale, self.hc_attn_base
         )
         x = self.input_layernorm(x)
+        mark(1)
+        mark(2)
         with self.self_attn.maybe_use_decode_attn_tp(forward_batch):
             x = self.self_attn(positions, x, forward_batch)
+        mark(3)
         x = self._hc_post_block(x, residual, post, comb)
+        mark(4)
 
         residual = x
         x, post, comb = self._hc_pre_block(
             x, self.hc_ffn_fn, self.hc_ffn_scale, self.hc_ffn_base
         )
         x = self.post_attention_layernorm(x)
+        mark(5)
+        mark(6)
         x = self._run_ffn(x, forward_batch)
+        mark(7)
         x = self._hc_post_block(x, residual, post, comb)
         return x
 
