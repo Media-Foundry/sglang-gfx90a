@@ -1852,6 +1852,7 @@ class MQALayer(MqaAttentionBase):
         forward_batch: ForwardBatch,
         x_quant=None,
         tp8_hidden_shard_output: bool = False,
+        defer_output_all_reduce: bool = False,
     ) -> torch.Tensor:
         realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
 
@@ -2185,6 +2186,12 @@ class MQALayer(MqaAttentionBase):
             else:
                 o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
                 o = get_tp_group().reduce_scatter_along_dim(o, dim=-1).contiguous()
+        elif defer_output_all_reduce:
+            if self.attn_tp_size != get_parallel().tp_size:
+                raise RuntimeError(
+                    "deferred attention reduction requires attn TP == global TP"
+                )
+            o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
         elif debug_attn:
             o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
             dump_attn("wo_b_partial", o)
@@ -2217,6 +2224,82 @@ class MQALayer(MqaAttentionBase):
 
 
 class DeepseekV4DecoderLayer(nn.Module):
+    @staticmethod
+    def _token_row_owner_slice(x: torch.Tensor) -> torch.Tensor:
+        tp_group = get_tp_group()
+        if x.shape[0] % tp_group.world_size:
+            raise RuntimeError("token-row ownership requires rows divisible by TP")
+        rows = x.shape[0] // tp_group.world_size
+        lo = tp_group.rank_in_group * rows
+        return x.narrow(0, lo, rows).contiguous()
+
+    @staticmethod
+    def _token_row_reduce_scatter(x: torch.Tensor) -> torch.Tensor:
+        tp_group = get_tp_group()
+        ca_comm = tp_group.ca_comm
+        if ca_comm is None or getattr(ca_comm, "disabled", True):
+            raise RuntimeError("token-row ownership requires AIter custom collectives")
+        out = torch.empty(
+            (x.shape[0] // tp_group.world_size, *x.shape[1:]),
+            dtype=x.dtype,
+            device=x.device,
+        )
+        ca_comm.reduce_scatter(x.contiguous(), out, registered=False)
+        return out
+
+    @staticmethod
+    def _token_row_all_gather(x: torch.Tensor) -> torch.Tensor:
+        tp_group = get_tp_group()
+        ca_comm = tp_group.ca_comm
+        if ca_comm is None or getattr(ca_comm, "disabled", True):
+            raise RuntimeError("token-row ownership requires AIter custom collectives")
+        out = torch.empty(
+            (x.shape[0] * tp_group.world_size, *x.shape[1:]),
+            dtype=x.dtype,
+            device=x.device,
+        )
+        ca_comm.all_gather_unreg(x.contiguous(), out=out, dim=0)
+        return out
+
+    @staticmethod
+    def _token_row_mhc_post_pre(
+        layer_input: torch.Tensor,
+        residual: torch.Tensor,
+        post: torch.Tensor,
+        comb: torch.Tensor,
+        fn_fp16: torch.Tensor,
+        hc_scale: torch.Tensor,
+        hc_base: torch.Tensor,
+        norm_weight: torch.Tensor,
+        rms_eps: float,
+        hc_eps: float,
+        norm_eps: float,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, bool]:
+        from sglang.kernels.ops.layernorm.gfx90a_mhc_post_pre import (
+            gfx90a_mhc_post_pre,
+        )
+
+        if fn_fp16 is None:
+            raise RuntimeError("token-row MHC requires the prepacked FP16 fn matrix")
+        native = gfx90a_mhc_post_pre(
+            layer_input,
+            residual,
+            post,
+            comb,
+            fn_fp16,
+            hc_scale,
+            hc_base,
+            norm_weight.bfloat16().contiguous(),
+            rms_eps,
+            hc_eps,
+            _MHC_POST_MULT_VALUE,
+            norm_eps,
+        )
+        if native is None:
+            raise RuntimeError("gfx90a token-row MHC rejected the owner-local shape")
+        residual_out, post_out, comb_out, normalized = native
+        return residual_out, normalized, post_out, comb_out, True
+
     def __init__(
         self,
         config: DeepSeekV4Config,
@@ -3026,6 +3109,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         prev_post: Optional[torch.Tensor] = None,
         prev_comb: Optional[torch.Tensor] = None,
         return_completed_prev: bool = False,
+        token_row_owner: bool = False,
     ):
         realtime_trace = self._gfx90a_realtime_trace
 
@@ -3038,7 +3122,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 gfx90a_realtime_marker(realtime_trace, slot)
 
         mark(0)
-        use_fused = self.use_fused_mhc_post_pre
+        use_fused = self.use_fused_mhc_post_pre or token_row_owner
         completed_prev = None
         debug_stage_dir = os.getenv("SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR")
         debug_target_pos = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_POSITION", "-1"))
@@ -3102,13 +3186,33 @@ class DeepseekV4DecoderLayer(nn.Module):
                     once=True,
                 )
 
+        if token_row_owner:
+            if not use_fused:
+                raise RuntimeError("token-row ownership requires fused cross-layer MHC")
+            if prev_residual is None:
+                hidden_states = self._token_row_owner_slice(hidden_states)
+            else:
+                hidden_states = self._token_row_reduce_scatter(hidden_states)
+
         if prev_residual is not None and use_fused:
             input_norm_weight = (
                 self._input_layernorm_weight_bf16
                 if self._input_layernorm_weight_bf16 is not None
                 else self.input_layernorm.weight.data
             )
-            fused = apply_mhc_post_pre_boundary(
+            fused = self._token_row_mhc_post_pre(
+                hidden_states,
+                prev_residual,
+                prev_post,
+                prev_comb,
+                self._hc_attn_fn_fp16,
+                self.hc_attn_scale,
+                self.hc_attn_base,
+                input_norm_weight,
+                self.rms_norm_eps,
+                self.hc_eps,
+                self.input_layernorm.variance_epsilon,
+            ) if token_row_owner else apply_mhc_post_pre_boundary(
                 hidden_states,
                 prev_residual,
                 prev_post,
@@ -3219,6 +3323,13 @@ class DeepseekV4DecoderLayer(nn.Module):
                 x_quant = None
         dump_stage("attn_norm", hidden_states)
 
+        if token_row_owner:
+            hidden_states = self._token_row_all_gather(hidden_states)
+            # Any fused quant tensor was produced for owner-local rows.  Let
+            # attention quantize the published full-row tensor instead of
+            # accidentally pairing local quant metadata with gathered input.
+            x_quant = None
+
         mark(1)
         self._run_tp8_output_n_projection(hidden_states, forward_batch)
         with self.self_attn.maybe_use_decode_attn_tp(forward_batch):
@@ -3227,6 +3338,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 positions=positions,
                 forward_batch=forward_batch,
                 x_quant=x_quant,
+                defer_output_all_reduce=token_row_owner,
             )
         dump_stage("attn_out", hidden_states)
         dump_stage("ffn_mhc_residual", residual)
@@ -3240,13 +3352,28 @@ class DeepseekV4DecoderLayer(nn.Module):
         )
         dump_stage("router_weight", self.mlp.gate.weight, once=True)
 
+        if token_row_owner:
+            hidden_states = self._token_row_reduce_scatter(hidden_states)
+
         if use_fused:
             post_attn_norm_weight = (
                 self._post_attention_layernorm_weight_bf16
                 if self._post_attention_layernorm_weight_bf16 is not None
                 else self.post_attention_layernorm.weight.data
             )
-            fused = apply_mhc_post_pre_boundary(
+            fused = self._token_row_mhc_post_pre(
+                hidden_states,
+                residual,
+                post,
+                comb,
+                self._hc_ffn_fn_fp16,
+                self.hc_ffn_scale,
+                self.hc_ffn_base,
+                post_attn_norm_weight,
+                self.rms_norm_eps,
+                self.hc_eps,
+                self.post_attention_layernorm.variance_epsilon,
+            ) if token_row_owner else apply_mhc_post_pre_boundary(
                 hidden_states,
                 residual,
                 post,
@@ -3326,11 +3453,14 @@ class DeepseekV4DecoderLayer(nn.Module):
             dump_stage("ffn_norm", hidden_states)
 
         mark(6)
+        if token_row_owner:
+            hidden_states = self._token_row_all_gather(hidden_states)
         hidden_states = self._run_moe_ffn_dp_sync(
             hidden_states,
             forward_batch,
             input_ids=input_ids,
             input_ids_global=input_ids_global,
+            defer_tp_shared_output=token_row_owner,
         )
         mark(7)
         dump_stage("ffn_out", hidden_states)
@@ -3344,6 +3474,8 @@ class DeepseekV4DecoderLayer(nn.Module):
 
         # Return the deferred FFN hc_post state; the next layer consumes it with
         # cross-layer fusion, and the final layer is completed in DeepseekV4Model.
+        if token_row_owner:
+            return hidden_states, residual, post, comb
         if return_completed_prev:
             return hidden_states, residual, post, comb, completed_prev
         return hidden_states, residual, post, comb
@@ -3355,6 +3487,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         *,
         input_ids: torch.Tensor,
         input_ids_global: torch.Tensor,
+        defer_tp_shared_output: bool = False,
     ) -> torch.Tensor:
         _use_cp = self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch)
         _use_tp_moe_gather = (
@@ -3509,7 +3642,16 @@ class DeepseekV4DecoderLayer(nn.Module):
         # Skip the MoE-internal post-experts all_reduce when we will do the
         # reduce via reduce_scatterv/reduce_scatter at the combine below
         # (else double-reduce).
-        with get_forward().scoped(mlp_reduce_scatter=mlp_reduce_scatter):
+        if defer_tp_shared_output:
+            if getattr(self.mlp, "_shared_expert_tp1", False):
+                raise RuntimeError(
+                    "token-row prefill does not support replicated TP1 shared experts"
+                )
+            if get_parallel().moe_ep_size != 1 or not get_moe_a2a_backend().is_none():
+                raise RuntimeError("token-row prefill requires EP1 and no A2A")
+        with get_forward().scoped(
+            mlp_reduce_scatter=mlp_reduce_scatter or defer_tp_shared_output
+        ):
             hidden_states = self.mlp(
                 hidden_states,
                 forward_batch,
@@ -4345,12 +4487,102 @@ class DeepseekV4Model(nn.Module):
             and get_parallel().moe_ep_size == 1
             and get_parallel().attn_dp_size == 1
         )
+        use_token_row_mhc_prefill = (
+            envs.SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL.get()
+            and _is_hip
+            and is_gfx90a_supported()
+            and forward_batch.forward_mode.is_extend_without_speculative()
+            and hidden_states.shape[0] >= 2048
+            and hidden_states.shape[0] % 4 == 0
+            and not capture_dspark
+            and not use_prefill_cp
+            and not run_tbo
+            and self.pp_group.world_size == 1
+            and get_moe_a2a_backend().is_none()
+            and get_parallel().tp_size == 4
+            and get_parallel().attn_tp_size == 4
+            and get_parallel().moe_tp_size == 4
+            and get_parallel().moe_ep_size == 1
+            and get_parallel().attn_dp_size == 1
+        )
+        if (
+            envs.SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL.get()
+            and hidden_states.shape[0] >= 2048
+            and not getattr(self, "_token_row_mhc_prefill_diag_logged", False)
+        ):
+            logger.info(
+                "TP4 token-row MHC selector: hit=%s rows=%d mode=%s "
+                "gfx90a=%s fused=%s dspark=%s cp=%s tbo=%s pp=%d "
+                "tp=%d attn_tp=%d moe_tp=%d ep=%d attn_dp=%d a2a=%s",
+                use_token_row_mhc_prefill,
+                hidden_states.shape[0],
+                forward_batch.forward_mode,
+                is_gfx90a_supported(),
+                self.use_fused_mhc_post_pre,
+                capture_dspark,
+                use_prefill_cp,
+                run_tbo,
+                self.pp_group.world_size,
+                get_parallel().tp_size,
+                get_parallel().attn_tp_size,
+                get_parallel().moe_tp_size,
+                get_parallel().moe_ep_size,
+                get_parallel().attn_dp_size,
+                get_moe_a2a_backend().value,
+            )
+            self._token_row_mhc_prefill_diag_logged = True
+        if use_token_row_mhc_prefill and any(
+            getattr(self.layers[i].mlp, "_shared_expert_tp1", False)
+            for i in range(self.start_layer, self.end_layer)
+        ):
+            raise RuntimeError(
+                "token-row prefill requires TP-sharded, not replicated, shared experts"
+            )
+        if use_token_row_mhc_prefill and not getattr(
+            self, "_token_row_mhc_prefill_logged", False
+        ):
+            logger.info(
+                "Using TP4 token-row MHC prefill for %d rows",
+                hidden_states.shape[0],
+            )
+            self._token_row_mhc_prefill_logged = True
 
         # Reset Compressor's per-step freqs_cis cache from any previous step.
         for _attr in ("freqs_cis_c4", "freqs_cis_c128"):
             if hasattr(forward_batch, _attr):
                 delattr(forward_batch, _attr)
-        if use_tp8_hidden_shard:
+        if use_token_row_mhc_prefill:
+            prev_residual, prev_post, prev_comb = None, None, None
+            last_layer = None
+            for i in range(self.start_layer, self.end_layer):
+                layer = self.layers[i]
+                last_layer = layer
+                with get_global_expert_distribution_recorder().with_current_layer(i):
+                    hidden_states, prev_residual, prev_post, prev_comb = layer(
+                        positions=positions,
+                        hidden_states=hidden_states,
+                        forward_batch=forward_batch,
+                        input_ids=input_ids,
+                        input_ids_global=input_ids_global,
+                        prev_residual=prev_residual,
+                        prev_post=prev_post,
+                        prev_comb=prev_comb,
+                        token_row_owner=True,
+                    )
+            if last_layer is not None:
+                hidden_states = last_layer._token_row_reduce_scatter(hidden_states)
+                hidden_states = last_layer.hc_post(
+                    hidden_states, prev_residual, prev_post, prev_comb
+                )
+                hidden_states = last_layer._token_row_all_gather(hidden_states)
+                # AIter's unregistered all-gather has no rank-wide completion
+                # fence.  Without one, a fast rank can enter the following
+                # registered decode graph while a peer is still retiring the
+                # eager prefill epoch and both reuse the communicator flags.
+                # A single RCCL barrier at the request/chunk boundary keeps the
+                # small next graph from racing the large prefill collective.
+                torch.distributed.barrier(group=get_tp_group().device_group)
+        elif use_tp8_hidden_shard:
             tp_group = get_tp_group()
             shard = self.hidden_size // tp_group.world_size
             lo = tp_group.rank_in_group * shard

@@ -1628,6 +1628,10 @@ class Envs:
     # Keep very large prefill batches on AIter until a tiled consumer removes
     # that O(M) workspace (M=73728 would require about 6.3 GiB per GCD).
     SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS = EnvInt(16384)
+    # Experimental TP4 prefill dataflow: reduce-scatter TP output rows, keep
+    # mHC state owner-local, then publish only the normalized rows.  Strictly
+    # guarded in DeepSeek-V4 and never entered by decode/speculative forwards.
+    SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL = EnvBool(False)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
