@@ -39,6 +39,30 @@ rank-distinct inputs.  Eager and graph outputs were bitwise exact.  The M2304
 local-compute-only two-boundary median was 752.101 us; RS+AG publication added
 1452.529 us but still remained far below duplicated full-row MHC.
 
+## Cross-boundary owner-state validation
+
+The first result used two independent boundary states.  A stricter graph now
+feeds boundary 0's owner-local residual/post/comb directly into boundary 1,
+without gathering those state tensors.  Only the normalized H4096 activation
+is republished for the intervening TP compute.  Every graph replay checks both
+the gathered activation and all three local state tensors against the matching
+slice of the full-row reference.
+
+At M2304, 1000 graph replays and seven-round rank-max ABBA remained bitwise
+exact:
+
+```text
+A: stock AR + full MHC, two chained boundaries = 4368.522 us
+B: RS + owner-local MHC + AG, chained state    = 2229.513 us
+saving                                         = 2139.009 us (49.0%)
+speedup                                        = 1.9594x
+```
+
+This proves residual/post/comb do not need to be gathered between layers.  A
+production path must keep token ownership stable and defer both the attention
+and MoE output all-reduces; enabling only one boundary would force an expensive
+state gather or break the chain.
+
 ## Decision
 
 This passes the component continuation gate by a wide margin.  It is not yet a
@@ -47,4 +71,3 @@ M divisible by four, and preserve stable scheduler row ownership.  It must
 verify whether one or both cross-layer MHC boundaries can consume owner-local
 state before republishing full rows.  France, real heterogeneous C1/C32, and
 decode negative controls are mandatory before enabling a default.
-

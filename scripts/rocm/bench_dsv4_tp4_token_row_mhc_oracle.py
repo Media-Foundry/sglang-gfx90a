@@ -62,6 +62,11 @@ def parse_args() -> argparse.Namespace:
             "owner-local MHC + all-gather"
         ),
     )
+    parser.add_argument(
+        "--chain-state",
+        action="store_true",
+        help="feed boundary-0 owner-local residual/post/comb into boundary 1",
+    )
     return parser.parse_args()
 
 
@@ -135,6 +140,24 @@ def replace_x(inp: BoundaryInputs, x: torch.Tensor) -> BoundaryInputs:
     )
 
 
+def replace_state(
+    inp: BoundaryInputs,
+    residual: torch.Tensor,
+    post: torch.Tensor,
+    comb: torch.Tensor,
+) -> BoundaryInputs:
+    return BoundaryInputs(
+        inp.x,
+        residual,
+        post,
+        comb,
+        inp.fn,
+        inp.scale,
+        inp.base,
+        inp.norm,
+    )
+
+
 def reduced_boundary(inp: BoundaryInputs, comm: CustomAllreduce):
     reduced = comm.custom_all_reduce(inp.x)
     if reduced is None:
@@ -149,10 +172,13 @@ def gathered_boundary(
     world: int,
     *,
     include_reduce_scatter: bool = False,
+    local_state: tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None = None,
 ):
     rows_per_rank = inp.x.shape[0] // world
     lo, hi = rank * rows_per_rank, (rank + 1) * rows_per_rank
     local_inp = slice_inputs(inp, lo, hi)
+    if local_state is not None:
+        local_inp = replace_state(local_inp, *local_state)
     if include_reduce_scatter:
         local_x = torch.empty_like(local_inp.x)
         # AIter's reduce_scatter writes the explicit output buffer but its
@@ -239,23 +265,48 @@ def main() -> None:
 
     # Eager correctness: local state must equal the corresponding full-row
     # state bit for bit, not merely within a floating-point tolerance.
+    if args.chain_state and not args.include_reduce_scatter:
+        raise ValueError("--chain-state requires --include-reduce-scatter")
     reference_fn = reduced_boundary if args.include_reduce_scatter else run_boundary
-    ref0 = reference_fn(inp0, comm) if args.include_reduce_scatter else reference_fn(inp0)
-    ref1 = reference_fn(inp1, comm) if args.include_reduce_scatter else reference_fn(inp1)
-    cand0 = gathered_boundary(
-        inp0,
-        comm,
-        rank,
-        world,
-        include_reduce_scatter=args.include_reduce_scatter,
-    )
-    cand1 = gathered_boundary(
-        inp1,
-        comm,
-        rank,
-        world,
-        include_reduce_scatter=args.include_reduce_scatter,
-    )
+
+    def run_reference_pair():
+        first = (
+            reference_fn(inp0, comm)
+            if args.include_reduce_scatter
+            else reference_fn(inp0)
+        )
+        second_inp = (
+            replace_state(inp1, first[0], first[1], first[2])
+            if args.chain_state
+            else inp1
+        )
+        second = (
+            reference_fn(second_inp, comm)
+            if args.include_reduce_scatter
+            else reference_fn(second_inp)
+        )
+        return first, second
+
+    def run_candidate_pair():
+        first = gathered_boundary(
+            inp0,
+            comm,
+            rank,
+            world,
+            include_reduce_scatter=args.include_reduce_scatter,
+        )
+        second = gathered_boundary(
+            inp1,
+            comm,
+            rank,
+            world,
+            include_reduce_scatter=args.include_reduce_scatter,
+            local_state=(first[0], first[1], first[2]) if args.chain_state else None,
+        )
+        return first, second
+
+    ref0, ref1 = run_reference_pair()
+    cand0, cand1 = run_candidate_pair()
     rows_per_rank = args.rows // world
     lo, hi = rank * rows_per_rank, (rank + 1) * rows_per_rank
     for reference, candidate in ((ref0, cand0), (ref1, cand1)):
@@ -270,51 +321,38 @@ def main() -> None:
     # capture context may recycle ordinary graph allocations once a second
     # graph registers its collective buffers.
     frozen_reference = (ref0[3].clone(), ref1[3].clone())
+    frozen_local_state = tuple(
+        tuple(tensor[lo:hi].clone() for tensor in reference[:3])
+        for reference in (ref0, ref1)
+    )
 
     # Two boundaries, each including publication for B.  This is intentionally
     # stricter than timing one local MHC and extrapolating its compute saving.
-    ref_graph, ref_outputs = capture(
-        comm,
-        lambda: (
-            reference_fn(inp0, comm)
-            if args.include_reduce_scatter
-            else reference_fn(inp0),
-            reference_fn(inp1, comm)
-            if args.include_reduce_scatter
-            else reference_fn(inp1),
-        ),
-    )
-    cand_graph, cand_outputs = capture(
-        comm,
-        lambda: (
-            gathered_boundary(
-                inp0,
-                comm,
-                rank,
-                world,
-                include_reduce_scatter=args.include_reduce_scatter,
-            ),
-            gathered_boundary(
-                inp1,
-                comm,
-                rank,
-                world,
-                include_reduce_scatter=args.include_reduce_scatter,
-            ),
-        ),
-    )
+    ref_graph, ref_outputs = capture(comm, run_reference_pair)
+    cand_graph, cand_outputs = capture(comm, run_candidate_pair)
     rows_per_rank = args.rows // world
     lo, hi = rank * rows_per_rank, (rank + 1) * rows_per_rank
     local0 = slice_inputs(inp0, lo, hi)
     local1 = slice_inputs(inp1, lo, hi)
-    local_graph, _ = capture(
-        comm, lambda: (run_boundary(local0), run_boundary(local1))
-    )
+    def run_local_pair():
+        first = run_boundary(local0)
+        second = run_boundary(
+            replace_state(local1, first[0], first[1], first[2])
+            if args.chain_state
+            else local1
+        )
+        return first, second
+
+    local_graph, _ = capture(comm, run_local_pair)
 
     for _ in range(args.graph_replays):
         cand_graph.replay()
     torch.cuda.synchronize()
-    for reference, candidate in zip(frozen_reference, cand_outputs):
+    for reference, local_state, candidate in zip(
+        frozen_reference, frozen_local_state, cand_outputs
+    ):
+        for expected, actual in zip(local_state, candidate[:3]):
+            torch.testing.assert_close(actual, expected, rtol=0, atol=0)
         torch.testing.assert_close(candidate[4], reference, rtol=0, atol=0)
 
     # ABBA using slowest-rank time for every repetition.
@@ -357,7 +395,11 @@ def main() -> None:
     )
     local_median = statistics.median(local_only)
     if rank == 0:
-        print("correctness=eager_bitwise_exact graph_1000_bitwise_exact", flush=True)
+        print(
+            "correctness=eager_bitwise_exact "
+            f"graph_{args.graph_replays}_bitwise_exact",
+            flush=True,
+        )
         print(f"A1_rankmax_us={[round(v, 3) for v in a1]}", flush=True)
         print(f"B1_rankmax_us={[round(v, 3) for v in b1]}", flush=True)
         print(f"B2_rankmax_us={[round(v, 3) for v in b2]}", flush=True)
@@ -378,6 +420,7 @@ def main() -> None:
         print(
             "scope=component_oracle existing_native_mhc_plus_real_aiter_collectives "
             f"incoming_reduce_scatter={'included' if args.include_reduce_scatter else 'not_included'} "
+            f"state_chain={'owner_local' if args.chain_state else 'independent'} "
             "production_not_modified",
             flush=True,
         )
