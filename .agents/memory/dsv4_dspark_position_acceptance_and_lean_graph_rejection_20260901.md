@@ -121,6 +121,21 @@ or the 5% checkpoint gate.
 
 Artifact: `/tmp/dsv4_gamma3_ar12_full_graph_49k_1024_2r.json`.
 
+## Accepted AR12 + M32 gate-row-prefetch composition
+
+The two exact single-variable candidates above were subsequently tested as a
+composition.  On the same TP4/EP1/no-A2A, gamma-three, 49K/full-tier profile,
+the combined candidate reached `1531.62 / 1547.83 / 1544.34 tok/s`; its exact
+rollback (`AR_1M_BLOCKS=80`, row prefetch off) reached
+`1439.50 / 1472.90 / 1378.69 tok/s`.  Mean and median improvements were
+`+7.75%` and `+7.28%`, respectively.  A fresh service using launcher defaults,
+with no caller overrides, then produced `1506.03 / 1491.89 / 1514.87 tok/s`
+(mean `1504.26`, median `1506.03`) and passed the France semantic oracle 3/3.
+
+The defaults are scoped to the TP4/BS32 DSpark command, leaving native AR
+unchanged.  Full evidence and artifact paths are in
+`dsv4_dspark_ar12_m32_rowprefetch_checkpoint_20260901.md`.
+
 ## M128 MHC geometry and M32 row-prefetch rejections
 
 The exact wave64 M128 MHC kernel was re-swept before another service launch.

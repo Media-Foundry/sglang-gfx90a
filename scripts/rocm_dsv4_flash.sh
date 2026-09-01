@@ -145,6 +145,14 @@ case "${COMMAND}" in
     ;;
 esac
 if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
+  # The DSpark draft graph repeatedly reduces the 1-MiB HC/attention tensor.
+  # Twelve gfx90a CTAs retain the exact AIter owner/reduction order while
+  # avoiding the generic 80-CTA launch tail.  Combined with the exact M32
+  # gate-row prefetch below, three 32x1024 heterogeneous-request rounds reached
+  # 1531.62/1547.83/1544.34 tok/s versus a 1439.50/1472.90/1378.69 rollback.
+  # Keep both defaults inside the DSpark profile so native AR is untouched.
+  export AITER_GFX90A_AR_1M_BLOCKS="${AITER_GFX90A_AR_1M_BLOCKS:-12}"
+  export SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH:-1}"
   # With routed MoE retained only on exact anchor rows, gamma=3 raises accepted
   # length enough to beat gamma=1 despite its longer attention path. Two
   # independent candidate services centered near 876 tok/s versus 826 tok/s
