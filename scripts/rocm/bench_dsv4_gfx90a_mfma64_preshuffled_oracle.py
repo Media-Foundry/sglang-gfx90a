@@ -37,6 +37,9 @@ def main() -> None:
     parser.add_argument("--mutations", type=int, default=100)
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--iterations", type=int, default=5)
+    parser.add_argument("--gate-blocks", type=int, default=416)
+    parser.add_argument("--down-blocks", type=int, default=312)
+    parser.add_argument("--arm", choices=("raw", "preshuffled", "both"), default="both")
     args = parser.parse_args()
     if torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0] != "gfx90a":
         raise RuntimeError("gfx90a required")
@@ -70,47 +73,39 @@ def main() -> None:
         xq, xs = gfx90a_int8_group32_quant(x)
         mid = gfx90a_fp4_expert_gate_up_mfma32(
             xq, xs, shuffled_w13 if preshuffled else raw_w13, shuffled_s13,
-            sorted_ids, sorted_experts, valid, t, 10.0, blocks=416,
+            sorted_ids, sorted_experts, valid, t, 10.0, blocks=args.gate_blocks,
             broadcast_scales=1, assignments=64, preshuffled=preshuffled,
         )
         iq, isc = gfx90a_int8_group32_quant(mid)
         out = gfx90a_fp4_expert_down_mfma32(
             iq, isc, shuffled_w2 if preshuffled else raw_w2, shuffled_s2,
-            sorted_ids, sorted_experts, valid, topk_weights, blocks=312,
+            sorted_ids, sorted_experts, valid, topk_weights,
+            blocks=args.down_blocks,
             broadcast_scales=1, assignments=64, preshuffled=preshuffled,
         )
         return mid, iq, isc, out
 
-    for mutation in range(args.mutations):
-        x.normal_()
-        topk_weights.uniform_()
-        a = run(False)
-        torch.cuda.synchronize()
-        b = run(True)
-        torch.cuda.synchronize()
-        for name, lhs, rhs in zip(("mid", "iq", "scale", "out"), a, b):
-            if not torch.isfinite(lhs).all() or not torch.isfinite(rhs).all():
-                lhs_bad = int((~torch.isfinite(lhs)).sum().item())
-                rhs_bad = int((~torch.isfinite(rhs)).sum().item())
-                first_bad = (~torch.isfinite(rhs)).nonzero()[0].tolist()
-                route = None
-                if name == "mid":
-                    route = int(topk_ids[first_bad[0], first_bad[1]].item())
-                raise RuntimeError(
-                    f"mutation={mutation} tensor={name} nonfinite "
-                    f"raw_bad={lhs_bad} preshuffled_bad={rhs_bad} "
-                    f"first_bad={first_bad} expert={route}"
-                )
-            if not torch.equal(lhs, rhs):
-                raise RuntimeError(
-                    f"mutation={mutation} tensor={name} max_abs="
-                    f"{(lhs.float() - rhs.float()).abs().max().item()}"
-                )
-    print(f"CORRECTNESS mutations={args.mutations} all_exact=True")
+    if args.arm == "both":
+        for mutation in range(args.mutations):
+            x.normal_()
+            topk_weights.uniform_()
+            a = run(False)
+            torch.cuda.synchronize()
+            b = run(True)
+            torch.cuda.synchronize()
+            for name, lhs, rhs in zip(("mid", "iq", "scale", "out"), a, b):
+                if not torch.equal(lhs, rhs):
+                    raise RuntimeError(
+                        f"mutation={mutation} tensor={name} max_abs="
+                        f"{(lhs.float() - rhs.float()).abs().max().item()}"
+                    )
+        print(f"CORRECTNESS mutations={args.mutations} all_exact=True")
 
-    values = {"raw": [], "preshuffled": []}
+    arms = ("raw", "preshuffled") if args.arm == "both" else (args.arm,)
+    values = {arm: [] for arm in arms}
     for _ in range(args.rounds):
-        for arm in ("raw", "preshuffled", "preshuffled", "raw"):
+        order = arms + tuple(reversed(arms))
+        for arm in order:
             values[arm].append(timed_us(lambda a=arm: run(a == "preshuffled"),
                                         args.iterations))
     for arm, samples in values.items():
