@@ -214,3 +214,28 @@ France:      false /   false /   false
 The learned-Top5 approximation both failed semantic correctness 0/3 and
 reduced acceptance.  All model, runner and environment wiring was removed.
 Artifact: `/tmp/dsv4_gamma3_m128_learned_top5_256_r3.json`.
+
+## Gamma-three official full-block draft-attention recheck
+
+The checkpoint's official full-block draft-attention mode was rechecked after
+the CPU-length and live-`swa_loc` graph fixes, rather than relying on the older
+pre-fix rejection.  It changed only the DSpark draft proposal; target anchor
+math, original weights, gamma three, the 49K pool and all graph tiers stayed
+unchanged.
+
+Two real32 1024-token rounds produced:
+
+```text
+resident: 1413.26 / 1479.45 tok/s, mean 1446.36
+accept:      3.560 /   3.634
+France:      false /   false
+```
+
+The accepted control remains 1459.66/1442.98 (mean 1451.32, France 2/2).
+Full-block attention therefore neither improves the long-window center nor
+passes semantic correctness on the current stack.  Keep
+`SGLANG_DSPARK_FULL_BLOCK_ATTN=0`.  The remaining acceptance opportunity needs
+a fixed-input graph/eager proposal first-divergence audit rather than another
+mask switch.
+
+Artifact: `/tmp/dsv4_gamma3_fullblock_49k_1024_r2.json`.

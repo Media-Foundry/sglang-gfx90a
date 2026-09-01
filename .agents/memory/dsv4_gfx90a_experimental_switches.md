@@ -4329,3 +4329,8 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   France 0/3 and produced only `1219.75/1166.01/1179.89 tok/s`, with mean
   acceptance `2.87--3.01`.  It harms both quality and acceptance; all wiring
   was removed.  Do not prune target-anchor experts further.
+- Official full-block draft attention was rechecked after the CPU-length and
+  live-`swa_loc` fixes.  Gamma3/49K real32 1024-token rounds were
+  `1413.26/1479.45 tok/s` (mean 1446.36), acceptance `3.560/3.634`, and France
+  0/2, versus control mean 1451.32 and France 2/2.  Keep it disabled; the next
+  acceptance investigation must compare fixed-input draft graph/eager states.
