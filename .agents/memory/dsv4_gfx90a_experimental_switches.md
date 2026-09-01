@@ -4320,3 +4320,12 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   tail `73.3--80.2 us`.  Marker logging depresses HTTP throughput and is only
   localization evidence.  The remaining ~60-us/layer target budget must come
   from a new routed-stage work decomposition, not accumulated small switches.
+- Exact R1/W4 gate/up phase fission was 100-mutation and 1000-graph-replay
+  bitwise exact, but split grids 1664/2080/2496/3120 took
+  `405.38/391.33/381.52/375.13 us` versus the combined R2/W8 gate at
+  `246.07 us`.  Two phase launches and doubled R1 task setup overwhelm the
+  lower accumulator pressure; remove the oracle.
+- Strict DSpark M128 learned-router Top5 (hash layers remain Top6) failed
+  France 0/3 and produced only `1219.75/1166.01/1179.89 tok/s`, with mean
+  acceptance `2.87--3.01`.  It harms both quality and acceptance; all wiring
+  was removed.  Do not prune target-anchor experts further.

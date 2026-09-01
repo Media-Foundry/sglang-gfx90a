@@ -183,3 +183,34 @@ scatter/add, and geometry switches cannot supply it.
 
 Artifact: `/tmp/dsv4_gamma3_m128_marker_256.json`; raw marker lines are in the
 corresponding `/tmp/sglang_dsv4_flash_dspark.log` from the diagnostic service.
+
+## Gate phase-fission and learned-Top5 rejections
+
+An exact R1/W4 gate/up phase-fission oracle split the current combined kernel
+into a gate projection writing FP32 `[32,6,512]` scratch and a separate up
+projection consuming that scratch.  It preserved the production SDOT, scale,
+DPP reduction and bounded-SwiGLU order.  All 100 input mutations and 1000 graph
+replays were bitwise exact.  The current R2/W8 combined gate measured
+246.07 us, while split grids 1664/2080/2496/3120 measured
+405.38/391.33/381.52/375.13 us.  The extra phase launch, second LUT setup and
+R1 task expansion dominate any occupancy improvement.  The oracle code was
+removed; do not revisit projection fission without a single-launch primitive.
+
+The only approximate target-only experiment with a sufficient theoretical
+budget then retained Top-6 in the first three hash-router layers but dropped
+the sixth learned expert in the remaining layers.  It was subordinate to the
+existing TARGET_VERIFY/BS32/width4/M128/pre-router-compaction guard and never
+affected AR.  Because invalid assignments leave fixed-slot partials unwritten,
+the experimental runner also cleared its M32 partial buffer before reduction.
+
+Three real32 256-token rounds were:
+
+```text
+resident: 1219.75 / 1166.01 / 1179.89 tok/s
+accept:      2.965 /   2.874 /   3.007
+France:      false /   false /   false
+```
+
+The learned-Top5 approximation both failed semantic correctness 0/3 and
+reduced acceptance.  All model, runner and environment wiring was removed.
+Artifact: `/tmp/dsv4_gamma3_m128_learned_top5_256_r3.json`.
