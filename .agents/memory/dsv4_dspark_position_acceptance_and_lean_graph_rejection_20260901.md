@@ -299,3 +299,25 @@ than removing a critical host bottleneck.  The temporary launcher passthrough
 was removed.
 
 Artifact: `/tmp/dsv4_gamma3_recv2_49k_1024_r2.json`.
+
+## Confidence-budgeted gamma-three M96 rejection
+
+A strict compact-ragged M96 experiment kept gamma three but forced the planner
+to verify only two thirds of the 96 draft rows.  The 32 mandatory anchors plus
+64 confidence-selected drafts fit an exact 96-token graph.  A temporary
+TARGET_VERIFY/BS32/width4/M96 guard derived live anchor rows from
+`qo_indptr_device`, retained routed MoE only on those anchors, and left AR
+unreachable.  Focused guard tests passed 4/4 before service launch.
+
+The first real32 256-token screening round was decisive:
+
+```text
+resident: 992.34 tok/s
+accept:     2.590
+France:     semantic Paris
+```
+
+The M96 graph savings did not offset the valuable removed drafts and the
+non-compacted M96 router/top-k work.  This is far below the current gamma-three
+short-window rate, so no long run was made.  All M96 model/env/test wiring was
+removed.  Artifact: `/tmp/dsv4_gamma3_m96_budget66_256_r1.json`.

@@ -4346,3 +4346,8 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `1428.594/1428.597 tok/s`, acceptance `3.533/3.512`, and France 2/2, but is
   1.6% below the interval-one control mean.  Remove the temporary launcher
   passthrough; scheduler polling is not the missing 3%.
+- A compact gamma3 M96 graph with 32 anchors plus the 64 highest-confidence
+  draft rows, and a strict ragged anchor-only routed mask, reached only
+  `992.34 tok/s`, acceptance 2.590, in the first real32 256-token round.
+  France remained Paris, but graph savings did not offset lost drafts and
+  M96 router/top-k work.  Remove all temporary M96 wiring.
