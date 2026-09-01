@@ -155,3 +155,31 @@ random BF16 mutations were bitwise identical.  Captured graph medians were
 12.23 us for the existing chain and 8.70 us for the candidate, only 3.53 us
 per layer (about 0.15 ms per 43-layer step, below 0.2%).  The code was removed
 without a service launch because it cannot materially close the 3.4% gap.
+
+## Current gamma-three M128 rank-max localization
+
+A diagnostic-only layer-20 realtime-marker service was captured on the same
+49K/full-tier profile.  The marker logger deliberately synchronizes every 64
+replays, so its HTTP rate (1139 tok/s over a short 256-token round) is not a
+performance checkpoint.  France remained semantically correct and all 32
+heterogeneous requests returned 256 tokens.
+
+At the full BS32 M128 target tier, four-rank values were tightly grouped.  The
+coarse layer span was about 1.43 ms/rank.  Fine MoE medians were approximately:
+
+```text
+router projection:       32.6--34.2 us
+top-k:                   12.5--12.8 us
+compact M32 routed MoE: 453.1--459.0 us
+shared/routed join/add:   8.5--9.1 us
+TP4 all-reduce tail:     73.3--80.2 us
+```
+
+Once requests began leaving the full tier, the observed layer fell to roughly
+0.95 ms and routed work to 262--268 us.  The diagnostic confirms that closing
+the conservative 1451.32-to-1500 gap requires about 60 us/layer and that only
+the compact routed stage still has that local budget.  Existing MHC, router,
+scatter/add, and geometry switches cannot supply it.
+
+Artifact: `/tmp/dsv4_gamma3_m128_marker_256.json`; raw marker lines are in the
+corresponding `/tmp/sglang_dsv4_flash_dspark.log` from the diagnostic service.

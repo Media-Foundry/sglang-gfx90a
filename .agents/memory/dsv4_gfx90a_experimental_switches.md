@@ -4314,3 +4314,9 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   exact, but its captured zero/scatter/add chain improved only
   `12.23 -> 8.70 us/layer`.  This is below 0.2% of the full step; remove the
   prototype without spending a service launch.
+- Current 49K gamma3/M128 layer-20 rank-max markers put the full-tier layer at
+  about `1.43 ms`; fine MoE is router `32.6--34.2 us`, top-k `12.5--12.8 us`,
+  compact M32 routed `453.1--459.0 us`, join/add `8.5--9.1 us`, and TP4 AR
+  tail `73.3--80.2 us`.  Marker logging depresses HTTP throughput and is only
+  localization evidence.  The remaining ~60-us/layer target budget must come
+  from a new routed-stage work decomposition, not accumulated small switches.
