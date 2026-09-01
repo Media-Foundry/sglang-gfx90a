@@ -551,6 +551,11 @@ class AiterRunnerCore(MoeRunnerCore):
             use_grouped_prefill = (
                 gate_prequant is not None
                 and envs.SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL.get()
+                # Every current custom down variant materializes an FP32
+                # [M, topk, hidden] partial.  Keep oversized prefill batches
+                # on AIter until that workspace is tiled or fused away.
+                and runner_input.hidden_states.shape[0]
+                <= envs.SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS.get()
                 and quant_info.expert_mask is None
                 and runner_input.num_local_tokens is None
             )
@@ -570,6 +575,8 @@ class AiterRunnerCore(MoeRunnerCore):
                     # chunk.  At M=512 the current group-8 sdot path is still
                     # faster once the stage-2 reduction is included.
                     runner_input.hidden_states.shape[0] >= 1024
+                    and runner_input.hidden_states.shape[0]
+                    <= envs.SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS.get()
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 )
                 num_prefill_tokens = runner_input.hidden_states.shape[0]

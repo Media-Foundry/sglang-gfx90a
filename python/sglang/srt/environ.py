@@ -1624,6 +1624,10 @@ class Envs:
     # For M>=2048, group 64 routed rows per expert so the MFMA gate/down pair
     # shares one sorter layout and scans each expert's packed weights once.
     SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL = EnvBool(False)
+    # The exact down kernel materializes an FP32 [M, topk, hidden] partial.
+    # Keep very large prefill batches on AIter until a tiled consumer removes
+    # that O(M) workspace (M=73728 would require about 6.3 GiB per GCD).
+    SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS = EnvInt(16384)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
