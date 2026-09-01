@@ -4342,3 +4342,7 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `568.47 tok/s`, acceptance 1.803, and failed France in its first 32x1024
   real-code round.  Full M128 routed verification overwhelms sparse code
   matches; stop before a second 70-second round and retain DSpark.
+- Gamma3 `scheduler_recv_interval=2` gave a very stable
+  `1428.594/1428.597 tok/s`, acceptance `3.533/3.512`, and France 2/2, but is
+  1.6% below the interval-one control mean.  Remove the temporary launcher
+  passthrough; scheduler polling is not the missing 3%.

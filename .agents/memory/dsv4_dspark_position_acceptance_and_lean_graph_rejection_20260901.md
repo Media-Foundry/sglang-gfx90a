@@ -279,3 +279,23 @@ a roughly 2.55x resident regression versus the 1451.32 DSpark control.  Code
 repetition did not supply enough NGRAM matches to offset full target cost.
 Do not use standalone NGRAM as the four-GCD BS32 profile or mix this number
 with DSpark throughput.
+
+## Scheduler receive interval rejection
+
+The launcher was temporarily given a default-inert environment passthrough so
+the current DSpark profile could test `scheduler_recv_interval=2` while
+retaining client `stream_interval=1`.  Two real32 1024-token rounds were nearly
+identical:
+
+```text
+resident: 1428.594 / 1428.597 tok/s
+accept:      3.533 /    3.512
+France:       true /     true
+```
+
+This is stable but 1.6% below the 1451.32 control mean.  As with the older TP8
+interval-four test, reducing scheduler receive frequency adds latency rather
+than removing a critical host bottleneck.  The temporary launcher passthrough
+was removed.
+
+Artifact: `/tmp/dsv4_gamma3_recv2_49k_1024_r2.json`.
