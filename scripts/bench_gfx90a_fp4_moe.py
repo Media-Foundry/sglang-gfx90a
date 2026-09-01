@@ -69,7 +69,9 @@ def timed_ms(fn, warmup: int, iterations: int, rounds: int):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", choices=("gate", "down"), required=True)
-    parser.add_argument("--m", type=int, choices=(512, 1024, 2048), default=2048)
+    parser.add_argument(
+        "--m", type=int, choices=(512, 1024, 2048, 4096), default=2048
+    )
     parser.add_argument("--blocks", type=int, required=True)
     parser.add_argument("--split", type=int, choices=(2, 4, 8), required=True)
     parser.add_argument("--broadcast-scales", type=int, choices=(0, 1), default=1)
