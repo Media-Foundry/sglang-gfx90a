@@ -28,14 +28,16 @@ using R2T_T = int32_t;
 using F2S_T = int64_t;
 using IDX_T = int64_t;
 
-/// NOTE: for the internal use, we pack the ragged and batch id, since both not exceed 65536
+inline constexpr uint32_t kRaggedIdBits = 20;
+inline constexpr uint32_t kRaggedIdMask = (1u << kRaggedIdBits) - 1u;
+
+/// Stage-0 WritePlan packs a <=1M ragged id and a <=4095 batch id.
 SGL_DEVICE __host__ PlanW pack_w(uint32_t ragged_id, uint32_t batch_id, int32_t seq_len) {
-  return {static_cast<uint32_t>(ragged_id | batch_id << 16), seq_len};
+  return {static_cast<uint32_t>(ragged_id | batch_id << kRaggedIdBits), seq_len};
 }
 
-/// NOTE: for the internal use, we pack the ragged and batch id, since both not exceed 65536
 SGL_DEVICE uint2 unpack_w(PlanW plan) {
-  return {static_cast<uint16_t>(plan.ragged_id), static_cast<uint16_t>(plan.ragged_id >> 16)};
+  return {plan.ragged_id & kRaggedIdMask, plan.ragged_id >> kRaggedIdBits};
 }
 
 struct Prefill0Params {
@@ -193,8 +195,8 @@ __global__ __launch_bounds__(1024, 1)  //
         const uint32_t out_idx = atomicAdd(&counter_c, 1u);
         params.plan_c[out_idx] = {
             .seq_len = static_cast<uint32_t>(position + 1),
-            .ragged_id = static_cast<uint16_t>(ragged_id),
             .buffer_len = static_cast<uint16_t>(buffer_len),
+            .ragged_id = ragged_id,
             .read_page_0 = -1,
             .read_page_1 = static_cast<int32_t>(batch_id),
         };
@@ -228,8 +230,8 @@ __global__ __launch_bounds__(1024, 1)  //
           const uint32_t out_idx = atomicAdd(&counter_c, 1u);
           params.plan_c[out_idx] = {
               .seq_len = static_cast<uint32_t>(position + 1),
-              .ragged_id = static_cast<uint16_t>(ragged_id),
               .buffer_len = static_cast<uint16_t>(buffer_len),
+              .ragged_id = ragged_id,
               .read_page_0 = -1,
               .read_page_1 = static_cast<int32_t>(batch_id),
           };
@@ -501,7 +503,7 @@ inline PrefillPlan plan_compress_prefill(
   const auto f2s_ptr = static_cast<const F2S_T*>(full_to_state.data_ptr());
 
   const auto batch_size = static_cast<uint32_t>(B.unwrap());
-  constexpr auto kMaxTokens = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+  constexpr auto kMaxTokens = kRaggedIdMask;
   RuntimeCheck(compress_ratio == 4 || compress_ratio == 128);
   RuntimeCheck(batch_size <= num_q_tokens && num_q_tokens <= kMaxTokens);
   // `swa_page_size` >= `ring_size` >= `compress_ratio`
@@ -591,8 +593,8 @@ inline PrefillPlan plan_compress_prefill(
         const auto buffer_len = window_size - std::min(j + 1, window_size);
         plan_c_ptr[counter_c++] = {
             .seq_len = static_cast<uint32_t>(position + 1),
-            .ragged_id = static_cast<uint16_t>(ragged_id),
             .buffer_len = static_cast<uint16_t>(buffer_len),
+            .ragged_id = static_cast<uint32_t>(ragged_id),
             // to be filled by kernel
             .read_page_0 = -1,
             .read_page_1 = static_cast<int32_t>(i),
@@ -739,7 +741,7 @@ inline PrefillPlan plan_compress_prefill_legacy(
 
   const auto window_size = compress_ratio * (is_overlap ? 2 : 1);
   const auto batch_size = static_cast<uint32_t>(B.unwrap());
-  constexpr auto kMaxTokens = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+  constexpr auto kMaxTokens = kRaggedIdMask;
   RuntimeCheck(compress_ratio == 4 || compress_ratio == 128);
   RuntimeCheck(batch_size <= num_q_tokens && num_q_tokens <= kMaxTokens);
 
@@ -762,8 +764,8 @@ inline PrefillPlan plan_compress_prefill_legacy(
         const auto buffer_len = window_size - std::min(j + 1, window_size);
         plan_c_ptr[counter_c++] = {
             .seq_len = static_cast<uint32_t>(position + 1),
-            .ragged_id = static_cast<uint16_t>(ragged_id),
             .buffer_len = static_cast<uint16_t>(buffer_len),
+            .ragged_id = static_cast<uint32_t>(ragged_id),
             // to be filled by kernel
             .read_page_0 = -1,
             .read_page_1 = static_cast<int32_t>(i),

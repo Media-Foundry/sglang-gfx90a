@@ -422,6 +422,9 @@ fi
 if [[ -n "${PREFILL_MAX_REQUESTS:-}" ]]; then
   server_args+=(--prefill-max-requests "${PREFILL_MAX_REQUESTS}")
 fi
+if [[ -n "${MAX_PREFILL_TOKENS:-}" ]]; then
+  server_args+=(--max-prefill-tokens "${MAX_PREFILL_TOKENS}")
+fi
 if [[ "${ENABLE_PREFILL_DELAYER:-0}" == "1" ]]; then
   server_args+=(--enable-prefill-delayer)
   if [[ -n "${PREFILL_DELAYER_QUEUE_MIN_RATIO:-}" ]]; then

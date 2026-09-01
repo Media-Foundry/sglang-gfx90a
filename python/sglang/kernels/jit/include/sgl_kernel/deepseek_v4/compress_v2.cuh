@@ -24,20 +24,27 @@ struct alignas(16) DecodePlan {
 
 /// \brief Per-token compress plan (used by c4/c128 prefill). Layout: 16 bytes.
 struct alignas(16) CompressPlan {
-  uint32_t seq_len;
-  uint16_t ragged_id;
-  uint16_t buffer_len;
+  // DSV4 serves up to 1M-token sequences while a single prefill batch may
+  // contain more than 65535 ragged rows.  Pack the small compression window
+  // beside seq_len and give ragged_id its full word without growing the plan.
+  uint32_t seq_len : 23;
+  uint32_t buffer_len : 9;
+  uint32_t ragged_id;
   int32_t read_page_0;
   /// \brief Stage 0 (CPU): batch_id (used to look up page table).
   /// \brief Stage 1 (GPU): final state-pool write location.
   int32_t read_page_1;
 
   static SGL_DEVICE __host__ CompressPlan invalid() {
-    return CompressPlan{-1u, 0, 0, -1, -1};
+    return CompressPlan{.seq_len = (1u << 23) - 1u,
+                        .buffer_len = 0,
+                        .ragged_id = 0,
+                        .read_page_0 = -1,
+                        .read_page_1 = -1};
   }
 
   SGL_DEVICE __host__ bool is_invalid() const {
-    return seq_len == -1u;
+    return seq_len == (1u << 23) - 1u;
   }
 };
 
