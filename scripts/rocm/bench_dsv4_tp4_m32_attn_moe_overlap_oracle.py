@@ -21,6 +21,10 @@ from safetensors import safe_open
 from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.paged_decode import (
     _sparse_attn_v4_paged_decode_triton,
 )
+from sglang.kernels.ops.attention.dsv4.gfx90a_unified_sparse_decode import (
+    run as run_ck_sparse,
+    workspace_size_bytes as ck_workspace_size_bytes,
+)
 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
     _jit_down_grouped,
     _jit_gate_up_grouped,
@@ -112,11 +116,30 @@ def main() -> None:
     p.add_argument("--layer", type=int, default=20)
     p.add_argument("--recorder-ranks", type=int, default=8)
     p.add_argument("--context", type=int, default=256)
+    p.add_argument(
+        "--attention-tokens", type=int, choices=(32, 96, 128), default=32
+    )
+    p.add_argument("--moe-routed-only", action="store_true")
+    p.add_argument(
+        "--shared-tokens", type=int, choices=(32, 96, 128), default=32
+    )
+    p.add_argument(
+        "--shared-with-attention",
+        action="store_true",
+        help="put the draft-lane shared expert before attention on the same stream",
+    )
+    p.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="use fixed random activations/projection weights/routes when old dumps are unavailable",
+    )
     p.add_argument("--physical-gpu", type=int, default=0)
     p.add_argument("--rounds", type=int, default=7)
     p.add_argument("--warmup", type=int, default=10)
     p.add_argument("--iterations", type=int, default=30)
     args = p.parse_args()
+    if args.moe_routed_only and args.shared_with_attention:
+        raise RuntimeError("shared-with-attention requires the shared expert")
     require_physical_gpu(args.physical_gpu)
     # The paged-decode selector reads live topology even in a standalone
     # oracle.  Use its documented test-only override instead of initializing a
@@ -128,13 +151,46 @@ def main() -> None:
     def dump(rank: int, name: str):
         return torch.load(args.dump / f"layer_{args.layer}_rank_{rank}_{name}.pt", map_location="cpu", weights_only=True)
 
-    x = dump(0, "attn_norm").to(dev)
-    projections = [dump(0, name).to(dev) for name in (
-        "projection_wqkv_a", "projection_core_compressor",
-        "projection_index_compressor", "projection_index_weights")]
-    projection_out = [torch.empty((M, w.shape[0]), dtype=torch.bfloat16, device=dev) for w in projections]
-    q = torch.cat((dump(0, "q"), dump(1, "q")), dim=1).to(dev)
-    inv = torch.cat((dump(0, "attn_inverse_rope"), dump(1, "attn_inverse_rope")), dim=1).to(dev)
+    torch.manual_seed(20260901)
+    x = (
+        torch.randn((M, H), dtype=torch.bfloat16, device=dev)
+        if args.synthetic
+        else dump(0, "attn_norm").to(dev)
+    )
+    if args.attention_tokens % M != 0:
+        raise RuntimeError("attention tokens must be a multiple of the M32 dump")
+    attn_m = args.attention_tokens
+    attn_x = x.repeat(attn_m // M, 1).contiguous()
+    projection_specs = (
+        ("projection_wqkv_a", 1536),
+        ("projection_core_compressor", 2048),
+        ("projection_index_compressor", 512),
+        ("projection_index_weights", 64),
+    )
+    projections = [
+        (
+            torch.randn((n, H), dtype=torch.bfloat16, device=dev)
+            if args.synthetic
+            else dump(0, name).to(dev)
+        )
+        for name, n in projection_specs
+    ]
+    projection_out = [torch.empty((attn_m, w.shape[0]), dtype=torch.bfloat16, device=dev) for w in projections]
+    q = (
+        torch.randn((M, 16, 512), dtype=torch.bfloat16, device=dev)
+        if args.synthetic
+        else torch.cat((dump(0, "q"), dump(1, "q")), dim=1).to(dev)
+    )
+    q = q.repeat(attn_m // M, 1, 1).contiguous()
+    inv = (
+        torch.randn((M, 2, H), dtype=torch.bfloat16, device=dev)
+        if args.synthetic
+        else torch.cat(
+            (dump(0, "attn_inverse_rope"), dump(1, "attn_inverse_rope")),
+            dim=1,
+        ).to(dev)
+    )
+    inv = inv.repeat(attn_m // M, 1, 1).contiguous()
 
     prefix = f"layers.{args.layer}"
     with safe_open(args.model_shard, framework="pt", device="cpu") as f:
@@ -144,25 +200,38 @@ def main() -> None:
         su = dequant_block_fp8(f, f"{prefix}.ffn.shared_experts.w3.weight", f"{prefix}.ffn.shared_experts.w3.scale", slice(0, 512), slice(0, H))
         sd = dequant_block_fp8(f, f"{prefix}.ffn.shared_experts.w2.weight", f"{prefix}.ffn.shared_experts.w2.scale", slice(0, H), slice(0, 512))
     wo_a, wo_b, sg, su, sd = (t.to(dev) for t in (wo_a, wo_b, sg, su, sd))
-    mid_attn = torch.empty((M, 2048), dtype=torch.bfloat16, device=dev)
-    out_attn = torch.empty((M, H), dtype=torch.bfloat16, device=dev)
-    kv = torch.randn((M * args.context, 512), dtype=torch.bfloat16, device=dev)
-    indices = torch.arange(M * args.context, dtype=torch.int32, device=dev)
-    indptr = torch.arange(0, (M + 1) * args.context, args.context, dtype=torch.int32, device=dev)
+    mid_attn = torch.empty((attn_m, 2048), dtype=torch.bfloat16, device=dev)
+    out_attn = torch.empty((attn_m, H), dtype=torch.bfloat16, device=dev)
+    sparse_out = torch.empty_like(q)
+    ck_workspace = torch.empty(
+        ck_workspace_size_bytes(tokens=attn_m), dtype=torch.uint8, device=dev
+    )
+    kv = torch.randn((attn_m * args.context, 512), dtype=torch.bfloat16, device=dev)
+    indices = torch.arange(attn_m * args.context, dtype=torch.int32, device=dev)
+    indptr = torch.arange(0, (attn_m + 1) * args.context, args.context, dtype=torch.int32, device=dev)
     sink = torch.randn((16,), dtype=torch.float32, device=dev)
 
-    payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
-    raw = payload["logical_count"][args.pass_index, args.layer]
-    if torch.any(raw.remainder(args.recorder_ranks) != 0):
-        raise RuntimeError("recorder counts are not replicated across requested ranks")
-    counts = raw // args.recorder_ranks
-    if int(counts.sum()) != M * TOPK:
-        raise RuntimeError(f"expected {M * TOPK} M32 assignments, got {int(counts.sum())}")
-    topk = reconstruct_topk(counts).to(dev)
+    if args.synthetic:
+        topk = torch.topk(
+            torch.rand((M, E), device=dev), TOPK, dim=1, sorted=False
+        ).indices.to(torch.int32)
+    else:
+        payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
+        raw = payload["logical_count"][args.pass_index, args.layer]
+        if torch.any(raw.remainder(args.recorder_ranks) != 0):
+            raise RuntimeError("recorder counts are not replicated across requested ranks")
+        counts = raw // args.recorder_ranks
+        if int(counts.sum()) != M * TOPK:
+            raise RuntimeError(f"expected {M * TOPK} M32 assignments, got {int(counts.sum())}")
+        topk = reconstruct_topk(counts).to(dev)
     ids, experts = metadata(topk)
     valid = torch.tensor([ids.numel(), M], dtype=torch.int32, device=dev)
     torch.manual_seed(20260830)
-    moe_x = dump(0, "ffn_mhc_residual")[:, 0].contiguous().to(dev)
+    moe_x = (
+        torch.randn((M, H), dtype=torch.bfloat16, device=dev)
+        if args.synthetic
+        else dump(0, "ffn_mhc_residual")[:, 0].contiguous().to(dev)
+    )
     xq, xs = per_token_group_quant_int8(moe_x, 32)
     tw = torch.rand((M, TOPK), dtype=torch.float32, device=dev)
     w13 = torch.randint(0, 256, (E, 2 * I, H // 2), dtype=torch.uint8, device=dev)
@@ -172,21 +241,47 @@ def main() -> None:
     inter = torch.empty((M, TOPK, I), dtype=torch.bfloat16, device=dev)
     partial = torch.empty((M, TOPK, N), dtype=torch.float32, device=dev)
     routed_out = torch.empty((M, N), dtype=torch.bfloat16, device=dev)
-    shared_gate = torch.empty((M, 512), dtype=torch.bfloat16, device=dev)
+    shared_x = moe_x.repeat(args.shared_tokens // M, 1).contiguous()
+    shared_gate = torch.empty(
+        (args.shared_tokens, 512), dtype=torch.bfloat16, device=dev
+    )
     shared_up = torch.empty_like(shared_gate)
     shared_mid = torch.empty_like(shared_gate)
-    shared_out = torch.empty((M, H), dtype=torch.bfloat16, device=dev)
+    shared_out = torch.empty(
+        (args.shared_tokens, H), dtype=torch.bfloat16, device=dev
+    )
     gate = _jit_gate_up_grouped(E, M, TOPK, I, H, A, R, W, 2080, LDS)
     down = _jit_down_grouped(E, M, TOPK, N, I, A, R, W, 832, LDS)
 
+    def shared():
+        torch.mm(shared_x, sg.t(), out=shared_gate)
+        torch.mm(shared_x, su.t(), out=shared_up)
+        torch.sigmoid(shared_gate, out=shared_mid)
+        shared_mid.mul_(shared_gate).mul_(shared_up.clamp(-10.0, 10.0))
+        torch.mm(shared_mid, sd.t(), out=shared_out)
+
     def attention():
+        if args.shared_with_attention:
+            shared()
         for w, out in zip(projections, projection_out):
-            torch.mm(x, w.t(), out=out)
-        _sparse_attn_v4_paged_decode_triton(q, kv, indices, indptr, sink, 1.0 / (512 ** 0.5), block_h=16, kv_splits=4, block_k=16)
+            torch.mm(attn_x, w.t(), out=out)
+        if attn_m in (96, 128):
+            run_ck_sparse(
+                q,
+                kv,
+                indices,
+                indptr,
+                sink,
+                sparse_out,
+                ck_workspace,
+                1.0 / (512**0.5),
+            )
+        else:
+            _sparse_attn_v4_paged_decode_triton(q, kv, indices, indptr, sink, 1.0 / (512 ** 0.5), block_h=16, kv_splits=4, block_k=16)
         # M32 intentionally falls through the wave64 GEMV selector (M<=8)
         # to this production einsum/GEMM spelling.
         grouped = torch.einsum(
-            "tgd,grd->tgr", inv.reshape(M, 2, 4096), wo_a.reshape(2, 1024, 4096)
+            "tgd,grd->tgr", inv.reshape(attn_m, 2, 4096), wo_a.reshape(2, 1024, 4096)
         )
         mid_attn.copy_(grouped.flatten(1))
         torch.mm(mid_attn, wo_b.t(), out=out_attn)
@@ -196,11 +291,8 @@ def main() -> None:
         iq, isc = per_token_group_quant_int8(inter, 32)
         down.run_partial(iq, isc, w2, s2, ids, experts, valid, tw, partial)
         down.reduce(partial, routed_out)
-        torch.mm(moe_x, sg.t(), out=shared_gate)
-        torch.mm(moe_x, su.t(), out=shared_up)
-        torch.sigmoid(shared_gate, out=shared_mid)
-        shared_mid.mul_(shared_gate).mul_(shared_up.clamp(-10.0, 10.0))
-        torch.mm(shared_mid, sd.t(), out=shared_out)
+        if not args.moe_routed_only and not args.shared_with_attention:
+            shared()
 
     main_stream = torch.cuda.current_stream()
     side = torch.cuda.Stream()
@@ -217,9 +309,14 @@ def main() -> None:
         main_stream.wait_event(done)
 
     serial(); torch.cuda.synchronize()
-    refs = [out_attn.clone(), routed_out.clone(), shared_out.clone()]
+    refs = [out_attn.clone(), routed_out.clone()]
+    if not args.moe_routed_only:
+        refs.append(shared_out.clone())
     overlap(); torch.cuda.synchronize()
-    exact = [torch.equal(a, b) for a, b in zip(refs, (out_attn, routed_out, shared_out))]
+    outputs = [out_attn, routed_out]
+    if not args.moe_routed_only:
+        outputs.append(shared_out)
+    exact = [torch.equal(a, b) for a, b in zip(refs, outputs)]
     if not all(exact):
         raise RuntimeError(f"overlap output race/mismatch exact={exact}")
 
@@ -232,7 +329,11 @@ def main() -> None:
         overlap_samples.append(timed(overlap, args.warmup, args.iterations))
         serial_samples.append(timed(serial, args.warmup, args.iterations))
     a, m, s, o = map(trim, (attn_samples, moe_samples, serial_samples, overlap_samples))
-    print(f"route_blocks={experts.numel()} context={args.context} exact={exact}")
+    print(
+        f"route_blocks={experts.numel()} context={args.context} "
+        f"attention_tokens={attn_m} shared_tokens={args.shared_tokens} "
+        f"routed_only={args.moe_routed_only} exact={exact}"
+    )
     print(f"attention_us={a:.3f} moe_us={m:.3f} serial_us={s:.3f} overlap_us={o:.3f}")
     print(f"saved_pct={(s-o)/s*100:.3f} ideal_us={max(a,m):.3f} overlap_efficiency={(s-o)/(s-max(a,m))*100:.3f}")
     print(f"continue={o <= 0.8*s}")

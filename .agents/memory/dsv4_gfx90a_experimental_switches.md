@@ -4416,3 +4416,26 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   BS32 France 5/8 and every independent service passed its BS1 exact gate.
   Promote split2. Split4 was much slower and was removed.
 - Full evidence: `dsv4_dspark_m128_ck_sparse_decode_checkpoint_20260901.md`.
+
+### DSpark full-graph target/draft overlap oracle (2026-09-01)
+
+- A diagnostic replayed a discard-only draft graph on a private stream while
+  target verification ran, after cloning all live proposal tensors. The first
+  BS1 request device-deadlocked for over 30 seconds because both complete TP4
+  graphs contain collectives whose cross-stream order/epochs cannot interleave.
+- The prototype was removed completely. Future cohort overlap must keep one
+  ordered communication stream and overlap only compute segments between
+  collectives; do not replay two full TP graphs concurrently.
+- Full evidence: `dsv4_dspark_full_graph_overlap_deadlock_20260901.md`.
+
+### DSpark gamma-3 semantic-lane overlap oracle (2026-09-01)
+
+- The dependency-correct compute split `shared96 -> CK attention96` in the
+  draft lane versus `routed32` in the anchor lane measured
+  `1039.65 -> 847.91 us/layer`, hiding 191.74 us/layer with bitwise-equal
+  outputs. This is about 8.25 ms/43 layers before MHC/collective overhead.
+- Unlike the rejected full-graph replay, the next prototype must serialize all
+  TP collectives on one rank-global communication order and overlap only the
+  compute regions between them. Continue only if the four-rank boundary keeps
+  at least 100 us/layer net saving.
+- Full evidence: `dsv4_dspark_semantic_lane_overlap_oracle_20260901.md`.
