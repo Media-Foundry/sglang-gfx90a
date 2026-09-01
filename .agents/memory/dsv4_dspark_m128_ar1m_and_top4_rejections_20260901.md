@@ -80,3 +80,13 @@ kernel overhead matters.
   correctness drift is localized and a long real-various run passes.
 - Continue with exact M128 attention scheduling/producer-consumer work.
 
+### Subsequent resolution
+
+The 80-block decision above is superseded for the TP4/BS32 DSpark profile by
+the later composed ABBA.  Twelve-block 1-MiB AR plus exact M32 gate-row
+prefetch passed three 32x1024 diverse-request candidate rounds at
+1531.62/1547.83/1544.34 tok/s with France 3/3, while the full rollback reached
+1439.50/1472.90/1378.69 tok/s.  A fresh launcher-default service also passed
+France 3/3 and centered above 1500 tok/s.  See
+`dsv4_dspark_ar12_m32_rowprefetch_checkpoint_20260901.md`; the older warning
+still applies to 12-block AR used alone or outside that strict profile.

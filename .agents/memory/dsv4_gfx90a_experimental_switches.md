@@ -4303,6 +4303,14 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   Keep 80 blocks; the micro win is too small end-to-end and not correctness-safe.
 - Detailed evidence is in
   `dsv4_dspark_position_acceptance_and_lean_graph_rejection_20260901.md`.
+- **Superseded on 2026-09-01 by the combined schedule:** the single-variable
+  rejection above remains valid in isolation, but composing 12-block 1-MiB AR
+  with exact M32 gate-row prefetch produced a three-round 1541.26 tok/s mean
+  versus 1430.37 for the full rollback (+7.75%), with France 3/3. A fresh
+  no-override service centered at 1504.26 tok/s with France 3/3. The accepted
+  TP4/BS32 DSpark default is therefore `AITER_GFX90A_AR_1M_BLOCKS=12` together
+  with `SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH=1`; native AR remains
+  unchanged. See `dsv4_dspark_ar12_m32_rowprefetch_checkpoint_20260901.md`.
 - M128 wave64 MHC rows/program `3/6/12/24` measured
   `60.62/59.61/81.70/116.19 us`; rows6 is exact but only 1.7% faster, so it is
   too small for a service change.
