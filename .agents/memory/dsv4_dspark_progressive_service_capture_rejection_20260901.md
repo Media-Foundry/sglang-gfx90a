@@ -57,3 +57,31 @@ The model patch was again removed and `deepseek_v2.py` verified clean. The next
 oracle must embed the progressive nodes in a minimal **full-backend-style**
 multi-stream graph with the active communicator and reproduce SGLang's stream
 joins. Do not pay for another model load until that capture-only harness passes.
+
+## Existing-communicator-buffer retry
+
+A third attempt reused the already registered `ca_comm.buffer` instead of
+allocating any new graph storage. This was the first production composition to
+finish both target and draft BS32 graph capture on all four ranks. It therefore
+narrows the two earlier `hipStreamEndCapture` crashes to external/graph-pool
+address ownership rather than the progressive kernels themselves.
+
+The first real heterogeneous BS32 request nevertheless entered a device-side
+spin during target replay. Resetting the 460-byte progressive epoch slice as a
+captured layer-0 node, with an explicit main-to-alt-stream dependency before
+draft publication, did not resolve the spin. The problem is consequently not
+just eager prefill overwriting the initial epoch. Reusing `ca_comm.buffer`
+aliases storage and synchronization state used by the existing per-layer
+custom-all-reduce graph; the two protocols cannot safely coexist in the same
+replay even when their first-use ordering is explicit.
+
+The request produced no benchmark result and was terminated. The service-only
+branch was removed again, leaving native AR and the accepted DSpark service
+path unchanged. The accepted E2E checkpoint remains 1646.6 tok/s (best observed
+1648.3 tok/s); the 120.344 us/layer standalone oracle is still promising but is
+not a production result.
+
+Do not retry either model-local graph allocations or `ca_comm.buffer` aliasing.
+The next admissible integration requires a communicator-owned, separately
+registered progressive arena whose capture and replay lifecycle is tested in a
+minimal full-backend multi-stream harness before another complete model load.
