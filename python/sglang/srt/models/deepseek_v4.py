@@ -2244,7 +2244,18 @@ class DeepseekV4DecoderLayer(nn.Module):
             dtype=x.dtype,
             device=x.device,
         )
-        ca_comm.reduce_scatter(x.contiguous(), out, registered=False)
+        x = x.contiguous()
+        required_bytes = x.numel() * x.element_size()
+        buffer_bytes = ca_comm.buffer.numel() * ca_comm.buffer.element_size()
+        if required_bytes <= buffer_bytes and ca_comm.should_custom_ar(x):
+            ca_comm.reduce_scatter(x, out, registered=False)
+        else:
+            # Large colocated-prefill batches exceed AIter's fixed IPC buffer.
+            # Use RCCL rather than failing or serializing the scheduler back to
+            # C1-sized chunks; the small latency path still uses AIter above.
+            torch.distributed.reduce_scatter_tensor(
+                out, x, group=tp_group.device_group
+            )
         return out
 
     @staticmethod
@@ -2258,7 +2269,15 @@ class DeepseekV4DecoderLayer(nn.Module):
             dtype=x.dtype,
             device=x.device,
         )
-        ca_comm.all_gather_unreg(x.contiguous(), out=out, dim=0)
+        x = x.contiguous()
+        required_bytes = x.numel() * x.element_size()
+        buffer_bytes = ca_comm.buffer.numel() * ca_comm.buffer.element_size()
+        if required_bytes <= buffer_bytes and ca_comm.should_custom_ag(x):
+            ca_comm.all_gather_unreg(x, out=out, dim=0)
+        else:
+            torch.distributed.all_gather_into_tensor(
+                out, x, group=tp_group.device_group
+            )
         return out
 
     @staticmethod
