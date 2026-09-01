@@ -68,3 +68,34 @@ protocols.
 
 No production model selector should be restored before this harness passes.
 Native AR remains untouched.
+
+## Production rejection after the standalone harness passed
+
+The required standalone harness was implemented in
+`scripts/rocm/bench_dsv4_tp4_m128_secondary_ar_graph.py`.  With 43 layers,
+the primary all-reduce issued on every layer, a secondary split
+`begin_draft`/`anchor_end`, a dedicated uncached 1 MiB payload, 100 input
+mutations and 1000 HIP Graph replays, all four ranks were bitwise exact
+(`max_abs=0`).  The result is stored at
+`/tmp/dsv4_secondary_ar_split43_uncached_formal.json` on the experiment host.
+
+This was still insufficient for the full SGLang graph.  Three production
+variants all spun on the first real heterogeneous BS32 replay:
+
+1. replacing the primary M128 MoE all-reduce in all 43 layers;
+2. replacing it in layer 0 only;
+3. retaining the normal primary MoE all-reduce and running the secondary
+   collective as a serial, layer-0-only shadow whose output was discarded.
+
+Variant 3 preserves both the primary collective sequence and the numerical
+result, so the failure is not caused by changed collective ordering, payload
+aliasing, per-layer epoch reuse, or CU overlap.  The remaining conclusion is
+that a second AIter custom-all-reduce instance cannot safely compose with the
+complete target-verify full-backend HIP Graph on this stack, despite passing a
+production-shaped standalone graph.
+
+The production selector, environment variables, communicator lifecycle, and
+model call site were removed.  Do not retry this design without first finding
+and fixing the multi-instance full-graph issue inside AIter/HIP.  The stable
+DSpark and native-AR paths must continue to use their existing primary
+collective only.
