@@ -28,6 +28,12 @@ Adding `end_sync<ngpus, true>` after stage-two all-gather restored:
 The launcher patch now carries this final lifetime barrier as part of the
 gfx90a custom-AR correctness patch.
 
+Subsequent long-window testing showed that the final barrier does not cure the
+separate anchor-only approximation drift: a fresh 1024-token control still
+failed the France gate in round 0. The barrier remains required for temporary
+shard lifetime, but must not be cited as proof that the approximate DSpark
+profile is semantically stable.
+
 ## Primary-progressive protocol result
 
 A fixed TP4/M128 primary-communicator primitive was implemented in the external

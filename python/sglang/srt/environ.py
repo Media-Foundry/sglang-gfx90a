@@ -1577,6 +1577,10 @@ class Envs:
     # four-row request window. Strict model guards keep it out of AR and every
     # other speculative width.
     SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED = EnvBool(False)
+    # Keep target verification exact below this absolute token position, then
+    # enable the DSpark-only anchor-routed approximation. Zero preserves the
+    # original fully compact behavior.
+    SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION = EnvInt(0)
     # Physically compact gamma-three M128 anchor rows before router/TopK and
     # routed MoE. Read only after the strict TARGET_VERIFY parent guard.
     SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT = EnvBool(False)

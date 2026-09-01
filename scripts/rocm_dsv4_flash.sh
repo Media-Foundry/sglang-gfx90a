@@ -188,6 +188,10 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # shared expert. The strict TARGET_VERIFY/width=4/BS32/M128 guard makes this
   # unreachable from AR. Set zero to recover exact target bonus logits.
   export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-1}"
+  # Preserve exact target verification through the short-answer region.  The
+  # mask is device-resident, so requests with positions below 20 keep all four
+  # routed rows while longer-running requests retain anchor-only throughput.
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION:-20}"
   # Compact exact anchor rows before router/TopK as well as routed MoE. This
   # avoids the discarded draft-row router work and the old post-router seam.
   # Nine heterogeneous 32-request rounds kept the France/length gates and the
