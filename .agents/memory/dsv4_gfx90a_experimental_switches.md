@@ -4400,3 +4400,19 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   Both control and mask 3 passed BS1 exact 5/5 after this fix.
 - Full evidence:
   `dsv4_dspark_m96_hipblaslt_rejection_and_france_gate_fix_20260901.md`.
+
+### DSpark gamma-3 M128 CK sparse decode (2026-09-01)
+
+- `SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE=1` extends the
+  graph-stable CK/MFMA split2 unified sparse-decode kernel to target-verify
+  M128. The launch profile exports it only for explicit DSpark TP4/BS32
+  commands; native AR remains on its established path.
+- M128 standalone contexts 128/256/512 improved from
+  `129.91/195.56/312.54 us` to `77.12/119.46/182.14 us`. All passed 100 Q
+  mutations and 1000 bitwise-stable graph replays within the established
+  Triton-vs-CK tolerance.
+- Four-service A/B/B/A on the fixed heterogeneous workload produced combined
+  medians 1515.26 control versus 1559.09 candidate (+2.89%). Both arms passed
+  BS32 France 5/8 and every independent service passed its BS1 exact gate.
+  Promote split2. Split4 was much slower and was removed.
+- Full evidence: `dsv4_dspark_m128_ck_sparse_decode_checkpoint_20260901.md`.

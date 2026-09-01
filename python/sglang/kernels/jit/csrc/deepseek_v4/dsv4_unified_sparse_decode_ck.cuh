@@ -14,7 +14,7 @@ namespace ck_tile::dsv4 {
 
 inline constexpr int kHeadDim = 512;
 inline constexpr int kLocalHeads = 16;
-inline constexpr int kMaxDecodeM = 96;
+inline constexpr int kMaxDecodeM = 128;
 inline constexpr int kThreads = 256;
 inline constexpr int kWaveSize = 64;
 inline constexpr int kDefaultHeadGroup = 4;

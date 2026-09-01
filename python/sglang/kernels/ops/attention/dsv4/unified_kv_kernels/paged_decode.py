@@ -771,14 +771,14 @@ def _sparse_attn_v4_paged_decode_triton(
         rope_freqs_arg = q.new_empty((1, 64), dtype=torch.float32)
         rope_positions_arg = q.new_zeros((T,), dtype=torch.int64)
 
-    # Exact TP4/M64-or-M96 C128 BF16 candidate. Keep this before Triton's geometry
+    # Exact TP4/M64/M96/M128 C128 BF16 candidate. Keep this before Triton's geometry
     # selection and allocation so the two-launch CK-style HIP path owns the
     # complete split/reduce boundary. All other shapes and dtypes retain the
     # established Triton implementation.
     if (
         not quant_kv
         and not fuse_inverse_rope
-        and T in (64, 96)
+        and T in (64, 96, 128)
         and H == 16
         and D == 512
         and q.dtype == torch.bfloat16
@@ -798,6 +798,10 @@ def _sparse_attn_v4_paged_decode_triton(
         use_ck_shape = (
             (T == 64 and envs.SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE.get())
             or (T == 96 and envs.SGLANG_DSV4_GFX90A_TP4_M96_CK_SPARSE_DECODE.get())
+            or (
+                T == 128
+                and envs.SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE.get()
+            )
         )
         if (
             use_ck_shape

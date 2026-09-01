@@ -19,7 +19,7 @@ struct Gfx90aDsv4UnifiedSparseDecode {
                   const tvm::ffi::TensorView workspace,
                   double softmax_scale) {
     const auto tokens = q.size(0);
-    if (q.ndim() != 3 || tokens <= 0 || tokens > 96 || q.size(1) != 16 ||
+    if (q.ndim() != 3 || tokens <= 0 || tokens > 128 || q.size(1) != 16 ||
         q.size(2) != 512 || unified_kv.ndim() != 2 ||
         unified_kv.size(1) != 512 || output.ndim() != 3 ||
         output.size(0) != tokens || output.size(1) != 16 ||

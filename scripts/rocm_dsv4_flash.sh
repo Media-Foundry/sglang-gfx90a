@@ -153,6 +153,13 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # Keep both defaults inside the DSpark profile so native AR is untouched.
   export AITER_GFX90A_AR_1M_BLOCKS="${AITER_GFX90A_AR_1M_BLOCKS:-12}"
   export SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH:-1}"
+  # Gamma-three target verification is exactly M128. The native CK/MFMA
+  # sparse-decode core is graph-stable and saves 53--130 us/layer over Triton
+  # across 128--512 visible KV rows. Four-service ABBA retained a 2.89%
+  # resident-throughput median gain with identical BS1 France correctness.
+  # This export exists only in the explicit DSpark command block, so native AR
+  # never observes the non-bitwise attention implementation.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE:-1}"
   # With routed MoE retained only on exact anchor rows, gamma=3 raises accepted
   # length enough to beat gamma=1 despite its longer attention path. Two
   # independent candidate services centered near 876 tok/s versus 826 tok/s

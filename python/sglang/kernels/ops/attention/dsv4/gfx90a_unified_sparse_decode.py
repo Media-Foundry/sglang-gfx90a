@@ -17,7 +17,7 @@ _AITER_ROOT = "/home/pc/pytorch/third_party/aiter"
 @cache_once
 def _jit_module() -> Module:
     return load_jit(
-        "gfx90a_dsv4_unified_sparse_decode_v3",
+        "gfx90a_dsv4_unified_sparse_decode_v5",
         cuda_files=["deepseek_v4/gfx90a_dsv4_unified_sparse_decode.cuh"],
         cuda_wrappers=[("run", "sglang::Gfx90aDsv4UnifiedSparseDecode::run")],
         extra_cuda_cflags=["-O3", "-std=c++20", "-DCK_ENABLE_BF16", "-DCK_USE_XDL"],
