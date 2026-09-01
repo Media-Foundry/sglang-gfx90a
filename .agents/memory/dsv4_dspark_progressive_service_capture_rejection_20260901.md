@@ -37,3 +37,23 @@ storage from that communicator's existing capture pool.
 Before another full model load, make a minimal four-rank SGLang communicator
 capture harness (not a standalone AIter communicator) and require 100 changing
 inputs plus 1000 replays. Only then reattach the M128 model selector.
+
+## Graph-pool retry
+
+A second production attempt removed every external meta-buffer allocation and
+manual `register_buffer` call. It allocated ordinary tensors inside the active
+SGLang `ca_comm.capture()` context so that `get_graph_buffer_ipc_meta` and
+`register_graph_buffers` owned the addresses. To isolate the test, only BS32
+was captured.
+
+This still produced a four-rank segfault in `hipStreamEndCapture`. Therefore
+the failure is not explained by competing IPC registration lifecycles alone.
+The remaining difference from the passing standalone oracle is composition
+inside SGLang's full multi-stream target graph: the progressive begin and
+anchor phases are split across streams already participating in other captured
+events/collectives.
+
+The model patch was again removed and `deepseek_v2.py` verified clean. The next
+oracle must embed the progressive nodes in a minimal **full-backend-style**
+multi-stream graph with the active communicator and reproduce SGLang's stream
+joins. Do not pay for another model load until that capture-only harness passes.
