@@ -260,3 +260,22 @@ draft graph enabled and do not build tensor-dump infrastructure solely for
 this hypothesis.
 
 Artifact: `/tmp/dsv4_gamma3_eagerdraft_49k_1024_r2.json`.
+
+## NGRAM speculative control rejection
+
+The same TP4/49K/full-tier target was started with the existing NGRAM worker,
+gamma three and breadth one.  This preserves exact target verification but
+runs the full M128 routed MoE instead of DSpark's anchor-only target path.  A
+single decisive real32 1024-token round took 70.77 s group wall time:
+
+```text
+resident: 568.47 tok/s
+accept:     1.803
+France:     false
+```
+
+The second requested round was stopped after the first had already established
+a roughly 2.55x resident regression versus the 1451.32 DSpark control.  Code
+repetition did not supply enough NGRAM matches to offset full target cost.
+Do not use standalone NGRAM as the four-GCD BS32 profile or mix this number
+with DSpark throughput.

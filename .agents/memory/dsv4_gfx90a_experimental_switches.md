@@ -4338,3 +4338,7 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   acceptance `3.664/3.578`, and France 1/2.  Its 1416.24 mean is below the
   graph control; the gamma5 graph/eager issue does not explain the current
   gamma3 gap.  Keep the draft graph enabled.
+- Standalone NGRAM gamma3/breadth1 with the same TP4/49K target reached only
+  `568.47 tok/s`, acceptance 1.803, and failed France in its first 32x1024
+  real-code round.  Full M128 routed verification overwhelms sparse code
+  matches; stop before a second 70-second round and retain DSpark.
