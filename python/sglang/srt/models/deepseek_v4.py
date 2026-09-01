@@ -1898,6 +1898,12 @@ class MQALayer(MqaAttentionBase):
                 (DeepseekV4AttnBackend, DeepseekV4HipRadixBackend),
             )
 
+        from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
+            is_unified_kv_triton,
+        )
+
+        unified_kv = is_unified_kv_triton()
+
         enable_tp4_m32_hip_streams = (
             _is_hip
             and envs.SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM.get()
@@ -1948,11 +1954,6 @@ class MQALayer(MqaAttentionBase):
             and not forward_batch.forward_mode.is_extend_or_draft_extend_or_mixed()
         )
 
-        from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
-            is_unified_kv_triton,
-        )
-
-        unified_kv = is_unified_kv_triton()
         tp_slice, q_padded, q_out = slice(None), None, None
         if self.attn_tp_size > 1:
             if unified_kv:
