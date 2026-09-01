@@ -1455,7 +1455,28 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                 max_batch_size = self._max_dp_batch_size(forward_batch)
                 bs = self._pad_to_bucket(max_batch_size, self.capture_bs)
             else:
-                bs = self._pad_to_bucket(raw_bs, self.capture_bs)
+                requested_bs = raw_bs
+                early_exact_position = (
+                    envs.SGLANG_DSV4_GFX90A_DSPARK_EARLY_EXACT_MAX_POSITION.get()
+                )
+                if (
+                    early_exact_position > 0
+                    and forward_batch.forward_mode.is_target_verify()
+                    and self.captured_req_width == 4
+                    and raw_bs == 32
+                    and 33 in self.capture_bs
+                ):
+                    seq_lens_cpu = forward_batch.seq_lens_cpu
+                    if isinstance(seq_lens_cpu, torch.Tensor):
+                        if seq_lens_cpu.device.type == "cpu":
+                            min_position = int(seq_lens_cpu[:raw_bs].min().item())
+                        else:
+                            min_position = early_exact_position
+                    else:
+                        min_position = min(seq_lens_cpu[:raw_bs])
+                    if min_position < early_exact_position:
+                        requested_bs = 33
+                bs = self._pad_to_bucket(requested_bs, self.capture_bs)
             padded_num_tokens = bs * self.captured_req_width
             graph_size_key = self._capture_graph_size(
                 bs=bs, num_tokens=padded_num_tokens

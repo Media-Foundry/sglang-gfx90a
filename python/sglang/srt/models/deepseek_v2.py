@@ -1251,21 +1251,7 @@ class DeepseekV2MoE(nn.Module):
         m128_pre_router_compact = (
             m128_anchor_only_routed
             and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT.get()
-            and envs.SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION.get()
-            <= 0
         )
-        m128_approx_draft_mask = None
-        if m128_anchor_only_routed and not m128_pre_router_compact:
-            min_position = (
-                envs.SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION.get()
-            )
-            if min_position > 0:
-                row_ids = torch.arange(
-                    hidden_states.shape[0], device=hidden_states.device
-                )
-                m128_approx_draft_mask = (row_ids.remainder(4) != 0) & (
-                    forward_batch.positions >= min_position
-                )
         # Note(kpham-sgl): issue order satisfies 3 constraints:
         # - no stream explosion: main (routed) issued before alt block -> capture reuses 1 alt stream;
         # - PDL overlap: routed is the last main-stream kernel (fuses w/ residual add);
@@ -1335,12 +1321,7 @@ class DeepseekV2MoE(nn.Module):
             if anchor_only_routed:
                 topk_output.topk_ids[1::2].fill_(-1)
             elif m128_anchor_only_routed and not m128_pre_router_compact:
-                if m128_approx_draft_mask is None:
-                    topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
-                else:
-                    topk_output.topk_ids.masked_fill_(
-                        m128_approx_draft_mask[:, None], -1
-                    )
+                topk_output.topk_ids.view(32, 4, -1)[:, 1:].fill_(-1)
             elif m128_ragged_anchor_mask is not None:
                 topk_output.topk_ids.masked_fill_(
                     ~m128_ragged_anchor_mask[:, None], -1
@@ -1373,12 +1354,7 @@ class DeepseekV2MoE(nn.Module):
         if anchor_only_routed:
             final_hidden_states[1::2].zero_()
         elif m128_anchor_only_routed and not m128_pre_router_compact:
-            if m128_approx_draft_mask is None:
-                final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
-            else:
-                final_hidden_states.masked_fill_(
-                    m128_approx_draft_mask[:, None], 0
-                )
+            final_hidden_states.view(32, 4, -1)[:, 1:].zero_()
         elif m128_ragged_anchor_mask is not None:
             final_hidden_states.masked_fill_(
                 ~m128_ragged_anchor_mask[:, None], 0

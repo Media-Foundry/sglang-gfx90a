@@ -188,10 +188,15 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # shared expert. The strict TARGET_VERIFY/width=4/BS32/M128 guard makes this
   # unreachable from AR. Set zero to recover exact target bonus logits.
   export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-1}"
-  # Preserve exact target verification through the short-answer region.  The
-  # mask is device-resident, so requests with positions below 20 keep all four
-  # routed rows while longer-running requests retain anchor-only throughput.
-  export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION="${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_MIN_POSITION:-20}"
+  # Capture one padded tier for short-answer exactness. Actual request count
+  # remains at most 32: BS33 contributes one ignored dummy row and deliberately
+  # misses the strict BS32/M128 anchor-only selector. Once every live sequence
+  # reaches position 20, replay returns to the compact BS32 graph.
+  export SGLANG_DSV4_GFX90A_DSPARK_EARLY_EXACT_MAX_POSITION="${SGLANG_DSV4_GFX90A_DSPARK_EARLY_EXACT_MAX_POSITION:-20}"
+  DEFAULT_CUDA_GRAPH_MAX_BS_DECODE=33
+  CUDA_GRAPH_BS_DECODE="$(seq -s ' ' 1 33)"
+  export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=256
+  export SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK=68
   # Compact exact anchor rows before router/TopK as well as routed MoE. This
   # avoids the discarded draft-row router work and the old post-router seam.
   # Nine heterogeneous 32-request rounds kept the France/length gates and the

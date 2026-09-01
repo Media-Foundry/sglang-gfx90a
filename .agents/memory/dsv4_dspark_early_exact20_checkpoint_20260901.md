@@ -69,3 +69,10 @@ Artifacts:
 - `/tmp/dsv4_early_exact64_bs32_1024_r3.json`
 - `/tmp/dsv4_early_exact20_bs32_32_r3.json`
 - `/tmp/dsv4_early_exact20_bs32_1024_r3.json`
+
+## Superseded
+
+The later padded-BS33 early-exact graph restores BS32 pre-router compaction
+after the safety prefix and reaches a 1501.30 tok/s median with France 3/3
+exact. Retain this file as the device-mask control; do not use 1383.05 tok/s as
+the current checkpoint.
