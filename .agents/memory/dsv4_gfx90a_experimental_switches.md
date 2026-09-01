@@ -4297,5 +4297,16 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   27.83/28.60 s, resident 1459.66/1442.98 tok/s, France 2/2 semantic, with no
   retraction.  Promote 49,152 and 0.96 as the TP4 BS32 defaults; this is a
   capacity/stability gain, not a kernel-speed claim.
+- Rechecking `AITER_GFX90A_AR_1M_BLOCKS=12` on that profile yielded
+  1477.89/1473.53 resident tok/s versus the adjacent 80-block control
+  1459.66/1442.98 (+1.68% by two-round mean), but France fell from 2/2 to 1/2.
+  Keep 80 blocks; the micro win is too small end-to-end and not correctness-safe.
 - Detailed evidence is in
   `dsv4_dspark_position_acceptance_and_lean_graph_rejection_20260901.md`.
+- M128 wave64 MHC rows/program `3/6/12/24` measured
+  `60.62/59.61/81.70/116.19 us`; rows6 is exact but only 1.7% faster, so it is
+  too small for a service change.
+- `SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH=1` on the accepted 49K profile
+  produced resident `1472.94/1488.54` versus disabled rollback
+  `1427.45/1517.03 tok/s`.  Both were France 2/2; the two-round mean gain is
+  only 0.58%, within acceptance noise.  Keep it disabled.

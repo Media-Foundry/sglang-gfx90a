@@ -99,3 +99,50 @@ Artifact:
 ```text
 /tmp/dsv4_gamma3_full_graph_49k_1024_2r.json
 ```
+
+## AIter 1-MiB all-reduce geometry rejection
+
+The existing default-off AIter geometry hook was rechecked on the accepted
+49K/full-tier profile.  `AITER_GFX90A_AR_1M_BLOCKS=12` had previously reduced
+the isolated 1-MiB TP4 all-reduce from about 62.36 to 44.82 us, but its two
+real32 1024-token service rounds were:
+
+```text
+resident: 1477.89 / 1473.53 tok/s
+mean:     1475.71 tok/s
+France:   semantic true / false
+```
+
+The adjacent 80-block control was 1459.66/1442.98 (mean 1451.32), so the
+candidate gained only 1.68% and reduced the France pass rate from 2/2 to 1/2.
+Reject it: the isolated collective is too small a share of the full verify
+step, and this synchronization-sensitive geometry does not clear correctness
+or the 5% checkpoint gate.
+
+Artifact: `/tmp/dsv4_gamma3_ar12_full_graph_49k_1024_2r.json`.
+
+## M128 MHC geometry and M32 row-prefetch rejections
+
+The exact wave64 M128 MHC kernel was re-swept before another service launch.
+Rows-per-program 3/6/12/24 measured 60.62/59.61/81.70/116.19 us.  Rows=6 was
+only 1.7% faster than the default rows=3, while larger values sharply reduced
+parallelism.  All variants were bitwise exact, but the rows=6 budget is far
+below the service noise floor, so the default remains rows=3.
+
+The existing DSpark-profile-only M32 gate row-prefetch was then tested with
+the accepted 49K/full-tier profile.  Two enabled service samples and the
+adjacent disabled rollback were:
+
+```text
+enabled:  1472.94 / 1488.54 tok/s, mean 1480.74, France 2/2
+disabled: 1427.45 / 1517.03 tok/s, mean 1472.24, France 2/2
+delta:    +0.58% by two-round mean
+```
+
+The enabled runs were correct, but the result is smaller than the 5% commit
+gate and well inside the acceptance-driven run-to-run spread.  Keep
+`SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH=0`; do not accumulate this switch
+into the default profile merely because the isolated mechanism is exact.
+
+Artifacts: `/tmp/dsv4_m32_rowprefetch_B2.json` and
+`/tmp/dsv4_m32_rowprefetch_A2.json`.
