@@ -54,11 +54,12 @@ if [[ "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # can still override this explicitly through HIP_VISIBLE_DEVICES.
   DEFAULT_GPUS="4,5,6,7"
   DEFAULT_CUDA_GRAPH_MAX_BS_DECODE="32"
-  DEFAULT_MAX_TOTAL_TOKENS="32768"
+  DEFAULT_MAX_TOTAL_TOKENS="49152"
   # The target plus bundled DSpark head and the fixed C128 state need more
-  # than the generic 0.80 budget on a 64-GiB GCD.  0.90 is the validated
-  # checkpoint value; max-total-tokens still caps the actual KV pool at 32768.
-  DEFAULT_MEM_FRACTION_STATIC="0.90"
+  # than the generic 0.80 budget on a 64-GiB GCD.  Full 1--32 graph capture
+  # plus a 49,152-token pool is validated at 0.96; the larger pool prevents
+  # heterogeneous 32x1024 runs from retracting and re-prefilling requests.
+  DEFAULT_MEM_FRACTION_STATIC="0.96"
   TP_SIZE="${TP_SIZE:-4}"
   EP_SIZE="${EP_SIZE:-1}"
   MOE_A2A_BACKEND="${MOE_A2A_BACKEND:-none}"

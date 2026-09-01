@@ -72,3 +72,30 @@ tiers until the eager non-full-BS DSpark path is independently corrected, or
 retain a dense set of drain tiers and prove every missing shape safe.  Do not
 attribute the illegal address to hardware.
 
+## Accepted full-tier 49K profile
+
+Keeping every BS1--32 graph while raising only the memory budget worked:
+
+```text
+MAX_TOTAL_TOKENS=49152
+MEM_FRACTION_STATIC=0.96
+
+round 0: group 27.83 s, resident 1459.66 tok/s, accept 3.642, France true
+round 1: group 28.60 s, resident 1442.98 tok/s, accept 3.609, France true
+```
+
+All 64 requests returned 1024 tokens with `finish=length`.  No retraction or
+re-prefill tail appeared.  Late resident bins were 1.47--1.65k tok/s, while
+the full-window two-round mean was 1451.32 tok/s.  Peak memory remained below
+the 64-GiB/GCD limit and startup left roughly 2.8--2.9 GiB available after
+graph capture.
+
+This is accepted as a capacity/stability improvement, not as a target-kernel
+speedup.  The TP4 BS32 script defaults are promoted to 49,152 tokens and 0.96
+static memory while retaining all 1--32 decode graph tiers.
+
+Artifact:
+
+```text
+/tmp/dsv4_gamma3_full_graph_49k_1024_2r.json
+```

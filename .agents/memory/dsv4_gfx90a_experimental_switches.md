@@ -4292,5 +4292,10 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   but uncaptured drain tiers fell back to slow eager execution and eventually
   hit `hipErrorIllegalAddress` at eager M14.  Reject the lean graph profile;
   keep full 1--32 tiers.  This was a software path failure, not hardware.
+- Full 1--32 graph capture plus the same 49,152-token pool at static-memory
+  fraction 0.96 is stable: two real32 1024-token rounds completed in
+  27.83/28.60 s, resident 1459.66/1442.98 tok/s, France 2/2 semantic, with no
+  retraction.  Promote 49,152 and 0.96 as the TP4 BS32 defaults; this is a
+  capacity/stability gain, not a kernel-speed claim.
 - Detailed evidence is in
   `dsv4_dspark_position_acceptance_and_lean_graph_rejection_20260901.md`.
