@@ -705,7 +705,8 @@ using Gfx90aFp4ExpertGateUpGroupedDppFp16AccumKernel =
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,
-          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32,
+          bool kPreshuffled = false>
 __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     gfx90a_fp4_expert_gate_up_mfma32_kernel(
         bf16_t* __restrict__ out, const int8_t* __restrict__ xq,
@@ -783,13 +784,17 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
       for (uint32_t group = split; group < kGroups; group += kSplit) {
         const uint32_t k0 = group * 32;
-        const size_t gate_base =
-            (static_cast<size_t>(expert) * (2 * I) + local_row) * (K / 2) +
-            group * 16;
-        const size_t up_base =
-            (static_cast<size_t>(expert) * (2 * I) + I + local_row) *
-                (K / 2) +
-            group * 16;
+        const size_t gate_base = kPreshuffled
+            ? gfx90a_gate_up_preshuffled_weight_offset<E, I, K>(
+                  expert, local_row, group * 16)
+            : (static_cast<size_t>(expert) * (2 * I) + local_row) * (K / 2) +
+                  group * 16;
+        const size_t up_base = kPreshuffled
+            ? gfx90a_gate_up_preshuffled_weight_offset<E, I, K>(
+                  expert, I + local_row, group * 16)
+            : (static_cast<size_t>(expert) * (2 * I) + I + local_row) *
+                      (K / 2) +
+                  group * 16;
         const int32_t gate_b0 = gfx90a_fp4_pack4_i8(
             *reinterpret_cast<const uint16_t*>(weight + gate_base + k_lane / 2));
         const int32_t gate_b1 = gfx90a_fp4_pack4_i8(
@@ -916,7 +921,8 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,
-          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32,
+          bool kPreshuffled = false>
 struct Gfx90aFp4ExpertGateUpMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -936,7 +942,8 @@ struct Gfx90aFp4ExpertGateUpMfma32Kernel {
     TensorMatcher({M, T, I}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_gate_up_mfma32_kernel<
-            E, M, T, I, K, kBlocks, kSplit, kBroadcastScales, kAssignments>,
+            E, M, T, I, K, kBlocks, kSplit, kBroadcastScales, kAssignments,
+            kPreshuffled>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
@@ -1116,7 +1123,8 @@ __global__ void gfx90a_fp4_expert_down_reduce_kernel(
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,
-          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32,
+          bool kPreshuffled = false>
 __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     gfx90a_fp4_expert_down_mfma32_kernel(
         float* __restrict__ partial, const int8_t* __restrict__ xq,
@@ -1196,8 +1204,10 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
     if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
       for (uint32_t group = split; group < kGroups; group += kSplit) {
         const uint32_t k0 = group * 32;
-        const size_t weight_base =
-            (static_cast<size_t>(expert) * N + row) * (K / 2) + group * 16;
+        const size_t weight_base = kPreshuffled
+            ? gfx90a_down_preshuffled_weight_offset<E, N, K>(
+                  expert, row, group * 16)
+            : (static_cast<size_t>(expert) * N + row) * (K / 2) + group * 16;
         const int32_t bv0 = gfx90a_fp4_pack4_i8(
             *reinterpret_cast<const uint16_t*>(weight + weight_base + k_lane / 2));
         const int32_t bv1 = gfx90a_fp4_pack4_i8(
@@ -1393,7 +1403,8 @@ using Gfx90aFp4ExpertDownGroupedDppKernel =
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t N, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4,
-          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32>
+          uint32_t kBroadcastScales = 0, uint32_t kAssignments = 32,
+          bool kPreshuffled = false>
 struct Gfx90aFp4ExpertDownMfma32Kernel {
   static void run(const tvm::ffi::TensorView xq,
                   const tvm::ffi::TensorView x_scale,
@@ -1417,7 +1428,8 @@ struct Gfx90aFp4ExpertDownMfma32Kernel {
     TensorMatcher({M, N}).with_dtype<bf16_t>().with_device(device).verify(out);
     LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_expert_down_mfma32_kernel<
-            E, M, T, N, K, kBlocks, kSplit, kBroadcastScales, kAssignments>,
+            E, M, T, N, K, kBlocks, kSplit, kBroadcastScales, kAssignments,
+            kPreshuffled>,
         static_cast<float*>(partial.data_ptr()),
         static_cast<const int8_t*>(xq.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),

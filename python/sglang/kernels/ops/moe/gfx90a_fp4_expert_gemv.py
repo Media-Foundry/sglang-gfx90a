@@ -151,9 +151,11 @@ def _jit_gate_up_mfma32(
     split: int,
     broadcast_scales: int,
     assignments: int,
+    preshuffled: bool,
 ) -> Module:
     args = make_cpp_args(
-        e, m, t, i, k, blocks, split, broadcast_scales, assignments
+        e, m, t, i, k, blocks, split, broadcast_scales, assignments,
+        preshuffled,
     )
     return load_jit(
         "gfx90a_fp4_expert_gate_up_mfma32",
@@ -348,9 +350,11 @@ def _jit_down_mfma32(
     split: int,
     broadcast_scales: int,
     assignments: int,
+    preshuffled: bool,
 ) -> Module:
     args = make_cpp_args(
-        e, m, t, n, k, blocks, split, broadcast_scales, assignments
+        e, m, t, n, k, blocks, split, broadcast_scales, assignments,
+        preshuffled,
     )
     return load_jit(
         "gfx90a_fp4_expert_down_mfma32",
@@ -531,6 +535,7 @@ def gfx90a_fp4_expert_gate_up_mfma32(
     split: int = 4,
     broadcast_scales: int = 0,
     assignments: int = 32,
+    preshuffled: bool = False,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -541,7 +546,8 @@ def gfx90a_fp4_expert_gate_up_mfma32(
     assert broadcast_scales in (0, 1)
     assert assignments in (32, 64)
     _jit_gate_up_mfma32(
-        e, m, topk, i, k, blocks, split, broadcast_scales, assignments
+        e, m, topk, i, k, blocks, split, broadcast_scales, assignments,
+        preshuffled,
     ).run(
         xq,
         x_scale,
@@ -687,6 +693,7 @@ def gfx90a_fp4_expert_down_mfma32(
     split: int = 4,
     broadcast_scales: int = 0,
     assignments: int = 32,
+    preshuffled: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -698,7 +705,8 @@ def gfx90a_fp4_expert_down_mfma32(
     assert broadcast_scales in (0, 1)
     assert assignments in (32, 64)
     _jit_down_mfma32(
-        e, m, topk, n, k, blocks, split, broadcast_scales, assignments
+        e, m, topk, n, k, blocks, split, broadcast_scales, assignments,
+        preshuffled,
     ).run(
         xq,
         x_scale,
