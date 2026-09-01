@@ -169,6 +169,38 @@ def _jit_gate_up_mfma32(
 
 
 @cache_once
+def _jit_mfma64_expert_persistent_gate(
+    e: int,
+    m: int,
+    t: int,
+    i: int,
+    k: int,
+    blocks: int,
+    split: int,
+    assignments: int,
+) -> Module:
+    args = make_cpp_args(e, m, t, i, k, blocks, split, assignments)
+    return load_jit(
+        "gfx90a_fp4_mfma64_expert_persistent_gate",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_mfma64_expert_persistent_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "build_runs",
+                f"sglang::Gfx90aFp4Mfma64ExpertPersistentGateOracle<{args}>::build_runs",
+            ),
+            (
+                "run",
+                f"sglang::Gfx90aFp4Mfma64ExpertPersistentGateOracle<{args}>::run",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_down(
     e: int,
     m: int,
@@ -365,6 +397,151 @@ def _jit_down_mfma32(
         ],
         extra_cuda_cflags=["-O3"],
     )
+
+
+@cache_once
+def _jit_mfma64_expert_persistent_down(
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    blocks: int,
+    split: int,
+    assignments: int,
+) -> Module:
+    args = make_cpp_args(e, m, t, n, k, blocks, split, assignments)
+    return load_jit(
+        "gfx90a_fp4_mfma64_expert_persistent_down",
+        *args,
+        cuda_files=[
+            "deepseek_v4/gfx90a_fp4_mfma64_expert_persistent_oracle.cuh"
+        ],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4Mfma64ExpertPersistentDownOracle<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4Mfma64ExpertPersistentDownOracle<{args}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+_mfma64_expert_run_workspaces: dict[
+    tuple[int, int], tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+] = {}
+
+
+def gfx90a_fp4_mfma64_expert_runs(
+    sorted_expert_ids: torch.Tensor,
+    num_valid_ids: torch.Tensor,
+    *,
+    e: int,
+    m: int,
+    t: int,
+    i: int,
+    k: int,
+    assignments: int = 64,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    device_index = sorted_expert_ids.device.index
+    key = (device_index if device_index is not None else 0, e)
+    workspace = _mfma64_expert_run_workspaces.get(key)
+    if workspace is None:
+        workspace = (
+            torch.empty(e, dtype=torch.int32, device=sorted_expert_ids.device),
+            torch.empty(e, dtype=torch.int32, device=sorted_expert_ids.device),
+            torch.empty(e, dtype=torch.int32, device=sorted_expert_ids.device),
+            torch.full(
+                (1,), e, dtype=torch.int32, device=sorted_expert_ids.device
+            ),
+        )
+        _mfma64_expert_run_workspaces[key] = workspace
+    active_experts, block_starts, block_counts, num_active = workspace
+    _jit_mfma64_expert_persistent_gate(
+        e, m, t, i, k, 832, 4, assignments
+    ).build_runs(
+        sorted_expert_ids,
+        num_valid_ids,
+        active_experts,
+        block_starts,
+        block_counts,
+    )
+    return workspace
+
+
+def gfx90a_fp4_expert_gate_up_mfma64_persistent(
+    xq: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+    sorted_ids: torch.Tensor,
+    expert_runs: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    topk: int,
+    limit: float,
+) -> torch.Tensor:
+    e, two_i, packed_k = weight.shape
+    m, k = xq.shape
+    i = two_i // 2
+    assert (e, m, topk, i, k) == (256, 4608, 6, 512, 4096)
+    assert packed_k * 2 == k
+    out = torch.empty((m, topk, i), dtype=torch.bfloat16, device=xq.device)
+    active_experts, block_starts, block_counts, num_active = expert_runs
+    _jit_mfma64_expert_persistent_gate(e, m, topk, i, k, 832, 4, 64).run(
+        xq,
+        x_scale,
+        weight.view(torch.uint8),
+        weight_scale.view(torch.uint8).reshape(e, two_i, k // 32),
+        sorted_ids,
+        active_experts,
+        block_starts,
+        block_counts,
+        num_active,
+        out,
+        float(limit),
+    )
+    return out
+
+
+def gfx90a_fp4_expert_down_mfma64_persistent(
+    xq: torch.Tensor,
+    x_scale: torch.Tensor,
+    weight: torch.Tensor,
+    weight_scale: torch.Tensor,
+    sorted_ids: torch.Tensor,
+    expert_runs: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    topk_weights: torch.Tensor,
+    out: torch.Tensor | None = None,
+) -> torch.Tensor:
+    e, n, packed_k = weight.shape
+    m, topk, k = xq.shape
+    assert (e, m, topk, n, k) == (256, 4608, 6, 4096, 512)
+    assert packed_k * 2 == k
+    if out is None:
+        out = torch.empty((m, n), dtype=torch.bfloat16, device=xq.device)
+    partial = torch.empty((m, topk, n), dtype=torch.float32, device=xq.device)
+    active_experts, block_starts, block_counts, num_active = expert_runs
+    module = _jit_mfma64_expert_persistent_down(
+        e, m, topk, n, k, 416, 2, 64
+    )
+    module.run_partial(
+        xq,
+        x_scale,
+        weight.view(torch.uint8),
+        weight_scale.view(torch.uint8).reshape(e, n, k // 32),
+        sorted_ids,
+        active_experts,
+        block_starts,
+        block_counts,
+        num_active,
+        topk_weights,
+        partial,
+    )
+    module.reduce(partial, out)
+    return out
 
 
 def gfx90a_fp4_expert_gate_up(
