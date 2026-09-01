@@ -139,6 +139,23 @@ __device__ __forceinline__ size_t gfx90a_gate_up_scale_offset(
               klane) * 16 + nlane) * 2 + kpack) * 2 + pack2);
 }
 
+template <uint32_t E, uint32_t I, uint32_t K>
+__device__ __forceinline__ size_t gfx90a_gate_up_preshuffled_weight_offset(
+    uint32_t expert, uint32_t row, uint32_t packed_k) {
+  constexpr uint32_t N0 = I / 16;
+  constexpr uint32_t K0 = (K / 2) / 64;
+  const uint32_t projection = row / I;
+  const uint32_t local_row = row - projection * I;
+  const uint32_t n0 = local_row / 16;
+  const uint32_t nlane = local_row % 16;
+  const uint32_t k0 = packed_k / 64;
+  const uint32_t krem = packed_k % 64;
+  const uint32_t klane = krem / 16;
+  const uint32_t kpack = krem % 16;
+  return ((((((static_cast<size_t>(expert) * N0 + n0) * 2 + projection) *
+               K0 + k0) * 4 + klane) * 16 + nlane) * 16 + kpack);
+}
+
 template <uint32_t E, uint32_t N, uint32_t K>
 __device__ __forceinline__ size_t gfx90a_down_scale_offset(
     uint32_t expert, uint32_t row, uint32_t group) {
@@ -154,6 +171,21 @@ __device__ __forceinline__ size_t gfx90a_down_scale_offset(
   const uint32_t klane = krem % 4;
   return ((((((static_cast<size_t>(expert) * N1 + n1) * K1 + k1) * 4 +
               klane) * 16 + nlane) * 2 + kpack) * 2 + npack);
+}
+
+template <uint32_t E, uint32_t N, uint32_t K>
+__device__ __forceinline__ size_t gfx90a_down_preshuffled_weight_offset(
+    uint32_t expert, uint32_t row, uint32_t packed_k) {
+  constexpr uint32_t N0 = N / 16;
+  constexpr uint32_t K0 = (K / 2) / 64;
+  const uint32_t n0 = row / 16;
+  const uint32_t nlane = row % 16;
+  const uint32_t k0 = packed_k / 64;
+  const uint32_t krem = packed_k % 64;
+  const uint32_t klane = krem / 16;
+  const uint32_t kpack = krem % 16;
+  return (((((static_cast<size_t>(expert) * N0 + n0) * K0 + k0) * 4 +
+              klane) * 16 + nlane) * 16 + kpack);
 }
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t GE,
