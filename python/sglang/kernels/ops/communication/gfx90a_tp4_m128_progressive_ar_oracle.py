@@ -21,6 +21,14 @@ def _jit_module():
                 "wait_draft",
                 "sglang::Gfx90aTp4M128ProgressiveArOracle::wait_draft",
             ),
+            (
+                "begin_draft",
+                "sglang::Gfx90aTp4M128ProgressiveArOracle::begin_draft",
+            ),
+            (
+                "anchor_end",
+                "sglang::Gfx90aTp4M128ProgressiveArOracle::anchor_end",
+            ),
             ("arm", "sglang::Gfx90aTp4M128ProgressiveArOracle::arm"),
         ],
         extra_cuda_cflags=["-O3", "-Rpass-analysis=kernel-resource-usage"],
@@ -38,6 +46,16 @@ def progressive(fa, input, sync_workspace, output, rank):
 
 def wait_draft(sync_workspace):
     return _jit_module().wait_draft(sync_workspace)
+
+
+def begin_draft(fa, input, sync_workspace, output, rank):
+    return _jit_module().begin_draft(fa, input, sync_workspace, output, rank)
+
+
+def anchor_end(fa, input, routed, sync_workspace, output, rank):
+    return _jit_module().anchor_end(
+        fa, input, routed, sync_workspace, output, rank
+    )
 
 
 def arm(sync_workspace):

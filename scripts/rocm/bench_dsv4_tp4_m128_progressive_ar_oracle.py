@@ -22,7 +22,7 @@ from sglang.kernels.ops.communication.gfx90a_tp4_m128_progressive_ar_oracle impo
 
 ROWS, HIDDEN, WORLD = 128, 4096, 4
 BLOCKS = 12
-WORKSPACE_U32 = BLOCKS + 2 * BLOCKS * WORLD + 3
+WORKSPACE_U32 = BLOCKS + 2 * BLOCKS * WORLD + WORLD + 3
 
 
 def parse_args():

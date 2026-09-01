@@ -8,6 +8,7 @@
 #include <torch/all.h>
 
 #include "custom_all_reduce.cuh"
+#include "quick_all_reduce_base.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -32,8 +33,10 @@ constexpr uint32_t kProgArFlagOffset = 0;
 constexpr uint32_t kProgArStartOffset = kProgArFlagOffset + kProgArBlocks;
 constexpr uint32_t kProgArEndOffset =
     kProgArStartOffset + kProgArBlocks * kProgArWorld;
-constexpr uint32_t kProgArArmedOffset =
+constexpr uint32_t kProgArAnchorReadyOffset =
     kProgArEndOffset + kProgArBlocks * kProgArWorld;
+constexpr uint32_t kProgArArmedOffset =
+    kProgArAnchorReadyOffset + kProgArWorld;
 constexpr uint32_t kProgArReadyOffset = kProgArArmedOffset + 1;
 constexpr uint32_t kProgArArrivalsOffset = kProgArReadyOffset + 1;
 constexpr uint32_t kProgArWorkspaceU32 = kProgArArrivalsOffset + 1;
@@ -110,27 +113,24 @@ __device__ __forceinline__ void prog_ar_end(
 }
 
 __device__ __forceinline__ ProgArPack prog_ar_peer_load(
-    const ProgArPack* ptr) {
+    const void* base, uint32_t pack_index) {
   union {
     ProgArPack pack;
-    uint64_t words[2];
+    aiter::int32x4_t words;
   } value;
-  const auto* words = reinterpret_cast<const uint64_t*>(ptr);
-  value.words[0] = __builtin_nontemporal_load(words);
-  value.words[1] = __builtin_nontemporal_load(words + 1);
+  aiter::BufferResource resource(
+      const_cast<void*>(base), kProgArRows * kProgArHidden * sizeof(__hip_bfloat16));
+  value.words = aiter::buffer_load_dwordx4(
+      resource.descriptor, pack_index * sizeof(ProgArPack), 0, 1);
   return value.pack;
 }
 
 __device__ __forceinline__ ProgArPack prog_ar_reduce_pack(
     const aiter::RankData& input_rd, uint32_t pack_index, uint32_t owner) {
-  const auto* p0 = reinterpret_cast<const ProgArPack*>(input_rd.ptrs[0]);
-  const auto* p1 = reinterpret_cast<const ProgArPack*>(input_rd.ptrs[1]);
-  const auto* p2 = reinterpret_cast<const ProgArPack*>(input_rd.ptrs[2]);
-  const auto* p3 = reinterpret_cast<const ProgArPack*>(input_rd.ptrs[3]);
-  const ProgArPack v0 = prog_ar_peer_load(p0 + pack_index);
-  const ProgArPack v1 = prog_ar_peer_load(p1 + pack_index);
-  const ProgArPack v2 = prog_ar_peer_load(p2 + pack_index);
-  const ProgArPack v3 = prog_ar_peer_load(p3 + pack_index);
+  const ProgArPack v0 = prog_ar_peer_load(input_rd.ptrs[0], pack_index);
+  const ProgArPack v1 = prog_ar_peer_load(input_rd.ptrs[1], pack_index);
+  const ProgArPack v2 = prog_ar_peer_load(input_rd.ptrs[2], pack_index);
+  const ProgArPack v3 = prog_ar_peer_load(input_rd.ptrs[3], pack_index);
   ProgArPack out;
 #pragma unroll
   for (uint32_t j = 0; j < kProgArPack; ++j) {
@@ -209,6 +209,58 @@ __global__ void __launch_bounds__(kProgArThreads, 1)
   }
 }
 
+__global__ void gfx90a_tp4_m128_progressive_anchor_publish_kernel(
+    aiter::RankData* sync_rd_ptr, uint32_t* local_sync,
+    __hip_bfloat16* local_input,
+    const __hip_bfloat16* __restrict__ routed, int rank) {
+  // The same workgroup that produces the late anchor values also publishes the
+  // system-scope release.  A release from a separate empty kernel does not
+  // order writes made by unrelated producer workgroups for peer GCD readers.
+  constexpr uint32_t kAnchorPacks = 32 * kProgArPacksPerRow;
+  aiter::BufferResource input_resource(
+      local_input, kProgArRows * kProgArHidden * sizeof(__hip_bfloat16));
+  for (uint32_t compact_pack = threadIdx.x; compact_pack < kAnchorPacks;
+       compact_pack += blockDim.x) {
+    const uint32_t compact_row = compact_pack / kProgArPacksPerRow;
+    const uint32_t pack_in_row = compact_pack % kProgArPacksPerRow;
+    const uint32_t input_pack =
+        compact_row * 4 * kProgArPacksPerRow + pack_in_row;
+    const ProgArPack shared =
+        reinterpret_cast<const ProgArPack*>(local_input)[input_pack];
+    const ProgArPack route =
+        reinterpret_cast<const ProgArPack*>(routed)[compact_pack];
+    union {
+      ProgArPack pack;
+      aiter::int32x4_t words;
+    } joined;
+#pragma unroll
+    for (uint32_t j = 0; j < kProgArPack; ++j) {
+      joined.pack.data[j] = static_cast<__hip_bfloat16>(
+          static_cast<float>(shared.data[j]) +
+          static_cast<float>(route.data[j]));
+    }
+    aiter::buffer_store_dwordx4(
+        joined.words, input_resource.descriptor,
+        input_pack * sizeof(ProgArPack), 0, 1);
+  }
+  __syncthreads();
+  const aiter::RankData sync_rd = *sync_rd_ptr;
+  const uint32_t epoch =
+      prog_ar_system_load(local_sync + kProgArFlagOffset, __ATOMIC_RELAXED) + 1;
+  __threadfence_system();
+  if (threadIdx.x < kProgArWorld) {
+    const uint32_t peer = threadIdx.x;
+    auto* peer_sync = reinterpret_cast<uint32_t*>(
+        const_cast<void*>(sync_rd.ptrs[peer]));
+    prog_ar_system_store(peer_sync + kProgArAnchorReadyOffset + rank, epoch,
+                         __ATOMIC_RELEASE);
+    while (prog_ar_system_load(
+               local_sync + kProgArAnchorReadyOffset + peer,
+               __ATOMIC_ACQUIRE) < epoch) {
+    }
+  }
+}
+
 __global__ void __launch_bounds__(kProgArThreads, 1)
     gfx90a_tp4_m128_progressive_anchor_kernel(
         aiter::RankData* input_rd_ptr, __hip_bfloat16* __restrict__ output) {
@@ -276,6 +328,52 @@ struct Gfx90aTp4M128ProgressiveArOracle {
         gfx90a_tp4_m128_progressive_draft_kernel, input_rd,
         static_cast<uint32_t*>(sync_workspace.data_ptr()),
         static_cast<__hip_bfloat16*>(output.data_ptr()));
+    sglang::host::LaunchKernel(kProgArAnchorBlocks, kProgArThreads, stream)(
+        gfx90a_tp4_m128_progressive_anchor_kernel, input_rd,
+        static_cast<__hip_bfloat16*>(output.data_ptr()));
+    sglang::host::LaunchKernel(1, 64, stream)(
+        gfx90a_tp4_m128_progressive_end_kernel, sync_rd,
+        static_cast<uint32_t*>(sync_workspace.data_ptr()),
+        static_cast<int>(rank));
+  }
+
+  static void begin_draft(int64_t fa, const tvm::ffi::TensorView input,
+                          const tvm::ffi::TensorView sync_workspace,
+                          const tvm::ffi::TensorView output, int64_t rank) {
+    if (rank < 0 || rank >= kProgArWorld) {
+      throw std::runtime_error("TP4 progressive oracle rank must be in [0,4)");
+    }
+    auto* comm = reinterpret_cast<aiter::CustomAllreduce*>(fa);
+    auto stream = stream_for(input.device());
+    auto* input_rd = comm->get_buffer_RD(stream, input.data_ptr());
+    auto* sync_rd = comm->get_buffer_RD(stream, sync_workspace.data_ptr());
+    sglang::host::LaunchKernel(1, 64, stream)(
+        gfx90a_tp4_m128_progressive_begin_kernel, sync_rd,
+        static_cast<uint32_t*>(sync_workspace.data_ptr()),
+        static_cast<int>(rank));
+    sglang::host::LaunchKernel(kProgArDraftBlocks, kProgArThreads, stream)(
+        gfx90a_tp4_m128_progressive_draft_kernel, input_rd,
+        static_cast<uint32_t*>(sync_workspace.data_ptr()),
+        static_cast<__hip_bfloat16*>(output.data_ptr()));
+  }
+
+  static void anchor_end(int64_t fa, const tvm::ffi::TensorView input,
+                         const tvm::ffi::TensorView routed,
+                         const tvm::ffi::TensorView sync_workspace,
+                         const tvm::ffi::TensorView output, int64_t rank) {
+    if (rank < 0 || rank >= kProgArWorld) {
+      throw std::runtime_error("TP4 progressive oracle rank must be in [0,4)");
+    }
+    auto* comm = reinterpret_cast<aiter::CustomAllreduce*>(fa);
+    auto stream = stream_for(input.device());
+    auto* input_rd = comm->get_buffer_RD(stream, input.data_ptr());
+    auto* sync_rd = comm->get_buffer_RD(stream, sync_workspace.data_ptr());
+    sglang::host::LaunchKernel(1, kProgArThreads, stream)(
+        gfx90a_tp4_m128_progressive_anchor_publish_kernel, sync_rd,
+        static_cast<uint32_t*>(sync_workspace.data_ptr()),
+        static_cast<__hip_bfloat16*>(input.data_ptr()),
+        static_cast<const __hip_bfloat16*>(routed.data_ptr()),
+        static_cast<int>(rank));
     sglang::host::LaunchKernel(kProgArAnchorBlocks, kProgArThreads, stream)(
         gfx90a_tp4_m128_progressive_anchor_kernel, input_rd,
         static_cast<__hip_bfloat16*>(output.data_ptr()));
