@@ -47,6 +47,7 @@ from sglang.srt.utils import (
     use_intel_amx_backend,
     use_intel_xpu_backend,
 )
+from sglang.srt.utils.common import is_gfx90a_supported
 from sglang.srt.utils.custom_op import register_custom_op
 
 if TYPE_CHECKING:
@@ -370,6 +371,48 @@ class UnquantizedLinearMethod(LinearMethodBase):
         x: torch.Tensor,
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        if (
+            getattr(layer, "_dspark_gfx90a_m96_bf16", False)
+            and envs.SGLANG_DSPARK_GFX90A_M96_HIPBLASLT.get()
+            and _is_hip
+            and is_gfx90a_supported()
+            and bias is None
+            and isinstance(x, torch.Tensor)
+            and x.is_cuda
+            and x.dtype == torch.bfloat16
+            and layer.weight.dtype == torch.bfloat16
+            and x.shape[-1] == 4096
+            and layer.weight.shape[1] == 4096
+            and x.numel() // x.shape[-1] == 96
+        ):
+            # Tuning is for gfx90a's 104-CU GCD.  Keep the table local to this
+            # DSpark-only branch so a same-shaped target/AR projection retains
+            # its established dispatch and numerical behavior.
+            tactic = {
+                256: (1, 5037),
+                512: (2, 4446),
+                1024: (4, 5060),
+                2048: (8, 4854),
+            }.get(layer.weight.shape[0])
+            if (
+                tactic is not None
+                and (
+                    envs.SGLANG_DSPARK_GFX90A_M96_HIPBLASLT_MASK.get()
+                    & tactic[0]
+                )
+                != 0
+            ):
+                from aiter.tuned_gemm import hipb_gemm
+
+                x_shape = x.shape
+                output = hipb_gemm(
+                    x.reshape(-1, x_shape[-1]),
+                    layer.weight.detach(),
+                    tactic[1],
+                    otype=x.dtype,
+                )
+                return output.view(*x_shape[:-1], output.shape[-1])
+
         if (
             getattr(layer, "_qwen4_gfx90a_wave64_bf16", False)
             and bias is None

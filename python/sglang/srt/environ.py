@@ -578,6 +578,13 @@ class Envs:
     SGLANG_DSPARK_BLOCK_ACCEPT_ONLINE_INTERVAL = EnvInt(0)
     SGLANG_DSPARK_ENABLE_SPS_RECORD = EnvBool(False)
     SGLANG_DSPARK_FAST_KERNEL = EnvBool(True)
+    # Route only DSpark-owned BF16 M96xK4096 projections through gfx90a
+    # hipBLASLt solutions selected by an offline shape tuner.  Target/native-AR
+    # modules are deliberately unmarked and therefore cannot observe this.
+    SGLANG_DSPARK_GFX90A_M96_HIPBLASLT = EnvBool(False)
+    # Per-output isolation mask for service correctness A/B: 1=N256,
+    # 2=N512, 4=N1024, 8=N2048. It is read only when the parent switch is on.
+    SGLANG_DSPARK_GFX90A_M96_HIPBLASLT_MASK = EnvInt(15)
     # TP-sharded unified-KV consumes only the local Q heads. Keep this opt-in
     # globally; the validated gfx90a TP4 throughput profile enables it.
     SGLANG_DSPARK_GFX90A_LOCAL_Q_HEADS = EnvBool(False)

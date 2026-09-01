@@ -21,6 +21,20 @@ FRANCE_PREFIX = FRANCE_EXPECTED[:4]
 FRANCE_PARIS_TOKEN = 11111
 
 
+def is_france_semantic(token_ids: list[int]) -> bool:
+    """Accept both known correct tokenizations of the France sentinel.
+
+    The historical exact response spells ``**Paris**`` with the two-token
+    sequence [51119, 42499], whereas the alternate concise response uses the
+    single token 11111 for `` Paris``.  Requiring only the latter incorrectly
+    rejected the exact oracle.
+    """
+    return token_ids[: len(FRANCE_EXPECTED)] == FRANCE_EXPECTED or (
+        token_ids[: len(FRANCE_PREFIX)] == FRANCE_PREFIX
+        and FRANCE_PARIS_TOKEN in token_ids[:16]
+    )
+
+
 def parse_args() -> argparse.Namespace:
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -318,10 +332,7 @@ def main() -> None:
             else None
         )
         france_semantic = (
-            ids[0][: len(FRANCE_PREFIX)] == FRANCE_PREFIX
-            and FRANCE_PARIS_TOKEN in ids[0][:16]
-            if first_is_france_oracle
-            else None
+            is_france_semantic(ids[0]) if first_is_france_oracle else None
         )
         france_gate = (
             france_exact if args.require_france_exact else france_semantic

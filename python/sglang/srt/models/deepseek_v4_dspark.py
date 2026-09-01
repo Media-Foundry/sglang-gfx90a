@@ -663,6 +663,20 @@ class DSparkV4Stage(DeepseekV4DecoderLayer):
                 self.hc_head_scale,
             ) = make_hc_head_params(config.hc_mult, config.hidden_size)
 
+        # The unquantized-linear dispatcher uses this ownership marker together
+        # with exact M/N/K/dtype guards.  Marking the draft subtree instead of
+        # globally tuning M96 guarantees that native AR and target verification
+        # modules cannot accidentally take a DSpark-specific solution.
+        for module in self.modules():
+            module._dspark_gfx90a_m96_bf16 = True
+        if (
+            stage_id == 0
+            and envs.SGLANG_DSPARK_GFX90A_M96_HIPBLASLT.get()
+        ):
+            logger.info(
+                "DSpark gfx90a M96 BF16 hipBLASLt projection tactics enabled"
+            )
+
     def _build_self_attn(
         self,
         *,

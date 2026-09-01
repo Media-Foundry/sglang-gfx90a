@@ -4384,3 +4384,19 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `selected_workload_sha256`. Randomize once per experiment, then reuse the
   exact same selected workload across every A/B arm.
 - Full details: `dsv4_dspark_draft_trace_and_seeded_workload_20260901.md`.
+
+### DSpark M96 hipBLASLt projection tactics (2026-09-01)
+
+- `SGLANG_DSPARK_GFX90A_M96_HIPBLASLT=1` enables a strict DSpark-owned,
+  gfx90a/BF16/M96/K4096 projection experiment. The optional isolation mask is
+  `SGLANG_DSPARK_GFX90A_M96_HIPBLASLT_MASK` with bits N256/N512/N1024/N2048
+  equal to 1/2/4/8. Both remain default-off and are unreachable from native AR.
+- Offline HIP Graph ABBA showed 17--37% latency reductions for N256/N512/N1024
+  and 4% for N2048, but mask 3 regressed the real heterogeneous BS32 trimmed
+  center from 1516.49 to 1464.14 tok/s at nearly equal acceptance. Reject for
+  production; standalone GEMM wins disturbed graph-level overlap.
+- The diverse harness France semantic gate was also corrected: the historical
+  exact `**Paris**` two-token form is now accepted in addition to token 11111.
+  Both control and mask 3 passed BS1 exact 5/5 after this fix.
+- Full evidence:
+  `dsv4_dspark_m96_hipblaslt_rejection_and_france_gate_fix_20260901.md`.
