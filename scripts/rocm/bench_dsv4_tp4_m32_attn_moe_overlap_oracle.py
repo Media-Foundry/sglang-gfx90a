@@ -134,6 +134,21 @@ def main() -> None:
         help="use fixed random activations/projection weights/routes when old dumps are unavailable",
     )
     p.add_argument("--physical-gpu", type=int, default=0)
+    p.add_argument(
+        "--ck-m32",
+        action="store_true",
+        help="oracle-only: run the CK sparse kernel for the M32 attention arm",
+    )
+    p.add_argument(
+        "--anchor-attention-before-moe",
+        action="store_true",
+        help="prepend a CK M32 attention chain to the routed-M32 lane",
+    )
+    p.add_argument(
+        "--production-baseline",
+        action="store_true",
+        help="also time full attention followed by routed/shared internal overlap",
+    )
     p.add_argument("--rounds", type=int, default=7)
     p.add_argument("--warmup", type=int, default=10)
     p.add_argument("--iterations", type=int, default=30)
@@ -176,6 +191,10 @@ def main() -> None:
         for name, n in projection_specs
     ]
     projection_out = [torch.empty((attn_m, w.shape[0]), dtype=torch.bfloat16, device=dev) for w in projections]
+    anchor_projection_out = [
+        torch.empty((M, w.shape[0]), dtype=torch.bfloat16, device=dev)
+        for w in projections
+    ]
     q = (
         torch.randn((M, 16, 512), dtype=torch.bfloat16, device=dev)
         if args.synthetic
@@ -203,13 +222,19 @@ def main() -> None:
     mid_attn = torch.empty((attn_m, 2048), dtype=torch.bfloat16, device=dev)
     out_attn = torch.empty((attn_m, H), dtype=torch.bfloat16, device=dev)
     sparse_out = torch.empty_like(q)
+    anchor_sparse_out = torch.empty_like(q[:M])
     ck_workspace = torch.empty(
         ck_workspace_size_bytes(tokens=attn_m), dtype=torch.uint8, device=dev
+    )
+    anchor_ck_workspace = torch.empty(
+        ck_workspace_size_bytes(tokens=M), dtype=torch.uint8, device=dev
     )
     kv = torch.randn((attn_m * args.context, 512), dtype=torch.bfloat16, device=dev)
     indices = torch.arange(attn_m * args.context, dtype=torch.int32, device=dev)
     indptr = torch.arange(0, (attn_m + 1) * args.context, args.context, dtype=torch.int32, device=dev)
     sink = torch.randn((16,), dtype=torch.float32, device=dev)
+    anchor_mid_attn = torch.empty((M, 2048), dtype=torch.bfloat16, device=dev)
+    anchor_out_attn = torch.empty((M, H), dtype=torch.bfloat16, device=dev)
 
     if args.synthetic:
         topk = torch.topk(
@@ -265,7 +290,7 @@ def main() -> None:
             shared()
         for w, out in zip(projections, projection_out):
             torch.mm(attn_x, w.t(), out=out)
-        if attn_m in (96, 128):
+        if attn_m in (96, 128) or args.ck_m32:
             run_ck_sparse(
                 q,
                 kv,
@@ -286,11 +311,37 @@ def main() -> None:
         mid_attn.copy_(grouped.flatten(1))
         torch.mm(mid_attn, wo_b.t(), out=out_attn)
 
-    def moe():
+    def anchor_attention():
+        for w, out in zip(projections, anchor_projection_out):
+            torch.mm(attn_x[:M], w.t(), out=out)
+        run_ck_sparse(
+            q[:M],
+            kv[: M * args.context],
+            indices[: M * args.context],
+            indptr[: M + 1],
+            sink,
+            anchor_sparse_out,
+            anchor_ck_workspace,
+            1.0 / (512**0.5),
+        )
+        grouped = torch.einsum(
+            "tgd,grd->tgr",
+            inv[:M].reshape(M, 2, 4096),
+            wo_a.reshape(2, 1024, 4096),
+        )
+        anchor_mid_attn.copy_(grouped.flatten(1))
+        torch.mm(anchor_mid_attn, wo_b.t(), out=anchor_out_attn)
+
+    def routed():
         gate.run(xq, xs, w13, s13, ids, experts, valid, inter, 10.0)
         iq, isc = per_token_group_quant_int8(inter, 32)
         down.run_partial(iq, isc, w2, s2, ids, experts, valid, tw, partial)
         down.reduce(partial, routed_out)
+
+    def moe():
+        if args.anchor_attention_before_moe:
+            anchor_attention()
+        routed()
         if not args.moe_routed_only and not args.shared_with_attention:
             shared()
 
@@ -308,12 +359,24 @@ def main() -> None:
         attention()
         main_stream.wait_event(done)
 
+    def production_baseline():
+        attention()
+        side.wait_stream(main_stream)
+        with torch.cuda.stream(side):
+            shared(); done.record(side)
+        routed()
+        main_stream.wait_event(done)
+
     serial(); torch.cuda.synchronize()
     refs = [out_attn.clone(), routed_out.clone()]
+    if args.anchor_attention_before_moe:
+        refs.append(anchor_out_attn.clone())
     if not args.moe_routed_only:
         refs.append(shared_out.clone())
     overlap(); torch.cuda.synchronize()
     outputs = [out_attn, routed_out]
+    if args.anchor_attention_before_moe:
+        outputs.append(anchor_out_attn)
     if not args.moe_routed_only:
         outputs.append(shared_out)
     exact = [torch.equal(a, b) for a, b in zip(refs, outputs)]
@@ -329,6 +392,13 @@ def main() -> None:
         overlap_samples.append(timed(overlap, args.warmup, args.iterations))
         serial_samples.append(timed(serial, args.warmup, args.iterations))
     a, m, s, o = map(trim, (attn_samples, moe_samples, serial_samples, overlap_samples))
+    production_samples = []
+    if args.production_baseline:
+        production_baseline(); torch.cuda.synchronize()
+        production_samples = [
+            timed(production_baseline, args.warmup, args.iterations)
+            for _ in range(args.rounds)
+        ]
     print(
         f"route_blocks={experts.numel()} context={args.context} "
         f"attention_tokens={attn_m} shared_tokens={args.shared_tokens} "
@@ -336,6 +406,11 @@ def main() -> None:
     )
     print(f"attention_us={a:.3f} moe_us={m:.3f} serial_us={s:.3f} overlap_us={o:.3f}")
     print(f"saved_pct={(s-o)/s*100:.3f} ideal_us={max(a,m):.3f} overlap_efficiency={(s-o)/(s-max(a,m))*100:.3f}")
+    if production_samples:
+        print(
+            f"production_baseline_us={trim(production_samples):.3f} "
+            f"samples={[round(v,3) for v in production_samples]}"
+        )
     print(f"continue={o <= 0.8*s}")
 
 

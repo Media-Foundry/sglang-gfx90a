@@ -46,6 +46,7 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=10)
     parser.add_argument("--iterations", type=int, default=100)
+    parser.add_argument("--with-producers", action="store_true")
     args = parser.parse_args()
     if args.mutations < 100 or args.graph_replays < 1000 or args.rounds != 7:
         raise ValueError("formal oracle requires 100 mutations, 1000 replays, 7 rounds")
@@ -74,13 +75,26 @@ def main() -> None:
     scale = torch.ones((3,), dtype=torch.float32, device="cuda")
     base = torch.zeros((MIX,), dtype=torch.float32, device="cuda")
     norm = torch.ones((H,), dtype=torch.bfloat16, device="cuda")
+    projection_weights = tuple(
+        torch.randn(
+            (n, H), generator=generator, device="cuda", dtype=torch.bfloat16
+        ).mul_(0.015625)
+        for n in ((1536, 2048, 512, 64) if args.with_producers else ())
+    )
     draft_rows = torch.tensor(
         [row for row in range(M) if row % 4], dtype=torch.int64, device="cuda"
     )
     anchor_rows = torch.arange(0, M, 4, dtype=torch.int64, device="cuda")
 
+    def with_producers(mhc_output):
+        layer_input = mhc_output[3]
+        projections = tuple(
+            torch.mm(layer_input, weight.t()) for weight in projection_weights
+        )
+        return (*mhc_output, *projections)
+
     def run_rows(rows):
-        return mhc_fused_post_pre(
+        return with_producers(mhc_fused_post_pre(
             x.index_select(0, rows),
             residual.index_select(0, rows),
             post.index_select(0, rows),
@@ -95,10 +109,10 @@ def main() -> None:
             20,
             norm_weight=norm,
             norm_eps=1e-6,
-        )
+        ))
 
     def run_full():
-        return mhc_fused_post_pre(
+        return with_producers(mhc_fused_post_pre(
             x,
             residual,
             post,
@@ -113,7 +127,7 @@ def main() -> None:
             20,
             norm_weight=norm,
             norm_eps=1e-6,
-        )
+        ))
 
     graph_full, full = capture(run_full)
     graph_draft, draft = capture(lambda: run_rows(draft_rows))
@@ -169,7 +183,8 @@ def main() -> None:
     draft_us = statistics.median(draft_b1 + draft_b2)
     anchor_us = statistics.median(anchor_c1 + anchor_c2)
     print(
-        f"exact={exact_rows()} mutation_failures={mutation_failures}/{args.mutations} "
+        f"with_producers={args.with_producers} exact={exact_rows()} "
+        f"mutation_failures={mutation_failures}/{args.mutations} "
         f"replay_stable={replay_stable} replays={args.graph_replays}",
         flush=True,
     )
