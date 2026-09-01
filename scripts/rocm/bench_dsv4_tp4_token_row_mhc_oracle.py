@@ -54,6 +54,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--iters", type=int, default=200)
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--graph-replays", type=int, default=1000)
+    parser.add_argument(
+        "--include-reduce-scatter",
+        action="store_true",
+        help=(
+            "compare stock all-reduce + full-row MHC against reduce-scatter + "
+            "owner-local MHC + all-gather"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -114,15 +122,45 @@ def slice_inputs(inp: BoundaryInputs, lo: int, hi: int) -> BoundaryInputs:
     )
 
 
+def replace_x(inp: BoundaryInputs, x: torch.Tensor) -> BoundaryInputs:
+    return BoundaryInputs(
+        x,
+        inp.residual,
+        inp.post,
+        inp.comb,
+        inp.fn,
+        inp.scale,
+        inp.base,
+        inp.norm,
+    )
+
+
+def reduced_boundary(inp: BoundaryInputs, comm: CustomAllreduce):
+    reduced = comm.custom_all_reduce(inp.x)
+    if reduced is None:
+        raise RuntimeError("AIter custom all-reduce is unavailable")
+    return run_boundary(replace_x(inp, reduced))
+
+
 def gathered_boundary(
     inp: BoundaryInputs,
     comm: CustomAllreduce,
     rank: int,
     world: int,
+    *,
+    include_reduce_scatter: bool = False,
 ):
     rows_per_rank = inp.x.shape[0] // world
     lo, hi = rank * rows_per_rank, (rank + 1) * rows_per_rank
-    local = run_boundary(slice_inputs(inp, lo, hi))
+    local_inp = slice_inputs(inp, lo, hi)
+    if include_reduce_scatter:
+        local_x = torch.empty_like(local_inp.x)
+        # AIter's reduce_scatter writes the explicit output buffer but its
+        # Python method intentionally has no return value.  The communicator
+        # availability was checked once in main(), so consume local_x directly.
+        comm.custom_reduce_scatter(inp.x, local_x)
+        local_inp = replace_x(local_inp, local_x)
+    local = run_boundary(local_inp)
     gathered = comm.custom_all_gather(local[3].contiguous())
     if gathered is None:
         raise RuntimeError("AIter custom all-gather is unavailable")
@@ -177,18 +215,47 @@ def main() -> None:
         raise ValueError("this oracle requires TP4 and rows divisible by four")
 
     preload_gfx90a_mhc_post_pre()
+    # Rank-distinct X is required when the oracle includes the incoming TP
+    # reduction.  The remaining MHC state is intentionally identical because
+    # it is replicated model/request metadata in the production boundary.
     inp0 = make_inputs(args.rows, 0)
     inp1 = make_inputs(args.rows, 1000)
+    if args.include_reduce_scatter:
+        inp0 = replace_x(
+            inp0,
+            randn((args.rows, 4096), 100 + rank * 10000, torch.bfloat16).mul_(
+                0.125
+            ),
+        )
+        inp1 = replace_x(
+            inp1,
+            randn(
+                (args.rows, 4096), 1100 + rank * 10000, torch.bfloat16
+            ).mul_(0.125),
+        )
     comm = CustomAllreduce(dist.group.WORLD, torch.device("cuda", local_rank))
     if comm.disabled:
         raise RuntimeError("AIter custom collectives did not initialize")
 
     # Eager correctness: local state must equal the corresponding full-row
     # state bit for bit, not merely within a floating-point tolerance.
-    ref0 = run_boundary(inp0)
-    ref1 = run_boundary(inp1)
-    cand0 = gathered_boundary(inp0, comm, rank, world)
-    cand1 = gathered_boundary(inp1, comm, rank, world)
+    reference_fn = reduced_boundary if args.include_reduce_scatter else run_boundary
+    ref0 = reference_fn(inp0, comm) if args.include_reduce_scatter else reference_fn(inp0)
+    ref1 = reference_fn(inp1, comm) if args.include_reduce_scatter else reference_fn(inp1)
+    cand0 = gathered_boundary(
+        inp0,
+        comm,
+        rank,
+        world,
+        include_reduce_scatter=args.include_reduce_scatter,
+    )
+    cand1 = gathered_boundary(
+        inp1,
+        comm,
+        rank,
+        world,
+        include_reduce_scatter=args.include_reduce_scatter,
+    )
     rows_per_rank = args.rows // world
     lo, hi = rank * rows_per_rank, (rank + 1) * rows_per_rank
     for reference, candidate in ((ref0, cand0), (ref1, cand1)):
@@ -207,13 +274,33 @@ def main() -> None:
     # Two boundaries, each including publication for B.  This is intentionally
     # stricter than timing one local MHC and extrapolating its compute saving.
     ref_graph, ref_outputs = capture(
-        comm, lambda: (run_boundary(inp0), run_boundary(inp1))
+        comm,
+        lambda: (
+            reference_fn(inp0, comm)
+            if args.include_reduce_scatter
+            else reference_fn(inp0),
+            reference_fn(inp1, comm)
+            if args.include_reduce_scatter
+            else reference_fn(inp1),
+        ),
     )
     cand_graph, cand_outputs = capture(
         comm,
         lambda: (
-            gathered_boundary(inp0, comm, rank, world),
-            gathered_boundary(inp1, comm, rank, world),
+            gathered_boundary(
+                inp0,
+                comm,
+                rank,
+                world,
+                include_reduce_scatter=args.include_reduce_scatter,
+            ),
+            gathered_boundary(
+                inp1,
+                comm,
+                rank,
+                world,
+                include_reduce_scatter=args.include_reduce_scatter,
+            ),
         ),
     )
     rows_per_rank = args.rows // world
@@ -289,8 +376,9 @@ def main() -> None:
             flush=True,
         )
         print(
-            "scope=component_oracle existing_native_mhc_plus_real_aiter_all_gather "
-            "incoming_reduce_scatter_not_included production_not_modified",
+            "scope=component_oracle existing_native_mhc_plus_real_aiter_collectives "
+            f"incoming_reduce_scatter={'included' if args.include_reduce_scatter else 'not_included'} "
+            "production_not_modified",
             flush=True,
         )
 
