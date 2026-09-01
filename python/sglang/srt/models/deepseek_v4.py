@@ -961,6 +961,12 @@ class MQALayer(MqaAttentionBase):
             )
             or (
                 _is_hip
+                and envs.SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM.get()
+                and self.attn_tp_size == 4
+                and self.compress_ratio == 4
+            )
+            or (
+                _is_hip
                 and envs.SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM.get()
                 and self.attn_tp_size == 4
                 and self.compress_ratio == 128
@@ -1324,7 +1330,7 @@ class MQALayer(MqaAttentionBase):
         attn_backend,
         q_out: Optional[torch.Tensor] = None,
         x_quant=None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """ATOM-style ROCm path: overlap compressors, keep Q/KV on main stream."""
         assert self.alt_streams is not None
         assert len(self.alt_streams) >= 1
@@ -1401,6 +1407,7 @@ class MQALayer(MqaAttentionBase):
         if issue_order in (1, 3):
             launch_indexer_compressor()
 
+        kv: Optional[torch.Tensor] = None
         if self.use_fused_qk_norm_rope:
             if _is_gfx95_supported:
                 q_for_wqb, q_lora = _fused_rmsnorm_fp8_quant(
@@ -1431,7 +1438,20 @@ class MQALayer(MqaAttentionBase):
             )
 
             unified_kv = is_unified_kv_triton()
-            if unified_kv:
+            preserve_target_kv = (
+                unified_kv and forward_batch.forward_mode.is_target_verify()
+            )
+            if preserve_target_kv:
+                # TARGET_VERIFY needs the complete normalized candidate block
+                # returned to the backend.  The backend stores it into the
+                # unified ring before launching per-row causal index streams.
+                # The decode-only multi-stream path previously wrote the ring
+                # here and discarded KV, which is incorrect for verification.
+                kv = kv.contiguous()
+                swa_loc = None
+                swa_cache = None
+                swa_page_size = 1
+            elif unified_kv:
                 swa_loc = attn_backend.get_unified_swa_loc(forward_batch)
                 swa_cache = token_to_kv_pool.get_unified_kv(self.layer_id)
                 swa_page_size = 1
@@ -1459,6 +1479,8 @@ class MQALayer(MqaAttentionBase):
                 bf16_store=unified_kv,
             )
             mark(13)
+            if not preserve_target_kv:
+                kv = None
         else:
             q_lora = self.q_norm(q_lora)
             q = self._compute_q_b(q_lora, positions, q_out)
@@ -1488,7 +1510,7 @@ class MQALayer(MqaAttentionBase):
 
         mark(14)
 
-        return q
+        return q, kv
 
     def _forward_prepare(
         self,
@@ -1892,17 +1914,29 @@ class MQALayer(MqaAttentionBase):
             and x.shape[0] == 64
             and forward_batch.forward_mode.is_decode_or_idle()
         )
+        enable_dspark_tp4_m128_hip_streams = (
+            _is_hip
+            and envs.SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM.get()
+            and self.attn_tp_size == 4
+            and self.compress_ratio == 4
+            and x.shape[0] == 128
+            and forward_batch.batch_size == 32
+            and forward_batch.forward_mode.is_target_verify()
+            and unified_kv
+        )
         enable_multi_stream = (
             (
                 envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
                 or enable_tp4_m32_hip_streams
                 or enable_tp4_m64_c128_hip_streams
+                or enable_dspark_tp4_m128_hip_streams
             )
             and self.alt_streams is not None
             and get_is_capture_mode()
             and (
                 is_in_breakable_cuda_graph()
                 or x.shape[0] <= self._multi_stream_bs_limit
+                or enable_dspark_tp4_m128_hip_streams
             )
             and not (self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch))
             and not (_is_hip and self.compressor is None)
@@ -1949,7 +1983,7 @@ class MQALayer(MqaAttentionBase):
             # Multi-stream path always fuses cache write into the K kernel,
             # so the bf16 KV intermediate is gone.
             if _is_hip:
-                q = self._forward_prepare_multi_stream_hip(
+                q, kv = self._forward_prepare_multi_stream_hip(
                     x,
                     positions,
                     forward_batch,
@@ -1975,7 +2009,8 @@ class MQALayer(MqaAttentionBase):
                     q_out,
                     x_quant=x_quant,
                 )
-            kv = None
+            if not _is_hip:
+                kv = None
         else:
             q, kv = self._forward_prepare(
                 x,

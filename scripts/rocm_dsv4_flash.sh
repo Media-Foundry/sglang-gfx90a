@@ -160,6 +160,13 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # This export exists only in the explicit DSpark command block, so native AR
   # never observes the non-bitwise attention implementation.
   export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE:-1}"
+  # TARGET_VERIFY previously serialized q_lora/wq_b with the C4 core and
+  # indexer compressors because the decode-only multi-stream path discarded
+  # the BF16 candidate KV block.  The target-specific path preserves that KV
+  # for the backend's causal store while issuing both compressors on auxiliary
+  # streams.  Fixed-real32 1024-token ABBA centered near +4%; the model guard
+  # requires TARGET_VERIFY, TP4, BS32, M128 and C4, so native AR is unreachable.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM:-1}"
   # With routed MoE retained only on exact anchor rows, gamma=3 raises accepted
   # length enough to beat gamma=1 despite its longer attention path. Two
   # independent candidate services centered near 876 tok/s versus 826 tok/s
