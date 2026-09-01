@@ -36,3 +36,10 @@ diff --git a/csrc/include/custom_all_reduce.cuh b/csrc/include/custom_all_reduce
 +    // while a slower peer is still reading that buffer through its P2P map.
 +    end_sync<ngpus, true>(sg, self_sg, rank);
  }
+@@ -538,6 +539,10 @@ __global__ void __launch_bounds__(512, 1) cross_device_reduce_2stage(RankData* _
+         int dst_idx           = (warp_id + rank) % ngpus * part + idx;
+         ((P*)result)[dst_idx] = tmps[warp_id][idx];
+     }
++    // Peers must finish gathering this rank's temporary shard before reuse.
++    end_sync<ngpus, true>(sg, self_sg, rank);
+ }
