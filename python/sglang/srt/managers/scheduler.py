@@ -3357,6 +3357,22 @@ class Scheduler(
 
         # Determine chunked_prefill_size for this batch
         chunked_prefill_size = self.chunked_prefill_size
+        if (
+            envs.SGLANG_DSV4_GFX90A_QUEUE_AWARE_PREFILL_CHUNK.get()
+            and chunked_prefill_size is not None
+        ):
+            base_chunk = envs.SGLANG_DSV4_GFX90A_PREFILL_CHUNK_BASE.get()
+            queue_min = envs.SGLANG_DSV4_GFX90A_PREFILL_CHUNK_QUEUE_MIN.get()
+            if base_chunk <= 0 or queue_min <= 0:
+                raise RuntimeError(
+                    "queue-aware prefill requires positive base chunk and queue minimum"
+                )
+            # The configured chunk is the physical activation-buffer ceiling.
+            # A lone request keeps the measured C1-optimal M2304 decomposition;
+            # two or more waiting requests may consume the M4608 ceiling and
+            # amortize one scheduler/model iteration across real prompts.
+            if len(self.waiting_queue) < queue_min:
+                chunked_prefill_size = min(chunked_prefill_size, base_chunk)
         if self.chunked_req is not None and self.enable_dynamic_chunking:
             history_len = len(self.chunked_req.prefix_indices)
             dynamic_size = self.predict_next_chunk_size(history_len)

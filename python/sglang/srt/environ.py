@@ -1632,6 +1632,11 @@ class Envs:
     # mHC state owner-local, then publish only the normalized rows.  Strictly
     # guarded in DeepSeek-V4 and never entered by decode/speculative forwards.
     SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL = EnvBool(False)
+    # Treat chunked_prefill_size as the activation-buffer ceiling while using a
+    # smaller C1 budget until enough real requests are queued to amortize M4608.
+    SGLANG_DSV4_GFX90A_QUEUE_AWARE_PREFILL_CHUNK = EnvBool(False)
+    SGLANG_DSV4_GFX90A_PREFILL_CHUNK_BASE = EnvInt(2304)
+    SGLANG_DSV4_GFX90A_PREFILL_CHUNK_QUEUE_MIN = EnvInt(2)
     # ===================================================================
     # DeepSeek V4 - kernels and indexer
     # ===================================================================
