@@ -19,6 +19,7 @@ import torch
 import torch.distributed as dist
 from aiter.dist.device_communicators.custom_all_reduce import CustomAllreduce
 
+import sglang.kernels.ops.layernorm.mhc as mhc_module
 from scripts.rocm.bench_dsv4_tp4_m32_attn_moe_overlap_oracle import metadata
 from sglang.kernels.ops.attention.dsv4.gfx90a_unified_sparse_decode import (
     run as run_ck_sparse,
@@ -34,6 +35,7 @@ from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
     _jit_down_grouped,
     _jit_gate_up_grouped,
 )
+from sglang.kernels.ops.layernorm.mhc import mhc_fused_post_pre
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
 
@@ -49,12 +51,19 @@ def parse_args():
     parser.add_argument("--warmup", type=int, default=10)
     parser.add_argument("--iters", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=7)
+    parser.add_argument("--mutations", type=int, default=100)
+    parser.add_argument("--graph-replays", type=int, default=1000)
     parser.add_argument(
         "--recorder",
         default="/tmp/expert_distribution_recorder_1788187926.1154153_0.pt",
     )
     parser.add_argument("--record", type=int, default=40)
     parser.add_argument("--layer", type=int, default=20)
+    parser.add_argument(
+        "--entry-mhc-only",
+        action="store_true",
+        help="consume draft-ready M96 only with the next-layer entry MHC",
+    )
     return parser.parse_args()
 
 
@@ -62,7 +71,10 @@ def capture(comm, fn):
     graph = torch.cuda.CUDAGraph()
     dist.barrier()
     with comm.capture():
-        with torch.cuda.graph(graph):
+        # The entry-MHC oracle allocates graph-owned outputs on a joined side
+        # stream. HIP rejects the allocator call in global capture mode even
+        # though the allocation is graph-private and prewarmed.
+        with torch.cuda.graph(graph, capture_error_mode="relaxed"):
             outputs = fn()
     dist.barrier()
     return graph, outputs
@@ -190,6 +202,30 @@ def main():
     out_a = torch.empty_like(ar_input_a)
     out_b = torch.empty_like(ar_input_b)
 
+    if args.entry_mhc_only:
+        # The local oracle does not use SGLang's symmetric output allocator.
+        mhc_module.get_tp_group = lambda: None
+        residual = torch.randn(
+            (DRAFT_M, 4, H),
+            generator=generator,
+            device="cuda",
+            dtype=torch.bfloat16,
+        )
+        post = torch.sigmoid(
+            torch.randn((DRAFT_M, 4), generator=generator, device="cuda")
+        )
+        comb = torch.softmax(
+            torch.randn((DRAFT_M, 4, 4), generator=generator, device="cuda"),
+            dim=1,
+        )
+        mhc_weight = (
+            torch.randn((24, 4 * H), generator=generator, device="cuda")
+            * 0.0078125
+        )
+        mhc_scale = torch.ones((3,), dtype=torch.float32, device="cuda")
+        mhc_base = torch.zeros((24,), dtype=torch.float32, device="cuda")
+        norm_weight = torch.ones((H,), dtype=torch.bfloat16, device="cuda")
+
     def shared(ar_input, bufs):
         shared_gate, shared_up, shared_mid, shared_clamped = bufs
         torch.mm(shared_x, sg.t(), out=shared_gate)
@@ -207,12 +243,30 @@ def main():
         down.reduce(partial, routed_out)
 
     def consume(draft, projection_out, sparse_out, workspace):
+        if args.entry_mhc_only:
+            return mhc_fused_post_pre(
+                draft.view(DRAFT_M, H),
+                residual,
+                post,
+                comb,
+                mhc_weight,
+                mhc_scale,
+                mhc_base,
+                1e-6,
+                1e-6,
+                1e-6,
+                2.0,
+                20,
+                norm_weight=norm_weight,
+                norm_eps=1e-6,
+            )
         for weight, output in zip(projections, projection_out):
             torch.mm(draft.view(DRAFT_M, H), weight.t(), out=output)
         run_ck_sparse(
             q, kv, indices, indptr, sink, sparse_out, workspace,
             1.0 / (512**0.5),
         )
+        return (*projection_out, sparse_out)
 
     anchor_view_a = ar_input_a.view(M, 4, H)[:, 0]
     anchor_view_b = ar_input_b.view(M, 4, H)[:, 0]
@@ -223,8 +277,8 @@ def main():
 
     a_fork, a_shared_done = torch.cuda.Event(), torch.cuda.Event()
     b_fork = torch.cuda.Event()
-    b_shared_done, b_anchor_ready = torch.cuda.Event(), torch.cuda.Event()
-    b_comm_done, b_consumer_done = torch.cuda.Event(), torch.cuda.Event()
+    b_shared_done = torch.cuda.Event()
+    b_consumer_done = torch.cuda.Event()
 
     def baseline():
         a_fork.record(main)
@@ -236,8 +290,8 @@ def main():
         anchor_view_a.add_(routed_bufs_a[2])
         comm.all_reduce(ar_input_a, out=out_a, registered=True)
         draft_a.copy_(out_a.view(M, 4, H)[:, 1:])
-        consume(draft_a, projection_a, sparse_a, workspace_a)
-        return out_a, draft_a, projection_a, sparse_a
+        consumer_a = consume(draft_a, projection_a, sparse_a, workspace_a)
+        return out_a, draft_a, consumer_a
 
     def candidate():
         b_fork.record(main)
@@ -249,23 +303,17 @@ def main():
         with torch.cuda.stream(consumer_stream):
             wait_draft(sync)
             draft_b.copy_(out_b.view(M, 4, H)[:, 1:])
-            consume(draft_b, projection_b, sparse_b, workspace_b)
+            consumer_b = consume(draft_b, projection_b, sparse_b, workspace_b)
             b_consumer_done.record(consumer_stream)
         with torch.cuda.stream(comm_stream):
             comm_stream.wait_event(b_shared_done)
             begin_draft(comm._ptr, ar_input_b, sync, out_b, rank)
         routed(routed_bufs_b)
         main.wait_event(b_shared_done)
-        b_anchor_ready.record(main)
-        with torch.cuda.stream(comm_stream):
-            comm_stream.wait_event(b_anchor_ready)
-            anchor_end(
-                comm._ptr, ar_input_b, routed_bufs_b[2], sync, out_b, rank
-            )
-            b_comm_done.record(comm_stream)
-        main.wait_event(b_comm_done)
+        main.wait_stream(comm_stream)
+        anchor_end(comm._ptr, ar_input_b, routed_bufs_b[2], sync, out_b, rank)
         main.wait_event(b_consumer_done)
-        return out_b, draft_b, projection_b, sparse_b
+        return out_b, draft_b, consumer_b
 
     progressive_module()
     # hipBLASLt lazily materializes per-shape/per-stream plans and workspaces.
@@ -284,12 +332,14 @@ def main():
     graph_b, outputs_b = capture(comm, candidate)
     sync.zero_(); torch.cuda.synchronize(); dist.barrier()
     graph_a.replay(); graph_b.replay(); torch.cuda.synchronize()
-    exact = [
-        torch.equal(outputs_a[0], outputs_b[0]),
-        torch.equal(outputs_a[1], outputs_b[1]),
-        *[torch.equal(a, b) for a, b in zip(outputs_a[2], outputs_b[2])],
-        torch.equal(outputs_a[3], outputs_b[3]),
-    ]
+    def compare_outputs():
+        return [
+            torch.equal(outputs_a[0], outputs_b[0]),
+            torch.equal(outputs_a[1], outputs_b[1]),
+            *[torch.equal(a, b) for a, b in zip(outputs_a[2], outputs_b[2])],
+        ]
+
+    exact = compare_outputs()
     exact_all = [None] * world
     dist.all_gather_object(exact_all, exact)
     if not all(all(v) for v in exact_all):
@@ -311,6 +361,48 @@ def main():
         dist.all_gather_object(debug_all, local_debug)
         raise RuntimeError(f"boundary mismatch {exact_all} debug={debug_all}")
 
+    mutation_delta = torch.sin(
+        torch.arange(shared_x.numel(), dtype=torch.float32, device="cuda")
+    ).view_as(shared_x).to(torch.bfloat16)
+    mutation_failures = 0
+    for mutation in range(args.mutations):
+        alpha = ((mutation * 1543 + 17) % 2047 - 1023) / 32768.0
+        shared_x.add_(mutation_delta, alpha=alpha)
+        graph_a.replay(); graph_b.replay(); torch.cuda.synchronize()
+        mutation_exact = compare_outputs()
+        if mutation == 0 and not all(mutation_exact):
+            mutation_debug = [
+                float((a.float() - b.float()).abs().max())
+                for a, b in zip(
+                    (outputs_a[0], outputs_a[1], *outputs_a[2]),
+                    (outputs_b[0], outputs_b[1], *outputs_b[2]),
+                )
+            ]
+            print(
+                f"rank={rank} first_mutation_exact={mutation_exact} "
+                f"max_abs={mutation_debug}",
+                flush=True,
+            )
+        mutation_failures += int(not all(mutation_exact))
+    mutation_failures_all = [None] * world
+    dist.all_gather_object(mutation_failures_all, mutation_failures)
+    if any(mutation_failures_all):
+        raise RuntimeError(f"mutation mismatch {mutation_failures_all}")
+
+    graph_b.replay(); torch.cuda.synchronize()
+    stable_b = tuple(tensor.clone() for tensor in outputs_b[2])
+    for _ in range(args.graph_replays):
+        graph_b.replay()
+    torch.cuda.synchronize()
+    replay_stable = all(
+        torch.equal(expected, actual)
+        for expected, actual in zip(stable_b, outputs_b[2])
+    )
+    replay_stable_all = [None] * world
+    dist.all_gather_object(replay_stable_all, replay_stable)
+    if not all(replay_stable_all):
+        raise RuntimeError(f"graph replay instability {replay_stable_all}")
+
     for _ in range(args.warmup):
         graph_a.replay(); graph_b.replay()
     torch.cuda.synchronize()
@@ -324,6 +416,12 @@ def main():
         av, bv = a1 + a2, b1 + b2
         am, bm = statistics.median(av), statistics.median(bv)
         print(f"route_blocks={experts.numel()} exact={exact_all}", flush=True)
+        print(f"entry_mhc_only={args.entry_mhc_only}", flush=True)
+        print(
+            f"mutations={args.mutations} failures={mutation_failures_all} "
+            f"graph_replays={args.graph_replays} stable={replay_stable_all}",
+            flush=True,
+        )
         print(f"A1_rankmax_us={[round(v,3) for v in a1]}", flush=True)
         print(f"B1_rankmax_us={[round(v,3) for v in b1]}", flush=True)
         print(f"B2_rankmax_us={[round(v,3) for v in b2]}", flush=True)
