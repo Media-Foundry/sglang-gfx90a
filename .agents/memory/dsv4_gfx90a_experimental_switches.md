@@ -4311,6 +4311,14 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   TP4/BS32 DSpark default is therefore `AITER_GFX90A_AR_1M_BLOCKS=12` together
   with `SGLANG_DSV4_GFX90A_M32_GATE_ROW_PREFETCH=1`; native AR remains
   unchanged. See `dsv4_dspark_ar12_m32_rowprefetch_checkpoint_20260901.md`.
+- A later M32 CKTile split-K2 screen found that the injected gfx90a AIter tune
+  key incorrectly used FP4 for `q_dtype_a`; bounded DSV4 SwiGLU actually
+  queries BF16 activation + FP4 weight. After fixing the key and proving an
+  explicit CKTile row was selected, the real32 screen reached only
+  `714.76 tok/s`, acceptance `2.883`, and failed France. Keep the key bug fix,
+  reject CKTile split-K2/4 for the compact M32 target route, and retain the
+  direct packed-SDOT production path. See
+  `dsv4_dspark_m32_cktile_keyfix_rejection_20260901.md`.
 - M128 wave64 MHC rows/program `3/6/12/24` measured
   `60.62/59.61/81.70/116.19 us`; rows6 is exact but only 1.7% faster, so it is
   too small for a service change.

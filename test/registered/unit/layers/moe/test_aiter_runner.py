@@ -48,6 +48,9 @@ def _install_fake_aiter(monkeypatch, fused_moe):
 
     fake_ops = ModuleType("aiter.ops")
     fake_ops.__path__ = []
+    fake_quant = ModuleType("aiter.ops.quant")
+    fake_quant.get_hip_quant = lambda _quant_type: lambda value, **_kwargs: value
+    fake_quant.get_triton_quant = lambda _quant_type: lambda value, **_kwargs: value
     fake_flydsl = ModuleType("aiter.ops.flydsl")
     fake_flydsl.__path__ = []
     fake_moe_common = ModuleType("aiter.ops.flydsl.moe_common")
@@ -58,6 +61,7 @@ def _install_fake_aiter(monkeypatch, fused_moe):
     monkeypatch.setitem(sys.modules, "aiter", fake_aiter)
     monkeypatch.setitem(sys.modules, "aiter.fused_moe", fake_fused_moe)
     monkeypatch.setitem(sys.modules, "aiter.ops", fake_ops)
+    monkeypatch.setitem(sys.modules, "aiter.ops.quant", fake_quant)
     monkeypatch.setitem(sys.modules, "aiter.ops.flydsl", fake_flydsl)
     monkeypatch.setitem(sys.modules, "aiter.ops.flydsl.moe_common", fake_moe_common)
 
@@ -113,6 +117,30 @@ def test_aiter_runner_preserves_no_combine_rank_for_empty_input(monkeypatch):
     output = runner.run(runner_input, _quant_info(), running_state={})
 
     assert output.hidden_states.shape == (0, 2, 4)
+
+
+def test_gfx90a_dsv4_fp4_tune_key_uses_bf16_activation_dtype():
+    fp4_dtype = getattr(torch, "float4_e2m1fn_x2", torch.uint8)
+
+    key = aiter_runner._gfx90a_dsv4_fp4_tune_key(
+        cu_num=104,
+        padded_token=32,
+        model_dim=4096,
+        inter_dim=512,
+        experts=256,
+        topk=6,
+        activation_key="ActivationType.Dsv4Silu",
+        output_dtype=torch.bfloat16,
+        weight_dtype=fp4_dtype,
+        force_unbounded=False,
+    )
+
+    assert key[7:10] == (
+        str(torch.bfloat16),
+        str(torch.bfloat16),
+        str(fp4_dtype),
+    )
+    assert key[10:] == ("QuantType.per_1x32", True, False)
 
 
 if __name__ == "__main__":

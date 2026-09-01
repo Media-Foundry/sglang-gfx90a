@@ -190,6 +190,44 @@ _GFX90A_DSV4_FP4_KERNEL2_64THREAD = (
 )
 
 
+def _gfx90a_dsv4_fp4_tune_key(
+    *,
+    cu_num: int,
+    padded_token: int,
+    model_dim: int,
+    inter_dim: int,
+    experts: int,
+    topk: int,
+    activation_key: str,
+    output_dtype: torch.dtype,
+    weight_dtype: torch.dtype,
+    force_unbounded: bool,
+) -> tuple:
+    """Build the exact key consumed by AIter ``get_2stage_cfgs``.
+
+    DSV4 bounded SwiGLU keeps its activation in BF16 on every pre-gfx950
+    target, even though the checkpoint weight is FP4.  Confusing ``q_dtype_a``
+    with ``q_dtype_w`` silently misses the injected gfx90a row and falls back
+    to AIter's untuned ``ksplit=0`` metadata.
+    """
+    activation_dtype = weight_dtype if force_unbounded else torch.bfloat16
+    return (
+        cu_num,
+        padded_token,
+        model_dim,
+        inter_dim,
+        experts,
+        topk,
+        activation_key,
+        str(output_dtype),
+        str(activation_dtype),
+        str(weight_dtype),
+        "QuantType.per_1x32",
+        True,
+        False,
+    )
+
+
 def _install_gfx90a_dsv4_fp4_tune(
     *,
     hidden_states: torch.Tensor,
@@ -264,11 +302,17 @@ def _install_gfx90a_dsv4_fp4_tune(
         if force_unbounded
         else "ActivationType.Dsv4Silu"
     )
-    key = (
-        int(get_cu_num()), padded_token, model_dim, inter_dim,
-        int(w13_weight.shape[0]), int(topk), activation_key,
-        str(output_dtype or torch.bfloat16), str(w13_weight.dtype),
-        str(w13_weight.dtype), "QuantType.per_1x32", 1, 0,
+    key = _gfx90a_dsv4_fp4_tune_key(
+        cu_num=int(get_cu_num()),
+        padded_token=padded_token,
+        model_dim=model_dim,
+        inter_dim=inter_dim,
+        experts=int(w13_weight.shape[0]),
+        topk=int(topk),
+        activation_key=activation_key,
+        output_dtype=output_dtype or torch.bfloat16,
+        weight_dtype=w13_weight.dtype,
+        force_unbounded=force_unbounded,
     )
     if key not in aiter_fused_moe.cfg_2stages:
         gfx90a_ksplit = envs.SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT.get()
