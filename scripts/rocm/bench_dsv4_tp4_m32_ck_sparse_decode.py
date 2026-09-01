@@ -46,6 +46,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tokens", type=int, default=96)
     parser.add_argument("--contexts", default="128,256,512")
+    parser.add_argument(
+        "--draft-context",
+        type=int,
+        default=0,
+        help="for M128 gamma-three, cap non-anchor rows to this ragged K budget",
+    )
     parser.add_argument("--rounds", type=int, default=7)
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--mutations", type=int, default=100)
@@ -61,13 +67,28 @@ def main():
         kv = torch.randn(
             (tokens * context, dim), dtype=torch.bfloat16, device="cuda"
         )
-        indices = torch.arange(
-            tokens * context, dtype=torch.int32, device="cuda"
+        draft_context = (
+            context
+            if args.draft_context <= 0
+            else min(args.draft_context, context)
         )
-        indptr = torch.arange(
-            0,
-            (tokens + 1) * context,
-            context,
+        lengths = [
+            context if token % 4 == 0 else draft_context
+            for token in range(tokens)
+        ]
+        indices = torch.cat(
+            [
+                torch.arange(
+                    token * context,
+                    token * context + length,
+                    dtype=torch.int32,
+                    device="cuda",
+                )
+                for token, length in enumerate(lengths)
+            ]
+        )
+        indptr = torch.tensor(
+            [0, *torch.tensor(lengths).cumsum(0).tolist()],
             dtype=torch.int32,
             device="cuda",
         )
@@ -134,7 +155,8 @@ def main():
                     f"rel_l2={delta_rel_l2}"
                 )
         print(
-            f"CORRECTNESS ctx={context} mutations={args.mutations} "
+            f"CORRECTNESS ctx={context} draft_ctx={draft_context} "
+            f"mutations={args.mutations} "
             f"max_abs={mutation_max_abs:.9f} "
             f"max_rel_l2={mutation_max_rel_l2:.9f}"
         )
@@ -153,7 +175,10 @@ def main():
             raise RuntimeError(
                 f"ctx={context} graph replay changed output: max_abs={graph_delta}"
             )
-        print(f"GRAPH ctx={context} replays={args.graph_replays} bitwise_exact=True")
+        print(
+            f"GRAPH ctx={context} draft_ctx={draft_context} "
+            f"replays={args.graph_replays} bitwise_exact=True"
+        )
         values = {"triton": [], "ck": []}
         for _ in range(args.rounds):
             for provider in ("triton", "ck", "ck", "triton"):
@@ -162,7 +187,8 @@ def main():
         triton_us = trimmed(values["triton"])
         ck_us = trimmed(values["ck"])
         print(
-            f"RESULT ctx={context} triton_us={triton_us:.3f} ck_us={ck_us:.3f} "
+            f"RESULT ctx={context} draft_ctx={draft_context} "
+            f"indices={indices.numel()} triton_us={triton_us:.3f} ck_us={ck_us:.3f} "
             f"saving_us={triton_us-ck_us:.3f} "
             f"gain_pct={(triton_us/ck_us-1)*100:.3f}"
         )
