@@ -146,3 +146,12 @@ into the default profile merely because the isolated mechanism is exact.
 
 Artifacts: `/tmp/dsv4_m32_rowprefetch_B2.json` and
 `/tmp/dsv4_m32_rowprefetch_A2.json`.
+
+The proposed compact-routed in-place anchor add was also implemented as a
+strict child of the same M128 TARGET_VERIFY guard, then screened before a
+service launch.  It kept the routed tensor at M32 and added it directly to
+`shared_output[::4]`, replacing M128 zero + scatter + full add.  One hundred
+random BF16 mutations were bitwise identical.  Captured graph medians were
+12.23 us for the existing chain and 8.70 us for the candidate, only 3.53 us
+per layer (about 0.15 ms per 43-layer step, below 0.2%).  The code was removed
+without a service launch because it cannot materially close the 3.4% gap.

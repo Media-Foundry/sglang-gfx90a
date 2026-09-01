@@ -4310,3 +4310,7 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   produced resident `1472.94/1488.54` versus disabled rollback
   `1427.45/1517.03 tok/s`.  Both were France 2/2; the two-round mean gain is
   only 0.58%, within acceptance noise.  Keep it disabled.
+- A strict DSpark M128 compact-routed in-place anchor add was 100/100 bitwise
+  exact, but its captured zero/scatter/add chain improved only
+  `12.23 -> 8.70 us/layer`.  This is below 0.2% of the full step; remove the
+  prototype without spending a service launch.
