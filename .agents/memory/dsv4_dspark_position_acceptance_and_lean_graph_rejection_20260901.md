@@ -239,3 +239,24 @@ a fixed-input graph/eager proposal first-divergence audit rather than another
 mask switch.
 
 Artifact: `/tmp/dsv4_gamma3_fullblock_49k_1024_r2.json`.
+
+## Gamma-three eager-draft parity diagnostic
+
+To decide whether a graph/eager first-divergence tool was warranted, the
+target verify graph was kept unchanged while only the draft transformer was
+forced eager with `SGLANG_DSPARK_DISABLE_DRAFT_CUDA_GRAPH=1`.  The two real32
+1024-token rounds were:
+
+```text
+resident: 1441.23 / 1391.25 tok/s, mean 1416.24
+accept:      3.664 /   3.578
+France:       true /   false
+```
+
+This is below the graph control's 1451.32 mean and does not improve semantic
+stability.  Unlike the older gamma-five path, current gamma-three performance
+is not limited by a large draft graph/eager acceptance divergence.  Keep the
+draft graph enabled and do not build tensor-dump infrastructure solely for
+this hypothesis.
+
+Artifact: `/tmp/dsv4_gamma3_eagerdraft_49k_1024_r2.json`.

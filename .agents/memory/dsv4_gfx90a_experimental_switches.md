@@ -4334,3 +4334,7 @@ amd-smi process --general --sort-by-pid -g 0 1 2 3 4 5 6 7
   `1413.26/1479.45 tok/s` (mean 1446.36), acceptance `3.560/3.634`, and France
   0/2, versus control mean 1451.32 and France 2/2.  Keep it disabled; the next
   acceptance investigation must compare fixed-input draft graph/eager states.
+- Disabling only the gamma3 draft CUDA graph gave `1441.23/1391.25 tok/s`,
+  acceptance `3.664/3.578`, and France 1/2.  Its 1416.24 mean is below the
+  graph control; the gamma5 graph/eager issue does not explain the current
+  gamma3 gap.  Keep the draft graph enabled.
