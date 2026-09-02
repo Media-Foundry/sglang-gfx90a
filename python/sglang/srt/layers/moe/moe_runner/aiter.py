@@ -266,7 +266,8 @@ def _install_gfx90a_dsv4_fp4_tune(
     # Limit the local override to the DSV4 rank layouts used on MI250. EP4/TP1
     # owns 64 full-width experts, EP2/TP2 owns 128 half-width experts, while
     # EP1/TP4 and EP1/TP8 own all 256 experts with quarter- or eighth-width
-    # intermediate shards. All retain input K=4096 and use generic CK tiles.
+    # intermediate shards. PP4/TP1 owns all 256 full-width experts on each
+    # pipeline stage. All retain input K=4096 and use generic CK tiles.
     if w13_weight.dtype != getattr(torch, "float4_e2m1fn_x2", None):
         return False
     if w13_weight.ndim != 3:
@@ -274,6 +275,7 @@ def _install_gfx90a_dsv4_fp4_tune(
     if tuple(w13_weight.shape) not in (
         (64, 4096, 2048),
         (128, 2048, 2048),
+        (256, 4096, 2048),
         (256, 1024, 2048),
         (256, 512, 2048),
     ):

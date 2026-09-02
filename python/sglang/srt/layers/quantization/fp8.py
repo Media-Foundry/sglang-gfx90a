@@ -183,6 +183,10 @@ def _is_gfx90a_dsv4_cktile_fp4_shape(layer: Module) -> bool:
         ((64, 4096, 2048), (64, 4096, 1024)),
         ((128, 2048, 2048), (128, 4096, 512)),
         ((256, 1024, 2048), (256, 4096, 256)),
+        # PP4 / TP1 keeps all 256 experts and the full expert intermediate
+        # dimension on each pipeline stage.  It uses the same CKTile FlatMM
+        # stage-2 N-lane mapping and therefore needs the identical row fix.
+        ((256, 4096, 2048), (256, 4096, 1024)),
     }
 
 
