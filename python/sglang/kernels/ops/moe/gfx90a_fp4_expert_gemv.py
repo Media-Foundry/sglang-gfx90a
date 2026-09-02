@@ -399,6 +399,25 @@ def _jit_down_mfma32(
     )
 
 
+def preload_gfx90a_fp4_mfma64_prefill(
+    token_counts: tuple[int, ...] = (2300, 2304),
+) -> None:
+    """Compile the exact TP4 DSV4 MFMA64 prefill specializations.
+
+    This deliberately calls only the cached JIT module constructors: it does
+    not allocate routed intermediates, touch model weights, or launch a GPU
+    kernel.  Keep these constants synchronized with the guarded production
+    selector in ``AIterExperts.forward``.
+    """
+    for m in token_counts:
+        _jit_gate_up_mfma32(
+            256, m, 6, 512, 4096, 416, 4, 1, 64, False
+        )
+        _jit_down_mfma32(
+            256, m, 6, 4096, 512, 624, 2, 1, 64, False
+        )
+
+
 @cache_once
 def _jit_mfma64_expert_persistent_down(
     e: int,

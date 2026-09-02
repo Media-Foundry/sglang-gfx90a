@@ -5096,7 +5096,21 @@ class DeepseekV4ForCausalLM(nn.Module):
         # execute/free temporary A2A kernel buffers before that lifecycle point;
         # the decode kernel is already JIT-cached and runs on first real decode.
         use_gfx90a_triton = _is_hip and _use_gfx90a_mhc_pre_mix
-        if not use_tilelang and not use_gfx90a_triton:
+        use_gfx90a_token_row_prefill = (
+            _is_hip
+            and is_gfx90a_supported()
+            and envs.SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL.get()
+            and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
+            and envs.SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL.get()
+            and get_parallel().tp_size == 4
+            and get_parallel().moe_ep_size == 1
+            and get_moe_a2a_backend().is_none()
+        )
+        if (
+            not use_tilelang
+            and not use_gfx90a_triton
+            and not use_gfx90a_token_row_prefill
+        ):
             return
         layer = next(
             (m for m in self.model.layers if isinstance(m, DeepseekV4DecoderLayer)),
@@ -5111,6 +5125,16 @@ class DeepseekV4ForCausalLM(nn.Module):
             dtype=torch.bfloat16,
             device=layer.hc_attn_fn.device,
         )
+        if use_gfx90a_token_row_prefill:
+            from sglang.kernels.ops.layernorm.gfx90a_mhc_post_pre import (
+                preload_gfx90a_mhc_post_pre,
+            )
+            from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
+                preload_gfx90a_fp4_mfma64_prefill,
+            )
+
+            preload_gfx90a_mhc_post_pre()
+            preload_gfx90a_fp4_mfma64_prefill()
         if use_tilelang:
             from sglang.kernels.ops.layernorm.mhc import mhc_post, prewarm_mhc_pre
 
