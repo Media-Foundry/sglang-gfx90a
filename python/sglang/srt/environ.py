@@ -1534,7 +1534,8 @@ class Envs:
     # Experimental large-prefill path: expand the original packed FP4 routed
     # weights into a reusable BF16 workspace and invoke CK's variable-M
     # grouped MoE before the direct INT8 quant/sorter pipeline.  Restricted to
-    # 8192 <= M <= 16384 so ordinary C1 prefill and decode remain untouched.
+    # 8192 <= M <= 36864 so ordinary C1 prefill and decode remain untouched;
+    # the upper bound admits two balanced 16-request heterogeneous batches.
     SGLANG_DSV4_GFX90A_BF16_CK_PREFILL = EnvBool(False)
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.

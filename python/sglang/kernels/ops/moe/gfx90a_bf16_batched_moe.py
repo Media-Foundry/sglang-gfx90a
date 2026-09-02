@@ -152,8 +152,8 @@ def gfx90a_bf16_ck_moe(
 ) -> torch.Tensor:
     e, t, h, i = 256, 6, 4096, 512
     m = hidden.shape[0]
-    if m < 8192 or m > 16384:
-        raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 16384")
+    if m < 8192 or m > 36864:
+        raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 36864")
     if hidden.shape != (m, h) or topk_ids.shape != (m, t):
         raise ValueError("BF16 CK MoE oracle requires H4096/Top-6")
     device_index = hidden.device.index
