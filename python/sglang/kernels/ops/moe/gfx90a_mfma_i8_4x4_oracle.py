@@ -21,6 +21,18 @@ def _jit_module() -> Module:
                 "a4n4k32",
                 "sglang::Gfx90aMfmaI8A4N4K32OracleKernel::run",
             ),
+            (
+                "m32n32k32",
+                "sglang::Gfx90aMfmaI8M32N32K32OracleKernel<true,true>::run",
+            ),
+            (
+                "m32n32k32_mfma",
+                "sglang::Gfx90aMfmaI8M32N32K32OracleKernel<true,false>::run",
+            ),
+            (
+                "m32n32k32_sdot",
+                "sglang::Gfx90aMfmaI8M32N32K32OracleKernel<false,true>::run",
+            ),
         ],
         extra_cuda_cflags=["-O3"],
     )
@@ -53,6 +65,15 @@ def gfx90a_mfma_i8_a4n4k32_oracle(
     )
     _jit_module().a4n4k32(x, weight, x_scale, weight_scale, *outputs)
     return outputs
+
+
+def gfx90a_mfma_i8_m32n32k32_oracle(
+    x: torch.Tensor, weight: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    mfma_out = torch.empty((32, 32), dtype=torch.int32, device=x.device)
+    sdot_out = torch.empty_like(mfma_out)
+    _jit_module().m32n32k32(x, weight, mfma_out, sdot_out)
+    return mfma_out, sdot_out
 
 
 @cache_once

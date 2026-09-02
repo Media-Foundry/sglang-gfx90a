@@ -9,6 +9,7 @@
 namespace sglang {
 
 using gfx90a_i32x4_oracle = int32_t __attribute__((ext_vector_type(4)));
+using gfx90a_i32x16_oracle = int32_t __attribute__((ext_vector_type(16)));
 
 __global__ void gfx90a_mfma_i8_4x4_probe_kernel(
     int32_t* __restrict__ out, const int32_t* __restrict__ a,
@@ -129,6 +130,69 @@ struct Gfx90aMfmaI8A4N4K32OracleKernel {
         static_cast<const int8_t*>(weight.data_ptr()),
         static_cast<const float*>(x_scale.data_ptr()),
         static_cast<const float*>(weight_scale.data_ptr()));
+  }
+};
+
+template <bool kRunMfma, bool kRunSdot>
+__global__ void gfx90a_mfma_i8_m32n32k32_oracle_kernel(
+    int32_t* __restrict__ mfma_out, int32_t* __restrict__ sdot_out,
+    const int8_t* __restrict__ x, const int8_t* __restrict__ weight) {
+  const uint32_t lane = threadIdx.x;
+  const uint32_t matrix_lane = lane & 31u;
+  if constexpr (kRunMfma) {
+    gfx90a_i32x16_oracle acc = {};
+#pragma unroll
+    for (uint32_t k_group = 0; k_group < 4; ++k_group) {
+      const uint32_t k0 = k_group * 8 + (lane >> 5) * 4;
+      const int32_t a = *reinterpret_cast<const int32_t*>(
+          x + matrix_lane * 32 + k0);
+      const int32_t b = *reinterpret_cast<const int32_t*>(
+          weight + matrix_lane * 32 + k0);
+      acc = __builtin_amdgcn_mfma_i32_32x32x8i8(a, b, acc, 0, 0, 0);
+    }
+#pragma unroll
+    for (uint32_t v = 0; v < 16; ++v) {
+      const uint32_t row = (lane >> 5) * 4 + (v & 3u) + 8 * (v >> 2);
+      mfma_out[row * 32 + matrix_lane] = acc[v];
+    }
+  }
+
+  if constexpr (kRunSdot) {
+    for (uint32_t index = lane; index < 32 * 32; index += 64) {
+      const uint32_t row = index / 32;
+      const uint32_t col = index % 32;
+      int32_t dot = 0;
+#pragma unroll
+      for (uint32_t k = 0; k < 32; k += 4) {
+        dot = __builtin_amdgcn_sdot4(
+            *reinterpret_cast<const int32_t*>(x + row * 32 + k),
+            *reinterpret_cast<const int32_t*>(weight + col * 32 + k),
+            dot, false);
+      }
+      sdot_out[index] = dot;
+    }
+  }
+}
+
+template <bool kRunMfma, bool kRunSdot>
+struct Gfx90aMfmaI8M32N32K32OracleKernel {
+  static void run(const tvm::ffi::TensorView x,
+                  const tvm::ffi::TensorView weight,
+                  const tvm::ffi::TensorView mfma_out,
+                  const tvm::ffi::TensorView sdot_out) {
+    using namespace host;
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({32, 32}).with_dtype<int8_t>().with_device(device).verify(x);
+    TensorMatcher({32, 32}).with_dtype<int8_t>().with_device(device).verify(weight);
+    TensorMatcher({32, 32}).with_dtype<int32_t>().with_device(device).verify(mfma_out);
+    TensorMatcher({32, 32}).with_dtype<int32_t>().with_device(device).verify(sdot_out);
+    LaunchKernel(1, 64, x.device())(
+        gfx90a_mfma_i8_m32n32k32_oracle_kernel<kRunMfma, kRunSdot>,
+        static_cast<int32_t*>(mfma_out.data_ptr()),
+        static_cast<int32_t*>(sdot_out.data_ptr()),
+        static_cast<const int8_t*>(x.data_ptr()),
+        static_cast<const int8_t*>(weight.data_ptr()));
   }
 };
 
