@@ -16,6 +16,29 @@ DEFAULT_MAX_TOTAL_TOKENS="8192"
 DEFAULT_SWA_FULL_TOKENS_RATIO="0.65"
 DEFAULT_MEM_FRACTION_STATIC="0.80"
 
+# Default-off large-prefill throughput profile for four gfx90a GCDs.  The
+# 12+12+8 admission shape outperforms both 16+16 and 8+8+8+8 on the fixed
+# 32-request heterogeneous code workload while retaining the exact France
+# sentinel.  BF16 CK uses an FP32 stage-2 workspace because gfx90a has no
+# native BF16 atomic add and the software-CAS experiment was numerically
+# unstable at service level.
+GFX90A_PREFILL_THROUGHPUT_PROFILE="${SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE:-0}"
+if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE}" == "1" ]]; then
+  DEFAULT_GPUS="4,5,6,7"
+  DEFAULT_CHUNKED_PREFILL_SIZE="36864"
+  DEFAULT_MAX_TOTAL_TOKENS="83968"
+  DEFAULT_MEM_FRACTION_STATIC="0.96"
+  TP_SIZE="${TP_SIZE:-4}"
+  EP_SIZE="${EP_SIZE:-1}"
+  MOE_A2A_BACKEND="${MOE_A2A_BACKEND:-none}"
+  MAX_PREFILL_TOKENS="${MAX_PREFILL_TOKENS:-36864}"
+  PREFILL_MAX_REQUESTS="${PREFILL_MAX_REQUESTS:-12}"
+  export SGLANG_DSV4_GFX90A_BF16_CK_PREFILL="${SGLANG_DSV4_GFX90A_BF16_CK_PREFILL:-1}"
+  export SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32="${SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32:-1}"
+  export SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL="${SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL:-1}"
+  export SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM="${SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM:-1}"
+fi
+
 # Keep the latency-oriented defaults unless the caller explicitly selects the
 # graph-safe multi-request profile.  On gfx90a TP4/EP1 this lets the shared
 # expert use the ROCm auxiliary stream while SBO overlaps it with routed MoE.

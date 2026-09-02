@@ -205,12 +205,16 @@ def gfx90a_bf16_ck_moe(
     # support gfx90a, so install an empty one-stage set and fall through to CK.
     aiter_fused_moe.fused_moe_1stage_dict.setdefault("gfx90a", set())
     debug_activation = os.getenv("AITER_DSV4_DEBUG_ACTIVATION", "")
+    stage2_fp32 = (
+        os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32", "0") == "1"
+        or debug_activation == "dsv4-m32-stage2-fp32"
+    )
     activation = {
         "gelu": ActivationType.Gelu,
         "silu": ActivationType.Silu,
     }.get(debug_activation, ActivationType.Dsv4Silu)
     original_stage2 = None
-    if debug_activation == "dsv4-m32-stage2-fp32":
+    if stage2_fp32:
         import aiter
 
         module = importlib.import_module(
@@ -305,7 +309,7 @@ def gfx90a_bf16_ck_moe(
             dtype=torch.bfloat16,
             moe_out=out,
             block_size_M=(
-                32 if debug_activation == "dsv4-m32-stage2-fp32" else None
+                32 if stage2_fp32 else None
             ),
         )
     finally:
