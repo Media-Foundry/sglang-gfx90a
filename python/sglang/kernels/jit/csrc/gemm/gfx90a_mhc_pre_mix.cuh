@@ -30,6 +30,36 @@ __device__ __forceinline__ float gfx90a_wave64_sum(float value) {
   return value;
 }
 
+__global__ void gfx90a_mhc_rms_scale_kernel(
+    const bf16_t* __restrict__ residual, float* __restrict__ scale,
+    float rms_eps) {
+  const uint32_t token = blockIdx.x;
+  const uint32_t lane = threadIdx.x;
+  const bf16_t* x = residual + static_cast<size_t>(token) * kGfx90aMhcK;
+  float sumsq = 0.0f;
+  for (uint32_t pair = lane; pair < kGfx90aMhcK / 2;
+       pair += kGfx90aMhcWave) {
+    const auto [x0, x1] = cast<fp32x2_t>(
+        *reinterpret_cast<const bf16x2_t*>(x + pair * 2));
+    sumsq = fmaf(x0, x0, sumsq);
+    sumsq = fmaf(x1, x1, sumsq);
+  }
+  sumsq = gfx90a_wave64_sum(sumsq);
+  if (lane == 0) {
+    scale[token] =
+        rsqrtf(sumsq / static_cast<float>(kGfx90aMhcK) + rms_eps);
+  }
+}
+
+__global__ void gfx90a_mhc_scale_mix_kernel(
+    const bf16_t* __restrict__ raw, const float* __restrict__ scale,
+    float* __restrict__ mixes, uint32_t num_tokens) {
+  const uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index >= num_tokens * kGfx90aMhcN) return;
+  const uint32_t token = index / kGfx90aMhcN;
+  mixes[index] = cast<float>(raw[index]) * scale[token];
+}
+
 template <uint32_t kRowsPerBlock>
 __global__ void __launch_bounds__(kGfx90aMhcWave)
     gfx90a_mhc_pre_mix_kernel(const bf16_t* __restrict__ residual,
@@ -126,6 +156,43 @@ struct Gfx90aMhcPreMixKernel {
                       const tvm::ffi::TensorView mixes,
                       float rms_eps) {
     run_impl<2>(residual, fn, mixes, rms_eps);
+  }
+
+  static void rms_scale(const tvm::ffi::TensorView residual,
+                        const tvm::ffi::TensorView scale,
+                        float rms_eps) {
+    using namespace host;
+    auto T = SymbolicSize{"num_tokens"};
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({T, 4, 4096}).with_dtype<bf16_t>().with_device(device).verify(residual);
+    TensorMatcher({T}).with_dtype<float>().with_device(device).verify(scale);
+    LaunchKernel(static_cast<uint32_t>(T.unwrap()), kGfx90aMhcWave,
+                 device.unwrap())(
+        gfx90a_mhc_rms_scale_kernel,
+        static_cast<const bf16_t*>(residual.data_ptr()),
+        static_cast<float*>(scale.data_ptr()), rms_eps);
+  }
+
+  static void scale_mix(const tvm::ffi::TensorView raw,
+                        const tvm::ffi::TensorView scale,
+                        const tvm::ffi::TensorView mixes) {
+    using namespace host;
+    auto T = SymbolicSize{"num_tokens"};
+    auto device = SymbolicDevice{};
+    device.set_options<kDLCUDA>();
+    TensorMatcher({T, 24}).with_dtype<bf16_t>().with_device(device).verify(raw);
+    TensorMatcher({T}).with_dtype<float>().with_device(device).verify(scale);
+    TensorMatcher({T, 1, 24}).with_dtype<float>().with_device(device).verify(mixes);
+    constexpr uint32_t kThreads = 256;
+    const uint32_t count = static_cast<uint32_t>(T.unwrap()) * kGfx90aMhcN;
+    LaunchKernel((count + kThreads - 1) / kThreads, kThreads,
+                 device.unwrap())(
+        gfx90a_mhc_scale_mix_kernel,
+        static_cast<const bf16_t*>(raw.data_ptr()),
+        static_cast<const float*>(scale.data_ptr()),
+        static_cast<float*>(mixes.data_ptr()),
+        static_cast<uint32_t>(T.unwrap()));
   }
 };
 

@@ -1,5 +1,11 @@
 # DSV4 gfx90a large-M BF16 CK prefill: correctness repaired, E2E rejected
 
+> **Correction (same day):** the 2.34k E2E result below did not hit the
+> `M>=8192` selector.  Only `max_prefill_tokens` had been raised; the actual
+> `chunked_prefill_size` remained 2304.  The selector must not be rejected on
+> that result.  A corrected `chunked_prefill_size=36864`, 16+16 experiment is
+> recorded in `dsv4_gfx90a_large_m_mhc_bf16_gemm_checkpoint_20260902.md`.
+
 Date: 2026-09-02
 
 ## Scope
