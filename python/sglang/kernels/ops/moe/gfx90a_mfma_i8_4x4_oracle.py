@@ -33,6 +33,18 @@ def _jit_module() -> Module:
                 "m32n32k32_sdot",
                 "sglang::Gfx90aMfmaI8M32N32K32OracleKernel<false,true>::run",
             ),
+            (
+                "fp4_a32n32k4096",
+                "sglang::Gfx90aMfmaFp4A32N32K4096OracleKernel<true,true>::run",
+            ),
+            (
+                "fp4_a32n32k4096_mfma",
+                "sglang::Gfx90aMfmaFp4A32N32K4096OracleKernel<true,false>::run",
+            ),
+            (
+                "fp4_a32n32k4096_sdot",
+                "sglang::Gfx90aMfmaFp4A32N32K4096OracleKernel<false,true>::run",
+            ),
         ],
         extra_cuda_cflags=["-O3"],
     )
