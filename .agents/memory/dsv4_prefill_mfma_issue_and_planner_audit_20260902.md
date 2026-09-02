@@ -120,3 +120,65 @@ an asynchronous weight/decode producer.
 The 10k C32 objective therefore requires a different routed-MoE execution
 architecture, not another chunk size, grid count, EP switch, or synchronous
 LDS multicast around the current kernel.
+
+## Split-K2/4/8 gate sweep and service rejection
+
+The profiler's low occupancy motivated a real M4608 raw-FP4 gate/up sweep.
+All shapes used the same A64 sorter metadata and physical GCD4:
+
+```text
+split2 best (1664 blocks): 17.125 ms
+split4 best (416 blocks):  13.891 ms
+split8 best (624 blocks):  12.922 ms
+```
+
+Split8 was about 7.0% faster than the local split4 control.  Its changed FP32
+association was finite over the full output (`max_abs=0.5`, mean absolute
+`6.62e-6`).  A default-off selector was then restricted to exact M4608 only;
+C1 M2304, decode, and DSpark were untouched.  France returned `The capital of
+France is Paris.`
+
+Four C32 heterogeneous service rounds were:
+
+```text
+2539.67 / 2621.11 / 2631.09 / 2626.55 input tok/s
+warm center about 2624 tok/s
+```
+
+This is about 4.2% below the accepted 2.74k control.  More split waves improve
+the isolated gate but compete with the rest of the layer and/or increase the
+four-rank tail.  The environment variable, runner branch, and shell export were
+removed.  Do not enable split8 from the microbenchmark result alone.
+
+The corresponding M4608 down sweep found only a small local candidate:
+
+```text
+current split2/624: 13.868 ms
+split4/624:         13.494 ms  (2.7% faster)
+split8 best:        18.496 ms  (decisive regression)
+```
+
+Split4 changed the reduction association (`max_abs=16`, mean absolute
+`7.26e-5` under deliberately wide random scales).  Since down is only one part
+of the routed stage, its optimistic E2E value is below 1%; it was not connected
+to the service.
+
+## MFMA64 in-place LDS pair-LUT rejection
+
+The MFMA kernel normally decodes each packed FP4 `uint16` with three `v_perm`
+operations plus selector bit manipulation.  A default-off oracle borrowed the
+first 1 KiB of the existing 32-KiB split-partial LDS as a byte-pair LUT during
+the K loop, so it added no static LDS.  Correctness exposed two required
+ordering barriers: partial publication must wait for all LUT readers, and the
+LUT must be rebuilt for every task because the previous task overwrites it.
+
+After both races were fixed, output was bitwise exact.  Seven-round timing was:
+
+```text
+direct v_perm decode: 13.940 ms
+in-place LDS LUT:     14.328 ms  (+2.7% slower)
+```
+
+The per-task LUT initialization and two barriers cost more than the removed
+per-packed-value permutations.  The template experiment was removed.  Do not
+reuse gate partials as a LUT without accounting for both wave and task lifetime.
