@@ -138,7 +138,7 @@ def gfx90a_bf16_batched_moe_m16384(
     return out
 
 
-def gfx90a_bf16_ck_moe_m16384(
+def gfx90a_bf16_ck_moe(
     hidden: torch.Tensor,
     topk_ids: torch.Tensor,
     topk_weights: torch.Tensor,
@@ -150,9 +150,12 @@ def gfx90a_bf16_ck_moe_m16384(
     out: torch.Tensor | None = None,
     blocks: int = 1664,
 ) -> torch.Tensor:
-    e, m, t, h, i = 256, 16384, 6, 4096, 512
+    e, t, h, i = 256, 6, 4096, 512
+    m = hidden.shape[0]
+    if m < 8192 or m > 16384:
+        raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 16384")
     if hidden.shape != (m, h) or topk_ids.shape != (m, t):
-        raise ValueError("BF16 CK MoE is restricted to exact M16384/Top-6")
+        raise ValueError("BF16 CK MoE oracle requires H4096/Top-6")
     device_index = hidden.device.index
     key = device_index if device_index is not None else torch.cuda.current_device()
     workspace = _ck_weight_workspaces.get(key)
@@ -192,3 +195,10 @@ def gfx90a_bf16_ck_moe_m16384(
         dtype=torch.bfloat16,
         moe_out=out,
     )
+
+
+def gfx90a_bf16_ck_moe_m16384(*args, **kwargs) -> torch.Tensor:
+    """Compatibility wrapper for the original standalone oracle."""
+    if args and args[0].shape[0] != 16384:
+        raise ValueError("expected M16384")
+    return gfx90a_bf16_ck_moe(*args, **kwargs)

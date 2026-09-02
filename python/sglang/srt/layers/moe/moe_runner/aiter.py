@@ -478,6 +478,38 @@ class AiterRunnerCore(MoeRunnerCore):
                 gfx90a_fp4_expert_gate_up,
             )
 
+            if (
+                envs.SGLANG_DSV4_GFX90A_BF16_CK_PREFILL.get()
+                and runner_input.hidden_states.ndim == 2
+                and 8192 <= runner_input.hidden_states.shape[0] <= 16384
+                and runner_input.hidden_states.shape[1] == 4096
+                and quant_info.expert_mask is None
+                and runner_input.num_local_tokens is None
+                and not envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()
+            ):
+                from sglang.kernels.ops.moe.gfx90a_bf16_batched_moe import (
+                    gfx90a_bf16_ck_moe,
+                )
+
+                direct_out = (
+                    runner_input.output_tensor[
+                        : runner_input.hidden_states.shape[0], :4096
+                    ]
+                    if runner_input.output_tensor is not None
+                    else None
+                )
+                output = gfx90a_bf16_ck_moe(
+                    runner_input.hidden_states,
+                    runner_input.topk_ids,
+                    runner_input.topk_weights,
+                    quant_info.w13_weight,
+                    quant_info.w13_scale,
+                    quant_info.w2_weight,
+                    quant_info.w2_scale,
+                    out=direct_out,
+                )
+                return AiterRunnerOutput(hidden_states=output)
+
             slot_begin = 0
             slot_end = runner_input.topk_ids.shape[1]
             if envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get():

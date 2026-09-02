@@ -1531,6 +1531,11 @@ class Envs:
     # Group prefill assignments by expert so four token rows reuse each raw
     # packed-FP4 weight load. Decode M=1 remains on the direct wave64 path.
     SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL = EnvBool(False)
+    # Experimental large-prefill path: expand the original packed FP4 routed
+    # weights into a reusable BF16 workspace and invoke CK's variable-M
+    # grouped MoE before the direct INT8 quant/sorter pipeline.  Restricted to
+    # 8192 <= M <= 16384 so ordinary C1 prefill and decode remain untouched.
+    SGLANG_DSV4_GFX90A_BF16_CK_PREFILL = EnvBool(False)
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
