@@ -182,3 +182,31 @@ in-place LDS LUT:     14.328 ms  (+2.7% slower)
 The per-task LUT initialization and two barriers cost more than the removed
 per-packed-value permutations.  The template experiment was removed.  Do not
 reuse gate partials as a LUT without accounting for both wave and task lifetime.
+
+## Native reciprocal SwiGLU screen
+
+Disassembly showed the exact `gate / (1 + exp(-gate))` lowering to a corrected
+division chain.  Replacing only the reciprocal with CDNA2 `v_rcp_f32` kept all
+clamps and exponentials unchanged.  Across 100 pressure mutations the result
+was finite (`max_abs=0.5`, mean absolute `2.58e-8`).  Gate ABBA changed only
+13.943 to 13.892 ms (0.37% faster), far below even a 1% E2E bound.  The
+approximate template was removed.
+
+## LLVM AMDGPU scheduler sweep
+
+The same M4608/split4/blocks416 source was compiled with six machine-scheduler
+profiles.  Five mutations were bitwise exact for every profile.  Trimmed gate
+times were:
+
+```text
+default                         13.941 ms
+gcn-max-occupancy               14.009 ms
+iterative-max-occupancy         13.950 ms
+schedule-metric-bias=0          13.991 ms
+schedule-metric-bias=100        13.845 ms
+relaxed-occupancy               13.860 ms
+disable-mfma-rewrite-stage      14.001 ms
+```
+
+The best compiler-only change is roughly 0.7%, below the component gate and
+normal run-to-run drift.  Production remains plain `-O3`.
