@@ -209,11 +209,50 @@ def gfx90a_bf16_ck_moe(
         os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32", "0") == "1"
         or debug_activation == "dsv4-m32-stage2-fp32"
     )
+    block64_v1 = (
+        os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1", "0") == "1"
+    )
+    block_m_override = int(
+        os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_BLOCK_M", "0")
+    ) or (64 if block64_v1 else 0)
     activation = {
         "gelu": ActivationType.Gelu,
         "silu": ActivationType.Silu,
     }.get(debug_activation, ActivationType.Dsv4Silu)
+    original_stage1 = None
     original_stage2 = None
+    stage1_kernel = os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_STAGE1_KERNEL", "")
+    if block64_v1 and not stage1_kernel:
+        stage1_kernel = (
+            "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_"
+            "Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16"
+        )
+    if stage1_kernel:
+        import aiter
+
+        module_stage1 = importlib.import_module(
+            "aiter.jit.module_moe_ck2stages_b16_b16_preshuffle_off_b16_dsv4silu_no_mulWeightStage2_"
+        )
+        original_stage1 = aiter.ck_moe_stage1_fwd
+
+        def stage1_override(
+            hidden_states, stage_w1, stage_w2, sorted_token_ids,
+            sorted_expert_ids, num_valid_ids, stage_out, topk,
+            kernelName="", w1_scale=None, a1_scale=None, block_m=32,
+            sorted_weights=None, quant_type=aiter.QuantType.No,
+            activation=ActivationType.Dsv4Silu, splitk=1,
+            use_non_temporal_load=False, dtype=None,
+        ):
+            module_stage1.ck_moe_stage1(
+                hidden_states, stage_w1, stage_w2, sorted_token_ids,
+                sorted_expert_ids, num_valid_ids, stage_out, topk,
+                stage1_kernel, w1_scale, a1_scale, block_m, sorted_weights,
+                quant_type.value, activation.value, splitk,
+                use_non_temporal_load, None,
+            )
+            return stage_out
+
+        aiter.ck_moe_stage1_fwd = stage1_override
     if stage2_fp32:
         import aiter
 
@@ -308,11 +347,11 @@ def gfx90a_bf16_ck_moe(
             quant_type=aiter_fused_moe.QuantType.No,
             dtype=torch.bfloat16,
             moe_out=out,
-            block_size_M=(
-                32 if stage2_fp32 else None
-            ),
+            block_size_M=(block_m_override or 32) if stage2_fp32 else None,
         )
     finally:
+        if original_stage1 is not None:
+            aiter.ck_moe_stage1_fwd = original_stage1
         if original_stage2 is not None:
             aiter.ck_moe_stage2_fwd = original_stage2
 

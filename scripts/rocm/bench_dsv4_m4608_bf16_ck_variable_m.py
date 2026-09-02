@@ -46,6 +46,9 @@ def main():
     parser.add_argument("--small-scales",action="store_true")
     parser.add_argument("--layout-probe",action="store_true")
     parser.add_argument("--verify-direct-shuffle-only",action="store_true")
+    parser.add_argument("--breakdown",action="store_true")
+    parser.add_argument("--profile-core",action="store_true")
+    parser.add_argument("--compare-block64-v1",action="store_true")
     args=parser.parse_args();m=args.m
     d=torch.device("cuda");torch.manual_seed(20260902)
     x=torch.randn((m,H),device=d,dtype=torch.bfloat16)
@@ -80,6 +83,86 @@ def main():
         _ck_weight_workspaces[torch.cuda.current_device()]=(weight13,weight2)
     for kind in ("balanced","skewed"):
         ids,tw=routes(kind,d,m);out=torch.empty((m,H),device=d,dtype=torch.bfloat16)
+        if args.compare_block64_v1:
+            baseline=torch.empty_like(out);candidate=torch.empty_like(out)
+            block_key="SGLANG_DSV4_GFX90A_BF16_CK_BLOCK_M"
+            kernel_key="SGLANG_DSV4_GFX90A_BF16_CK_STAGE1_KERNEL"
+            saved_block=os.environ.pop(block_key,None)
+            saved_kernel=os.environ.pop(kernel_key,None)
+            baseline_fn=lambda:gfx90a_bf16_ck_moe(
+                x,ids,tw,w13,s13,w2,s2,out=baseline,blocks=args.blocks[0]
+            )
+            baseline_fn();torch.cuda.synchronize()
+            baseline_samples=[time_ms(baseline_fn) for _ in range(5)]
+            os.environ[block_key]="64"
+            os.environ[kernel_key]=(
+                "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_"
+                "Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16"
+            )
+            candidate_fn=lambda:gfx90a_bf16_ck_moe(
+                x,ids,tw,w13,s13,w2,s2,out=candidate,blocks=args.blocks[0]
+            )
+            candidate_fn();torch.cuda.synchronize()
+            delta=(baseline.float()-candidate.float()).abs()
+            candidate_samples=[time_ms(candidate_fn) for _ in range(5)]
+            print(
+                f"m={m} kind={kind} block32_ms={statistics.median(baseline_samples):.3f} "
+                f"block64_v1_ms={statistics.median(candidate_samples):.3f} "
+                f"exact={torch.equal(baseline,candidate)} "
+                f"max_abs={delta.max().item():.7g} mean_abs={delta.mean().item():.7g} "
+                f"cos={torch.nn.functional.cosine_similarity(baseline.float().flatten(),candidate.float().flatten(),dim=0).item():.9f}"
+            )
+            if saved_block is None: os.environ.pop(block_key,None)
+            else: os.environ[block_key]=saved_block
+            if saved_kernel is None: os.environ.pop(kernel_key,None)
+            else: os.environ[kernel_key]=saved_kernel
+            continue
+        if args.breakdown:
+            weight13=torch.empty((E,2*I,H),dtype=torch.bfloat16,device=d)
+            weight2=torch.empty((E,H,I),dtype=torch.bfloat16,device=d)
+            dequant13=_jit_dequant(E,2*I,H,args.blocks[0])
+            dequant2=_jit_dequant(E,H,I,args.blocks[0])
+            dequant_fn=lambda: (
+                dequant13.run(w13,s13.reshape(E,2*I,H//32),weight13),
+                dequant2.run(w2,s2.reshape(E,H,I//32),weight2),
+            )
+            dequant_fn();torch.cuda.synchronize()
+            _ck_weight_workspaces[torch.cuda.current_device()]=(weight13,weight2)
+            previous_keep=os.environ.get("AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS")
+            os.environ["AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS"]="1"
+            core_fn=lambda:gfx90a_bf16_ck_moe(
+                x,ids,tw,w13,s13,w2,s2,out=out,blocks=args.blocks[0]
+            )
+            if args.profile_core:
+                with torch.profiler.profile(
+                    activities=[
+                        torch.profiler.ProfilerActivity.CPU,
+                        torch.profiler.ProfilerActivity.CUDA,
+                    ]
+                ) as prof:
+                    core_fn()
+                torch.cuda.synchronize()
+                print(
+                    prof.key_averages().table(
+                        sort_by="self_cuda_time_total", row_limit=30
+                    )
+                )
+            core_samples=[time_ms(core_fn) for _ in range(5)]
+            if previous_keep is None:
+                os.environ.pop("AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS",None)
+            else:
+                os.environ["AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS"]=previous_keep
+            dequant_samples=[time_ms(dequant_fn) for _ in range(5)]
+            total_fn=lambda:gfx90a_bf16_ck_moe(
+                x,ids,tw,w13,s13,w2,s2,out=out,blocks=args.blocks[0]
+            )
+            total_samples=[time_ms(total_fn) for _ in range(5)]
+            print(
+                f"m={m} kind={kind} dequant_ms={statistics.median(dequant_samples):.3f} "
+                f"ck_core_ms={statistics.median(core_samples):.3f} "
+                f"total_ms={statistics.median(total_samples):.3f}"
+            )
+            continue
         for blocks in args.blocks:
             fn=lambda:gfx90a_bf16_ck_moe(x,ids,tw,w13,s13,w2,s2,out=out,blocks=blocks)
             fn();torch.cuda.synchronize();witness=out.clone();fn();torch.cuda.synchronize()
