@@ -55,3 +55,34 @@ Keep this as a default-off oracle/checkpoint.  Do not enable it in the normal
 launch profile until teacher-forced/semantic correctness of the actual
 large-M path is established and an adaptive admission policy replaces the
 5-second batching delay.
+
+## Small configuration sweep
+
+The full helper was subsequently swept on physical GPU 4 with balanced and
+deliberately skewed routes.  All reported values include both FP4-to-BF16
+weight expansions and the complete CK two-stage MoE.
+
+| M | route | blocks=832 | blocks=1664 |
+|---:|:---|---:|---:|
+| 8192 | balanced | 7.282 ms | 7.227 ms |
+| 8192 | skewed | 7.049 ms | 6.983 ms |
+| 12288 | balanced | 8.740 ms | 8.696 ms |
+| 12288 | skewed | 9.326 ms | 9.259 ms |
+| 16128 | balanced | 9.301 ms | 9.264 ms |
+| 16128 | skewed | 9.970 ms | 9.943 ms |
+
+Changing 832 to 1664 dequant blocks improves only about 0.3--0.9%, so this
+path is not meaningfully limited by that launch geometry.  Further broad CTA
+count sweeps are closed.
+
+## ISA/CK audit
+
+The production SDOT contract was rechecked against the CDNA2 ISA: packed FP4
+maps exactly to the doubled signed-I8 codebook, the combined per-group scale
+must include `0.5`, the E8M0 zero exponent handling is correct, and the wave64
+fixed reduction tree is valid.  CK's high-level M32 I8 alias must not be used
+on gfx90a because that specialization converts I8 operands to FP32 MFMA.  Only
+the low-level native gfx90a I8 primitive is reusable.  The remaining bounded
+MFMA experiment is a custom native M16N16K16 schedule intended to reduce
+accumulator/VGPR pressure; it must beat the complete production gate by at
+least 5% before integration.
