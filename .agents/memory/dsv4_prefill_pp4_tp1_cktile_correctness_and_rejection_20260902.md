@@ -39,14 +39,24 @@ tokens per round.  Three rounds produced:
 median: 2238.00 input tok/s
 ```
 
-The per-stage logs were around 2.4k input tok/s, but PP scheduling did not turn
-the four stages into four-request throughput overlap.  The result is below the
-accepted TP4/EP1 ceiling of roughly 2.74k input tok/s.  Cross-round first-token
-bitwise equality was also false, although the France semantic oracle was
-correct.
+The per-stage logs were around 2.4k input tok/s.  The 2.24k aggregate result is
+already the filled four-stage pipeline throughput, not evidence that pipeline
+overlap was absent: with 32 microbatches, the observed 32.94-second wall time
+implies about 0.89 seconds per stage, consistent with the stage logs after
+allowing for the three-microbatch fill/drain bubble.  Without stage overlap the
+same workload would be only roughly 0.56--0.65k input tok/s.  TP1 makes each
+layer much slower than its TP4 shard, so pipeline overlap merely recovers one
+TP4-like throughput stream rather than multiplying it by four.
+
+The result remains below the accepted TP4/EP1 ceiling of roughly 2.74k input
+tok/s. Cross-round first-token bitwise equality was also false, although the
+France semantic oracle was correct.
 
 ## Decision
 
-Keep the narrow CKTile PP4/TP1 correctness support, but reject PP4 as a prefill
-throughput profile.  Continue optimization on the TP4/EP1/no-A2A production
-path rather than expanding the PP scheduler experiment.
+Keep the narrow CKTile PP4/TP1 correctness support.  The M2304/one-request
+microbatch profile is rejected.  A final bounded PP screen may jointly increase
+`pp_max_micro_batch_size` and the token budget to M4608/M9216; changing only the
+microbatch-size flag cannot change batch shape.  Larger microbatches also reduce
+pipeline utilization, so they must improve per-stage kernel efficiency enough
+to pay for the extra fill/drain bubble.
