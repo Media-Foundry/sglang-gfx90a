@@ -40,3 +40,13 @@ production selector or repeat this design with geometry-only tuning.  A future
 producer fusion would need simultaneous two-tile execution without doubling
 live accumulator/LDS pressure, which is a materially different kernel.
 
+## Follow-up: paired two-tile implementation
+
+The retained header was subsequently upgraded to that materially different
+8-wave paired implementation: two split-K4 groups evaluate the adjacent I16
+tiles concurrently, while gate and up reuse one partial buffer in phases.  It
+passed 100 input/weight mutations and 1000 graph replays at both M2048 and
+M2304, all bitwise exact.  Complete routed-stage ABBA was +1.62% slower at
+M2048 and 0.08% faster at M2304, still below the 5% production gate.  Full
+counter and planner context is recorded in
+`dsv4_prefill_mfma_issue_and_planner_audit_20260902.md`.

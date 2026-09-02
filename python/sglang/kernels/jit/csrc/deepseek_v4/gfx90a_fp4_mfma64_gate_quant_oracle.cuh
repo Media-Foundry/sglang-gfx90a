@@ -5,10 +5,12 @@
 // Production's MFMA64 specialization means 64 assignments per expert block;
 // its output tile is still only 16 intermediate columns.  A group-32 INT8
 // quantization group therefore spans two independently scheduled tasks.  This
-// oracle changes only that ownership: one CTA computes the adjacent I16 tiles
-// sequentially, reusing the production split-K partial storage, then performs
-// the existing group-32 quantization locally.  It is deliberately not wired to
-// a production selector.
+// oracle changes only that ownership: one 8-wave CTA computes the adjacent
+// I16 tiles concurrently as two independent production-order split-K4 groups,
+// then performs the existing group-32 quantization locally.  Gate and up reuse
+// the same LDS partial buffer in two phases, avoiding the 64-KiB footprint that
+// simultaneous gate/up publication would require.  It is deliberately not
+// wired to a production selector.
 
 #include <sgl_kernel/tensor.h>
 #include <sgl_kernel/utils.h>
@@ -26,7 +28,7 @@ using namespace device;
 
 template <uint32_t E, uint32_t M, uint32_t T, uint32_t I, uint32_t K,
           uint32_t kBlocks, uint32_t kSplit = 4, bool kWriteIntermediate = false>
-__global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
+__global__ void __launch_bounds__(2 * kSplit * kFp4ExpertWave)
     gfx90a_fp4_mfma64_gate_quant_oracle_kernel(
         bf16_t* __restrict__ intermediate, int8_t* __restrict__ output_q,
         float* __restrict__ output_scale, const int8_t* __restrict__ xq,
@@ -44,15 +46,19 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
   static_assert(kSplit == 4,
                 "oracle preserves the production MFMA64 split-4 order");
 
-  // Same split storage as one production I16 task.  The two I16 tiles execute
-  // sequentially, so this storage is not doubled.  Activated BF16 values are
-  // retained only long enough to form the local group-32 quantization group.
-  __shared__ float gate_partial[kSplit][kAssignments * 16];
-  __shared__ float up_partial[kSplit][kAssignments * 16];
+  // Eight production-size split partials: four for each concurrent I16 tile.
+  // Gate and up use this storage in separate phases.  gate_value retains the
+  // FP32 SiLU result across the phase boundary.  Keep the BF16 boundary in a
+  // separate 4-KiB array: aliasing it with partial would let one split-0 wave
+  // overwrite another wave's up partial before that wave has consumed it.
+  __shared__ float partial[2 * kSplit][kAssignments * 16];
+  __shared__ float gate_value[kAssignments][32];
   __shared__ bf16_t activated_bf16[kAssignments][32];
 
   const uint32_t lane = threadIdx.x & 63;
-  const uint32_t split = threadIdx.x >> 6;
+  const uint32_t wave = threadIdx.x >> 6;
+  const uint32_t tile_half = wave / kSplit;
+  const uint32_t split = wave % kSplit;
   const uint32_t matrix_index = lane & 15;
   const uint32_t assignment_quad = lane >> 4;
   const uint32_t k_lane = assignment_quad * 4;
@@ -104,18 +110,15 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
       a_tokens[half] = a_valid[half] ? token : 0;
     }
 
-    // Sequentially evaluate the two production-identical I16 tiles.  The
-    // explicit CTA barrier at the end of each half protects reuse of the
-    // split partial arrays; it is not a cross-CTA publication protocol.
-#pragma unroll
-    for (uint32_t tile_half = 0; tile_half < 2; ++tile_half) {
-      const uint32_t local_row =
-          tile32 * 32 + tile_half * 16 + matrix_index;
-      float gate_acc[kAssignmentHalves][4] = {};
-      float up_acc[kAssignmentHalves][4] = {};
+    // Both I16 halves execute concurrently.  Within each half, split-K groups
+    // and the final s=0..3 accumulation order are identical to production.
+    const uint32_t local_row =
+        tile32 * 32 + tile_half * 16 + matrix_index;
+    float gate_acc[kAssignmentHalves][4] = {};
+    float up_acc[kAssignmentHalves][4] = {};
 
-      if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
-        for (uint32_t group = split; group < kGroups; group += kSplit) {
+    if (expert_id >= 0 && expert_id < static_cast<int32_t>(E)) {
+      for (uint32_t group = split; group < kGroups; group += kSplit) {
           const uint32_t k0 = group * 32;
           const size_t gate_base =
               (static_cast<size_t>(expert) * (2 * I) + local_row) *
@@ -197,60 +200,94 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
                   static_cast<float>(up_cv[r]) * xs * up_scale * 0.5f;
             }
           }
-        }
       }
+    }
 
+    // Phase one: publish/reduce gate partials and retain the FP32 SiLU value.
+#pragma unroll
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        const uint32_t index =
+            lane * (kAssignmentHalves * 4) + half * 4 + r;
+        partial[wave][index] = gate_acc[half][r];
+      }
+    }
+    __syncthreads();
+
+    if (split == 0) {
 #pragma unroll
       for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
 #pragma unroll
         for (uint32_t r = 0; r < 4; ++r) {
           const uint32_t index =
               lane * (kAssignmentHalves * 4) + half * 4 + r;
-          gate_partial[split][index] = gate_acc[half][r];
-          up_partial[split][index] = up_acc[half][r];
-        }
-      }
-      __syncthreads();
-
-      if (split == 0) {
+          float gate = partial[tile_half * kSplit][index];
 #pragma unroll
-        for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
-#pragma unroll
-          for (uint32_t r = 0; r < 4; ++r) {
-            const uint32_t index =
-                lane * (kAssignmentHalves * 4) + half * 4 + r;
-            float gate = gate_partial[0][index];
-            float up = up_partial[0][index];
-#pragma unroll
-            for (uint32_t s = 1; s < kSplit; ++s) {
-              gate += gate_partial[s][index];
-              up += up_partial[s][index];
-            }
-            const uint32_t assignment =
-                half * 16 + assignment_quad * 4 + r;
-            if (assignment_valid[half][r] && expert_id >= 0 &&
-                expert_id < static_cast<int32_t>(E)) {
-              gate = fminf(gate, limit);
-              up = fmaxf(-limit, fminf(up, limit));
-              const float activated = gate / (1.0f + expf(-gate));
-              // This BF16 boundary is part of the model: the standalone
-              // quantizer reloads BF16, not the pre-rounded FP32 product.
-              activated_bf16[assignment][tile_half * 16 + matrix_index] =
-                  cast<bf16_t>(activated * up);
-            }
+          for (uint32_t s = 1; s < kSplit; ++s) {
+            gate += partial[tile_half * kSplit + s][index];
+          }
+          const uint32_t assignment =
+              half * 16 + assignment_quad * 4 + r;
+          if (assignment_valid[half][r] && expert_id >= 0 &&
+              expert_id < static_cast<int32_t>(E)) {
+            gate = fminf(gate, limit);
+            gate_value[assignment][tile_half * 16 + matrix_index] =
+                gate / (1.0f + expf(-gate));
           }
         }
       }
-      __syncthreads();
     }
+    __syncthreads();
 
-    // Sixteen 16-lane subgroups process sixteen assignments at a time.  Four
+    // Phase two: reuse the same LDS for up partials, then form the exact BF16
+    // boundary consumed by the standalone group-32 quantizer.
+#pragma unroll
+    for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
+#pragma unroll
+      for (uint32_t r = 0; r < 4; ++r) {
+        const uint32_t index =
+            lane * (kAssignmentHalves * 4) + half * 4 + r;
+        partial[wave][index] = up_acc[half][r];
+      }
+    }
+    __syncthreads();
+
+    if (split == 0) {
+#pragma unroll
+      for (uint32_t half = 0; half < kAssignmentHalves; ++half) {
+#pragma unroll
+        for (uint32_t r = 0; r < 4; ++r) {
+          const uint32_t index =
+              lane * (kAssignmentHalves * 4) + half * 4 + r;
+          float up = partial[tile_half * kSplit][index];
+#pragma unroll
+          for (uint32_t s = 1; s < kSplit; ++s) {
+            up += partial[tile_half * kSplit + s][index];
+          }
+          const uint32_t assignment =
+              half * 16 + assignment_quad * 4 + r;
+          if (assignment_valid[half][r] && expert_id >= 0 &&
+              expert_id < static_cast<int32_t>(E)) {
+            up = fmaxf(-limit, fminf(up, limit));
+            // This BF16 boundary is part of the model: the standalone
+            // quantizer reloads BF16, not the pre-rounded FP32 product.
+            activated_bf16[assignment][tile_half * 16 + matrix_index] =
+                cast<bf16_t>(
+                    gate_value[assignment][tile_half * 16 + matrix_index] * up);
+          }
+        }
+      }
+    }
+    __syncthreads();
+
+    // Thirty-two 16-lane subgroups process 32 assignments at a time.  Two
     // uniform rounds cover all 64 assignments without any inter-CTA state.
     const uint32_t subgroup = threadIdx.x / 16;
     const uint32_t subgroup_lane = threadIdx.x & 15;
 #pragma unroll
-    for (uint32_t round = 0; round < 4; ++round) {
-      const uint32_t assignment = round * 16 + subgroup;
+    for (uint32_t round = 0; round < 2; ++round) {
+      const uint32_t assignment = round * 32 + subgroup;
       const uint32_t encoded =
           static_cast<uint32_t>(
               sorted_ids[expert_block * kAssignments + assignment]);
@@ -359,7 +396,7 @@ struct Gfx90aFp4Mfma64GateQuantOracle {
                         double limit) {
     verify(xq, x_scale, weight, weight_scale, sorted_ids,
            sorted_expert_ids, num_valid_ids, output_q, output_scale);
-    host::LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
+    host::LaunchKernel(kBlocks, 2 * kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_mfma64_gate_quant_oracle_kernel<
             E, M, T, I, K, kBlocks, kSplit, false>,
         static_cast<bf16_t*>(nullptr),
@@ -395,7 +432,7 @@ struct Gfx90aFp4Mfma64GateQuantOracle {
         .with_dtype<bf16_t>()
         .with_device(device)
         .verify(intermediate);
-    host::LaunchKernel(kBlocks, kSplit * kFp4ExpertWave, xq.device())(
+    host::LaunchKernel(kBlocks, 2 * kSplit * kFp4ExpertWave, xq.device())(
         gfx90a_fp4_mfma64_gate_quant_oracle_kernel<
             E, M, T, I, K, kBlocks, kSplit, true>,
         static_cast<bf16_t*>(intermediate.data_ptr()),
