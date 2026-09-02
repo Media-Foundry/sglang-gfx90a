@@ -34,8 +34,32 @@ def _jit_module() -> Module:
                 "sglang::Gfx90aMfmaI8M32N32K32OracleKernel<false,true>::run",
             ),
             (
+                "m16n16k32",
+                "sglang::Gfx90aMfmaI8M16N16K32OracleKernel<true,true>::run",
+            ),
+            (
+                "m16n16k32_mfma",
+                "sglang::Gfx90aMfmaI8M16N16K32OracleKernel<true,false>::run",
+            ),
+            (
+                "m16n16k32_sdot",
+                "sglang::Gfx90aMfmaI8M16N16K32OracleKernel<false,true>::run",
+            ),
+            (
                 "fp4_a32n32k4096",
                 "sglang::Gfx90aMfmaFp4A32N32K4096OracleKernel<true,true>::run",
+            ),
+            (
+                "fp4_a16n16k4096",
+                "sglang::Gfx90aMfmaFp4A16N16K4096OracleKernel<true,true>::run",
+            ),
+            (
+                "fp4_a16n16k4096_mfma",
+                "sglang::Gfx90aMfmaFp4A16N16K4096OracleKernel<true,false>::run",
+            ),
+            (
+                "fp4_a16n16k4096_sdot",
+                "sglang::Gfx90aMfmaFp4A16N16K4096OracleKernel<false,true>::run",
             ),
             (
                 "fp4_a32n32k4096_mfma",
