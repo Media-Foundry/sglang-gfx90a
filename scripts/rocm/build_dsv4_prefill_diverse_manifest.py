@@ -60,6 +60,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", type=Path, default=Path("/home/pc/models/modelscope"))
     parser.add_argument("--target-tokens", type=int, default=2304)
     parser.add_argument(
+        "--request-count",
+        type=int,
+        choices=(1, 4, 8, 16, 32),
+        default=32,
+        help="Build only the first N heterogeneous requests.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=root / ".agents/memory/dsv4_prefill_diverse_32_input_ids.json",
@@ -82,7 +89,9 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     encode_messages = load_encoder(args.model)
     requests = []
-    for index, (relative, task) in enumerate(FILES_AND_TASKS):
+    for index, (relative, task) in enumerate(
+        FILES_AND_TASKS[: args.request_count]
+    ):
         source = (args.root / relative).read_text(errors="replace")
 
         def encode(chars: int) -> tuple[str, list[int]]:
