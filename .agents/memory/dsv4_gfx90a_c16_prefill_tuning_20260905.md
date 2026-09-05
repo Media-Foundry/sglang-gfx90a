@@ -60,6 +60,57 @@ After the fix, the same delayer profile completed normally:
 median 5721.09, trimmed mean 5616.66
 ```
 
-This proves the starvation repair but not a stable throughput win over the
-request-12 profile. Keep request-12 as the production throughput default;
-the delayer remains opt-in.
+This proves the starvation repair but, at a 5 ms delay bound, does not show a
+stable throughput win over the request-12 profile. The follow-up 20 ms result
+below supersedes this intermediate conclusion; the overall profile remains
+explicitly opt-in.
+
+## 20 ms aggregation and A-B-B-A validation
+
+Increasing only the prefill wall-clock aggregation bound from 5 ms to 20 ms
+made request-16 reproducible. Two consecutive seven-round groups on one B
+service were:
+
+```text
+B1: 5588.83 / 5889.12 / 5613.74 / 6103.45 / 5744.00 / 5856.53 / 5750.39
+    median 5750.39, trimmed mean 5770.76
+B2: 5830.73 / 6008.62 / 6204.37 / 5965.77 / 5997.74 / 5772.21 / 6108.39
+    median 5997.74, trimmed mean 5982.25
+```
+
+The combined fourteen-round B median is 5872.83 tok/s and its one-end trimmed
+mean is 5886.73 tok/s. The same-HEAD A2 rollback to request-12 with no delayer
+measured a 5659.93 tok/s median and 5645.92 tok/s trimmed mean. Together with
+the earlier A1 request-12 median of 5744.65, the symmetric A1-B1-B2-A2 median
+centers are approximately 5702 versus 5874 tok/s: request-16 is about 3.0%
+faster.
+
+Both services passed the exact France oracle twice. The performance suite
+completed all 32 requests every round; its first-token hashes retain the
+previously documented non-bitwise large-M BF16-CK variation.
+
+The explicit prefill-throughput profile now defaults to request-16 plus the
+20 ms delayer. These settings affect prefill admission only. The native decode
+kernel and CUDA-graph selection paths are unchanged.
+
+## Final profile-default acceptance
+
+The profile was relaunched using only
+`SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE=1`, with no manual admission or
+delayer overrides. Startup confirmed request-16, M36,864, a 20 ms wall-clock
+delay bound, and the unchanged native-AR decode graph tiers 1/2/4/8.
+
+The exact France oracle passed twice. The final seven-round, 32-request diverse
+code workload measured:
+
+```text
+5405.51 / 6216.98 / 5778.97 / 5806.88 / 5972.60 / 5840.91 / 6222.61 tok/s
+median 5840.91, trimmed mean 5923.27
+```
+
+This final default-profile median is 1.68% above the earlier request-12
+five-round median of 5744.65 tok/s. The stronger symmetric A-B-B-A comparison
+above remains the preferred estimate of the scheduling gain because it controls
+for service-order drift. Cross-round first-token hashes remain non-bitwise under
+the documented large-M BF16-CK path; all requests completed and the independent
+France semantic/token oracle stayed exact.

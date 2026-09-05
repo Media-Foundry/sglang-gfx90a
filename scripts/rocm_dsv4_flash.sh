@@ -16,12 +16,12 @@ DEFAULT_MAX_TOTAL_TOKENS="8192"
 DEFAULT_SWA_FULL_TOKENS_RATIO="0.65"
 DEFAULT_MEM_FRACTION_STATIC="0.80"
 
-# Default-off large-prefill throughput profile for four gfx90a GCDs.  The
-# 12+12+8 admission shape outperforms both 16+16 and 8+8+8+8 on the fixed
-# 32-request heterogeneous code workload while retaining the exact France
-# sentinel.  BF16 CK uses an FP32 stage-2 workspace because gfx90a has no
-# native BF16 atomic add and the software-CAS experiment was numerically
-# unstable at service level.
+# Default-off large-prefill throughput profile for four gfx90a GCDs. A 20 ms
+# prefill-only aggregation window makes the 16+16 admission shape consistently
+# outperform 12+12+8 on the fixed 32-request heterogeneous code workload while
+# retaining the exact France sentinel. BF16 CK uses an FP32 stage-2 workspace
+# because gfx90a has no native BF16 atomic add and the software-CAS experiment
+# was numerically unstable at service level.
 GFX90A_PREFILL_THROUGHPUT_PROFILE="${SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE:-0}"
 if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE}" == "1" ]]; then
   DEFAULT_GPUS="4,5,6,7"
@@ -32,7 +32,11 @@ if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE}" == "1" ]]; then
   EP_SIZE="${EP_SIZE:-1}"
   MOE_A2A_BACKEND="${MOE_A2A_BACKEND:-none}"
   MAX_PREFILL_TOKENS="${MAX_PREFILL_TOKENS:-36864}"
-  PREFILL_MAX_REQUESTS="${PREFILL_MAX_REQUESTS:-12}"
+  PREFILL_MAX_REQUESTS="${PREFILL_MAX_REQUESTS:-16}"
+  ENABLE_PREFILL_DELAYER="${ENABLE_PREFILL_DELAYER:-1}"
+  PREFILL_DELAYER_QUEUE_MIN_RATIO="${PREFILL_DELAYER_QUEUE_MIN_RATIO:-1}"
+  PREFILL_DELAYER_MAX_DELAY_MS="${PREFILL_DELAYER_MAX_DELAY_MS:-20}"
+  PREFILL_DELAYER_MAX_DELAY_PASSES="${PREFILL_DELAYER_MAX_DELAY_PASSES:-10000}"
   export SGLANG_DSV4_GFX90A_BF16_CK_PREFILL="${SGLANG_DSV4_GFX90A_BF16_CK_PREFILL:-1}"
   export SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32="${SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32:-1}"
   # CK's generic gfx90a table chooses a broken all-zero block-M64 candidate.
