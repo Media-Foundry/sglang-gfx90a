@@ -1,10 +1,14 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import torch
 
 from sglang.srt.managers.prefill_delayer import (
+    PrefillDelayer,
     PrefillDelayerSinglePassExecutor,
     RecentPrefillBatchSizeTracker,
     _NegotiateOutput,
+    _State,
 )
 from sglang.test.ci.ci_register import register_cpu_ci
 from sglang.test.test_utils import CustomTestCase
@@ -13,6 +17,37 @@ register_cpu_ci(est_time=2, suite="base-a-test-cpu")
 
 
 class TestPrefillDelayerHighWatermark(CustomTestCase):
+    def test_wall_timeout_releases_slot_condition(self):
+        delayer = object.__new__(PrefillDelayer)
+        delayer._token_usage_low_watermark = None
+        delayer._queue_trigger_enabled = False
+        delayer._prefill_max_requests = 16
+        delayer._max_delay_ms = 5.0
+        delayer._max_delay_passes = 10000
+        delayer.enable_dp_attention = True
+        delayer.skip_first_delayer = False
+        delayer._gather_info = MagicMock(
+            return_value=torch.tensor([[1, 0, 15, 16, 1]], dtype=torch.int64)
+        )
+
+        with patch(
+            "sglang.srt.managers.prefill_delayer.time.perf_counter",
+            return_value=10.006,
+        ):
+            result = delayer._negotiate_should_allow_prefill_pure(
+                prev_state=_State(delayed_count=7, start_time=10.0),
+                local_prefillable=True,
+                token_usage=0.5,
+                running_batch=15,
+                max_prefill_bs=16,
+                max_running_requests=16,
+                waiting_queue_len=1,
+            )
+
+        self.assertTrue(result.output_allow)
+        self.assertEqual(result.output_reason, "wait_timeout")
+        self.assertEqual(result.wait_forward_passes, 7)
+
     def test_peak_expires_after_recent_attempt_window(self):
         tracker = RecentPrefillBatchSizeTracker(window_size=4)
 

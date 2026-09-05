@@ -253,24 +253,32 @@ class PrefillDelayer:
             # Targets workloads where decode requests finish one-at-a-time
             # and fragment prefill into many tiny batches.
             queue_condition = False
-            if self._queue_trigger_enabled and global_running_batch_max > 0:
+            startup_queue_condition = False
+            if self._queue_trigger_enabled:
                 queue_capacity = (
                     self._prefill_max_requests
                     if self._prefill_max_requests is not None
                     else global_max_prefill_bs_max
                 )
-                queue_min_effective = min(
-                    int(global_running_batch_max * self._queue_min_ratio),
-                    queue_capacity,
-                )
+                if global_running_batch_max > 0:
+                    queue_min_effective = min(
+                        int(global_running_batch_max * self._queue_min_ratio),
+                        queue_capacity,
+                    )
+                elif self._prefill_max_requests is not None:
+                    # Explicit request limits can also describe a cold-start
+                    # burst target.  Without this branch the first request is
+                    # always admitted immediately, and non-mixed speculative
+                    # decoding may finish it before the rest of the burst is
+                    # ever prefetched.
+                    queue_min_effective = self._prefill_max_requests
+                    startup_queue_condition = True
+                else:
+                    queue_min_effective = 0
                 queue_condition = (
                     queue_min_effective > 0
                     and global_waiting_queue_max < queue_min_effective
                 )
-                if queue_condition and prev_state is not None:
-                    elapsed_ms = (time.perf_counter() - prev_state.start_time) * 1000.0
-                    if elapsed_ms >= self._max_delay_ms:
-                        queue_condition = False
 
             slot_condition = (
                 max_running_requests - global_running_batch_max
@@ -278,9 +286,26 @@ class PrefillDelayer:
             )
 
             if slot_condition or queue_condition:
+                # max_delay_ms is a wall-clock safety bound for the whole
+                # delayer, not only for the queue trigger.  A stale/high
+                # max_prefill_bs can keep slot_condition true for thousands
+                # of scheduler passes; relying only on max_delay_passes then
+                # turns a millisecond batching window into request starvation.
+                if prev_state is not None:
+                    elapsed_ms = (
+                        time.perf_counter() - prev_state.start_time
+                    ) * 1000.0
+                    if elapsed_ms >= self._max_delay_ms:
+                        return _NegotiateOutput(
+                            next_state=None,
+                            output_allow=True,
+                            output_reason="wait_timeout",
+                            **debug_info,
+                            **wait_info,
+                        )
                 # When the "max_decode_bs - running_bs < max_prefill_bs" condition is met,
                 # the first merge_batch causes the decoding to fail to reach the maximum batch size.
-                if self.skip_first_delayer:
+                if self.skip_first_delayer and not startup_queue_condition:
                     self.skip_first_delayer = False
                     pass
                 else:

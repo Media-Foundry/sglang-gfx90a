@@ -321,6 +321,46 @@ _NEGOTIATE_TEST_CASES = [
         expected_allow=False,
         expected_reason="delay",
     ),
+    NegotiateTestCase(
+        name="queue_trigger_delays_cold_start_burst",
+        max_delay_passes=100,
+        token_usage_low_watermark=None,
+        queue_min_ratio=1.0,
+        max_delay_ms=5000,
+        prefill_max_requests=32,
+        calls=[
+            NegotiateCall(
+                prefillable=[True, True, True, True],
+                token_usage=[0.0, 0.0, 0.0, 0.0],
+                running_batch=[0, 0, 0, 0],
+                max_prefill_bs=[1, 1, 1, 1],
+                waiting_queue_len=[1, 1, 1, 1],
+                max_running_requests=32,
+            )
+        ],
+        expected_allow=False,
+        expected_reason="delay",
+    ),
+    NegotiateTestCase(
+        name="queue_trigger_releases_complete_cold_start_burst",
+        max_delay_passes=100,
+        token_usage_low_watermark=None,
+        queue_min_ratio=1.0,
+        max_delay_ms=5000,
+        prefill_max_requests=32,
+        calls=[
+            NegotiateCall(
+                prefillable=[True, True, True, True],
+                token_usage=[0.0, 0.0, 0.0, 0.0],
+                running_batch=[0, 0, 0, 0],
+                max_prefill_bs=[32, 32, 32, 32],
+                waiting_queue_len=[32, 32, 32, 32],
+                max_running_requests=32,
+            )
+        ],
+        expected_allow=True,
+        expected_reason="no_wait",
+    ),
     # Waiting queue at or above queue_min: queue trigger must not fire.
     NegotiateTestCase(
         name="queue_trigger_above_threshold",
