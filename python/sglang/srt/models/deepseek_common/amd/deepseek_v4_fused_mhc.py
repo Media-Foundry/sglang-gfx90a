@@ -5,7 +5,12 @@ import torch
 import triton
 
 from sglang.srt.environ import envs
-from sglang.srt.utils import get_bool_env_var, is_gfx95_supported, is_hip
+from sglang.srt.utils import (
+    get_bool_env_var,
+    is_gfx90a_supported,
+    is_gfx95_supported,
+    is_hip,
+)
 from sglang.srt.utils.common import is_sm120_supported
 
 logger = logging.getLogger(__name__)
@@ -29,9 +34,16 @@ def _is_fused_mhc_post_pre_enabled() -> bool:
     # SM120 disables the standalone TileLang pre path. mhc_fused_post_pre does
     # not read that flag and dispatches independently for both small and large
     # token batches, so the standalone pre flag must not veto the fused opt-in.
+    if not envs.SGLANG_OPT_FUSE_MHC_POST_PRE.get():
+        return False
+    # The gfx90a wrapper has its own native/Triton post+pre decomposition;
+    # it does not require the standalone TileLang pre/post kernels. Preserve
+    # this exception when dispatching through the shared upstream boundary,
+    # rather than leaving it only in the model's obsolete local predicate.
+    if is_gfx90a_supported():
+        return True
     return (
-        envs.SGLANG_OPT_FUSE_MHC_POST_PRE.get()
-        and envs.SGLANG_OPT_USE_TILELANG_MHC_POST.get()
+        envs.SGLANG_OPT_USE_TILELANG_MHC_POST.get()
         and (envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.get() or is_sm120_supported())
     )
 
@@ -49,7 +61,7 @@ def is_cross_layer_mhc_fusion_enabled() -> bool:
 
     Cross-layer fusion requires a fused post+pre kernel to be available: either
     the TileLang path (``SGLANG_OPT_FUSE_MHC_POST_PRE`` + TileLang pre/post) or
-    the aiter HIP path on a supported gfx95 device.
+    the native/Triton gfx90a wrapper, or the aiter HIP path on gfx95.
     """
     return _is_production_mhc_enabled()
 

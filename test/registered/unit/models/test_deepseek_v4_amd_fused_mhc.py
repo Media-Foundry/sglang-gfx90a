@@ -13,6 +13,37 @@ register_cpu_ci(est_time=4, suite="base-a-test-cpu")
 class TestAmdFusedMhcCrossLayerGating(unittest.TestCase):
     """Gating and dispatch-preference tests (CPU, no kernels required)."""
 
+    def setUp(self):
+        # Policy tests must not depend on the machine running the CPU suite.
+        patcher = mock.patch.object(
+            deepseek_v4_fused_mhc, "is_gfx90a_supported", return_value=False
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_gfx90a_fusion_is_independent_of_standalone_tilelang(self):
+        with (
+            mock.patch.object(
+                deepseek_v4_fused_mhc, "is_gfx90a_supported", return_value=True
+            ),
+            mock.patch.object(
+                deepseek_v4_fused_mhc, "_is_aiter_gfx95_mhc_available", return_value=False
+            ),
+        ):
+            for fuse in (False, True):
+                for pre in (False, True):
+                    for post in (False, True):
+                        with (
+                            self.subTest(fuse=fuse, pre=pre, post=post),
+                            envs.SGLANG_OPT_FUSE_MHC_POST_PRE.override(fuse),
+                            envs.SGLANG_OPT_USE_TILELANG_MHC_PRE.override(pre),
+                            envs.SGLANG_OPT_USE_TILELANG_MHC_POST.override(post),
+                        ):
+                            self.assertEqual(
+                                deepseek_v4_fused_mhc.is_cross_layer_mhc_fusion_enabled(),
+                                fuse,
+                            )
+
     def test_tilelang_fuse_flag_enables_cross_layer_fusion(self):
         with (
             envs.SGLANG_OPT_FUSE_MHC_POST_PRE.override(True),
@@ -269,6 +300,7 @@ class TestAmdFusedMhcAttnBoundaryFallback(unittest.TestCase):
 
         layer = mock.Mock()
         layer.use_fused_mhc_post_pre = True
+        layer._gfx90a_realtime_trace = None
         layer._input_layernorm_weight_bf16 = None
         closed_post = object()
         layer.hc_post.return_value = closed_post
@@ -291,7 +323,7 @@ class TestAmdFusedMhcAttnBoundaryFallback(unittest.TestCase):
                 positions=object(),
                 hidden_states=hs_in,
                 input_ids=object(),
-                forward_batch=object(),
+                forward_batch=types.SimpleNamespace(batch_size=1),
                 input_ids_global=object(),
                 prev_residual=prev_residual,
                 prev_post=prev_post,
@@ -325,6 +357,12 @@ class TestAmdFusedMhcNormFusedHandling(unittest.TestCase):
     """
 
     def test_fused_success_applies_input_layernorm_when_not_norm_fused(self):
+        self._check_fused_input_layernorm(norm_fused=False)
+
+    def test_fused_success_does_not_apply_input_layernorm_twice(self):
+        self._check_fused_input_layernorm(norm_fused=True)
+
+    def _check_fused_input_layernorm(self, *, norm_fused):
         try:
             import sglang.srt.models.deepseek_v4 as deepseek_v4
             from sglang.srt.models.deepseek_v4 import DeepseekV4DecoderLayer
@@ -336,12 +374,13 @@ class TestAmdFusedMhcNormFusedHandling(unittest.TestCase):
 
         layer = mock.Mock()
         layer.use_fused_mhc_post_pre = True
+        layer._gfx90a_realtime_trace = None
         layer._input_layernorm_weight_bf16 = None
 
         fused_hs = object()
         residual, post, comb = object(), object(), object()
-        # Fused dispatch SUCCEEDS but reports the input layernorm was NOT applied
-        # (norm_fused=False) -- the Triton fused post+pre contract.
+        # Both contracts must apply input layernorm exactly once: either the
+        # fused kernel owns it, or the caller does.
         normed = object()
         layer.input_layernorm.return_value = normed
         layer.self_attn.maybe_use_decode_attn_tp.side_effect = _StopForward
@@ -353,7 +392,7 @@ class TestAmdFusedMhcNormFusedHandling(unittest.TestCase):
             mock.patch.object(deepseek_v4, "_is_gfx95_supported", False),
             mock.patch(
                 "sglang.srt.models.deepseek_v4.apply_mhc_post_pre_boundary",
-                return_value=(residual, fused_hs, post, comb, False),
+                return_value=(residual, fused_hs, post, comb, norm_fused),
             ),
             self.assertRaises(_StopForward),
         ):
@@ -362,7 +401,7 @@ class TestAmdFusedMhcNormFusedHandling(unittest.TestCase):
                 positions=object(),
                 hidden_states=object(),
                 input_ids=object(),
-                forward_batch=object(),
+                forward_batch=types.SimpleNamespace(batch_size=1),
                 input_ids_global=object(),
                 prev_residual=object(),
                 prev_post=object(),
@@ -372,7 +411,10 @@ class TestAmdFusedMhcNormFusedHandling(unittest.TestCase):
         # The fused (unnormalized) layer input must be run through the input
         # layernorm before attention. Pre-fix this was never called on the
         # fused-success path.
-        layer.input_layernorm.assert_called_once_with(fused_hs)
+        if norm_fused:
+            layer.input_layernorm.assert_not_called()
+        else:
+            layer.input_layernorm.assert_called_once_with(fused_hs)
 
 
 def _hardware_available() -> bool:
