@@ -22,9 +22,14 @@ def main() -> None:
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--request-count", type=int, default=32)
+    parser.add_argument("--request-offset", type=int, default=0)
+    parser.add_argument("--tokens", type=int, default=1)
     args = parser.parse_args()
 
     requests = json.loads(args.inputs.read_text())["requests"]
+    if args.request_offset < 0:
+        raise ValueError("request offset must be nonnegative")
+    requests = requests[args.request_offset:]
     if len(requests) < args.request_count:
         raise ValueError(
             f"oracle needs {args.request_count} requests, got {len(requests)}"
@@ -37,7 +42,7 @@ def main() -> None:
         "input_ids": [item["input_ids"] for item in requests],
         "sampling_params": {
             "temperature": 0,
-            "max_new_tokens": 1,
+            "max_new_tokens": args.tokens,
             "ignore_eos": True,
         },
         "return_logprob": True,
@@ -74,6 +79,8 @@ def main() -> None:
     record = {
         "format": "dsv4-tp4-next-token-v2",
         "request_count": args.request_count,
+        "request_offset": args.request_offset,
+        "tokens": args.tokens,
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "rows": rows,

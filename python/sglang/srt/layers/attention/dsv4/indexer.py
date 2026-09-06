@@ -35,7 +35,10 @@ from sglang.kernels.ops.quantization.fp8_kernel import is_fp8_fnuz
 from sglang.srt.configs.deepseek_v4 import DeepSeekV4Config
 from sglang.srt.environ import envs
 from sglang.srt.layers.attention.dsa.dsa_topk_backend import DSATopKBackend
-from sglang.srt.layers.attention.dsa.utils import aiter_can_use_preshuffle_paged_mqa
+from sglang.srt.layers.attention.dsa.utils import (
+    INDEXER_K_CACHE_PRESHUFFLE_TILE,
+    aiter_can_use_preshuffle_paged_mqa,
+)
 from sglang.srt.layers.attention.dsv4.compressor import Compressor
 from sglang.srt.layers.attention.dsv4.metadata import (
     NonPagedIndexerPlan,
@@ -166,6 +169,7 @@ if triton is not None:
         out_stride_s: tl.constexpr,
         FP8_TY: tl.constexpr,
         DOT_TY: tl.constexpr,
+        PRESHUFFLE_TILE: tl.constexpr,
         BLOCK_S: tl.constexpr,
         BLOCK_H: tl.constexpr,
         BLOCK_D: tl.constexpr,
@@ -192,7 +196,17 @@ if triton is not None:
         valid_s = (offs_s < seq_len) & page_in_range
 
         page_base = page_ids * kv_stride_page
-        kv_offsets = page_base[:, None] + pos_in_page[:, None] * 128 + offs_d[None, :]
+        if PRESHUFFLE_TILE:
+            # Match triton_fused_store_indexer: token-tile, column-tile,
+            # token-within-tile, column-within-tile. A linear read would
+            # consume other (possibly unwritten) tokens in a partial page.
+            kv_offsets = (page_base[:, None]
+                + (pos_in_page[:, None] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * 128)
+                + (offs_d[None, :] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * PRESHUFFLE_TILE)
+                + (pos_in_page[:, None] % PRESHUFFLE_TILE) * PRESHUFFLE_TILE
+                + offs_d[None, :] % PRESHUFFLE_TILE)
+        else:
+            kv_offsets = page_base[:, None] + pos_in_page[:, None] * 128 + offs_d[None, :]
         kv_u8_vals = tl.load(kvcache_u8 + kv_offsets, mask=valid_s[:, None], other=0)
         kv_vals = kv_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
 
@@ -336,6 +350,8 @@ def _fp8_paged_mqa_logits_triton(
         out.stride(1),
         FP8_TY=fp8_ty,
         DOT_TY=dot_ty,
+        PRESHUFFLE_TILE=(INDEXER_K_CACHE_PRESHUFFLE_TILE
+                        if aiter_can_use_preshuffle_paged_mqa() else 0),
         BLOCK_S=block_s,
         BLOCK_H=block_h,
         BLOCK_D=128,
@@ -443,6 +459,12 @@ def fp8_paged_mqa_logits_torch(
     kv_values_raw = kvcache_gathered[..., :SCALE_OFFSET].contiguous()
     kv_values_fp8 = kv_values_raw.view(dtype=FP8_DTYPE)
     kv_values = kv_values_fp8.to(torch.bfloat16)
+    if aiter_can_use_preshuffle_paged_mqa():
+        tile = INDEXER_K_CACHE_PRESHUFFLE_TILE
+        kv_values = kv_values.reshape(
+            batch_size, max_num_pages, block_size // tile,
+            head_dim // tile, tile, tile,
+        ).permute(0, 1, 2, 4, 3, 5).contiguous()
     kv_values = kv_values.reshape(batch_size, max_num_pages * block_size, head_dim)
 
     kv_scales_raw = kvcache_gathered[..., SCALE_OFFSET:].contiguous()
