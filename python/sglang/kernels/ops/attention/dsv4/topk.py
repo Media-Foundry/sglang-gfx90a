@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional
+import os
 
 import torch
 
@@ -55,9 +56,20 @@ def topk_transform_512(
     out_raw_indices: Optional[torch.Tensor] = None,
 ) -> None:
     if is_hip_runtime():
+        canonical = os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "0") == "1"
+        raw = out_raw_indices
+        if canonical and raw is None:
+            raw = torch.empty_like(out_page_indices)
         torch.ops.sgl_kernel.deepseek_v4_topk_transform_512(
-            scores, seq_lens, page_tables, out_page_indices, page_size, out_raw_indices
+            scores, seq_lens, page_tables, out_page_indices, page_size, raw
         )
+        if canonical:
+            # Atomic append order is nondeterministic. Canonicalize LOGICAL
+            # indices, not physical addresses (which vary with cache slots).
+            # Descending order leaves the -1 padding after all valid entries.
+            permutation = raw.argsort(dim=-1, descending=True, stable=True)
+            out_page_indices.copy_(out_page_indices.gather(-1, permutation))
+            raw.copy_(raw.gather(-1, permutation))
     else:
         module = _jit_topk_v1_module()
         module.topk_transform(

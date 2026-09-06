@@ -383,15 +383,13 @@ export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS="${SGLANG_DSV4_GFX90A_F
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
 # The MFMA32/64 prefill stack is substantially faster, but real heterogeneous
 # C16 requests show cross-round top-1 changes while the grouped SDOT control is
-# exact. Keep both selectors opt-in until their route/sorter interaction is
-# corrected; native decode does not enter either selector.
+# exact. A divergent router-weight shuffle is fixed, but long-output/logprob
+# drift remains under investigation; native decode enters neither selector.
 DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
 export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
-# AIter's CK sorter is validated with unit_size=32.  Its unit_size=64 output
-# currently makes the MFMA64 consumer nondeterministic for real M2304 prompts
-# (including warm, same-input replays), while the MFMA32 path is exact.  Keep
-# MFMA64 available for isolated sorter/kernel work but never select it by
-# default in a correctness-bearing service.
+# Fixed-input isolated sorter + MFMA stage replay passes for unit_size=64;
+# the sorter itself is NOT established as the residual E2E drift's cause.
+# Keep MFMA64 opt-in until the full model passes long-output validation.
 export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-0}"
 export SGLANG_DSV4_GFX90A_BF16_CK_PREFILL="${SGLANG_DSV4_GFX90A_BF16_CK_PREFILL:-0}"
 export SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS="${SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS:-16384}"
