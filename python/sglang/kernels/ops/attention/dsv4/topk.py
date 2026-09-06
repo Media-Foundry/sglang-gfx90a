@@ -33,6 +33,15 @@ def _jit_topk_v1_module():
 
 
 @cache_once
+def _jit_deterministic_topk_hip_module():
+    return load_jit(
+        make_name("topk_deterministic_hip"),
+        cuda_files=["deepseek_v4/topk_deterministic_hip.cuh"],
+        cuda_wrappers=[("topk_transform", "DeterministicTopKHip::transform")],
+    )
+
+
+@cache_once
 def _jit_topk_v2_module():
     # v2 is universal: topk (<= 2048) is a runtime argument, not a compile-time
     # constant, so a single module serves every k.
@@ -56,6 +65,11 @@ def topk_transform_512(
     out_raw_indices: Optional[torch.Tensor] = None,
 ) -> None:
     if is_hip_runtime():
+        if os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "0") == "2":
+            _jit_deterministic_topk_hip_module().topk_transform(
+                scores, seq_lens, page_tables, out_page_indices, page_size, out_raw_indices
+            )
+            return
         canonical = os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "0") == "1"
         raw = out_raw_indices
         if canonical and raw is None:

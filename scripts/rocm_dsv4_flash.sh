@@ -381,16 +381,20 @@ fi
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
-# The MFMA32/64 prefill stack is substantially faster, but real heterogeneous
-# C16 requests show cross-round top-1 changes while the grouped SDOT control is
-# exact. A divergent router-weight shuffle is fixed, but long-output/logprob
-# drift remains under investigation; native decode enters neither selector.
+# TP4/EP1 drift fixes: converged router-weight shuffle, preshuffled indexer
+# cache reads, and deterministic Top-K membership AND logical output order.
+# C16 x 256-token fresh-cache runs now match token and top-5 logprobs exactly.
+# Restore the fast native prefill stack only for the validated topology;
+# TP8/EP and large BF16-CK profiles need their own E2E gate.
 DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
+DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=0
+if [[ "${TP_SIZE:-4}" == "4" && "${EP_SIZE:-4}" == "1" && "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
+  DEFAULT_GFX90A_FP4_MFMA32_PREFILL=1
+  DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=2
+fi
+export SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER="${SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER:-${DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER}}"
 export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
-# Fixed-input isolated sorter + MFMA stage replay passes for unit_size=64;
-# the sorter itself is NOT established as the residual E2E drift's cause.
-# Keep MFMA64 opt-in until the full model passes long-output validation.
-export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-0}"
+export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
 export SGLANG_DSV4_GFX90A_BF16_CK_PREFILL="${SGLANG_DSV4_GFX90A_BF16_CK_PREFILL:-0}"
 export SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS="${SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS:-16384}"
 export SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL="${SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL:-0}"
