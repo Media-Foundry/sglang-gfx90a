@@ -381,14 +381,18 @@ fi
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
-if [[ "${TP_SIZE:-4}" == "4" && "${EP_SIZE:-4}" == "1" && \
-      "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
-  DEFAULT_GFX90A_FP4_MFMA32_PREFILL=1
-else
-  DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
-fi
+# The MFMA32/64 prefill stack is substantially faster, but real heterogeneous
+# C16 requests show cross-round top-1 changes while the grouped SDOT control is
+# exact. Keep both selectors opt-in until their route/sorter interaction is
+# corrected; native decode does not enter either selector.
+DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
 export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
-export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"
+# AIter's CK sorter is validated with unit_size=32.  Its unit_size=64 output
+# currently makes the MFMA64 consumer nondeterministic for real M2304 prompts
+# (including warm, same-input replays), while the MFMA32 path is exact.  Keep
+# MFMA64 available for isolated sorter/kernel work but never select it by
+# default in a correctness-bearing service.
+export SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL:-0}"
 export SGLANG_DSV4_GFX90A_BF16_CK_PREFILL="${SGLANG_DSV4_GFX90A_BF16_CK_PREFILL:-0}"
 export SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS="${SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS:-16384}"
 export SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL="${SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL:-0}"
