@@ -1297,16 +1297,21 @@ __global__ void __launch_bounds__(kSplit * kFp4ExpertWave)
           for (uint32_t s = 1; s < kSplit; ++s) {
             total += tile_partial[s][index];
           }
+          // A padded route can disable the source lane of another valid
+          // route's shuffle. Broadcast while the entire wave is active.
+          const uint32_t assignment = half * 16 + (lane >> 4) * 4 + r;
+          float routed_weight = 0.0f;
+          if constexpr (kBroadcastScales != 0) {
+            routed_weight = __shfl(assignment_weight_lane, assignment,
+                                   kFp4ExpertWave);
+          }
           if (assignment_valid[half][r] && expert_id >= 0 &&
               expert_id < static_cast<int32_t>(E)) {
             const size_t output_assignment =
                 static_cast<size_t>(tokens[half][r]) * T + slots[half][r];
-            const uint32_t assignment =
-                half * 16 + (lane >> 4) * 4 + r;
-            const float routed_weight = kBroadcastScales != 0
-                ? __shfl(assignment_weight_lane, assignment,
-                         kFp4ExpertWave)
-                : topk_weights[output_assignment];
+            if constexpr (kBroadcastScales == 0) {
+              routed_weight = topk_weights[output_assignment];
+            }
             partial[output_assignment * N + row] =
                 total * routed_weight;
           }

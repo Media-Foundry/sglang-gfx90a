@@ -116,6 +116,9 @@ def main() -> None:
             "aggregate_input_tok_s": total_prompt / prefill_wall,
             "group_wall_s": last_end - first_begin,
             "completion_lengths": [len(ids) for ids in completion_ids],
+            "completion_ids": completion_ids,
+            "texts": [item[0].get("text") for item in results],
+            "cached_tokens": [item[0].get("meta_info", {}).get("cached_tokens") for item in results],
             "completion_sha256": [
                 hashlib.sha256(json.dumps(ids, separators=(",", ":")).encode()).hexdigest()
                 for ids in completion_ids
@@ -139,6 +142,9 @@ def main() -> None:
             output_witnesses[rep][req][0] == output_witnesses[0][req][0]
             for rep in range(1, len(output_witnesses))
             for req in range(args.request_count)
+        ),
+        "cross_round_completion_exact": all(
+            row == output_witnesses[0] for row in output_witnesses[1:]
         ),
     }
     encoded = json.dumps(summary, indent=2) + "\n"

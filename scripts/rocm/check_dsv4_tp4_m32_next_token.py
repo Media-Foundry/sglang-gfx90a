@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import urllib.request
+import uuid
 from pathlib import Path
 
 
@@ -32,6 +33,7 @@ def main() -> None:
     if len({tuple(x["input_ids"]) for x in requests}) != args.request_count:
         raise ValueError("oracle requires distinct input-ID prompts")
     payload = {
+        "cache_salt": [uuid.uuid4().hex for _ in requests],
         "input_ids": [item["input_ids"] for item in requests],
         "sampling_params": {
             "temperature": 0,
@@ -64,6 +66,9 @@ def main() -> None:
                 "output_ids": result.get("output_ids"),
                 "output_token_logprobs": meta.get("output_token_logprobs"),
                 "output_top_logprobs": meta.get("output_top_logprobs"),
+                "cached_tokens": meta.get("cached_tokens"),
+                "prompt_tokens": meta.get("prompt_tokens"),
+                "text": result.get("text"),
             }
         )
     record = {
