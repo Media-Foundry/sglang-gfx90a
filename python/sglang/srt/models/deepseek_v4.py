@@ -2161,7 +2161,16 @@ class MQALayer(MqaAttentionBase):
                     gfx90a_wave64_bf16_grouped_gemv,
                 )
 
-                grouped_output = gfx90a_wave64_bf16_grouped_gemv(o, wo_a)
+                grouped_output = gfx90a_wave64_bf16_grouped_gemv(
+                    o,
+                    wo_a,
+                    allow_single_group=(
+                        envs.SGLANG_DSV4_GFX90A_TP8_BS1_WOA_GEMV.get()
+                        and self.attn_tp_size == 8
+                        and forward_batch.batch_size == 1
+                        and forward_batch.forward_mode.is_decode()
+                    ),
+                )
             elif _is_hip and envs.SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR.get():
                 from sglang.kernels.ops.quantization.bf16_gemv import (
                     gfx90a_bf16_grouped_gemv,

@@ -1469,6 +1469,8 @@ class Envs:
     # arrival order on gfx90a.
     SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV = EnvBool(False)
     SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV = EnvBool(False)
+    # One local wo_a group on TP8. Opt-in, BS1 native decode only.
+    SGLANG_DSV4_GFX90A_TP8_BS1_WOA_GEMV = EnvBool(False)
     # Native wave64 fused BF16 gate/up GEMV for the TP4 shared-expert decode
     # shape (M=1, N=1024, K=4096). Experimental and opt-in until graph A/B.
     SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP = EnvBool(False)

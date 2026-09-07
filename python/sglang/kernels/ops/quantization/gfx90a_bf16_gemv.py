@@ -94,8 +94,8 @@ def _jit_gfx90a_bf16_fp32_gemv_module(n: int) -> Module:
 
 
 @cache_once
-def _jit_gfx90a_bf16_grouped_gemv_module(m: int) -> Module:
-    args = make_cpp_args(m, 2, 1024, 4096, 1, 2, 4)
+def _jit_gfx90a_bf16_grouped_gemv_module(m: int, groups: int = 2) -> Module:
+    args = make_cpp_args(m, groups, 1024, 4096, 1, 2, 4)
     return load_jit(
         "gfx90a_bf16_grouped_gemv",
         *args,
@@ -204,16 +204,20 @@ def gfx90a_wave64_bf16_fp32_gemv(
 
 
 def gfx90a_wave64_bf16_grouped_gemv(
-    x: torch.Tensor, weight: torch.Tensor
+    x: torch.Tensor, weight: torch.Tensor, *, allow_single_group: bool = False
 ) -> torch.Tensor | None:
+    """TP4 G2 latency tiers, plus an explicitly admitted TP8 G1/M1 shape."""
     if (
         not torch.version.hip
         or x.ndim != 3
         # Grouped wo_a remains competitive through M=8; M=16 should reuse
         # weights through the batched einsum/GEMM path instead.
         or not (1 <= x.shape[0] <= 8)
-        or x.shape[1:] != (2, 4096)
-        or weight.shape != (2, 1024, 4096)
+        or not (
+            x.shape[1:] == (2, 4096)
+            or (allow_single_group and x.shape == (1, 1, 4096))
+        )
+        or weight.shape != (x.shape[1], 1024, 4096)
         or x.dtype != torch.bfloat16
         or weight.dtype != torch.bfloat16
         or not x.is_contiguous()
@@ -224,6 +228,7 @@ def gfx90a_wave64_bf16_grouped_gemv(
         != "gfx90a"
     ):
         return None
-    out = torch.empty((x.shape[0], 2, 1024), dtype=torch.bfloat16, device=x.device)
-    _jit_gfx90a_bf16_grouped_gemv_module(x.shape[0]).run(x, weight, out)
+    groups = x.shape[1]
+    out = torch.empty((x.shape[0], groups, 1024), dtype=torch.bfloat16, device=x.device)
+    _jit_gfx90a_bf16_grouped_gemv_module(x.shape[0], groups).run(x, weight, out)
     return out

@@ -1,0 +1,374 @@
+{
+  "war_post_A3": {
+    "path": "/tmp/dsv4_tp8_war_post_A3_20260907.json",
+    "artifact_sha256": "c76d5de8a8677c4de9c2894161c7ad90b8d08eac46e2d14643364ffa8a620663",
+    "status": "complete",
+    "france_exact": true,
+    "medians": {
+      "diverse-03": 76.81752721707709,
+      "diverse-15": 76.57062134061935,
+      "diverse-31": 76.81956007298467
+    },
+    "measurements": [
+      {
+        "case": "diverse-03",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 3.350378851988353,
+        "tok_s": 76.40926931235595,
+        "sha256": "3679cfa9a1ce1e48c2346d30801c20789c7efee614ccc1f2bc5fbd2948871fb2",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 3.3292820760107134,
+        "tok_s": 76.89345455124368,
+        "sha256": "cf2cddcd55930ff6841b198715e436c4083b39724a964e63051ebd863aa16ff6",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 3.3523016860126518,
+        "tok_s": 76.36544200903816,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.3437906689941883,
+        "tok_s": 76.55981649024841,
+        "sha256": "3679cfa9a1ce1e48c2346d30801c20789c7efee614ccc1f2bc5fbd2948871fb2",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.343318828003248,
+        "tok_s": 76.57062134061935,
+        "sha256": "cf2cddcd55930ff6841b198715e436c4083b39724a964e63051ebd863aa16ff6",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.340343781019328,
+        "tok_s": 76.63881827213602,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.332572776998859,
+        "tok_s": 76.81752721707709,
+        "sha256": "3679cfa9a1ce1e48c2346d30801c20789c7efee614ccc1f2bc5fbd2948871fb2",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.3303817859850824,
+        "tok_s": 76.86806391906765,
+        "sha256": "cf2cddcd55930ff6841b198715e436c4083b39724a964e63051ebd863aa16ff6",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.3324845879978966,
+        "tok_s": 76.81956007298467,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 3.3289954339852557,
+        "tok_s": 76.90007543613045,
+        "sha256": "3679cfa9a1ce1e48c2346d30801c20789c7efee614ccc1f2bc5fbd2948871fb2",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 3.345085287990514,
+        "tok_s": 76.53018621650341,
+        "sha256": "cf2cddcd55930ff6841b198715e436c4083b39724a964e63051ebd863aa16ff6",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 3.330183712008875,
+        "tok_s": 76.87263590799695,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      }
+    ],
+    "long": {
+      "path": "/tmp/dsv4_tp8_war_post_A3_long_20260907.json",
+      "status": "complete",
+      "repeat_ids_exact": true,
+      "responses": [
+        {
+          "wall_s": 7.509837665013038,
+          "sha256": "0c1caea3c7b6bfe14e2cc6604e208fb70b02725fbe38097995c7482cdcfe5847",
+          "text": "Looking at the configuration validation in `server_args.py`, I can identify a critical unsafe interaction:\n\n**The `--load-format` and `--quantization` parameters can be combined in unsafe ways.**\n\nSpecifically, the `LOAD_FORMAT_CHOICES` list includes `\"expert_pack\"` which is documented as:\n> \"Experimental and intentionally narrow: expert_pack is validated only for DeepSeek-V4-Flash-0731 MXFP4 GGUF (MXFP4 experts, FP8 dense weights) and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf (Q2_K gate/up, Q3_K down weights)\"\n\nHowever, the `QUANTIZATION_CHOICES` list includes many options that could be combined with `expert_pack` load format, such as:\n- `\"awq\"` \n- `\"gptq\"`\n- `\"bitsandbytes\"`\n- `\"mxfp4\"`\n- `\"w4afp8\"`\n\nThe unsafe interaction is that a user could specify `--load-format expert_pack` with `--quantization awq` (or any other quantization method not compatible with the expert_pack format). The validation logic appears to only check that `expert_pack` is used with specific model architectures (DeepSeek-V4-Flash-0731 or KIMI-K3), but does not validate that the quantization method is compatible with the expert_pack format.\n\nThis could lead to:\n1. **Silent data corruption**: The model weights might be loaded incorrectly, producing garbage outputs without any error\n2. **Runtime crashes**: The system might attempt to apply incompatible quantization/dequantization operations\n3. **Security issues**: If the system falls back to a different loading path, it might bypass security checks\n\nThe comment in the code even acknowledges this is \"intentionally narrow\" but the validation doesn't enforce this narrowness - it only validates the model architecture, not the quantization method compatibility.\n\n**Recommendation**: Add validation that when `--load-format expert_pack` is used, the `--quantization` parameter must be one of the compatible options (e.g., `\"mxfp4\"` or `\"gguf\"`), and reject incompatible combinations with a clear error message.",
+          "meta_info": {
+            "id": "2329386680d14db887c1ecb51805a5ac",
+            "finish_reason": {
+              "type": "stop",
+              "matched": 1
+            },
+            "prompt_tokens": 2304,
+            "weight_version": "default",
+            "num_retractions": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 482,
+            "cached_tokens": 0,
+            "weight_versions": [
+              {
+                "version": "default",
+                "start": 0,
+                "end": 482
+              }
+            ],
+            "cached_tokens_details": null,
+            "dp_rank": null,
+            "e2e_latency": 7.506163041020045,
+            "response_sent_to_client_ts": 1788784660.334368
+          }
+        },
+        {
+          "wall_s": 7.433639071008656,
+          "sha256": "0c1caea3c7b6bfe14e2cc6604e208fb70b02725fbe38097995c7482cdcfe5847",
+          "text": "Looking at the configuration validation in `server_args.py`, I can identify a critical unsafe interaction:\n\n**The `--load-format` and `--quantization` parameters can be combined in unsafe ways.**\n\nSpecifically, the `LOAD_FORMAT_CHOICES` list includes `\"expert_pack\"` which is documented as:\n> \"Experimental and intentionally narrow: expert_pack is validated only for DeepSeek-V4-Flash-0731 MXFP4 GGUF (MXFP4 experts, FP8 dense weights) and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf (Q2_K gate/up, Q3_K down weights)\"\n\nHowever, the `QUANTIZATION_CHOICES` list includes many options that could be combined with `expert_pack` load format, such as:\n- `\"awq\"` \n- `\"gptq\"`\n- `\"bitsandbytes\"`\n- `\"mxfp4\"`\n- `\"w4afp8\"`\n\nThe unsafe interaction is that a user could specify `--load-format expert_pack` with `--quantization awq` (or any other quantization method not compatible with the expert_pack format). The validation logic appears to only check that `expert_pack` is used with specific model architectures (DeepSeek-V4-Flash-0731 or KIMI-K3), but does not validate that the quantization method is compatible with the expert_pack format.\n\nThis could lead to:\n1. **Silent data corruption**: The model weights might be loaded incorrectly, producing garbage outputs without any error\n2. **Runtime crashes**: The system might attempt to apply incompatible quantization/dequantization operations\n3. **Security issues**: If the system falls back to a different loading path, it might bypass security checks\n\nThe comment in the code even acknowledges this is \"intentionally narrow\" but the validation doesn't enforce this narrowness - it only validates the model architecture, not the quantization method compatibility.\n\n**Recommendation**: Add validation that when `--load-format expert_pack` is used, the `--quantization` parameter must be one of the compatible options (e.g., `\"mxfp4\"` or `\"gguf\"`), and reject incompatible combinations with a clear error message.",
+          "meta_info": {
+            "id": "1dbc43e0c1854884a239af92a6129ef2",
+            "finish_reason": {
+              "type": "stop",
+              "matched": 1
+            },
+            "prompt_tokens": 2304,
+            "weight_version": "default",
+            "num_retractions": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 482,
+            "cached_tokens": 0,
+            "weight_versions": [
+              {
+                "version": "default",
+                "start": 0,
+                "end": 482
+              }
+            ],
+            "cached_tokens_details": null,
+            "dp_rank": null,
+            "e2e_latency": 7.431399619003059,
+            "response_sent_to_client_ts": 1788784667.7693229
+          }
+        }
+      ]
+    }
+  },
+  "war_post_woa_B3": {
+    "path": "/tmp/dsv4_tp8_war_post_woa_B3_20260907.json",
+    "artifact_sha256": "15f2aa27c649e823b1fae84d16dd7d8f5b935fcc57e7edf5c5abbccdebdc9742",
+    "status": "complete",
+    "france_exact": true,
+    "medians": {
+      "diverse-03": 83.70659121401873,
+      "diverse-15": 83.80059190398164,
+      "diverse-31": 83.99830807236576
+    },
+    "measurements": [
+      {
+        "case": "diverse-03",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 3.0711645370174665,
+        "tok_s": 83.35600288241544,
+        "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 4.115389888000209,
+        "tok_s": 62.20552777914271,
+        "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": -1,
+        "tokens": 256,
+        "wall_s": 3.0739415859861765,
+        "tok_s": 83.28069770976813,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.0482383869821206,
+        "tok_s": 83.98293292718827,
+        "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.046830879000481,
+        "tok_s": 84.02172951718977,
+        "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 0,
+        "tokens": 256,
+        "wall_s": 3.047575549018802,
+        "tok_s": 84.00119894728182,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.058301578013925,
+        "tok_s": 83.70659121401873,
+        "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.054871023981832,
+        "tok_s": 83.80059190398164,
+        "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 1,
+        "tokens": 256,
+        "wall_s": 3.0528290569782257,
+        "tok_s": 83.85664418871715,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-03",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 4.0812999439949635,
+        "tok_s": 62.72511295737198,
+        "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-15",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 3.0559023420209996,
+        "tok_s": 83.77231054795298,
+        "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd",
+        "cached_tokens": 0
+      },
+      {
+        "case": "diverse-31",
+        "rep": 2,
+        "tokens": 256,
+        "wall_s": 3.0476804339850787,
+        "tok_s": 83.99830807236576,
+        "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e",
+        "cached_tokens": 0
+      }
+    ],
+    "long": {
+      "path": "/tmp/dsv4_tp8_war_post_woa_B3_long_20260907.json",
+      "status": "complete",
+      "repeat_ids_exact": true,
+      "responses": [
+        {
+          "wall_s": 6.740073107997887,
+          "sha256": "32b075ef9efe924477f15d3b09f25e66fc8357c37995843e9763db741eb14f20",
+          "text": "Looking at the configuration validation in `server_args.py`, I can identify a critical unsafe interaction:\n\n**Unsafe interaction: `--load-format` with `--quantization` choices**\n\nThe `LOAD_FORMAT_CHOICES` list includes `\"bitsandbytes\"` and `\"expert_pack\"` as load formats, while `QUANTIZATION_CHOICES` also includes `\"bitsandbytes\"` and `\"expert_pack\"` (though `expert_pack` is not in QUANTIZATION_CHOICES). \n\nThe specific unsafe interaction is:\n\n1. **`--load-format bitsandbytes` combined with `--quantization bitsandbytes`**: This creates a contradictory configuration where the system attempts to load weights in bitsandbytes format while also applying bitsandbytes quantization. This can lead to double-quantization or undefined behavior, potentially causing memory corruption or incorrect model loading.\n\n2. **`--load-format expert_pack`**: This is explicitly noted in the code comments as \"intentionally narrow\" and validated only for specific DeepSeek-V4-Flash-0731 MXFP4 GGUF and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf models. However, there's no validation that prevents combining `--load-format expert_pack` with incompatible `--quantization` choices (like `\"fp8\"` or `\"awq\"`), which could lead to loading errors or silent model corruption.\n\nThe most dangerous interaction is **`--load-format bitsandbytes` with `--quantization bitsandbytes`** because:\n- The load format determines how weights are loaded from disk\n- The quantization method determines how weights are processed after loading\n- Combining both creates a double-processing path that isn't properly validated\n- This could lead to memory corruption, incorrect inference results, or crashes\n\nThe code comments even acknowledge this issue in the `LOAD_FORMAT_CHOICES` note: \"Exposing it as a CLI choice let users create contradictory combos (see `_handle_load_format`).\" This suggests the developers are aware of potential contradictions but the validation may not be comprehensive enough to catch all unsafe combinations.",
+          "meta_info": {
+            "id": "8651629b4c7e4c07b8b70461ddba70ba",
+            "finish_reason": {
+              "type": "stop",
+              "matched": 1
+            },
+            "prompt_tokens": 2304,
+            "weight_version": "default",
+            "num_retractions": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 460,
+            "cached_tokens": 0,
+            "weight_versions": [
+              {
+                "version": "default",
+                "start": 0,
+                "end": 460
+              }
+            ],
+            "cached_tokens_details": null,
+            "dp_rank": null,
+            "e2e_latency": 6.736244948988315,
+            "response_sent_to_client_ts": 1788785123.5091488
+          }
+        },
+        {
+          "wall_s": 6.660806772997603,
+          "sha256": "32b075ef9efe924477f15d3b09f25e66fc8357c37995843e9763db741eb14f20",
+          "text": "Looking at the configuration validation in `server_args.py`, I can identify a critical unsafe interaction:\n\n**Unsafe interaction: `--load-format` with `--quantization` choices**\n\nThe `LOAD_FORMAT_CHOICES` list includes `\"bitsandbytes\"` and `\"expert_pack\"` as load formats, while `QUANTIZATION_CHOICES` also includes `\"bitsandbytes\"` and `\"expert_pack\"` (though `expert_pack` is not in QUANTIZATION_CHOICES). \n\nThe specific unsafe interaction is:\n\n1. **`--load-format bitsandbytes` combined with `--quantization bitsandbytes`**: This creates a contradictory configuration where the system attempts to load weights in bitsandbytes format while also applying bitsandbytes quantization. This can lead to double-quantization or undefined behavior, potentially causing memory corruption or incorrect model loading.\n\n2. **`--load-format expert_pack`**: This is explicitly noted in the code comments as \"intentionally narrow\" and validated only for specific DeepSeek-V4-Flash-0731 MXFP4 GGUF and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf models. However, there's no validation that prevents combining `--load-format expert_pack` with incompatible `--quantization` choices (like `\"fp8\"` or `\"awq\"`), which could lead to loading errors or silent model corruption.\n\nThe most dangerous interaction is **`--load-format bitsandbytes` with `--quantization bitsandbytes`** because:\n- The load format determines how weights are loaded from disk\n- The quantization method determines how weights are processed after loading\n- Combining both creates a double-processing path that isn't properly validated\n- This could lead to memory corruption, incorrect inference results, or crashes\n\nThe code comments even acknowledge this issue in the `LOAD_FORMAT_CHOICES` note: \"Exposing it as a CLI choice let users create contradictory combos (see `_handle_load_format`).\" This suggests the developers are aware of potential contradictions but the validation may not be comprehensive enough to catch all unsafe combinations.",
+          "meta_info": {
+            "id": "d0bd194510e44fe59bce643dcd1c184a",
+            "finish_reason": {
+              "type": "stop",
+              "matched": 1
+            },
+            "prompt_tokens": 2304,
+            "weight_version": "default",
+            "num_retractions": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 460,
+            "cached_tokens": 0,
+            "weight_versions": [
+              {
+                "version": "default",
+                "start": 0,
+                "end": 460
+              }
+            ],
+            "cached_tokens_details": null,
+            "dp_rank": null,
+            "e2e_latency": 6.658620644011535,
+            "response_sent_to_client_ts": 1788785130.1716359
+          }
+        }
+      ]
+    }
+  }
+}
