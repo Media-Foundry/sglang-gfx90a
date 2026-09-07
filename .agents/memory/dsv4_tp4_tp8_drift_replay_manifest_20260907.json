@@ -1,0 +1,175 @@
+{
+  "description": "Native TP4/TP8 drift regression artifacts; full records remain in /tmp, configs and comparison results in accompanying memory notes",
+  "records": [
+    {
+      "file": "dsv4_tp4_topk2_c16_1.json",
+      "sha256": "ae0e6f212c6b6b468689928b7ebf750bb44003e50b553277f5d637e6a8d30c43",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "039add36d460d1f2440bcb710a3bda53d0f642c5408480515fb189b0136f875e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c16_2.json",
+      "sha256": "ae0e6f212c6b6b468689928b7ebf750bb44003e50b553277f5d637e6a8d30c43",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "039add36d460d1f2440bcb710a3bda53d0f642c5408480515fb189b0136f875e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c16_3.json",
+      "sha256": "ae0e6f212c6b6b468689928b7ebf750bb44003e50b553277f5d637e6a8d30c43",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "039add36d460d1f2440bcb710a3bda53d0f642c5408480515fb189b0136f875e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c16long_1.json",
+      "sha256": "d9ef7e336a1aedb80feedaf2031ea3b2c7a8738a3ac3c2c623539ab93289badf",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "79ee1c14f9b9c214dad58e098f25cce47a14ce042445ecb11d726203b639ce78"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c16long_2.json",
+      "sha256": "d9ef7e336a1aedb80feedaf2031ea3b2c7a8738a3ac3c2c623539ab93289badf",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "79ee1c14f9b9c214dad58e098f25cce47a14ce042445ecb11d726203b639ce78"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c1_1.json",
+      "sha256": "e990940968dd068f362e01d6bdd2ab9be7e6b54c98321b046a1487de7f3cf869",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 1,
+      "request_offset": 2,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "60e54dca86e1f51d0d7971e6e9e322743b16564566d6b2ec06adf632c883ff8e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c1_2.json",
+      "sha256": "e990940968dd068f362e01d6bdd2ab9be7e6b54c98321b046a1487de7f3cf869",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 1,
+      "request_offset": 2,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "60e54dca86e1f51d0d7971e6e9e322743b16564566d6b2ec06adf632c883ff8e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_c1_3.json",
+      "sha256": "e990940968dd068f362e01d6bdd2ab9be7e6b54c98321b046a1487de7f3cf869",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 1,
+      "request_offset": 2,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "60e54dca86e1f51d0d7971e6e9e322743b16564566d6b2ec06adf632c883ff8e"
+    },
+    {
+      "file": "dsv4_tp4_topk2_restart_c16.json",
+      "sha256": "ae0e6f212c6b6b468689928b7ebf750bb44003e50b553277f5d637e6a8d30c43",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "039add36d460d1f2440bcb710a3bda53d0f642c5408480515fb189b0136f875e"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c16_1.json",
+      "sha256": "eb581a491607bc12fb32915062b2c5f58fe81cb91ecbb2dfba0e9bef1cb599c4",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "87c3756341d456c912abd9580a5adcd4317c10c5796fa4314ac41df6d86ca25a"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c16_2.json",
+      "sha256": "eb581a491607bc12fb32915062b2c5f58fe81cb91ecbb2dfba0e9bef1cb599c4",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "87c3756341d456c912abd9580a5adcd4317c10c5796fa4314ac41df6d86ca25a"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c16_3.json",
+      "sha256": "eb581a491607bc12fb32915062b2c5f58fe81cb91ecbb2dfba0e9bef1cb599c4",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "87c3756341d456c912abd9580a5adcd4317c10c5796fa4314ac41df6d86ca25a"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c16long_1.json",
+      "sha256": "d6bfef771ab5ab74ab3216462883a61a11a9b058558342a52cb88a94b67342e9",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "23ae04dfb1b12e1990ea8a3f7d0cf1103934cc0c7828003313820986f72aee9e"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c16long_2.json",
+      "sha256": "d6bfef771ab5ab74ab3216462883a61a11a9b058558342a52cb88a94b67342e9",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "23ae04dfb1b12e1990ea8a3f7d0cf1103934cc0c7828003313820986f72aee9e"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c1_1.json",
+      "sha256": "cd182724320a401c8ce1c375903a3a18ffc2a5b2daa8e5e9b0f1f39f4c58a2f9",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 1,
+      "request_offset": 2,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "044fa803a68b5fd8594eee6e32fe3054dfdb13dacea1991dd75113cee763ee50"
+    },
+    {
+      "file": "dsv4_tp8_topk2_c1_2.json",
+      "sha256": "cd182724320a401c8ce1c375903a3a18ffc2a5b2daa8e5e9b0f1f39f4c58a2f9",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 1,
+      "request_offset": 2,
+      "output_tokens_per_request": 256,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "044fa803a68b5fd8594eee6e32fe3054dfdb13dacea1991dd75113cee763ee50"
+    },
+    {
+      "file": "dsv4_tp8_topk2_restart_c16.json",
+      "sha256": "eb581a491607bc12fb32915062b2c5f58fe81cb91ecbb2dfba0e9bef1cb599c4",
+      "input_manifest_sha256": "aee8972e1dbba4c12795947c57c3ca3224a0199bd8a82a1ffe2a0264cc8f5e3b",
+      "requests": 16,
+      "request_offset": 0,
+      "output_tokens_per_request": 32,
+      "all_cached_tokens_zero": true,
+      "completion_ids_sha256": "87c3756341d456c912abd9580a5adcd4317c10c5796fa4314ac41df6d86ca25a"
+    }
+  ]
+}

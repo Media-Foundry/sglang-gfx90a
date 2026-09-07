@@ -381,16 +381,15 @@ fi
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
 export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS:-${DEFAULT_GFX90A_FP4_GROUPED_DECODE_BLOCKS}}"
-# TP4/EP1 drift fixes: converged router-weight shuffle, preshuffled indexer
+# TP4/TP8 EP1 drift fixes: converged router-weight shuffle, preshuffled indexer
 # cache reads, and deterministic Top-K membership AND logical output order.
 # C16 x 256-token fresh-cache runs now match token and top-5 logprobs exactly.
-# Restore the fast native prefill stack only for the validated topology;
-# TP8/EP and large BF16-CK profiles need their own E2E gate.
+# Restore the fast native prefill stack for the validated TP4/TP8 EP1
+# topologies; EP and large BF16-CK profiles need their own E2E gate.
 DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
-DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=0
-if [[ "${TP_SIZE:-4}" == "4" && "${EP_SIZE:-4}" == "1" && "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
+DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=2
+if [[ ( "${TP_SIZE:-4}" == "4" || "${TP_SIZE:-4}" == "8" ) && "${EP_SIZE:-4}" == "1" && "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
   DEFAULT_GFX90A_FP4_MFMA32_PREFILL=1
-  DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=2
 fi
 export SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER="${SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER:-${DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER}}"
 export SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL="${SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL:-${DEFAULT_GFX90A_FP4_MFMA32_PREFILL}}"

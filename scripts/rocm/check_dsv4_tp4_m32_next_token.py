@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture one teacher-forced concurrent next-token/logprob oracle."""
+"""Capture fixed-input native AR completion IDs and per-token logprobs."""
 
 from __future__ import annotations
 

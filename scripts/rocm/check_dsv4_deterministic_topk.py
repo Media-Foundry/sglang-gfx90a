@@ -1,6 +1,8 @@
 """HIP Top-K versus stable score/ID ordering, including cutoff ties and graphs."""
 import argparse
+import json
 import os
+from pathlib import Path
 
 import torch
 
@@ -41,8 +43,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capture")
     parser.add_argument("--replays", type=int, default=100)
+    parser.add_argument("--default-mode", action="store_true", help="Test gfx90a auto-selection without an override")
     args = parser.parse_args()
-    os.environ["SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER"] = "2"
+    if args.default_mode:
+        os.environ.pop("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", None)
+    else:
+        os.environ["SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER"] = "2"
     torch.manual_seed(42)
     lens = torch.tensor([0, 1, 127, 512, 513, 577, 1024, 2049], device="cuda", dtype=torch.int32)
     pages = torch.randperm(80, device="cuda", dtype=torch.int32).expand(8, -1).contiguous()[:, :64]
@@ -60,6 +66,11 @@ def main():
     long_lens = torch.tensor([513, 32768, 65536], device="cuda", dtype=torch.int32)
     long_pages = torch.randperm(1024, device="cuda", dtype=torch.int32).expand(3, -1).contiguous()
     check(long_scores, long_lens, long_pages, args.replays)
+    fixture = json.loads((Path(__file__).parent / "fixtures/dsv4_topk_layer8_row2144.json").read_text())
+    real_scores = torch.tensor([fixture["scores"]], device="cuda", dtype=torch.float32)
+    real_lens = torch.tensor([fixture["length"]], device="cuda", dtype=torch.int32)
+    real_pages = torch.randperm((fixture["length"] + 63) // 64, device="cuda", dtype=torch.int32)[None, :]
+    check(real_scores, real_lens, real_pages, args.replays)
     if args.capture:
         d = torch.load(args.capture, map_location="cpu", weights_only=True)
         check(*(d[k].cuda() for k in ("logits", "seq_lens", "page_table")), args.replays)

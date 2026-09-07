@@ -73,8 +73,13 @@ interpretations (e.g. expanding MHC as Multi-Head Compression) are wrong.
 Do not equate deterministic generation or a France sentinel with full
 code-analysis correctness.
 
-The harness restores MFMA32/64 defaults and enables mode 2 for
-TP4/EP1/no-A2A only. TP8 and other EP layouts keep prior defaults pending
-their own validation. Independent-process verification is pending.
+At the TP4 checkpoint, the harness restores MFMA32/64 defaults and enables
+mode 2 for TP4/EP1/no-A2A; TP8/other EP layouts were held for their own gate.
+The subsequent TP8 validation and default promotion are recorded in
+`dsv4_tp8_drift_fix_validation_20260907.md`.
+**Independent-process C16 x 32 verification passes**:
+restarted with all three MFMA/Top-K overrides omitted, using the new harness
+defaults; all 16 complete IDs/logprobs/top-5/text match the first process.
+Artifact: `/tmp/dsv4_tp4_topk2_restart_c16.json` (zero cached tokens).
 Fixed-batch TP4 repeatability does not itself establish invariance to
 arbitrary batching or equality to a different reduction algorithm.

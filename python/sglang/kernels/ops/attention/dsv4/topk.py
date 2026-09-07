@@ -33,6 +33,14 @@ def _jit_topk_v1_module():
 
 
 @cache_once
+def _default_hip_indexer_order():
+    # Keep the correctness fix active for direct SGLang launches, not only
+    # the gfx90a benchmark harness. Other architectures retain their backend.
+    arch = torch.cuda.get_device_properties(torch.cuda.current_device()).gcnArchName
+    return "2" if arch.split(":", 1)[0] == "gfx90a" else "0"
+
+
+@cache_once
 def _jit_deterministic_topk_hip_module():
     return load_jit(
         make_name("topk_deterministic_hip"),
@@ -65,12 +73,15 @@ def topk_transform_512(
     out_raw_indices: Optional[torch.Tensor] = None,
 ) -> None:
     if is_hip_runtime():
-        if os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "0") == "2":
+        order_mode = os.getenv(
+            "SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", _default_hip_indexer_order()
+        )
+        if order_mode == "2":
             _jit_deterministic_topk_hip_module().topk_transform(
                 scores, seq_lens, page_tables, out_page_indices, page_size, out_raw_indices
             )
             return
-        canonical = os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "0") == "1"
+        canonical = order_mode == "1"
         raw = out_raw_indices
         if canonical and raw is None:
             raw = torch.empty_like(out_page_indices)
