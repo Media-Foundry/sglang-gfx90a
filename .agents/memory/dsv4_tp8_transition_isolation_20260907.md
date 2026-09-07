@@ -100,3 +100,26 @@ including the gathered six-field layout and TP0 selection contract. The test
 class now uses unittest.TestCase to avoid unrelated datasets/benchmark imports.
 Artifacts: `/tmp/dsv4_tp8_delayer_D1_probes_20260907.{json,log}`.
 The full C1 speed/semantic workload and P32-to-C1 transition remain to be retested.
+
+## D1 complete service checks
+
+- C1 harness complete:9 measured256-token requests, median83.858 tok/s,
+  range83.490--84.055. All9 sequences match B3 candidate; France passes;
+  all6 fixed-prefix teacher probes exactly match reference IDs/logprobs.
+- P32:5332.84 cold, then6424.01 /6416.69 /6414.85 /6277.46 input tok/s.
+  Warm median6415.77;32 distinct code requests,73724 input tokens per wave,
+  zero cached tokens. Preserves prior6420.39 within ordinary run variation.
+  Concurrent first/output IDs still not bit-exact; do not confuse scheduler
+  admission consistency with deterministic BF16-CK atomic accumulation.
+- After P32:another60/60 fixed-prefix probes complete; next IDs, input
+  logprobs and output top-logprobs all exactly match reference. Total120 probes
+  plus the harness's6, no stalls in this service.
+- Finally two2304-token code-source requests complete normally at460 output
+  tokens each,6.697/6.665s, same IDs as B3. Their code-audit claims are not
+  independently established as factual; this is a coherence/replay smoke test.
+
+Adjacent `dsv4_tp8_delayer_consensus_20260907.json` retains timings, hashes,
+representative texts/IDs and source-artifact SHA256. All measurements are native
+AR, original checkpoint, not speculative. This is one successful fresh service,
+not a claim of exhaustive scheduling correctness. Next close the fresh-service
+control/candidate comparison with this fix held constant; GEMV remains opt-in.
