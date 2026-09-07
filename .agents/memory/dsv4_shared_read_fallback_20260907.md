@@ -22,3 +22,17 @@ Old-fallback services stalled at request transitions both with and without
 the GEMV candidate. A3 did not stall, but this limited test does not establish
 that the fallback was the sole cause or prove general stress stability.
 Generated audit prose has not been independently verified for factual accuracy.
+
+## Follow-up: the HIP scheduler gate was disabled
+
+Source inspection on the next turn found an important qualification:
+`Scheduler` enables `_war_barrier_enabled` only for CUDA or when
+`SGLANG_ENABLE_WAR_BARRIER=1`. That variable defaults False and the earlier
+A3/B3 launch did not set it. Thus their POST_REPLAY event was not consumed by
+the scheduler. Their successful individual runs cannot be attributed to the
+fallback correction. The correction still fixes the event contract when the
+barrier is enabled, but an end-to-end test with the gate ON is required.
+
+A scheduler-overlap-OFF diagnostic was rejected at startup because the retained
+prefill delayer requires overlap. No throughput or correctness result exists
+for that attempt. Next test keeps overlap/delayer and enables the WAR gate only.
