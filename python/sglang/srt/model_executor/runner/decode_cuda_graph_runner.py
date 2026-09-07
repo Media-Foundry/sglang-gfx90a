@@ -577,8 +577,11 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
             declared is SharedReadEnds.IN_REPLAY
             and self.in_graph_metadata_prep_done is None
         ):
-            # TODO: this lands EARLIER than declared; POST_REPLAY is the sound one.
-            return SharedReadEnds.PRE_REPLAY
+            # Without an external in-graph event we cannot observe the declared
+            # read boundary. Publish conservatively after replay instead:
+            # PRE_REPLAY would let the scheduler overwrite shared metadata
+            # while the graph still reads it.
+            return SharedReadEnds.POST_REPLAY
         return declared
 
     def _publish_read_done(self, in_graph: bool):
