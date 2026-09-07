@@ -11,12 +11,11 @@ from sglang.srt.managers.prefill_delayer import (
     _State,
 )
 from sglang.test.ci.ci_register import register_cpu_ci
-from sglang.test.test_utils import CustomTestCase
 
 register_cpu_ci(est_time=2, suite="base-a-test-cpu")
 
 
-class TestPrefillDelayerHighWatermark(CustomTestCase):
+class TestPrefillDelayerHighWatermark(unittest.TestCase):
     def test_wall_timeout_releases_slot_condition(self):
         delayer = object.__new__(PrefillDelayer)
         delayer._token_usage_low_watermark = None
@@ -27,7 +26,7 @@ class TestPrefillDelayerHighWatermark(CustomTestCase):
         delayer.enable_dp_attention = True
         delayer.skip_first_delayer = False
         delayer._gather_info = MagicMock(
-            return_value=torch.tensor([[1, 0, 15, 16, 1]], dtype=torch.int64)
+            return_value=torch.tensor([[1, 0, 15, 16, 1, 1]], dtype=torch.int64)
         )
 
         with patch(
@@ -47,6 +46,60 @@ class TestPrefillDelayerHighWatermark(CustomTestCase):
         self.assertTrue(result.output_allow)
         self.assertEqual(result.output_reason, "wait_timeout")
         self.assertEqual(result.wait_forward_passes, 7)
+
+    def test_rank_clock_skew_cannot_split_admission(self):
+        for shared_timeout in (False, True):
+            decisions = []
+            for local_now in (10.004, 10.006):
+                delayer = object.__new__(PrefillDelayer)
+                delayer._token_usage_low_watermark = None
+                delayer._queue_trigger_enabled = True
+                delayer._queue_min_ratio = 1.0
+                delayer._prefill_max_requests = 16
+                delayer._max_delay_ms = 5.0
+                delayer._max_delay_passes = 10000
+                delayer.enable_dp_attention = True
+                delayer.skip_first_delayer = False
+                delayer._gather_info = MagicMock(return_value=torch.tensor(
+                    [[1, 0, 0, 16, 1, int(shared_timeout)]], dtype=torch.int64
+                ))
+                with patch('sglang.srt.managers.prefill_delayer.time.perf_counter',
+                           return_value=local_now):
+                    result = delayer._negotiate_should_allow_prefill_pure(
+                        prev_state=_State(delayed_count=7, start_time=10.0),
+                        local_prefillable=True, token_usage=0.5,
+                        running_batch=0, max_prefill_bs=16,
+                        max_running_requests=256, waiting_queue_len=1,
+                    )
+                self.assertEqual(
+                    delayer._gather_info.call_args.kwargs['wall_timeout'],
+                    local_now >= 10.005,
+                )
+                decisions.append(result.output_allow)
+            self.assertEqual(decisions, [shared_timeout, shared_timeout])
+
+    def test_timeout_field_uses_existing_gather_and_tp0_selection(self):
+        delayer = object.__new__(PrefillDelayer)
+        delayer._gather_device = "cpu"
+        delayer._gather_group = object()
+        delayer._global_info_buffer = torch.empty((2, 2, 6), dtype=torch.int64)
+        gathered = torch.tensor([
+            [[1, 0, 0, 16, 1, 0], [1, 0, 0, 16, 1, 1]],
+            [[1, 0, 0, 16, 1, 1], [1, 0, 0, 16, 1, 0]],
+        ])
+
+        def gather(output, local, group):
+            self.assertIs(group, delayer._gather_group)
+            self.assertEqual(local.tolist(), [1, 0, 0, 16, 1, 1])
+            output.copy_(gathered.flatten())
+
+        with patch("torch.distributed.all_gather_into_tensor", side_effect=gather) as call:
+            result = delayer._gather_info(
+                True, False, max_prefill_bs=16, waiting_queue_len=1,
+                wall_timeout=True,
+            )
+        call.assert_called_once()
+        self.assertTrue(torch.equal(result, gathered[:, 0, :]))
 
     def test_peak_expires_after_recent_attempt_window(self):
         tracker = RecentPrefillBatchSizeTracker(window_size=4)

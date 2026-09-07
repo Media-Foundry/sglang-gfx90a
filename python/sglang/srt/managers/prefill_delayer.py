@@ -130,9 +130,10 @@ class PrefillDelayer:
 
         # Fields packed per rank into the all-gather tensor: prefillable,
         # token_watermark_force_allow, running_batch, max_prefill_bs,
-        # waiting_queue_len.
+        # waiting_queue_len, wall_timeout. Admission must use the gathered
+        # timeout too: local clocks can straddle the deadline on different ranks.
         self._global_info_buffer = torch.empty(
-            (dp_size_dim, attn_tp_size, 5),
+            (dp_size_dim, attn_tp_size, 6),
             dtype=torch.int64,
             device=self._gather_device,
         )
@@ -186,18 +187,25 @@ class PrefillDelayer:
         )
 
         # Gather global states
+        local_wall_timeout = prev_state is not None and (
+            (time.perf_counter() - prev_state.start_time) * 1000.0
+            >= self._max_delay_ms
+        )
         tp0_info = self._gather_info(
             local_prefillable=local_prefillable,
             local_token_watermark_force_allow=local_token_watermark_force_allow,
             running_batch=running_batch,
             max_prefill_bs=max_prefill_bs,
             waiting_queue_len=waiting_queue_len,
+            wall_timeout=local_wall_timeout,
         )
         global_prefillable = tp0_info[:, 0]
         global_token_watermark_force_allow = tp0_info[:, 1]
         global_running_batch = tp0_info[:, 2]
         global_max_prefill_bs = tp0_info[:, 3]
         global_waiting_queue_len = tp0_info[:, 4]
+        # All TP ranks consume the same TP0 decisions (across DP groups).
+        global_wall_timeout = bool(tp0_info[:, 5].max().item())
 
         # Compute derived global states
         if global_prefillable.min().item() > 0:
@@ -291,18 +299,14 @@ class PrefillDelayer:
                 # max_prefill_bs can keep slot_condition true for thousands
                 # of scheduler passes; relying only on max_delay_passes then
                 # turns a millisecond batching window into request starvation.
-                if prev_state is not None:
-                    elapsed_ms = (
-                        time.perf_counter() - prev_state.start_time
-                    ) * 1000.0
-                    if elapsed_ms >= self._max_delay_ms:
-                        return _NegotiateOutput(
-                            next_state=None,
-                            output_allow=True,
-                            output_reason="wait_timeout",
-                            **debug_info,
-                            **wait_info,
-                        )
+                if global_wall_timeout:
+                    return _NegotiateOutput(
+                        next_state=None,
+                        output_allow=True,
+                        output_reason="wait_timeout",
+                        **debug_info,
+                        **wait_info,
+                    )
                 # When the "max_decode_bs - running_bs < max_prefill_bs" condition is met,
                 # the first merge_batch causes the decoding to fail to reach the maximum batch size.
                 if self.skip_first_delayer and not startup_queue_condition:
@@ -384,6 +388,7 @@ class PrefillDelayer:
         running_batch: int = 0,
         max_prefill_bs: int = 0,
         waiting_queue_len: int = 0,
+        wall_timeout: bool = False,
     ):
         local_info = torch.tensor(
             [
@@ -392,6 +397,7 @@ class PrefillDelayer:
                 running_batch,
                 max_prefill_bs,
                 waiting_queue_len,
+                int(wall_timeout),
             ],
             device=self._gather_device,
             dtype=torch.int64,
