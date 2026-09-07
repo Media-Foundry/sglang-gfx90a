@@ -145,3 +145,23 @@ Do not promote its unsupported code-audit claims to verified factual answers.
 The adjacent JSON preserves A3/B3 timings, completion hashes and long texts.
 The large-prefill P32 regression test is running next. Keep the new selector
 opt-in until broader transitions and mixed tiers have been checked.
+
+## Large-prefill regression and remaining transition stall
+
+B3 P32 completed all five waves (32 diverse code requests,73724 input tokens,
+fresh salts, all cached tokens0). Rates5389.76 cold, then6436.57 /6427.82 /
+6363.94 /6431.74 input tok/s; warm median6429.78, preserving the prior6420.39
+profile. Log shows16-request large-prefill batches with padded M36864.
+Cross-round first-token and full8-token IDs are not exact. Inspected changed
+beginnings are normal phrasing alternatives, not evidence of full-answer
+correctness. See adjacent `dsv4_tp8_woa_prefill_transition_20260907.json`.
+
+The subsequent C1 run completed all nine measured256-token responses at
+83.47–84.56 tok/s, with prior candidate hashes. However, it then stalled after
+three of six teacher probes. Repeated inspection showed the server/process
+tree alive, GPUs0/1 at100% and2–7 idle; no additional probe completion.
+Thus POST_REPLAY alone does NOT resolve all stalls, and this is not a fully
+stable production acceptance. GEMV remains default-off. A debugger attach
+was unavailable (`ptrace: Inappropriate ioctl for device`); no system security
+settings were changed. Next isolate request-transition scheduling and custom
+collective order using the same fixed-prefix probes.
