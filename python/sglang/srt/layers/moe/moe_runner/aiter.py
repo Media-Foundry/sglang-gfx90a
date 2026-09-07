@@ -507,6 +507,9 @@ class AiterRunnerCore(MoeRunnerCore):
                     quant_info.w2_weight,
                     quant_info.w2_scale,
                     out=direct_out,
+                    scales_shuffled=not get_bool_env_var(
+                        "SGLANG_DSV4_DEBUG_AITER_RAW_FP4_SCALES"
+                    ),
                 )
                 return AiterRunnerOutput(hidden_states=output)
 

@@ -143,6 +143,19 @@ def gfx90a_bf16_batched_moe_m16384(
 
 
 def gfx90a_bf16_ck_moe(
+def _logical_a16w4_scales(
+    scale: torch.Tensor, experts: int, rows: int, groups: int, *, gate_up: bool
+) -> torch.Tensor:
+    """Invert AIter's scale shuffle, independently of packed-weight layout.
+
+    The direct runner keeps raw packed weights but still loads shuffled scales.
+    A reshape alone does not restore the logical [expert, row, K32] contract.
+    """
+    x = scale.view(torch.uint8).view(experts, rows // 32, groups // 8, 4, 16, 2, 2)
+    axes = (0, 6, 1, 4, 2, 5, 3) if gate_up else (0, 1, 6, 4, 2, 5, 3)
+    return x.permute(axes).contiguous().view(experts, rows, groups)
+
+
     hidden: torch.Tensor,
     topk_ids: torch.Tensor,
     topk_weights: torch.Tensor,
@@ -154,16 +167,34 @@ def gfx90a_bf16_ck_moe(
     out: torch.Tensor | None = None,
     blocks: int = 1664,
 ) -> torch.Tensor:
-    e, t, h, i = 256, 6, 4096, 512
+    scales_shuffled: bool = False,
+    e, t, h = 256, 6, 4096
+    if w13.ndim != 3 or w13.shape[1] % 2:
+        raise ValueError("BF16 CK MoE requires raw packed gate/up weights")
+    i = w13.shape[1] // 2
+    if (
+        i not in (256, 512)
+        or tuple(w13.shape) != (e, 2 * i, h // 2)
+        or tuple(w2.shape) != (e, h, i // 2)
+        or s13.numel() != e * 2 * i * h // 32
+        or s2.numel() != e * h * i // 32
+    ):
+        raise ValueError("BF16 CK MoE requires TP4/TP8 DSV4 raw FP4 weight/scale shapes")
     m = hidden.shape[0]
     if m < 8192 or m > 36864:
         raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 36864")
     if hidden.shape != (m, h) or topk_ids.shape != (m, t):
         raise ValueError("BF16 CK MoE oracle requires H4096/Top-6")
     device_index = hidden.device.index
+    if scales_shuffled:
+        s13 = _logical_a16w4_scales(s13, e, 2 * i, h // 32, gate_up=True)
+        s2 = _logical_a16w4_scales(s2, e, h, i // 32, gate_up=False)
     key = device_index if device_index is not None else torch.cuda.current_device()
     workspace = _ck_weight_workspaces.get(key)
-    if workspace is None:
+    if workspace is None or (
+        tuple(workspace[0].shape) != (e, 2 * i, h)
+        or tuple(workspace[1].shape) != (e, h, i)
+    ):
         workspace = (
             torch.empty((e, 2 * i, h), dtype=torch.bfloat16, device=hidden.device),
             torch.empty((e, h, i), dtype=torch.bfloat16, device=hidden.device),

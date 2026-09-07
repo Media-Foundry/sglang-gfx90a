@@ -27,6 +27,7 @@ def main():
     p.add_argument("--rounds", type=int, default=3)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--reference", type=Path)
+    p.add_argument("--skip-freeze-gc", action="store_true")
     p.add_argument("--smoke-only", action="store_true",
                    help="2304-token real-source prefill plus four concurrent short requests")
     args = p.parse_args()
@@ -49,7 +50,8 @@ def main():
             data = response.read()
         return data, time.perf_counter() - t
 
-    post({}, "/freeze_gc")
+    if not args.skip_freeze_gc:
+        post({}, "/freeze_gc")
     result = {"arm": args.arm, "measurements": [], "teacher_forced": []}
 
     def generate(case, rep, tokens):

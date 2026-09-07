@@ -43,6 +43,9 @@ if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE}" == "1" ]]; then
   # This explicit V1/N64/K128 instance is correct and cuts the M27648 routed
   # micro-path by 31--43%; C32 E2E improves by about 7% while C1 is unchanged.
   export SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1="${SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1:-1}"
+  # CK's BF16 B-fragment ABI consumes the (16,16) preshuffled layout,
+  # even though the module filename contains "preshuffle_off".
+  export AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS="${AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS:-1}"
   export SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL="${SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL:-1}"
   export SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM="${SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM:-1}"
 fi
