@@ -17,6 +17,7 @@ import struct
 import threading
 import time
 import urllib.request
+import uuid
 
 
 def main():
@@ -29,6 +30,7 @@ def main():
     p.add_argument("--smoke-only", action="store_true",
                    help="2304-token real-source prefill plus four concurrent short requests")
     args = p.parse_args()
+    nonce = uuid.uuid4().hex
     root = Path(__file__).resolve().parents[2]
     manifest = json.loads(
         (root / ".agents/memory/dsv4_tp8_diverse_32_input_ids.json").read_text()
@@ -54,18 +56,20 @@ def main():
         raw, elapsed = post({
             "input_ids": case["input_ids"],
             "sampling_params": {"temperature": 0, "max_new_tokens": tokens, "ignore_eos": True},
-            "cache_salt": f"mhc-recovery-{args.arm}-{rep}-{case['id']}",
+            "cache_salt": f"mhc-recovery-{nonce}-{args.arm}-{rep}-{case['id']}",
         })
         out = json.loads(raw)
         n = out["meta_info"]["completion_tokens"]
         ids = out["output_ids"]
         assert n == tokens and len(ids) == n, (n, tokens, len(ids))
+        assert out["meta_info"]["cached_tokens"] == 0, out["meta_info"]
         return {
             "case": case["id"], "prompt": case["prompt"], "rep": rep,
             "tokens": n, "wall_s": elapsed, "tok_s": n / elapsed,
             "output_ids": ids, "text": out["text"],
             "sha256": hashlib.sha256(struct.pack(f"<{n}I", *ids)).hexdigest(),
             "finish": out["meta_info"]["finish_reason"],
+            "cached_tokens": out["meta_info"]["cached_tokens"],
         }
 
     france = manifest[0]
@@ -116,7 +120,7 @@ def main():
             raw, elapsed = post({
                 "input_ids": ids,
                 "sampling_params": {"temperature": 0, "max_new_tokens": 1},
-                "cache_salt": f"mhc-forced-{args.arm}-{case['id']}-{length}",
+                "cache_salt": f"mhc-forced-{nonce}-{args.arm}-{case['id']}-{length}",
                 "return_logprob": True, "logprob_start_len": len(case["input_ids"]),
                 "top_logprobs_num": 20,
             })

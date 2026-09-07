@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--request-count", type=int, choices=(1, 4, 8, 16, 32), default=32)
     parser.add_argument("--tokens", type=int, default=8)
+    parser.add_argument("--request-offset", type=int, default=0)
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--timeout", type=float, default=1200.0)
     parser.add_argument("--output", type=Path)
@@ -61,7 +62,9 @@ def post_stream(url: str, payload: dict, timeout: float) -> tuple[dict, float, f
 def main() -> None:
     args = parse_args()
     manifest = json.loads(args.inputs.read_text())
-    selected = manifest["requests"][: args.request_count]
+    if args.request_offset < 0:
+        raise ValueError("request-offset must be nonnegative")
+    selected = manifest["requests"][args.request_offset : args.request_offset + args.request_count]
     if len(selected) != args.request_count:
         raise ValueError("manifest has too few requests")
     if len({tuple(item["input_ids"]) for item in selected}) != len(selected):
@@ -100,7 +103,7 @@ def main() -> None:
             for result in results
         ]
         completion_ids = [result[0].get("output_ids") or [] for result in results]
-        if prompt_tokens != [item["prompt_tokens"] for item in selected]:
+        if prompt_tokens != [len(item["input_ids"]) for item in selected]:
             raise RuntimeError(
                 f"server prompt counts differ from manifest: {prompt_tokens}"
             )
@@ -115,6 +118,14 @@ def main() -> None:
             "prefill_wall_s": prefill_wall,
             "aggregate_input_tok_s": total_prompt / prefill_wall,
             "group_wall_s": last_end - first_begin,
+            "aggregate_output_tok_s": sum(map(len, completion_ids)) / (last_end - first_begin),
+            "request_ttft_s": [item[2] - item[1] for item in results],
+            # Streaming wall-time decode window, not pure GPU-forward timing.
+            "request_decode_tok_s": [
+                (len(ids) - 1) / (item[3] - item[2]) if len(ids) > 1 else None
+                for ids, item in zip(completion_ids, results)
+            ],
+            "finish_reasons": [item[0].get("meta_info", {}).get("finish_reason") for item in results],
             "completion_lengths": [len(ids) for ids in completion_ids],
             "completion_ids": completion_ids,
             "texts": [item[0].get("text") for item in results],
@@ -134,6 +145,7 @@ def main() -> None:
         "input_manifest": str(args.inputs.resolve()),
         "input_manifest_sha256": hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
         "request_count": args.request_count,
+        "request_offset": args.request_offset,
         "tokens": args.tokens,
         "rounds": rounds,
         "median_input_tok_s": statistics.median(speeds),
