@@ -52,6 +52,7 @@ struct Prefill0Params {
   /// \brief Trailing tokens the write plan keeps resident in the compress state ring.
   /// Derived from the ring in `plan_compress_prefill`; see the bound there.
   int32_t mtp_pad;
+  bool use_req_ring;
 };
 
 struct Prefill1Params {
@@ -69,6 +70,7 @@ struct Prefill1Params {
   int32_t swa_page_size;
   int32_t ring_size;
   int32_t compress_ratio;
+  bool use_req_ring;
 };
 
 struct DecodeParams {
@@ -82,6 +84,7 @@ struct DecodeParams {
   int32_t swa_page_size;
   int32_t ring_size;
   int32_t compress_ratio;
+  bool use_req_ring;
 };
 
 struct Prefill1ParamsLegacy {
@@ -205,7 +208,7 @@ __global__ __launch_bounds__(1024, 1)  //
       const int32_t last_c_pos = (sl / cr) * cr;
       const int32_t first_w_pos = min(last_c_pos - (is_overlap ? cr : 0), sl - params.mtp_pad);
       bool do_write = position >= first_w_pos;
-      if (!do_write && is_overlap) do_write = (position % sps) >= (sps - cr);
+      if (!do_write && is_overlap && !params.use_req_ring) do_write = (position % sps) >= (sps - cr);
       if (do_write) {
         const uint32_t out_idx = atomicAdd(&counter_w, 1u);
         params.plan_w[out_idx] = pack_w(ragged_id, batch_id, position + 1);
@@ -238,7 +241,7 @@ __global__ __launch_bounds__(1024, 1)  //
         }
 
         bool do_write = position >= first_w_pos;
-        if (!do_write && is_overlap) do_write = (position % sps) >= (sps - cr);
+        if (!do_write && is_overlap && !params.use_req_ring) do_write = (position % sps) >= (sps - cr);
         if (do_write) {
           const uint32_t out_idx = atomicAdd(&counter_w, 1u);
           params.plan_w[out_idx] = pack_w(ragged_id, static_cast<uint32_t>(batch_id), position + 1);
@@ -272,7 +275,7 @@ __global__ void plan_compress_prefill_kernel_1(const Prefill1Params params) {
     const auto ring_offset = swa_loc % params.ring_size;
     return swa_page * params.ring_size + ring_offset;
   };
-  const auto compute_c128_loc = [&](int64_t rid, int32_t position) {
+  const auto compute_req_ring_loc = [&](int64_t rid, int32_t position) {
     return static_cast<int32_t>(rid * params.ring_size + position % params.ring_size);
   };
 
@@ -285,9 +288,9 @@ __global__ void plan_compress_prefill_kernel_1(const Prefill1Params params) {
       const auto position_1 = static_cast<int32_t>(plan_c.seq_len - 1);
       // only used for c4, harmless for c128
       const auto position_0 = max(position_1 - params.compress_ratio, 0);
-      if (params.compress_ratio == 128) {
-        plan_c.read_page_0 = compute_c128_loc(rid, position_0) / 128;
-        plan_c.read_page_1 = compute_c128_loc(rid, position_1) / 128;
+      if (params.compress_ratio == 128 || params.use_req_ring) {
+        plan_c.read_page_0 = compute_req_ring_loc(rid, position_0) / params.compress_ratio;
+        plan_c.read_page_1 = compute_req_ring_loc(rid, position_1) / params.compress_ratio;
       } else {
         const auto raw_loc_0 = mapping[position_0];
         const auto raw_loc_1 = mapping[position_1];
@@ -309,8 +312,8 @@ __global__ void plan_compress_prefill_kernel_1(const Prefill1Params params) {
     // `seq_len` (`write_loc`) may not be aligned here
     const auto position = static_cast<int32_t>(plan_w.write_loc - 1);
     plan_w.ragged_id = ragged_id;
-    if (params.compress_ratio == 128) {
-      plan_w.write_loc = compute_c128_loc(rid, position);
+    if (params.compress_ratio == 128 || params.use_req_ring) {
+      plan_w.write_loc = compute_req_ring_loc(rid, position);
     } else {
       const auto raw_loc = mapping[position];
       plan_w.write_loc = compute_loc(params.f2s_ptr[raw_loc]);
@@ -331,7 +334,7 @@ __global__ void plan_compress_decode_kernel(const DecodeParams params) {
     const auto ring_offset = swa_loc % params.ring_size;
     return swa_page * params.ring_size + ring_offset;
   };
-  const auto compute_c128_loc = [&](int64_t rid, int32_t position) {
+  const auto compute_req_ring_loc = [&](int64_t rid, int32_t position) {
     return static_cast<int32_t>(rid * params.ring_size + position % params.ring_size);
   };
   const auto seq_len = static_cast<int32_t>(params.seq_ptr[idx]);
@@ -340,10 +343,10 @@ __global__ void plan_compress_decode_kernel(const DecodeParams params) {
   int32_t write_loc;
   int32_t read_page_0;
   int32_t read_page_1;
-  if (params.compress_ratio == 128) {
-    write_loc = compute_c128_loc(rid, position_1);
-    read_page_0 = compute_c128_loc(rid, position_0) / 128;
-    read_page_1 = compute_c128_loc(rid, position_1) / 128;
+  if (params.compress_ratio == 128 || params.use_req_ring) {
+    write_loc = compute_req_ring_loc(rid, position_1);
+    read_page_0 = compute_req_ring_loc(rid, position_0) / params.compress_ratio;
+    read_page_1 = compute_req_ring_loc(rid, position_1) / params.compress_ratio;
   } else {
     const auto raw_loc_0 = mapping[position_0];
     const auto raw_loc_1 = mapping[position_1];
@@ -463,6 +466,7 @@ inline PrefillPlan plan_compress_prefill(
     const int32_t compress_ratio,
     const int32_t swa_page_size,
     const int32_t ring_size,
+    const bool use_req_ring,
     const bool use_cuda_graph) {
   auto B = SymbolicSize{"batch_size"};
   auto N = SymbolicSize{"num_q_tokens"};
@@ -505,6 +509,7 @@ inline PrefillPlan plan_compress_prefill(
   const auto batch_size = static_cast<uint32_t>(B.unwrap());
   constexpr auto kMaxTokens = kRaggedIdMask;
   RuntimeCheck(compress_ratio == 4 || compress_ratio == 128);
+  RuntimeCheck(!use_req_ring || compress_ratio == 4);
   RuntimeCheck(batch_size <= num_q_tokens && num_q_tokens <= kMaxTokens);
   // `swa_page_size` >= `ring_size` >= `compress_ratio`
   RuntimeCheck(swa_page_size % ring_size == 0 && ring_size % compress_ratio == 0);
@@ -539,6 +544,7 @@ inline PrefillPlan plan_compress_prefill(
         .compress_ratio = compress_ratio,
         .swa_page_size = swa_page_size,
         .mtp_pad = mtp_pad,
+        .use_req_ring = use_req_ring,
     };
     LaunchKernel(1, kMaxPrefillBatchSize, device)(plan_compress_prefill_kernel0, params0);
     // kernel_1 sees the already-padded buffers, so num_c == num_w == num_padded == num_q_tokens.
@@ -557,6 +563,7 @@ inline PrefillPlan plan_compress_prefill(
         .swa_page_size = swa_page_size,
         .ring_size = ring_size,
         .compress_ratio = compress_ratio,
+        .use_req_ring = use_req_ring,
     };
     const auto block_size_1 = 256;
     const auto num_blocks_1 = div_ceil(params1.num_work, block_size_1);
@@ -584,7 +591,7 @@ inline PrefillPlan plan_compress_prefill(
     RuntimeCheck(0 < extend_len && extend_len <= seq_len);
     const auto should_write = [=](int32_t position) {
       if (position >= first_w_pos) return true;
-      return is_overlap && position % swa_page_size >= (swa_page_size - compress_ratio);
+      return is_overlap && !use_req_ring && position % swa_page_size >= (swa_page_size - compress_ratio);
     };
     for (const auto j : irange(extend_len)) {
       const int32_t position = prefix_len + j;
@@ -633,6 +640,7 @@ inline PrefillPlan plan_compress_prefill(
       .swa_page_size = swa_page_size,
       .ring_size = ring_size,
       .compress_ratio = compress_ratio,
+      .use_req_ring = use_req_ring,
   };
   const auto block_size = 256;
   const auto num_blocks = div_ceil(params.num_work, block_size);
@@ -647,7 +655,8 @@ inline tvm::ffi::Tensor plan_compress_decode(
     const tvm::ffi::TensorView seq_lens,          // CPU/GPU
     const int32_t compress_ratio,
     const int32_t swa_page_size,
-    const int32_t ring_size) {
+    const int32_t ring_size,
+    const bool use_req_ring) {
   auto B = SymbolicSize{"batch_size"};
   auto device_ = SymbolicDevice{};
   device_.set_options<kDLGPU>();
@@ -669,6 +678,7 @@ inline tvm::ffi::Tensor plan_compress_decode(
       .with_device(device_)
       .verify(seq_lens);
 
+  RuntimeCheck(!use_req_ring || compress_ratio == 4);
   const auto batch_size = static_cast<uint32_t>(B.unwrap());
   const auto device = device_.unwrap();
   auto D = ffi::empty({batch_size, sizeof(PlanD)}, kDLUInt8, device);
@@ -683,6 +693,7 @@ inline tvm::ffi::Tensor plan_compress_decode(
       .swa_page_size = swa_page_size,
       .ring_size = ring_size,
       .compress_ratio = compress_ratio,
+      .use_req_ring = use_req_ring,
   };
   const auto block_size = 256;
   const auto num_blocks = div_ceil(batch_size, block_size);
