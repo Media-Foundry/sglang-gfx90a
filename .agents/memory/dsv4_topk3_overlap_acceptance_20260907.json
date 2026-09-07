@@ -1,0 +1,19 @@
+{
+  "short_c1_median_http_tok_s": 76.4541449881123,
+  "short_teacher_forced_exact": true,
+  "france_exact": true,
+  "C16_exact": {
+    "output_ids": true,
+    "output_token_logprobs": true,
+    "output_top_logprobs": true,
+    "text": true
+  },
+  "long_decode_samples": [
+    70.01022190926518,
+    69.95782295485165,
+    68.63919804728971
+  ],
+  "long_decode_median": 69.95782295485165,
+  "long_http_median": 55.93432263846767,
+  "long_output_exact": true
+}

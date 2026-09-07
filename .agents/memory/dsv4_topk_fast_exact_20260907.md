@@ -1,5 +1,9 @@
 # Exact HIP Top-K acceleration candidate, 2026-09-07
 
+Follow-up: E2E validation and default promotion are in
+`dsv4_topk3_e2e_acceptance_20260907.md`; the default-off status below describes
+the initial component experiment, not the final deployment decision.
+
 Status: default-off mode 3; production remains mode 2. No E2E speedup or
 full-model precision claim from this experiment. Running TP8 service unchanged.
 

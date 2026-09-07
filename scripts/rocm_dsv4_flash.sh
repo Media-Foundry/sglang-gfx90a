@@ -387,7 +387,9 @@ export SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS="${SGLANG_DSV4_GFX90A_F
 # Restore the fast native prefill stack for the validated TP4/TP8 EP1
 # topologies; EP and large BF16-CK profiles need their own E2E gate.
 DEFAULT_GFX90A_FP4_MFMA32_PREFILL=0
-DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=2
+# Exact Top-K ABBA: mode 3 improves indexed C1 decode; long/big prefill
+# shapes retain mode 2 internally. Explicit mode 2 remains the control.
+DEFAULT_GFX90A_CANONICAL_INDEXER_ORDER=3
 if [[ ( "${TP_SIZE:-4}" == "4" || "${TP_SIZE:-4}" == "8" ) && "${EP_SIZE:-4}" == "1" && "${MOE_A2A_BACKEND:-mori}" == "none" ]]; then
   DEFAULT_GFX90A_FP4_MFMA32_PREFILL=1
 fi

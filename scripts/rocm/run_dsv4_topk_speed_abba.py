@@ -1,6 +1,6 @@
-"""Fresh-service TP4 ABBA: legacy Top-K versus deterministic Top-K.
+"""Fresh-service TP4 ABBA: exact Top-K reference versus guarded candidate.
 
-Legacy arms are a speed-only diagnostic, NOT a correct deployment candidate.
+Optional legacy mode 0 is a speed-only diagnostic, NOT a deployment candidate.
 Both arms retain the cache-layout and MFMA wave-shuffle correctness fixes.
 Only processes launched by this script are stopped; the port must be free.
 """
@@ -18,6 +18,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--port", type=int, default=30011)
+    parser.add_argument("--modes", nargs=2, choices=("0", "2", "3"), default=["2", "3"])
+    parser.add_argument("--long-validation", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     if (args.output_dir / "config.json").exists():
@@ -40,10 +42,10 @@ def main():
             "HIP_VISIBLE_DEVICES", "TP_SIZE", "EP_SIZE", "MOE_A2A_BACKEND", "PORT",
             "MEM_FRACTION_STATIC", "MAX_TOTAL_TOKENS", "CHUNKED_PREFILL_SIZE",
             "CUDA_GRAPH_BS_DECODE", "DISABLE_OVERLAP_SCHEDULE")},
-        "arms": ["A1=0", "B1=2", "B2=2", "A2=0"],
-        "warning": "A arms retain known Top-K nondeterminism; not a correctness baseline",
+        "arms": [f"{arm}={mode}" for arm, mode in zip(("A1", "B1", "B2", "A2"), (args.modes[0], args.modes[1], args.modes[1], args.modes[0]))],
+        "warning": "Mode 0 is not a correctness baseline; modes 2 and 3 preserve deterministic selection",
     }, indent=2))
-    for arm, mode in (("A1", "0"), ("B1", "2"), ("B2", "2"), ("A2", "0")):
+    for arm, mode in zip(("A1", "B1", "B2", "A2"), (args.modes[0], args.modes[1], args.modes[1], args.modes[0])):
         env["SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER"] = mode
         with (args.output_dir / f"{arm}_resources.txt").open("w") as out:
             subprocess.run(["amd-smi", "process", "--general", "--sort-by-pid"], stdout=out, stderr=subprocess.STDOUT, check=True)
@@ -72,6 +74,12 @@ def main():
                 ["--request-count", "1", "--request-offset", "2", "--tokens", "1", "--rounds", "5"])
             run("prefill_c16", "scripts/rocm/bench_dsv4_prefill_diverse_concurrent.py",
                 ["--request-count", "16", "--tokens", "1", "--rounds", "3"])
+            if args.long_validation:
+                run("long_c1", "scripts/rocm/bench_dsv4_prefill_diverse_concurrent.py",
+                    ["--request-count", "1", "--request-offset", "2", "--tokens", "256", "--rounds", "4"])
+                run("long_c16_oracle", "scripts/rocm/check_dsv4_tp4_m32_next_token.py",
+                    ["--inputs", ".agents/memory/dsv4_prefill_diverse_32_input_ids.json",
+                     "--request-count", "16", "--tokens", "32"])
             print(f"{arm}: complete", flush=True)
         finally:
             if process.poll() is None:

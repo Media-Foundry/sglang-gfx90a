@@ -37,7 +37,7 @@ def _default_hip_indexer_order():
     # Keep the correctness fix active for direct SGLang launches, not only
     # the gfx90a benchmark harness. Other architectures retain their backend.
     arch = torch.cuda.get_device_properties(torch.cuda.current_device()).gcnArchName
-    return "2" if arch.split(":", 1)[0] == "gfx90a" else "0"
+    return "3" if arch.split(":", 1)[0] == "gfx90a" else "0"
 
 
 @cache_once
@@ -81,7 +81,7 @@ def topk_transform_512(
         )
         if order_mode in ("2", "3"):
             module = _jit_deterministic_topk_hip_module()
-            # Experimental mode 3: contiguous per-thread emission is beneficial
+            # Guarded mode 3: contiguous per-thread emission is beneficial
             # for small batches/short rows, but loses coalescing on large
             # prefill batches with long rows. Use only graph-static metadata;
             # never copy live sequence lengths to the host for selection.
