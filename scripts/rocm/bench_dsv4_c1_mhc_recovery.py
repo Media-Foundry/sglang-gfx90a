@@ -52,7 +52,15 @@ def main():
 
     if not args.skip_freeze_gc:
         post({}, "/freeze_gc")
-    result = {"arm": args.arm, "measurements": [], "teacher_forced": []}
+    result = {"arm": args.arm, "measurements": [], "teacher_forced": [],
+              "status": "running"}
+
+    def checkpoint():
+        # Outside request timing. Preserve completed evidence if a later
+        # independent probe times out; never label an incomplete run complete.
+        temporary = args.output.with_suffix(args.output.suffix + ".partial")
+        temporary.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+        temporary.replace(args.output)
 
     def generate(case, rep, tokens):
         raw, elapsed = post({
@@ -79,6 +87,7 @@ def main():
         row = generate(france, f"france-{rep}", 9)
         assert row["output_ids"] == [671, 6102, 294, 8760, 344, 2619, 51119, 42499, 1], row
     result["france_exact"] = True
+    checkpoint()
     if args.smoke_only:
         source = json.loads(
             (root / ".agents/memory/dsv4_prefill_diverse_32_input_ids.json").read_text()
@@ -104,12 +113,14 @@ def main():
             assert rows[0]["output_ids"][:9] == [671, 6102, 294, 8760, 344, 2619, 51119, 42499, 1]
             result["measurements"].extend(rows)
             print(args.arm, "C4", rep, [r["sha256"][:16] for r in rows], flush=True)
-        args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+        result["status"] = "complete"
+        checkpoint()
         return
     for rep in range(-1, args.rounds):
         for case in cases:
             row = generate(case, rep, 256)
             result["measurements"].append(row)
+            checkpoint()
             print(args.arm, rep, case["id"], round(row["tok_s"], 3), row["sha256"][:16], flush=True)
 
     # Feed identical continuation IDs to every arm: never compare logprobs
@@ -136,12 +147,14 @@ def main():
                 "output_top_logprobs": meta["output_top_logprobs"],
                 "output_ids": out["output_ids"], "wall_s": elapsed,
             })
+            checkpoint()
     result["medians"] = {
         case["id"]: statistics.median(r["tok_s"] for r in result["measurements"]
                                        if r["case"] == case["id"] and r["rep"] >= 0)
         for case in cases
     }
-    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+    result["status"] = "complete"
+    checkpoint()
     print(json.dumps(result["medians"]), flush=True)
 
 

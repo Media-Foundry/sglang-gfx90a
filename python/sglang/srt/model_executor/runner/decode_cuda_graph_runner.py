@@ -1619,7 +1619,24 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                         markers = getattr(module, "_gfx90a_realtime_trace", None)
                         if markers is None:
                             continue
-                        values = markers.detach().cpu().tolist()
+                        # Blocking D2H here can stop the overlap scheduler
+                        # before it submits work needed by the current graph.
+                        # Poll a prior pinned snapshot instead; diagnostics
+                        # must never synchronously wait for GPU progress.
+                        from sglang.srt.utils.realtime_trace_readback import (
+                            RealtimeTraceReadback,
+                        )
+
+                        readback = getattr(self, "_gfx90a_trace_readback", None)
+                        if readback is None:
+                            readback = RealtimeTraceReadback(markers)
+                            self._gfx90a_trace_readback = readback
+                        sample = readback.sample(
+                            markers, self._gfx90a_realtime_trace_replays
+                        )
+                        if sample is None:
+                            break
+                        trace_replay, values = sample
                         if (
                             getattr(module, "_gfx90a_realtime_trace_kind", None)
                             == "dspark_stage"
@@ -1641,9 +1658,10 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                                 logger.warning(
                                     "Invalid gfx90a realtime DSpark stage trace: "
                                     "rank=%d ticks=%s; required marker slots must "
-                                    "be nonzero and monotonic",
+                                    "be nonzero and monotonic replay=%d",
                                     get_parallel().tp_rank,
                                     values,
+                                    trace_replay,
                                 )
                                 break
 
@@ -1659,12 +1677,13 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
 
                             logger.info(
                                 "gfx90a realtime DSpark stage trace: rank=%d "
-                                "ticks=%s coarse_us=%s tail_us=%s moe_us=%s",
+                                "ticks=%s coarse_us=%s tail_us=%s moe_us=%s replay=%d",
                                 get_parallel().tp_rank,
                                 values,
                                 trace_deltas(coarse_order),
                                 trace_deltas(tail_order),
                                 trace_deltas(moe_order),
+                                trace_replay,
                             )
                             break
                         prepare_order = [2, 8, 9, 10, 11, 12, 13, 15, 14, 3]
@@ -1682,9 +1701,10 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                             logger.warning(
                                 "Invalid gfx90a realtime layer trace: rank=%d "
                                 "ticks=%s; required marker slots must be nonzero "
-                                "and monotonic",
+                                "and monotonic replay=%d",
                                 get_parallel().tp_rank,
                                 values,
+                                trace_replay,
                             )
                             break
                         deltas_us = [
@@ -1709,12 +1729,13 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
                         ]
                         logger.info(
                             "gfx90a realtime layer trace: rank=%d ticks=%s "
-                            "deltas_us=%s prepare_us=%s moe_us=%s",
+                            "deltas_us=%s prepare_us=%s moe_us=%s replay=%d",
                             get_parallel().tp_rank,
                             values,
                             deltas_us,
                             prepare_us,
                             moe_us,
+                            trace_replay,
                         )
                         break
 

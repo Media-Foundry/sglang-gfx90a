@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 import torch
@@ -21,4 +22,10 @@ def _jit_marker() -> Module:
 
 
 def gfx90a_realtime_marker(output: torch.Tensor, slot: int) -> None:
-    _jit_marker().run(output, slot)
+    module = _jit_marker()
+    # Isolate decode graph instrumentation from eager prefill schedules.
+    # Resolve the module even on warmup so first use need not load it in capture.
+    if os.getenv("SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY", "0") == "1":
+        if not torch.cuda.is_current_stream_capturing():
+            return
+    module.run(output, slot)
