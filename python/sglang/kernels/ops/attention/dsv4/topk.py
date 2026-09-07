@@ -45,7 +45,10 @@ def _jit_deterministic_topk_hip_module():
     return load_jit(
         make_name("topk_deterministic_hip"),
         cuda_files=["deepseek_v4/topk_deterministic_hip.cuh"],
-        cuda_wrappers=[("topk_transform", "DeterministicTopKHip::transform")],
+        cuda_wrappers=[
+            ("topk_transform", "DeterministicTopKHip<false>::transform"),
+            ("topk_transform_fast", "DeterministicTopKHip<true>::transform"),
+        ],
     )
 
 
@@ -76,8 +79,19 @@ def topk_transform_512(
         order_mode = os.getenv(
             "SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", _default_hip_indexer_order()
         )
-        if order_mode == "2":
-            _jit_deterministic_topk_hip_module().topk_transform(
+        if order_mode in ("2", "3"):
+            module = _jit_deterministic_topk_hip_module()
+            # Experimental mode 3: contiguous per-thread emission is beneficial
+            # for small batches/short rows, but loses coalescing on large
+            # prefill batches with long rows. Use only graph-static metadata;
+            # never copy live sequence lengths to the host for selection.
+            use_fast = order_mode == "3" and (
+                scores.shape[0] <= 32 or scores.shape[1] <= 576
+            )
+            transform = (
+                module.topk_transform_fast if use_fast else module.topk_transform
+            )
+            transform(
                 scores, seq_lens, page_tables, out_page_indices, page_size, out_raw_indices
             )
             return
