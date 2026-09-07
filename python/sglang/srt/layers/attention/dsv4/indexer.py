@@ -75,6 +75,7 @@ IndexerQuery: TypeAlias = Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
 
 _arange_cache = {}
 _fp8_paged_mqa_logits_debug_logged = False
+_c4_trivial_logits_debug_logged = False
 
 
 def _debug_fp8_paged_mqa_logits_skip(reason: str) -> None:
@@ -173,6 +174,7 @@ if triton is not None:
         BLOCK_S: tl.constexpr,
         BLOCK_H: tl.constexpr,
         BLOCK_D: tl.constexpr,
+        TRIVIAL_TOPK: tl.constexpr,
     ):
         bid = tl.program_id(0)
         block_id = tl.program_id(1)
@@ -182,67 +184,72 @@ if triton is not None:
         offs_d = tl.arange(0, BLOCK_D)
 
         seq_len = tl.load(seq_lens + bid)
-        page_offsets = offs_s // 64
-        pos_in_page = offs_s - page_offsets * 64
-        page_in_range = page_offsets < max_num_pages
-        page_ids = tl.load(
-            page_table
-            + bid * page_table_stride_b
-            + page_offsets * page_table_stride_p,
-            mask=page_in_range,
-            other=-1,
-        )
-        page_ids = tl.maximum(page_ids, 0)
-        valid_s = (offs_s < seq_len) & page_in_range
+        if TRIVIAL_TOPK == 0 or seq_len > TRIVIAL_TOPK:
+            page_offsets = offs_s // 64
+            pos_in_page = offs_s - page_offsets * 64
+            page_in_range = page_offsets < max_num_pages
+            page_ids = tl.load(
+                page_table
+                + bid * page_table_stride_b
+                + page_offsets * page_table_stride_p,
+                mask=page_in_range,
+                other=-1,
+            )
+            page_ids = tl.maximum(page_ids, 0)
+            valid_s = (offs_s < seq_len) & page_in_range
 
-        page_base = page_ids * kv_stride_page
-        if PRESHUFFLE_TILE:
-            # Match triton_fused_store_indexer: token-tile, column-tile,
-            # token-within-tile, column-within-tile. A linear read would
-            # consume other (possibly unwritten) tokens in a partial page.
-            kv_offsets = (page_base[:, None]
-                + (pos_in_page[:, None] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * 128)
-                + (offs_d[None, :] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * PRESHUFFLE_TILE)
-                + (pos_in_page[:, None] % PRESHUFFLE_TILE) * PRESHUFFLE_TILE
-                + offs_d[None, :] % PRESHUFFLE_TILE)
+            page_base = page_ids * kv_stride_page
+            if PRESHUFFLE_TILE:
+                # Match triton_fused_store_indexer: token-tile, column-tile,
+                # token-within-tile, column-within-tile. A linear read would
+                # consume other (possibly unwritten) tokens in a partial page.
+                kv_offsets = (page_base[:, None]
+                    + (pos_in_page[:, None] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * 128)
+                    + (offs_d[None, :] // PRESHUFFLE_TILE) * (PRESHUFFLE_TILE * PRESHUFFLE_TILE)
+                    + (pos_in_page[:, None] % PRESHUFFLE_TILE) * PRESHUFFLE_TILE
+                    + offs_d[None, :] % PRESHUFFLE_TILE)
+            else:
+                kv_offsets = page_base[:, None] + pos_in_page[:, None] * 128 + offs_d[None, :]
+            kv_u8_vals = tl.load(kvcache_u8 + kv_offsets, mask=valid_s[:, None], other=0)
+            kv_vals = kv_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
+
+            h_mask = offs_h < num_heads
+            q_u8_vals = tl.load(
+                q_u8
+                + bid * q_stride_b
+                + offs_h[:, None] * q_stride_h
+                + offs_d[None, :] * q_stride_d,
+                mask=h_mask[:, None],
+                other=0,
+            )
+            q_vals = q_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
+
+            scores = tl.dot(kv_vals, tl.trans(q_vals)).to(tl.float32)
+            w = tl.load(
+                weights + bid * weights_stride_b + offs_h * weights_stride_h,
+                mask=h_mask,
+                other=0.0,
+            ).to(tl.float32)
+            reduced = tl.sum(tl.maximum(scores, 0.0) * w[None, :], axis=1)
+
+            scale_offset = page_base + 8192 + pos_in_page * 4
+            s0 = tl.load(kvcache_u8 + scale_offset + 0, mask=valid_s, other=0).to(tl.uint32)
+            s1 = tl.load(kvcache_u8 + scale_offset + 1, mask=valid_s, other=0).to(tl.uint32)
+            s2 = tl.load(kvcache_u8 + scale_offset + 2, mask=valid_s, other=0).to(tl.uint32)
+            s3 = tl.load(kvcache_u8 + scale_offset + 3, mask=valid_s, other=0).to(tl.uint32)
+            scale_bits = s0 | (s1 << 8) | (s2 << 16) | (s3 << 24)
+            scale = scale_bits.to(tl.float32, bitcast=True)
+
+            result = tl.where(valid_s, reduced * scale, 0.0)
+            tl.store(
+                out + bid * out_stride_b + offs_s * out_stride_s,
+                result,
+                mask=offs_s < max_seq_len,
+            )
         else:
-            kv_offsets = page_base[:, None] + pos_in_page[:, None] * 128 + offs_d[None, :]
-        kv_u8_vals = tl.load(kvcache_u8 + kv_offsets, mask=valid_s[:, None], other=0)
-        kv_vals = kv_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
-
-        h_mask = offs_h < num_heads
-        q_u8_vals = tl.load(
-            q_u8
-            + bid * q_stride_b
-            + offs_h[:, None] * q_stride_h
-            + offs_d[None, :] * q_stride_d,
-            mask=h_mask[:, None],
-            other=0,
-        )
-        q_vals = q_u8_vals.to(FP8_TY, bitcast=True).to(DOT_TY)
-
-        scores = tl.dot(kv_vals, tl.trans(q_vals)).to(tl.float32)
-        w = tl.load(
-            weights + bid * weights_stride_b + offs_h * weights_stride_h,
-            mask=h_mask,
-            other=0.0,
-        ).to(tl.float32)
-        reduced = tl.sum(tl.maximum(scores, 0.0) * w[None, :], axis=1)
-
-        scale_offset = page_base + 8192 + pos_in_page * 4
-        s0 = tl.load(kvcache_u8 + scale_offset + 0, mask=valid_s, other=0).to(tl.uint32)
-        s1 = tl.load(kvcache_u8 + scale_offset + 1, mask=valid_s, other=0).to(tl.uint32)
-        s2 = tl.load(kvcache_u8 + scale_offset + 2, mask=valid_s, other=0).to(tl.uint32)
-        s3 = tl.load(kvcache_u8 + scale_offset + 3, mask=valid_s, other=0).to(tl.uint32)
-        scale_bits = s0 | (s1 << 8) | (s2 << 16) | (s3 << 24)
-        scale = scale_bits.to(tl.float32, bitcast=True)
-
-        result = tl.where(valid_s, reduced * scale, 0.0)
-        tl.store(
-            out + bid * out_stride_b + offs_s * out_stride_s,
-            result,
-            mask=offs_s < max_seq_len,
-        )
+            # Keep defined scratch, but never load Q/K or score trivial rows.
+            tl.store(out + bid * out_stride_b + offs_s * out_stride_s,
+                     0.0, mask=offs_s < max_seq_len)
 
 
 def _fp8_paged_mqa_logits_triton(
@@ -252,6 +259,7 @@ def _fp8_paged_mqa_logits_triton(
     seq_lens: torch.Tensor,
     page_table: torch.Tensor,
     max_seq_len: int,
+    skip_trivial_topk: int = 0,
 ) -> Optional[torch.Tensor]:
     if triton is None:
         _debug_fp8_paged_mqa_logits_skip("triton is unavailable")
@@ -328,6 +336,18 @@ def _fp8_paged_mqa_logits_triton(
         else tl.bfloat16
     )
     grid = (batch_size, triton.cdiv(max_seq_len, block_s))
+    global _c4_trivial_logits_debug_logged
+    if (
+        skip_trivial_topk
+        and not _c4_trivial_logits_debug_logged
+        and os.getenv("SGLANG_DSV4_INDEXER_DEBUG", "0") == "1"
+    ):
+        print(
+            f"[DSV4 indexer] trivial logits skip active: rows={batch_size}, "
+            f"C4_width={max_seq_len}, topk={skip_trivial_topk}",
+            flush=True,
+        )
+        _c4_trivial_logits_debug_logged = True
     _fp8_paged_mqa_logits_kernel[grid](
         q_u8,
         kvcache_u8,
@@ -355,6 +375,7 @@ def _fp8_paged_mqa_logits_triton(
         BLOCK_S=block_s,
         BLOCK_H=block_h,
         BLOCK_D=128,
+        TRIVIAL_TOPK=skip_trivial_topk,
     )
     return out
 
@@ -426,8 +447,14 @@ def fp8_paged_mqa_logits_torch(
     deep_gemm_metadata: Any,
     max_seq_len: int,
     clean_logits: bool = True,
+    *,
+    skip_trivial_topk: int = 0,
 ) -> torch.Tensor:
-    """Vectorized implementation compatible with CUDA graph capture."""
+    """Graph-compatible logits; optional Top-K-only trivial rows become zero.
+
+    skip_trivial_topk is opt-in: those scores are not meaningful, and the
+    consumer must synthesize all valid IDs without consulting scores.
+    """
     _ = deep_gemm_metadata
     batch_size, _, num_heads, head_dim = q_fp8.shape
     block_size = kvcache_fp8.shape[1]
@@ -440,10 +467,13 @@ def fp8_paged_mqa_logits_torch(
     assert seq_lens.shape == (batch_size,)
     assert page_table.shape[0] == batch_size
     assert clean_logits == False
+    if skip_trivial_topk not in (0, 512):
+        raise ValueError("skip_trivial_topk must be 0 or 512")
 
     max_num_pages = page_table.shape[1]
     triton_scores = _fp8_paged_mqa_logits_triton(
-        q_fp8, kvcache_fp8, weight, seq_lens, page_table, max_seq_len
+        q_fp8, kvcache_fp8, weight, seq_lens, page_table, max_seq_len,
+        skip_trivial_topk=skip_trivial_topk,
     )
     if triton_scores is not None:
         return triton_scores
@@ -1228,6 +1258,21 @@ class C4IndexerBackendMixin:
                 c4_indexer_kv_cache = c4_indexer_kv_cache.view(
                     c4_indexer_kv_cache.shape[0], 64, 1, head_dim_with_sf
                 )
+                # Experimental prefill-only optimization. Do not change live
+                # lengths or compressor/cache updates: later queries need keys
+                # produced by rows whose own selection is currently trivial.
+                logits_kwargs = {}
+                if (
+                    fn is fp8_paged_mqa_logits_torch
+                    and is_hip()
+                    and is_gfx90a_supported()
+                    and forward_batch.forward_mode == ForwardMode.EXTEND
+                    and self.dsa_topk_backend.is_sgl_kernel()
+                    and c4_indexer.index_topk == 512
+                    and os.getenv("SGLANG_DSV4_C4_TRIVIAL_LOGITS_SKIP", "0") == "1"
+                    and os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "3") in ("2", "3")
+                ):
+                    logits_kwargs["skip_trivial_topk"] = c4_indexer.index_topk
                 logits = fn(
                     q,
                     c4_indexer_kv_cache,
@@ -1237,6 +1282,7 @@ class C4IndexerBackendMixin:
                     indexer_metadata.deep_gemm_metadata,
                     indexer_metadata.max_c4_seq_len,
                     False,
+                    **logits_kwargs,
                 )
 
         assert indexer_metadata.page_table is core_metadata.page_table
