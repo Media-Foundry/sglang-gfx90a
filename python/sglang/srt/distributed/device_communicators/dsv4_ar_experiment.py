@@ -30,7 +30,8 @@ def dsv4_ar_scope(batch, device):
     enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR.get()
     gate_enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get()
     attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get()
-    if not (enabled or gate_enabled or attention_enabled):
+    c1_attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2.get()
+    if not (enabled or gate_enabled or attention_enabled or c1_attention_enabled):
         yield
         return
     spec = batch.spec_algorithm
@@ -43,8 +44,9 @@ def dsv4_ar_scope(batch, device):
     token = _active.set(active and enabled)
     native_token = _native_active.set(active)
     attention_token = _attention_active.set(
-        attention_enabled and native and batch.forward_mode.is_decode()
-        and batch.batch_size in (1,32))
+        native and batch.forward_mode.is_decode()
+        and ((attention_enabled and batch.batch_size in (1,32))
+             or (c1_attention_enabled and batch.batch_size == 1)))
     try:
         yield
     finally:

@@ -17,6 +17,7 @@ def main():
         'SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL',
         'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
         'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2',
+        'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     service=psutil.Process(a.pid)
@@ -85,6 +86,7 @@ def main():
                    '--rounds','2','--skip-freeze-gc','--reference',
                    '/tmp/dsv4_runtime_m_c1_B_20260908.json'],c1)
             if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
+                                    'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
                                     'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2'):
                 result=json.loads(c1.read_text())
                 reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())

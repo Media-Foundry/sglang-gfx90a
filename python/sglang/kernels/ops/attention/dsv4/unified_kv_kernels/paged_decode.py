@@ -885,11 +885,14 @@ def _sparse_attn_v4_paged_decode_triton(
     # Default-off native TP8 H8 oracle winner. Preserve all mathematical
     # tiles, split count and reduction; do not touch prefill or verification.
     if (_oracle_num_warps is None and _oracle_num_stages is None
-            and not quant_kv and not fuse_inverse_rope
+            and not quant_kv
             and q.dtype == torch.bfloat16 and T in (1,32) and H == 8
             and D == 512 and block_h == 16 and block_k == 16 and kv_splits > 1):
         from sglang.srt.environ import envs
-        if envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get():
+        if ((not fuse_inverse_rope
+             and envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get())
+                or (fuse_inverse_rope and T == 1
+                    and envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2.get())):
             from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import native_attention_active
             from sglang.srt.runtime_context import get_parallel
             from sglang.srt.utils.common import is_gfx90a_supported
@@ -898,10 +901,10 @@ def _sparse_attn_v4_paged_decode_triton(
                     and get_parallel().attn_tp_size == 8
                     and get_parallel().moe_ep_size == 1):
                 num_warps, num_stages = 2, 2
-                if T not in _tp8_warps2_logged:
+                if (T, fuse_inverse_rope) not in _tp8_warps2_logged:
                     logging.getLogger(__name__).info(
-                        'DSV4 native TP8 H8 decode attention selected: M=%s waves=2 stages=2 splits=%s', T, kv_splits)
-                    _tp8_warps2_logged.add(T)
+                        'DSV4 native TP8 H8 decode attention selected: M=%s waves=2 stages=2 splits=%s fused_rope=%s', T, kv_splits, fuse_inverse_rope)
+                    _tp8_warps2_logged.add((T, fuse_inverse_rope))
 
     # Kernel reads (kv_scales_ptr, ks_stride_n) only when QUANT_KV — supply a
     # dummy 1-element fp32 tensor on the bf16 path so the launch signature

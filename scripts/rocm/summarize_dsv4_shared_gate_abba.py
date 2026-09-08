@@ -19,6 +19,7 @@ def main():
     assert state["candidate_flag"] in (
         "SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND",
         "SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2",
+        "SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2",
     )
     blocks = []
     reference = None
@@ -44,7 +45,8 @@ def main():
                 r[field] == forced_reference[(r["case"], r["continuation_length"])][field]
                 for r in c1["teacher_forced"]
             )
-        if state["candidate_flag"] == "SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2":
+        if state["candidate_flag"] in ("SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2",
+                                       "SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2"):
             assert len(c1["teacher_forced"]) == 6
             assert all(n == 6 for n in forced_exact.values()), forced_exact
         assert c32["request_count"] == 32 and c32["tokens"] == 256

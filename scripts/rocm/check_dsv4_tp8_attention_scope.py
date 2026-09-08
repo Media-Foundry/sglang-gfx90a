@@ -50,6 +50,34 @@ def main():
         except ValueError:pass
         assert not scope.native_attention_active()
     ns=dict(base);exec(code,ns);assert ns['num_warps']==4
+    c1flag=scope.envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2
+    with (patch.object(flag,'get',return_value=False),
+          patch.object(c1flag,'get',return_value=True),
+          patch.object(torch.version,'hip','test'),
+          patch.object(torch.cuda,'get_device_properties',return_value=NS(gcnArchName='gfx90a')),
+          patch('sglang.srt.runtime_context.get_parallel',return_value=parallel),
+          patch('sglang.srt.utils.common.is_gfx90a_supported',return_value=True)):
+        fused={**base,'fuse_inverse_rope':True}
+        batch.batch_size=1
+        with scope.dsv4_ar_scope(batch,None):
+            ns=dict(fused);exec(code,ns);assert ns['num_warps']==2
+            for key,value in [('T',32),('T',2),('H',16),('D',256),('block_h',32),
+                              ('block_k',32),('kv_splits',1),('quant_kv',True),
+                              ('fuse_inverse_rope',False),('q',NS(dtype=torch.float16)),
+                              ('_oracle_num_warps',4),('_oracle_num_stages',3)]:
+                ns={**fused,key:value};exec(code,ns);assert ns['num_warps']==4,key
+            for key,value in [('tp_size',4),('attn_tp_size',4),('moe_ep_size',2)]:
+                with patch.object(parallel,key,value):
+                    ns=dict(fused);exec(code,ns);assert ns['num_warps']==4
+        for overrides in ({'batch_size':32}, {'batch_size':2},
+                          {'spec_algorithm':NS(is_none=lambda:False)},
+                          {'forward_mode':NS(is_decode=lambda:False)}):
+            with scope.dsv4_ar_scope(NS(**{**vars(batch),**overrides}),None):
+                assert not scope.native_attention_active()
+                ns=dict(fused);exec(code,ns);assert ns['num_warps']==4
+        assert not scope.native_attention_active()
+    ns={**base,'fuse_inverse_rope':True};exec(code,ns);assert ns['num_warps']==4
+    print('PASS: independent fused C1 flag; C32/nonfused/speculative/prefill remain excluded')
     print('PASS: actual selector M1/M32, shape/dtype/TP/EP exclusions, speculative/prefill exclusion and cleanup')
 
 
