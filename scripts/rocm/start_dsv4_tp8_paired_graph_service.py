@@ -19,8 +19,19 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--restart-paired', action='store_true',
                         help='explicitly replace an existing paired diagnostic after its controller exits')
+    parser.add_argument('--single-graph-candidate', action='store_true',
+                        help='remove paired graph overhead and enable only down-uniform')
+    parser.add_argument('--completed-abba', type=Path)
     args = parser.parse_args()
     assert not args.output.exists()
+    if args.single_graph_candidate:
+        assert args.restart_paired and args.completed_abba is not None
+        completed = json.loads(args.completed_abba.read_text())
+        assert completed['pid'] == args.pid
+        assert completed['status'] == 'complete_pending_c32_hash_review'
+        assert completed['final_arm'] is False
+        assert len(completed['blocks']) == 4
+        assert all(b['status'] == 'complete' for b in completed['blocks'])
     service = psutil.Process(args.pid)
     cmd, env, cwd = service.cmdline(), service.environ(), service.cwd()
     assert cmd[1:3] == ['-m', 'sglang.launch_server']
@@ -35,10 +46,13 @@ def main():
     children = service.children(recursive=True)
     owned = {service.pid, *(p.pid for p in children)}
     raw = json.loads(subprocess.check_output(['amd-smi', 'process', '--json']))
-    seen = {int(p['process_info']['pid']) for gpu in raw for p in gpu.get('process_list', [])}
+    seen = {int(p['process_info']['pid']) for gpu in raw for p in gpu.get('process_list', [])
+            if isinstance(p['process_info'], dict)}
     assert seen and not seen - owned, ('foreign GPU PIDs', sorted(seen - owned))
     record = dict(status='stopping', old_pid=service.pid, audited_gpu_pids=sorted(seen),
-                  candidate_flag=FLAG, kv_pool=1048576)
+                  candidate_flag=('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'
+                                  if args.single_graph_candidate else FLAG), kv_pool=1048576,
+                  single_graph_candidate=args.single_graph_candidate)
     # Preserve the exact baseline launch contract before stopping anything.
     # Environment may contain credentials: private file, never print/commit it.
     snapshot = args.output.with_suffix('.private-launch.json')
@@ -55,7 +69,9 @@ def main():
         process.terminate()
     _, alive = psutil.wait_procs(alive, timeout=10)
     assert not alive, [(p.pid, p.status()) for p in alive]
-    env[FLAG] = '1'
+    env[FLAG] = '0' if args.single_graph_candidate else '1'
+    if args.single_graph_candidate:
+        env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'] = '1'
     log_path = args.output.with_suffix('.service.log')
     with log_path.open('w') as log:
         proc = subprocess.Popen(['numactl', '--interleave=all', *cmd], cwd=cwd,
