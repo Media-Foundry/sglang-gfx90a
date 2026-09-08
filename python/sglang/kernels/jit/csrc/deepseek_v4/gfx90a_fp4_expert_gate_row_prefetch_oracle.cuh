@@ -43,8 +43,20 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 
   for (uint32_t task = global_wave;
        task < valid_blocks * kTilesPerExpertBlock; task += total_waves) {
+#ifdef SGLANG_FP4_GATE_ROW_STRIPE_ORACLE
+    // Standalone-only scheduling experiment. Keep a small contiguous row
+    // stripe together, then visit the next A4 chunk. Adjacent chunks of the
+    // same expert may reuse these weight rows without additional accumulators.
+    constexpr uint32_t stripe = SGLANG_FP4_GATE_ROW_STRIPE_ORACLE;
+    static_assert(stripe > 0 && kTilesPerExpertBlock % stripe == 0);
+    const uint32_t stripe_tasks = valid_blocks * stripe;
+    const uint32_t expert_block = (task % stripe_tasks) / stripe;
+    const uint32_t row0 =
+        ((task / stripe_tasks) * stripe + task % stripe) * kRows;
+#else
     const uint32_t expert_block = task / kTilesPerExpertBlock;
     const uint32_t row0 = (task % kTilesPerExpertBlock) * kRows;
+#endif
     const int32_t expert_id = sorted_expert_ids[expert_block];
     if (expert_id < 0 || expert_id >= static_cast<int32_t>(E)) continue;
     const uint32_t expert = static_cast<uint32_t>(expert_id);

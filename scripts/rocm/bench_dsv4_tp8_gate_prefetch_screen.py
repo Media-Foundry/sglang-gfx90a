@@ -20,8 +20,11 @@ def main():
                         help='Keep prefetched gate fixed; test isolated subgroup8 down candidate')
     parser.add_argument('--breakdown', action='store_true',
                         help='Measure prefetched gate, quant, down and reducer separately; diagnostic only')
+    parser.add_argument('--gate-row-stripe', type=int, choices=(8,16,32,64,128),
+                        help='Standalone task-order oracle against accepted prefetched gate')
     parsed=parser.parse_args()
-    full=parsed.full or parsed.down_prefetch or parsed.breakdown
+    full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe)
+    assert not (parsed.gate_row_stripe and parsed.down_prefetch)
     assert torch.cuda.get_device_properties(0).gcnArchName.startswith('gfx90a')
     torch.manual_seed(20908)
     m,t,e,i,k=32,6,256,256,4096
@@ -32,6 +35,13 @@ def main():
     args=(e,m,t,i,k,4,2,8,832,2)
     mods=[_jit_gate_up_grouped(*args),_jit_gate_up_grouped_row_prefetch(*args)]
     if parsed.down_prefetch:mods=[mods[1],mods[1]]
+    if parsed.gate_row_stripe:
+        cpp=make_cpp_args(*args)
+        mods=[mods[1],load_jit(
+            'gfx90a_fp4_gate_row_stripe_oracle',*args,parsed.gate_row_stripe,
+            cuda_files=['deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh'],
+            cuda_wrappers=[('run',f'sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{cpp}>::run')],
+            extra_cuda_cflags=['-O3',f'-DSGLANG_FP4_GATE_ROW_STRIPE_ORACLE={parsed.gate_row_stripe}'])]
     if full:
         down=_jit_down_grouped(e,m,t,k,i,4,2,8,832,2)
         w2=torch.randint(0,256,(e,k,i//2),dtype=torch.uint8,device='cuda')
@@ -89,7 +99,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
