@@ -617,6 +617,19 @@ class AiterRunnerCore(MoeRunnerCore):
                     and envs.SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL.get()
                 )
                 num_prefill_tokens = runner_input.hidden_states.shape[0]
+                use_runtime_m = False
+                if (
+                    envs.SGLANG_DSV4_GFX90A_FP4_RUNTIME_M.get()
+                    and 128 < num_prefill_tokens < 1024
+                    and not use_mfma32_prefill
+                    and quant_info.w13_weight.shape == (256, 512, 2048)
+                    and quant_info.w2_weight.shape == (256, 4096, 128)
+                ):
+                    from sglang.srt.server_args import get_global_server_args
+
+                    # Preserve speculative variants and every captured decode
+                    # tier <=128. Runtime M changes bounds, never arithmetic.
+                    use_runtime_m = get_global_server_args().speculative_algorithm is None
                 use_m128_decode_geometry = (
                     envs.SGLANG_DSV4_GFX90A_M128_DECODE_GEOMETRY.get()
                     and _is_runtime_gfx90a()
@@ -818,6 +831,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         use_lds_lut=use_lds_unpack,
                         use_dpp_reduction=(use_m32_dpp_down_prefetch or use_dpp_gate),
                         use_row_prefetch=use_gate_row_prefetch,
+                        runtime_m=use_runtime_m,
                     )
             else:
                 intermediate = gfx90a_fp4_expert_gate_up(
@@ -1001,6 +1015,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         ),
                         use_row_prefetch=use_down_row_prefetch,
                         use_logical_scale=use_logical_down_scale,
+                        runtime_m=use_runtime_m,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

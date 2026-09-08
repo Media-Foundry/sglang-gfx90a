@@ -645,6 +645,7 @@ def gfx90a_fp4_expert_gate_up_grouped(
     use_lds_lut: bool = False,
     use_dpp_reduction: bool = False,
     use_row_prefetch: bool = False,
+    runtime_m: bool = False,
 ) -> torch.Tensor:
     e, two_i, packed_k = weight.shape
     m, k = xq.shape
@@ -688,9 +689,11 @@ def gfx90a_fp4_expert_gate_up_grouped(
         if use_dpp_reduction
         else _jit_gate_up_grouped
     )
+    if runtime_m:
+        assert 0 < m < 1024 and not use_row_prefetch and not use_dpp_reduction
     gate_module(
         e,
-        m,
+        0 if runtime_m else m,
         topk,
         i,
         k,
@@ -777,6 +780,7 @@ def gfx90a_fp4_expert_down_grouped(
     zero_partial: bool = False,
     use_row_prefetch: bool = False,
     use_logical_scale: bool = False,
+    runtime_m: bool = False,
 ) -> torch.Tensor:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
@@ -807,6 +811,8 @@ def gfx90a_fp4_expert_down_grouped(
         )
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
+    if runtime_m:
+        assert 0 < m < 1024 and not use_row_prefetch and not use_logical_scale
     if use_row_prefetch:
         assert e == 256 and m in (32, 51, 64)
         assert (topk, n, k) == (6, 4096, 512)
@@ -847,7 +853,7 @@ def gfx90a_fp4_expert_down_grouped(
         return out
     _jit_down_grouped(
         e,
-        m,
+        0 if runtime_m else m,
         topk,
         n,
         k,

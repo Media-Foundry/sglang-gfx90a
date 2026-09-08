@@ -1539,6 +1539,8 @@ class Envs:
     # 8192 <= M <= 36864 so ordinary C1 prefill and decode remain untouched;
     # the upper bound admits two balanced 16-request heterogeneous batches.
     SGLANG_DSV4_GFX90A_BF16_CK_PREFILL = EnvBool(False)
+    # Reuse one raw-FP4 module for 129..1023-row native TP8 batches.
+    SGLANG_DSV4_GFX90A_FP4_RUNTIME_M = EnvBool(True)
     # Decode packed FP4 through a CTA-local byte-pair LUT.  This trades 1 KiB
     # of LDS for the per-four-weight v_perm selector sequence on CDNA2.
     SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK = EnvBool(False)
