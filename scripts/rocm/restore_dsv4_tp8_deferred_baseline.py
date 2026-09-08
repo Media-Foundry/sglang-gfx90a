@@ -18,8 +18,10 @@ def main():
     a = p.parse_args()
     assert not a.output.exists(), 'use a new restore state path'
     state = json.loads(a.completed_state.read_text())
-    flag = 'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE'
-    assert state['status'] == 'complete' and state['candidate_flag'] == flag
+    flag = state['candidate_flag']
+    assert flag in ('SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
+                    'SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM')
+    assert state['status'] == 'complete'
     assert state['service_pid'] == a.pid
     service = psutil.Process(a.pid)
     cmd, env, cwd = service.cmdline(), service.environ(), service.cwd()

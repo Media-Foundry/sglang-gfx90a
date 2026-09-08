@@ -1,0 +1,433 @@
+{
+  "summary": {
+    "state": "/tmp/dsv4_tp8_down_uniform_abba_20260908.json",
+    "candidate_flag": "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM",
+    "blocks": [
+      {
+        "index": 0,
+        "candidate": true,
+        "service_pid": 3422116,
+        "c1_tok_s": 83.73573304553645,
+        "c1_trimmed_tok_s": 83.73573304553645,
+        "c1_case_samples": {
+          "diverse-03": [
+            83.70701129507754,
+            83.31630946869332
+          ],
+          "diverse-15": [
+            83.93803793173694,
+            83.91511438981591
+          ],
+          "diverse-31": [
+            83.64958950289251,
+            83.88938425974915
+          ]
+        },
+        "c32_warm_tok_s": 989.8716915754334,
+        "resident_warm_tok_s": 1036.9112667300826,
+        "c1_ids_exact": 6,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 5,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 1,
+        "candidate": false,
+        "service_pid": 3433069,
+        "c1_tok_s": 84.8091727146303,
+        "c1_trimmed_tok_s": 84.8091727146303,
+        "c1_case_samples": {
+          "diverse-03": [
+            84.70219466530605,
+            84.83914952929914
+          ],
+          "diverse-15": [
+            84.82121093716808,
+            84.84868609585509
+          ],
+          "diverse-31": [
+            84.8291701337605,
+            84.81465215522873
+          ]
+        },
+        "c32_warm_tok_s": 982.8209826693529,
+        "resident_warm_tok_s": 1029.1656294768209,
+        "c1_ids_exact": 6,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 6,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 2,
+        "candidate": false,
+        "service_pid": 3433069,
+        "c1_tok_s": 84.64506505934837,
+        "c1_trimmed_tok_s": 84.64506505934837,
+        "c1_case_samples": {
+          "diverse-03": [
+            84.70846731791586,
+            84.92654644375541
+          ],
+          "diverse-15": [
+            84.61698142523493,
+            84.70927816115275
+          ],
+          "diverse-31": [
+            84.44733163343793,
+            84.46256770276113
+          ]
+        },
+        "c32_warm_tok_s": 983.9273666625468,
+        "resident_warm_tok_s": 1029.5037760534008,
+        "c1_ids_exact": 6,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 12,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 3,
+        "candidate": true,
+        "service_pid": 3441083,
+        "c1_tok_s": 83.27971276152333,
+        "c1_trimmed_tok_s": 83.27971276152333,
+        "c1_case_samples": {
+          "diverse-03": [
+            83.24678142083172,
+            83.28323432075949
+          ],
+          "diverse-15": [
+            83.22541432543115,
+            83.32719297114052
+          ],
+          "diverse-31": [
+            83.27236950138321,
+            83.32329070675623
+          ]
+        },
+        "c32_warm_tok_s": 988.5389622900138,
+        "resident_warm_tok_s": 1034.8875735472755,
+        "c1_ids_exact": 6,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 9,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      }
+    ],
+    "comparison": {
+      "c1_tok_s": {
+        "candidate": 83.50741162260911,
+        "baseline": 84.72707915453832,
+        "change_percent": -1.4395250539731008
+      },
+      "c1_trimmed_tok_s": {
+        "candidate": 83.50741162260911,
+        "baseline": 84.72707915453832,
+        "change_percent": -1.4395250539731008
+      },
+      "c32_warm_tok_s": {
+        "candidate": 989.2051024889829,
+        "baseline": 983.374019068306,
+        "change_percent": 0.5929670001045606
+      },
+      "resident_warm_tok_s": {
+        "candidate": 1035.898925962436,
+        "baseline": 1029.334688879551,
+        "change_percent": 0.637716493362328
+      }
+    },
+    "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+  },
+  "raw_rates_and_artifacts": [
+    {
+      "index": 0,
+      "candidate": true,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.268257678952068,
+          "aggregate_tok_s": 990.7770558304935,
+          "resident_bs32_wall_s": 7.83469203003915,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.5647145838582
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.283483934006654,
+          "aggregate_tok_s": 988.9558626858586,
+          "resident_bs32_wall_s": 7.835636948992033,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.439592073712
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.275820058013778,
+          "aggregate_tok_s": 989.8716915754334,
+          "resident_bs32_wall_s": 7.842841734003741,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1036.4865536882608
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.279917968029622,
+          "aggregate_tok_s": 989.3817827218711,
+          "resident_bs32_wall_s": 7.840711637982167,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1036.7681372978059
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.26976115303114,
+          "aggregate_tok_s": 990.5969287876424,
+          "resident_bs32_wall_s": 7.839629349997267,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1036.9112667300826
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.266720490995795,
+          "aggregate_tok_s": 990.9612897790387,
+          "resident_bs32_wall_s": 7.836036339052953,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.386715460594
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_0_c1.json",
+          "sha256": "ce47ce05994298c17fb0bf14a8a130d29f8f1bf014f5170ee92548cd9ed5c52b"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_0_c32.json",
+          "sha256": "62ef2e6cef2cddffb761ab35a92bb3cfb3495cf7295e0bcba89e0dfe9a3e9996"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_0_france_c32.json",
+          "sha256": "57b550344bcaff24cbd2e124aa4df0ff24e833ac62934eac6380c3a794b6ce05"
+        }
+      }
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.360412804002408,
+          "aggregate_tok_s": 979.8559224346216,
+          "resident_bs32_wall_s": 7.906755043019075,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1028.1082385595273
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.33926676097326,
+          "aggregate_tok_s": 982.3405624026263,
+          "resident_bs32_wall_s": 7.898631441988982,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.1656294768209
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.334233435976785,
+          "aggregate_tok_s": 982.9338310392412,
+          "resident_bs32_wall_s": 7.893352576997131,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.853908171997
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.340511841000989,
+          "aggregate_tok_s": 982.1939176117559,
+          "resident_bs32_wall_s": 7.8975675030378625,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.3042758891413
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.335190379992127,
+          "aggregate_tok_s": 982.8209826693529,
+          "resident_bs32_wall_s": 7.90636290301336,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1028.1592307003498
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.32967914402252,
+          "aggregate_tok_s": 983.4712548176216,
+          "resident_bs32_wall_s": 7.900920618034434,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1028.8674438071125
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_1_c1.json",
+          "sha256": "27ecfa838606fe45eccc4af93d84a657439f04b0f2f6bf8a576e49b6a237e0a2"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_1_c32.json",
+          "sha256": "4927b1d9b69d476581dae3c3af0c11371b4f885ad6db923fff1935d415a931be"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_1_france_c32.json",
+          "sha256": "c36f78f9ec6c703d880153721b869d57e7389ec74af1c11d97a6cde762a82cc3"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.344977978034876,
+          "aggregate_tok_s": 981.6682586296171,
+          "resident_bs32_wall_s": 7.89682719897246,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.4007701039413
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.325817817007191,
+          "aggregate_tok_s": 983.9273666625468,
+          "resident_bs32_wall_s": 7.8973723849630915,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.3297066094967
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.322006486996543,
+          "aggregate_tok_s": 984.3779877845947,
+          "resident_bs32_wall_s": 7.896181644988246,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.4849289795056
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.316662245953921,
+          "aggregate_tok_s": 985.0105436210819,
+          "resident_bs32_wall_s": 7.8900598749751225,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.2836897071875
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.332186784013174,
+          "aggregate_tok_s": 983.1752710726374,
+          "resident_bs32_wall_s": 7.896037089987658,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.5037760534008
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.327661996008828,
+          "aggregate_tok_s": 983.7094737906214,
+          "resident_bs32_wall_s": 7.895247693988495,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.6067096399631
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_2_c1.json",
+          "sha256": "dc1285d57c91487ab449a7e4002bd828930461650efd72b4b764b2240c8e8151"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_2_c32.json",
+          "sha256": "31913f242c81fca53ab9c3adff2404fef707564afe9a94a92e9d3db08136a988"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_2_france_c32.json",
+          "sha256": "6dd9034e1358207648433b342d1c528452454624897856cd4f5a4f004fb3e56d"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.289717904001009,
+          "aggregate_tok_s": 988.2121556930368,
+          "resident_bs32_wall_s": 7.857524082006421,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1034.549804131718
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.289882194017991,
+          "aggregate_tok_s": 988.1925711696333,
+          "resident_bs32_wall_s": 7.860244737006724,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1034.1917169230053
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.28097014297964,
+          "aggregate_tok_s": 989.2560724838421,
+          "resident_bs32_wall_s": 7.854009700997267,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.012727189249
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.286977360025048,
+          "aggregate_tok_s": 988.5389622900138,
+          "resident_bs32_wall_s": 7.854959521966521,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1034.8875735472755
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.301391795976087,
+          "aggregate_tok_s": 986.8224752349223,
+          "resident_bs32_wall_s": 7.857763254025485,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1034.5183148443116
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.27800902101444,
+          "aggregate_tok_s": 989.6099387188273,
+          "resident_bs32_wall_s": 7.850686896010302,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.4507965578318
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_3_c1.json",
+          "sha256": "00501bd433fb2106073d2d2894f545a47810e317efb31a51a81c46fd52eeceeb"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_3_c32.json",
+          "sha256": "ad0cbb79be6f04b2bd55a856354d8c51c3ded9f86ee5498f94108c982bc4afd6"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_abba_20260908_3_france_c32.json",
+          "sha256": "20f42b1f1ebeb3fa30cf5740ea00ac2187dcea26c8cd6b8caa7c314dd4b5eaba"
+        }
+      }
+    }
+  ]
+}
