@@ -142,7 +142,6 @@ def gfx90a_bf16_batched_moe_m16384(
     return out
 
 
-def gfx90a_bf16_ck_moe(
 def _logical_a16w4_scales(
     scale: torch.Tensor, experts: int, rows: int, groups: int, *, gate_up: bool
 ) -> torch.Tensor:
@@ -156,6 +155,7 @@ def _logical_a16w4_scales(
     return x.permute(axes).contiguous().view(experts, rows, groups)
 
 
+def gfx90a_bf16_ck_moe(
     hidden: torch.Tensor,
     topk_ids: torch.Tensor,
     topk_weights: torch.Tensor,
@@ -166,8 +166,8 @@ def _logical_a16w4_scales(
     *,
     out: torch.Tensor | None = None,
     blocks: int = 1664,
-) -> torch.Tensor:
     scales_shuffled: bool = False,
+) -> torch.Tensor:
     e, t, h = 256, 6, 4096
     if w13.ndim != 3 or w13.shape[1] % 2:
         raise ValueError("BF16 CK MoE requires raw packed gate/up weights")
