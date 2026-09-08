@@ -1878,7 +1878,7 @@ class MQALayer(MqaAttentionBase):
         debug_rank = get_tp_group().rank_in_group
         debug_attn = (
             debug_attn_dir
-            and self.layer_id == debug_attn_layer
+            and (debug_attn_layer < 0 or self.layer_id == debug_attn_layer)
             and (debug_attn_rank < 0 or debug_rank == debug_attn_rank)
             and (debug_attn_rows < 0 or positions.numel() == debug_attn_rows)
             and (debug_attn_pos < 0 or bool((positions == debug_attn_pos).any().item()))
@@ -3197,7 +3197,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         debug_target_rows = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_ROWS", "-1"))
         debug_stages = (
             debug_stage_dir
-            and self.layer_id == debug_target_layer
+            and (debug_target_layer < 0 or self.layer_id == debug_target_layer)
             and (debug_target_rank < 0 or get_tp_group().rank_in_group == debug_target_rank)
             and (debug_target_rows < 0 or positions.numel() == debug_target_rows)
             and (debug_target_pos < 0 or bool((positions == debug_target_pos).any().item()))
@@ -3519,6 +3519,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         mark(6)
         if token_row_owner:
             hidden_states = self._token_row_all_gather(hidden_states)
+        # Include the fused MHC path in first-divergence diagnostics as well.
+        dump_stage("ffn_input", hidden_states)
         hidden_states = self._run_moe_ffn_dp_sync(
             hidden_states,
             forward_batch,

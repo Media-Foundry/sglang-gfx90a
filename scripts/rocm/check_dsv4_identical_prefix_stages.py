@@ -24,7 +24,7 @@ def main():
     assert len(starts)>=2,('no repeated complete prefixes',starts,ids.shape)
     indices=torch.tensor([[i+j for j in range(len(prefix))] for i in starts])
     print(json.dumps({'starts':starts,'prefix_length':len(prefix),'rows':len(ids)}),flush=True)
-    for name in ('attn_residual','attn_pre_norm','attn_norm','q','attn_core','attn_inverse_rope','wo_a','wo_b_partial','wo_b','attn_out','ffn_mhc_residual','ffn_mhc_post','ffn_mhc_comb','attn_hc_post','ffn_norm','ffn_out','ffn_hc_post'):
+    for name in ('attn_residual','attn_pre_norm','attn_norm','q','attn_core','attn_inverse_rope','wo_a','wo_b_partial','wo_b','attn_out','ffn_mhc_residual','ffn_mhc_post','ffn_mhc_comb','attn_hc_post','ffn_norm','ffn_input','ffn_out','ffn_hc_post'):
         path=Path(str(stem)+name+'.pt')
         if not path.exists():continue
         x=load(name)

@@ -13,6 +13,14 @@ def aiter_dsv3_router_gemm(
     weight: torch.Tensor,
 ):
     """Use aiter tuned GEMM dispatcher (tgemm.mm) to automatically select the GEMM kernel."""
+    if envs.SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL.get():
+        from sglang.srt.layers.quantization.dsv4_projection_experiment import (
+            maybe_row_stable_linear,
+        )
+
+        stable = maybe_row_stable_linear(hidden_states, weight.detach())
+        if stable is not None:
+            return stable
     if (
         envs.SGLANG_DSV4_GFX90A_M64_ROUTER_HIPBLASLT.get()
         and torch.version.hip

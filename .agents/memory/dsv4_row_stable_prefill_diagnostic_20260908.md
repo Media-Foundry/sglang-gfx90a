@@ -122,3 +122,52 @@ Default remains off. Native TP8 decode unchanged; no speed claim, no KV pool
 reduction. Next isolate the remaining later-layer or final-logit source before
 performance acceptance. Earlier candidate services listed above were terminated
 before each replacement; only PID2944434 is current at this checkpoint.
+
+## All-layer first-divergence sweep
+
+Extended the existing dump selector: negative DEBUG_STAGE_LAYER selects all
+layers, still gated by debug directory, rank and exact row count. Default
+behavior is unchanged. PID2952501 captured all43 rank0 layers, same M736 fixture,
+to `/tmp/dsv4_tp8_rowstable_all_layers_20260908`.
+All captured stages in layers0..29 are row-exact. First observed difference:
+layer30 FFN output728/736 exact, max0.00390625. Layer30 attention and saved MHC
+inputs remain exact. By layer42 FFN output540/736 exact, max9.0; do not describe
+the entire propagated hidden-state difference as automatically negligible.
+Next dump adds `ffn_input` after the fused/nonfused MHC paths converge, to tell
+FFN-entry normalization apart from router/expert execution.
+
+Layer30 fused-path FFN input is736/736 exact, max0; output still728/736 exact.
+GPU4 isolated router replay using saved [736,4096] BF16 input and [256,4096]
+BF16 router weight: current AIter tgemm701/736 row-exact, max0.03125;
+fixed-K candidate736/736 exact, max0. The optional prefill scope now also
+covers this AIter router wrapper. Return dtype remains BF16. Decode and models
+outside the DSV4 scoped forward remain unchanged.
+Input dump: `/tmp/dsv4_tp8_rowstable_layer30_20260908`.
+
+## Router hook closes this homogeneous fixture
+
+Current diagnostic PID2968255, log `/tmp/dsv4_tp8_rowstable_router_all_20260908.log`,
+all-layer rank0 dump directory of the same basename without `.log`.
+All captured stages, including actual FFN input/output, in all43 layers are now
+736/736 row-exact and finite on the identical46-token-prefix fixture.
+The single wave's final output IDs/input logprobs/output top20 each have just
+one unique result across32 clients (previously three logprob variants).
+
+Three additional waves (`/tmp/dsv4_tp8_rowstable_router_replay_20260908.json`):
+32/32 clients exactly match themselves across rounds in all three fields.
+96/96 next IDs match the sequential reference, but reference logprobs differ:
+slot invariance is not bitwise equivalence to the previous library GEMM.
+France C32 (`/tmp/dsv4_tp8_rowstable_router_france_20260908.json`):32/32 pass.
+
+This is a fixture-level numerical milestone, not general correctness or a
+performance checkpoint. The default is still off, the current service retains
+debug dumps, and no new E2E speed is accepted. The original native weights,
+1M KV pool and decode paths are retained. Mixed prefixes and debug-free
+C1/C32 timing remain separate acceptance requirements.
+
+Mixed six-prefix32-client test completed three waves:
+`/tmp/dsv4_tp8_rowstable_router_mixed_20260908.json`.
+96/96 next IDs match sequential reference;32/32 clients' IDs, input logprobs
+and output top20 are exact across rounds. Reference logprobs remain different,
+as expected from the changed projection reduction. This does not cover long
+generation, >4096-row fallback, tier transitions or arbitrary prompts.
