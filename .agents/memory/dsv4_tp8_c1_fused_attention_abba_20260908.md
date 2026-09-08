@@ -58,6 +58,27 @@ Three ABBA blocks completed; final A service is starting. A separate watcher
 waits for the live ABBA controller to mark completion before running the
 untimed continuous-decode candidate diagnostic, with an AMD-SMI owner audit.
 
+## Completed ABBA; no promotion
+
+Full summary: `dsv4_tp8_c1_fused_warps2_abba_summary_20260908.json`.
+C1 baseline 83.2672 versus candidate 83.5853 tok/s (+0.382%).
+C32 warm E2E baseline 983.0256 versus candidate 984.0827 (+0.108%);
+resident 1028.9071 versus 1030.1101 (+0.117%).
+Candidate C1 blocks differ by about 1.16%; the small aggregate gain is not
+evidence of a stable improvement. C32 does not hit the selector and also
+varies slightly. Keep both attention two-wave flags default off.
+
+All 24 C1 measured sequences match the reference. All 24 fixed-prefix
+prefill probes match each other within this ABBA. 768 C32 requests complete
+256 tokens with verified completion hashes; cross-round exact counts are
+10/6/7/7 out of 32, not a full C32 bitwise parity claim.
+
+Continuous-decode candidate capture completed for three 256-token code
+requests at `/tmp/dsv4_tp8_c1_fused_warps2_decode_A_20260908.json`.
+Restoration of the exact service configuration with both two-wave flags
+removed is in progress, preserving the 1M pool. Baseline continuous-decode
+comparison and France C32 follow readiness; those results remain pending.
+
 Startup evidence: candidate service PID 3198487 logged actual fused C1
 two-wave selection on all eight ranks at 17:17:00. No M32 selection log.
 Rank 0 reports max_total_num_tokens=1048576 and available_gpu_mem=15.64 GB,

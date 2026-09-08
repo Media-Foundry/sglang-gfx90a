@@ -1,0 +1,92 @@
+{
+  "state": "/tmp/dsv4_tp8_c1_fused_warps2_abba_20260908.json",
+  "candidate_flag": "SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2",
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "service_pid": 3198487,
+      "c1_tok_s": 83.10329289334504,
+      "c32_warm_tok_s": 982.4457336287298,
+      "resident_warm_tok_s": 1029.26188278669,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 10,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "service_pid": 3206070,
+      "c1_tok_s": 83.18000985502069,
+      "c32_warm_tok_s": 982.5842246493298,
+      "resident_warm_tok_s": 1028.6817965890132,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 6,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "service_pid": 3206070,
+      "c1_tok_s": 83.35444980719997,
+      "c32_warm_tok_s": 983.4672147775608,
+      "resident_warm_tok_s": 1029.1323665895766,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 7,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "service_pid": 3214341,
+      "c1_tok_s": 84.07010638221959,
+      "c32_warm_tok_s": 985.7223568655893,
+      "resident_warm_tok_s": 1030.9589232116596,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 7,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    }
+  ],
+  "comparison": {
+    "c1_tok_s": {
+      "candidate": 83.58530178360473,
+      "baseline": 83.26718415091699,
+      "change_percent": 0.3820444223395114
+    },
+    "c32_warm_tok_s": {
+      "candidate": 984.0826815085476,
+      "baseline": 983.0256205716336,
+      "change_percent": 0.10753137200019136
+    },
+    "resident_warm_tok_s": {
+      "candidate": 1030.1100535285393,
+      "baseline": 1028.907056925584,
+      "change_percent": 0.11691985149271389
+    }
+  },
+  "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+}
