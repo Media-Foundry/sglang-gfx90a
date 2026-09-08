@@ -54,5 +54,7 @@ of a removable18.4us stall. End-to-end results overrule the hypothesis.
 Baseline restoration started from verified candidate3317419, removing only
 the experiment flag; exact process tree terminated, no foreign GPU owners.
 State /tmp/dsv4_tp8_shared_after_topk_restore_20260908_state.json.
-France validation is pending until that job completes; do not claim restored
-service ready based on process existence alone.
+Restoration completed exit0: baseline PID3325034 is ready, flag absent,
+France C32 exact32/32. Post-restoration AMD-SMI audit found no foreign GPU
+owners. Artifact prefix above includes service log and France JSON. This is
+correctness-only repeated sentinel, not a new diverse-throughput measurement.
