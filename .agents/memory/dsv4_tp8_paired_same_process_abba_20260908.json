@@ -1,0 +1,72 @@
+{
+  "pid": 3527138,
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "c1_trimmed": 83.46092288740444,
+      "http_warm": 989.7941217731212,
+      "resident_warm": 1036.6121400087789,
+      "c32_cross_round_exact": 8
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "c1_trimmed": 83.47375613530627,
+      "http_warm": 984.8946540992264,
+      "resident_warm": 1030.8422436147632,
+      "c32_cross_round_exact": 8
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "c1_trimmed": 83.41280313445793,
+      "http_warm": 985.910625884802,
+      "resident_warm": 1031.2512659557708,
+      "c32_cross_round_exact": 7
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "c1_trimmed": 83.46363389933121,
+      "http_warm": 990.0725387848858,
+      "resident_warm": 1036.4213211252895,
+      "c32_cross_round_exact": 5
+    }
+  ],
+  "metrics": {
+    "c1_trimmed": {
+      "control": 83.4432740693224,
+      "candidate": 83.46227838236048,
+      "delta_pct": 0.022775128672791745
+    },
+    "http_warm": {
+      "control": 985.40250905585,
+      "candidate": 989.9333204909667,
+      "delta_pct": 0.45979296718634544
+    },
+    "resident_warm": {
+      "control": 1031.046734502569,
+      "candidate": 1036.5167261759034,
+      "delta_pct": 0.5305280052095185
+    }
+  },
+  "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+  "artifact_sha256": {
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block0.c1.json": "cba06b8afe12d2c79417a4d6da2af4c8be72da1d2877349090d151e7f0fae897",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block0.c32.json": "0487d0f72722bd9c5533db701ee4b0cd12ba70a7f35eefa9b6bbfcdefd7455b9",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block0.france.json": "ab3cf6a8d760cb8cb9b11be3f9c43440e609cefff48983907395deae13891471",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block1.c1.json": "c730392d2d59e160178dbafaf1ccf75e88c0915c4c5f65f663f6d917953746da",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block1.c32.json": "0ebbda9906da03e039b0deeb69f6c148ca78c64f765590360efb350c88ced698",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block1.france.json": "b47a165db7958021f3c4d3bd3a656a98b78fdfa8ad76c993720fe6b996874486",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block2.c1.json": "a62ee72fc5fe8dc04c720f0f47579db1e8933ed84e89d9db68b4d13c6c35c899",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block2.c32.json": "c58b4ff32fdac8b9516e8b2d90984dbebac4c252e006369a96bade936450e8c2",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block2.france.json": "3896f70fee29491357f20fbc6e53c22f475b33cbdd9dcf6cd87130e40d02a2ab",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block3.c1.json": "4d18b2d6ef9767e4213ad648aeb10e8ad26795c107b7e0ff6819b032cb3c7dde",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block3.c32.json": "03d7abfb0742bbbe27e8f7d9f10939e6c6887ed1d81e92e57b12bf6fc6cec5a4",
+    "/tmp/dsv4_tp8_paired_same_process_wire_abba_20260908.block3.france.json": "de576cd7f0653961b3c15299008abedb34bcc4fda8b4ce71e3b874f84ec372b7"
+  },
+  "c1_cross_arm_completion_exact": 48,
+  "c32_completion_length_finish_hash_valid": 768,
+  "caveat": "C32 hash integrity and France prefix are not proof of full semantic or bitwise parity"
+}
