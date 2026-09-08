@@ -122,3 +122,38 @@ FranceC32 answer-through-EOS prefix32/32. Final AMD-SMI ownership check found
 only this service tree. No candidate controller or GPU oracle remains running.
 The restored process has not received a fresh full C1/C32 speed benchmark;
 the above control rates belong to the completed repeat, not this new process.
+
+## Restored C1 measurement changes the attribution
+
+After confirming flag absent and exclusive service ownership, PID3468727 ran
+the same three C1 code cases, four measured repetitions/case, same warmup,
+reference and no freeze-GC mutation. Controller26390 exited0. Twelve outputs
+equal the reference; France sentinel passes. Trimmed per-case geomean:
+**83.40490 tok/s** (adjacent restored-C1 JSON has all samples and artifact hash).
+
+This is a baseline process without DOWN_UNIFORM, yet it is close to the repeat
+candidate83.38133 rather than the repeat control84.24832. Therefore the two
+ABBA C1 differences cannot alone establish a causal kernel/flag regression:
+the slow C1 state can occur with the flag absent. It does not prove the
+candidate harmless either. Keep default-off while removing the process-state
+confound; no fresh C32 measurement was performed on this restored service.
+
+## Next bounded diagnostic: same-process graph crossover
+
+Source audit found FullCudaGraphBackend owns `_graphs` and `_outputs`, and
+`DecodeCudaGraphRunner.capture_one_shape` passes a repeatable `run_once` closure
+with capture-time attention reset hooks. Existing `/set_internal_state` already
+broadcasts whitelisted worker controls. A same-process oracle can capture an
+additional M32 candidate graph using a separate graph pool, retain the original
+C1 graph, and switch only the M32 graph/output pair between idle ABBA blocks.
+This is a proposed diagnostic, not implemented or measured here.
+
+Required contract before implementation: default-off native TP8/EP1 only;
+original weights and1M pool; explicit additional graph-memory measurement;
+separate pool and correct output ownership; no live-request arm switching;
+rank-consistent control; C1 graph identity unchanged; exact component/replay
+and real C1/C32 output checks. Do not recapture all tiers or change allocator
+placement on every arm. If backend/collective registration cannot safely hold
+both graphs, stop at an isolated oracle rather than introducing shared-pool
+aliasing. This would test C32 gain with fixed process state; startup variation
+would remain a separately reported issue.
