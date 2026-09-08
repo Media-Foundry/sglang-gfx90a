@@ -73,6 +73,17 @@ class PairTest(unittest.TestCase):
         self.assertFalse(self.pair.switch(True, idle=True))
         self.assertEqual(self.events, [])
 
+    def test_existing_dsa_dense_sparse_graphs(self):
+        self.key.dsa_variant = 'dense'
+        self.capture()
+        sparse = type('Key', (), dict(size=32, stream_idx=None,
+                                     variant_label=None, dsa_variant='sparse'))()
+        self.capture(sparse)
+        self.assertTrue(self.pair.switch(True, idle=True))
+        self.assertIsNotNone(self.pair.selected(self.key))
+        self.assertIsNone(self.pair.selected(sparse))
+        self.assertIn(sparse, self.backend._graphs)
+
     def test_pre_capture_memory_rejection(self):
         self.free = iter([2 * 1024**3])
         with self.assertRaisesRegex(RuntimeError, 'admission'):

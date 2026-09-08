@@ -74,9 +74,13 @@ class DownGraphPair:
             capture()
         if key.size != 32:
             return
+        # The existing baseline uses DSA dense/sparse dual graphs. Compare
+        # only short-context dense M32; retain the sparse graph unchanged.
+        if key.dsa_variant == 'sparse':
+            return
         if (key.stream_idx is not None or key.variant_label is not None
-                or key.dsa_variant is not None or self.alternative is not None):
-            raise RuntimeError('paired down capture accepts only one plain M32 key')
+                or key.dsa_variant not in (None, 'dense') or self.alternative is not None):
+            raise RuntimeError(f'paired down capture accepts one plain/dense M32 key, got {key!r}')
         device = self.backend._device_module
         device.synchronize()
         free_before, _ = device.mem_get_info()
