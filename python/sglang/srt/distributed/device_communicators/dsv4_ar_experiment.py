@@ -25,6 +25,13 @@ def eligible(*, enabled, hip, arch, decode, batch_size, native):
                 and batch_size == 32 and native)
 
 
+def shared_after_topk_eligible(*, enabled, hip, arch, decode, batch_size,
+                               native, tp_size, ep_size, dsv4):
+    return bool(dsv4 and tp_size == 8 and ep_size == 1 and eligible(
+        enabled=enabled, hip=hip, arch=arch, decode=decode,
+        batch_size=batch_size, native=native))
+
+
 @contextmanager
 def dsv4_ar_scope(batch, device):
     enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR.get()

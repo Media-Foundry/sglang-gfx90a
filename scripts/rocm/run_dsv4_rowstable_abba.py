@@ -19,6 +19,7 @@ def main():
         'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
         'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2',
         'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
+        'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     assert a.c1_rounds >= 2
@@ -91,6 +92,7 @@ def main():
                    '/tmp/dsv4_runtime_m_c1_B_20260908.json'],c1)
             if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
                                     'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
+                                    'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
                                     'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2'):
                 result=json.loads(c1.read_text())
                 reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())

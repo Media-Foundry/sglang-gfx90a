@@ -1290,7 +1290,26 @@ class DeepseekV2MoE(nn.Module):
             if use_flashinfer_trtllm_bypass
             else self._maybe_quant_moe_input_once(hidden_states)
         )
-        self.alt_stream.wait_stream(current_stream)
+        shared_after_topk = False
+        if (envs.SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK.get()
+                and forward_batch is not None):
+            from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                shared_after_topk_eligible,
+            )
+
+            spec = forward_batch.spec_algorithm
+            shared_after_topk = shared_after_topk_eligible(
+                enabled=True, hip=_is_hip,
+                arch="gfx90a" if is_gfx90a_supported() else "",
+                decode=forward_batch.forward_mode.is_decode(),
+                batch_size=hidden_states.shape[0],
+                native=spec is None or spec.is_none(),
+                tp_size=get_parallel().tp_size,
+                ep_size=get_parallel().moe_ep_size,
+                dsv4=getattr(self.gate, "is_deepseek_v4", False),
+            )
+        if not shared_after_topk:
+            self.alt_stream.wait_stream(current_stream)
         has_shared_output = (
             hidden_states.shape[0] > 0 and self.num_fused_shared_experts == 0
         )
@@ -1344,6 +1363,18 @@ class DeepseekV2MoE(nn.Module):
                     ~m128_ragged_anchor_mask[:, None], -1
                 )
         mark(18)
+        if shared_after_topk:
+            # Delay the shared branch past router/TopK, not past expert compute.
+            # Reuse the existing single stream dependency; graph-only caller.
+            self.alt_stream.wait_stream(current_stream)
+            if not getattr(self, "_shared_after_topk_logged", False):
+                from logging import getLogger
+
+                getLogger(__name__).info(
+                    "DSV4 native TP8 M32 shared-after-TopK selected layer=%s",
+                    self.layer_id,
+                )
+                self._shared_after_topk_logged = True
         deferred_finalize = (
             has_shared_output
             and not self._shared_expert_tp1
