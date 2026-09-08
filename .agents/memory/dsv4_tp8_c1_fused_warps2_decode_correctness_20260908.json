@@ -1,0 +1,93 @@
+{
+  "purpose": "untimed continuous cached-decode correctness, not throughput",
+  "arms": {
+    "A": {
+      "path": "/tmp/dsv4_tp8_c1_fused_warps2_decode_A_20260908.json",
+      "sha256": "ec33102b58c7aa9d4472ee55d0c9bc534b0a96128cc6d650f3f4a56bf8692c2f",
+      "cases": [
+        {
+          "case": "diverse-03",
+          "output_tokens": 256,
+          "input_ids_sha256": "44c6c069c52b64461ca7117fdad451a6a63df7557e7ff4b7c115299a95ab78eb",
+          "output_ids_sha256": "fa27236f027be4a514062694ec98e24a155b23ae15cfea566ab27b9deed3f379",
+          "output_token_logprobs_sha256": "8d1d3a592f7c37a3b1df2356bcf0a7d7e170a082c3620f7898d41c7d46b6762e",
+          "output_top_logprobs_sha256": "6dde57296c414c7b22a9dc332a30c3830afa9b159286b4b5b4828b91f006f6c3",
+          "comparison": null
+        },
+        {
+          "case": "diverse-15",
+          "output_tokens": 256,
+          "input_ids_sha256": "552a8b634ad6a0bcc73f5ad5a89d31f3a08eab9381ae107e1609309552e041e7",
+          "output_ids_sha256": "798201d5be408cd8852928bff46b07df5f99845a0b75dcab5e8b8a2b68959002",
+          "output_token_logprobs_sha256": "a25a7d55a91302b6826f3bc42d9eded360d143a60b7d0a38193fd15e67961745",
+          "output_top_logprobs_sha256": "bb1ebc8a600df40dde73e50afabb8452f85e6bb815496b857fa95fc34e5ccc9e",
+          "comparison": null
+        },
+        {
+          "case": "diverse-31",
+          "output_tokens": 256,
+          "input_ids_sha256": "7da5c03a0ecccd00c1c3181672b9634a51476035617c2f2adae3352af7ea0d0e",
+          "output_ids_sha256": "87c51295f500ab9404916764fef542d6709b63050a97b8104523edbf80bed581",
+          "output_token_logprobs_sha256": "487b522281433d3ee63f802232d3b95d2df2d5b631673976fdc5b435af9beab9",
+          "output_top_logprobs_sha256": "81c4b8c8e0df7c2833b1eb7c2594a84f34e4a1fe0e9c0ccae54690fa9d398846",
+          "comparison": null
+        }
+      ]
+    },
+    "B": {
+      "path": "/tmp/dsv4_tp8_c1_fused_warps2_decode_B_20260908.json",
+      "sha256": "774c0c78d5b4db8fe68a9840ee772003aa270ae942fcd8f8846726741ccb9b0f",
+      "cases": [
+        {
+          "case": "diverse-03",
+          "output_tokens": 256,
+          "input_ids_sha256": "44c6c069c52b64461ca7117fdad451a6a63df7557e7ff4b7c115299a95ab78eb",
+          "output_ids_sha256": "fa27236f027be4a514062694ec98e24a155b23ae15cfea566ab27b9deed3f379",
+          "output_token_logprobs_sha256": "8d1d3a592f7c37a3b1df2356bcf0a7d7e170a082c3620f7898d41c7d46b6762e",
+          "output_top_logprobs_sha256": "6dde57296c414c7b22a9dc332a30c3830afa9b159286b4b5b4828b91f006f6c3",
+          "comparison": {
+            "first_different_output": null,
+            "same_prefix_positions": 256,
+            "cached_decode_positions": 255,
+            "exact_cached_top20": 255,
+            "exact_cached_selected_logprob": 255
+          }
+        },
+        {
+          "case": "diverse-15",
+          "output_tokens": 256,
+          "input_ids_sha256": "552a8b634ad6a0bcc73f5ad5a89d31f3a08eab9381ae107e1609309552e041e7",
+          "output_ids_sha256": "798201d5be408cd8852928bff46b07df5f99845a0b75dcab5e8b8a2b68959002",
+          "output_token_logprobs_sha256": "a25a7d55a91302b6826f3bc42d9eded360d143a60b7d0a38193fd15e67961745",
+          "output_top_logprobs_sha256": "bb1ebc8a600df40dde73e50afabb8452f85e6bb815496b857fa95fc34e5ccc9e",
+          "comparison": {
+            "first_different_output": null,
+            "same_prefix_positions": 256,
+            "cached_decode_positions": 255,
+            "exact_cached_top20": 255,
+            "exact_cached_selected_logprob": 255
+          }
+        },
+        {
+          "case": "diverse-31",
+          "output_tokens": 256,
+          "input_ids_sha256": "7da5c03a0ecccd00c1c3181672b9634a51476035617c2f2adae3352af7ea0d0e",
+          "output_ids_sha256": "87c51295f500ab9404916764fef542d6709b63050a97b8104523edbf80bed581",
+          "output_token_logprobs_sha256": "487b522281433d3ee63f802232d3b95d2df2d5b631673976fdc5b435af9beab9",
+          "output_top_logprobs_sha256": "81c4b8c8e0df7c2833b1eb7c2594a84f34e4a1fe0e9c0ccae54690fa9d398846",
+          "comparison": {
+            "first_different_output": null,
+            "same_prefix_positions": 256,
+            "cached_decode_positions": 255,
+            "exact_cached_top20": 255,
+            "exact_cached_selected_logprob": 255
+          }
+        }
+      ]
+    }
+  },
+  "baseline_restore": {
+    "pid": 3223021,
+    "status": "validated"
+  }
+}

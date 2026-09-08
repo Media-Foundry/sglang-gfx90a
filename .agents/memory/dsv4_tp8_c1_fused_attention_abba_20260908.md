@@ -79,6 +79,28 @@ Restoration of the exact service configuration with both two-wave flags
 removed is in progress, preserving the 1M pool. Baseline continuous-decode
 comparison and France C32 follow readiness; those results remain pending.
 
+## Restoration and cached-decode correctness completed
+
+Baseline PID 3223021 is ready with both attention two-wave flags absent,
+1,048,576-token pool and rank-0 available_gpu_mem=15.64 GB. Restore controller
+completed successfully; France C32 is 32/32 exact.
+
+The separate continuous-decode probe compared three distinct real code
+requests at 256 output tokens. All output IDs match; for each request all
+255 cached-decode positions have exactly equal selected-token logprobs and
+top-20 token/logprob lists (765/765 total). Initial prefill tokens are excluded
+from those decode counts. This closes the earlier probe-coverage gap for these
+fixtures; it does not establish every batch tier or arbitrary context parity.
+
+Raw artifacts: `/tmp/dsv4_tp8_c1_fused_warps2_decode_{A,B}_20260908.json`;
+restoration state/log/France artifacts share
+`/tmp/dsv4_tp8_c1_fused_warps2_restore_20260908`.
+
+Disposition: retain the independent candidate default off as numerically
+validated on these fixtures, not as a stable speed checkpoint. The measured
++0.38% C1 benefit needs more evidence against process-to-process variation;
+do not describe the lack of promotion as a correctness failure.
+
 Startup evidence: candidate service PID 3198487 logged actual fused C1
 two-wave selection on all eight ranks at 17:17:00. No M32 selection log.
 Rank 0 reports max_total_num_tokens=1048576 and available_gpu_mem=15.64 GB,
