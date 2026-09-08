@@ -9,7 +9,9 @@ import sglang.srt.layers.quantization.dsv4_projection_experiment as experiment
 from sglang.srt.layers.quantization.dsv4_projection_experiment import (
     eligible, maybe_row_stable_linear, projection_scope,
 )
-from sglang.kernels.ops.quantization.gfx90a_row_stable_linear import row_stable_linear
+from sglang.kernels.ops.quantization.gfx90a_row_stable_linear import (
+    _linear, row_stable_linear,
+)
 
 
 def main():
@@ -64,6 +66,22 @@ def main():
             graph.replay()
         assert torch.equal(y,expected)
         print((m,n,k),'100 mutations and 1000 graph replays passed',flush=True)
+    # Vary only M: scheduling must not compile a new artifact for every batch.
+    w = torch.randn(256,4096,device='cuda',dtype=torch.bfloat16)
+    base = torch.randn(1,4096,device='cuda',dtype=torch.bfloat16)
+    hashes = set()
+    reference = None
+    for m in [5,17,63,64,65,127,128,369,736,1023]:
+        x = base.repeat(m,1)
+        y = torch.empty(m,256,device='cuda',dtype=torch.bfloat16)
+        compiled = _linear[((m+63)//64,4)](
+            x,w,y,m,256,4096,num_warps=4,num_stages=2)
+        hashes.add(compiled.hash)
+        if reference is None:
+            reference = y[:1].clone()
+        assert torch.equal(y,reference.expand_as(y))
+    assert len(hashes) == 1, hashes
+    print('10 M values share one compiled artifact and identical rows',flush=True)
 
 
 if __name__ == '__main__':

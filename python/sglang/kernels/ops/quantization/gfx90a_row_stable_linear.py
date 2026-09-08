@@ -4,8 +4,8 @@ import triton
 import triton.language as tl
 
 
-@triton.jit
-def _linear(X, W, Y, M: tl.constexpr, N: tl.constexpr, K: tl.constexpr):
+@triton.jit(do_not_specialize=["M"])
+def _linear(X, W, Y, M, N: tl.constexpr, K: tl.constexpr):
     m = tl.program_id(0) * 64 + tl.arange(0, 64)
     n = tl.program_id(1) * 64 + tl.arange(0, 64)
     k = tl.arange(0, 64)
