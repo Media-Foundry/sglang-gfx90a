@@ -1,0 +1,55 @@
+{
+  "physical_gpu": 4,
+  "owner_pid": 3542331,
+  "snapshots": [
+    {
+      "stage": "context_and_imports",
+      "free": 16047407104,
+      "allocated": 0,
+      "reserved": 0
+    },
+    {
+      "stage": "baseline",
+      "wall_s": 0.11539406096562743,
+      "free": 16047407104,
+      "allocated": 0,
+      "reserved": 0
+    },
+    {
+      "stage": "candidate",
+      "wall_s": 0.0055763699929229915,
+      "free": 16047407104,
+      "allocated": 0,
+      "reserved": 0
+    }
+  ],
+  "module_sha256": {
+    "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2/build-60b5ef01bae271dd/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2.so": "9b49cbbeb5c1106ad8650ded62880538a961bf8fd3085547d03991306c6a173c",
+    "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2/build-19d7610e3d7edc65/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2.so": "8afb668810a17b04ade234ea45717a3ab88bad02410a1200c25ed1a45e67f70f"
+  },
+  "additional_loader_device_bytes": 0,
+  "launch_snapshots": [
+    {
+      "stage": "fixtures_ready",
+      "free": 15701377024,
+      "allocated": 142667776,
+      "reserved": 157286400
+    },
+    {
+      "stage": "first_launch_False",
+      "wall_s": 0.002013658988289535,
+      "free": 15699279872,
+      "allocated": 142929920,
+      "reserved": 157286400
+    },
+    {
+      "stage": "first_launch_True",
+      "wall_s": 0.001202162995468825,
+      "free": 15697182720,
+      "allocated": 143192064,
+      "reserved": 157286400
+    }
+  ],
+  "first_launch_bit_exact": true,
+  "caveat": "First-launch wall times include host dispatch and allocation; not steady performance"
+}
