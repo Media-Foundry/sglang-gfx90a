@@ -28,6 +28,9 @@ def main():
     p.add_argument('--inputs', type=Path, required=True)
     p.add_argument('--france-c32', action='store_true',
                    help='Run repeated France sentinel after performance, correctness only')
+    p.add_argument('--trace-layer', type=int, choices=range(43),
+                   help='Diagnostic only: enables existing graph-only realtime markers')
+    p.add_argument('--c32-rounds', type=int, default=6)
     a = p.parse_args()
     parent = psutil.Process(a.parent)
     assert 'sglang.launch_server' in parent.cmdline()
@@ -55,6 +58,10 @@ def main():
                   'SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY',
                   'SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY'):
             env.pop(k,None)
+        if a.trace_layer is not None:
+            env['SGLANG_DSV4_GFX90A_REALTIME_TRACE_LAYER'] = str(a.trace_layer)
+            env['SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY'] = '16'
+            env['SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY'] = '1'
         stem = str(a.prefix)+'_'+name
         logfile = Path(stem+'_server.log')
         with logfile.open('w') as f:
@@ -62,6 +69,7 @@ def main():
                                      stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
         parent = psutil.Process(child.pid)
         row = {'arm':name,'flag':flag,'parent':parent.pid,'server_log':str(logfile)}
+        row['diagnostic_trace_layer'] = a.trace_layer
         report['arms'].append(row);report['parent']=parent.pid;save()
         print('starting',name,parent.pid,flush=True)
         for _ in range(120):
@@ -78,6 +86,7 @@ def main():
         assert len(policies)==8
         row['numa_policies']=policies;save()
         c1=stem+'_c1.json';c32=stem+'_c32.json'
+        row['c1_start_line'] = len(logfile.read_text(errors='replace').splitlines())+1
         bench(['scripts/rocm/bench_dsv4_c1_mhc_recovery.py','--arm',name,'--rounds','2',
                '--skip-freeze-gc','--reference',str(a.reference),'--output',c1],stem+'_c1.log')
         result=json.loads(Path(c1).read_text())
@@ -85,10 +94,13 @@ def main():
         assert all(x[k]==y[k] for x,y in zip(result['teacher_forced'],reference['teacher_forced'])
                    for k in ('output_ids','input_token_logprobs','output_top_logprobs'))
         row['c1']=c1;row['c1_medians']=result['medians'];save()
+        row['c1_stop_line'] = len(logfile.read_text(errors='replace').splitlines())
+        row['c32_start_line'] = row['c1_stop_line']+1
         bench(['scripts/rocm/bench_dsv4_tp4_diverse_concurrent.py','--base-url','http://127.0.0.1:30011',
-               '--inputs',str(a.inputs),'--request-count','32','--tokens','256','--rounds','6',
+               '--inputs',str(a.inputs),'--request-count','32','--tokens','256','--rounds',str(a.c32_rounds),
                '--output',c32],stem+'_c32.log')
         result=json.loads(Path(c32).read_text())
+        row['c32_stop_line'] = len(logfile.read_text(errors='replace').splitlines())
         row.update(c32=c32,e2e_tok_s=result['median_tok_s'],decode_tok_s=result['resident_bs32_median_tok_s'])
         transition=stem+'_transitions.json'
         bench(['scripts/rocm/check_dsv4_prefill_probe_transitions.py',
