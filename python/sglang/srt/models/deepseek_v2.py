@@ -1381,7 +1381,39 @@ class DeepseekV2MoE(nn.Module):
             and topk_output.format == TopKOutputFormat.BYPASSED
             and self.experts.supports_deferred_finalize
         )
-        if m128_pre_router_compact:
+        gfx90a_deferred = False
+        if (envs.SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE.get()
+                and forward_batch is not None and has_shared_output
+                and not self._shared_expert_tp1 and _use_aiter
+                and not use_flashinfer_trtllm_bypass):
+            from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                shared_after_topk_eligible,
+            )
+
+            spec = forward_batch.spec_algorithm
+            gfx90a_deferred = shared_after_topk_eligible(
+                enabled=True, hip=_is_hip,
+                arch="gfx90a" if is_gfx90a_supported() else "",
+                decode=forward_batch.forward_mode.is_decode(),
+                batch_size=hidden_states.shape[0],
+                native=spec is None or spec.is_none(),
+                tp_size=get_parallel().tp_size, ep_size=get_parallel().moe_ep_size,
+                dsv4=getattr(self.gate, "is_deepseek_v4", False),
+            )
+        if gfx90a_deferred:
+            from sglang.srt.layers.moe.moe_runner.gfx90a_deferred import run_gfx90a_deferred
+
+            final_hidden_states = run_gfx90a_deferred(
+                self.experts, hidden_states, topk_output, pre_quant_input,
+            )
+            if not getattr(self, "_gfx90a_deferred_logged", False):
+                from logging import getLogger
+
+                getLogger(__name__).info(
+                    "DSV4 native TP8 M32 deferred-finalize selected layer=%s", self.layer_id,
+                )
+                self._gfx90a_deferred_logged = True
+        elif m128_pre_router_compact:
             anchor_output = self.experts(routed_hidden_states, topk_output)
             final_hidden_states = torch.zeros_like(hidden_states)
             final_hidden_states[::4].copy_(anchor_output)
@@ -1429,7 +1461,9 @@ class DeepseekV2MoE(nn.Module):
         current_stream.wait_stream(self.alt_stream)
         mark(20)
 
-        if deferred_finalize:
+        if gfx90a_deferred:
+            final_hidden_states = final_hidden_states.finalize(shared_output)
+        elif deferred_finalize:
             from sglang.srt.layers.moe.moe_runner.flashinfer_trtllm import (
                 finalize_flashinfer_trtllm_deferred_output,
             )

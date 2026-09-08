@@ -134,6 +134,7 @@ class AiterRunnerInput(RunnerInput):
     num_local_tokens: Optional[torch.Tensor] = None
     output_dtype: Optional[torch.dtype] = None
     output_tensor: Optional[torch.Tensor] = None
+    gfx90a_defer_reduction: bool = False
 
     @property
     def runner_backend(self) -> MoeRunnerBackend:
@@ -1039,6 +1040,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         use_row_prefetch=use_down_row_prefetch,
                         use_logical_scale=use_logical_down_scale,
                         runtime_m=use_runtime_m,
+                        defer_reduction=runner_input.gfx90a_defer_reduction,
                     )
             else:
                 output = gfx90a_fp4_expert_down(
@@ -1434,6 +1436,7 @@ def pre_permute_standard_to_aiter(
         topk_ids=topk_ids.to(torch.int32),
         topk_weights=topk_weights,
         quant_type=quant_info.quant_type,
+        gfx90a_defer_reduction=getattr(dispatch_output, "gfx90a_defer_reduction", False),
     )
 
 

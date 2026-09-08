@@ -20,6 +20,7 @@ def main():
         'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2',
         'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
         'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
+        'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     assert a.c1_rounds >= 2
@@ -93,6 +94,7 @@ def main():
             if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
                                     'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
                                     'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
+                                    'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
                                     'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2'):
                 result=json.loads(c1.read_text())
                 reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())
@@ -105,6 +107,11 @@ def main():
                 block['c1_reference_exact']=len(measured)
             block.update(status='c32',c1=str(c1));save()
             resource_check()
+            if a.candidate_flag == 'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE':
+                france = Path(str(root)+'_france_c32.json')
+                bench(['scripts/rocm/check_dsv4_france_c32.py'], france)
+                block['france_c32'] = str(france)
+                save()
             bench(['scripts/rocm/bench_dsv4_tp4_diverse_concurrent.py','--base-url',
                    'http://127.0.0.1:30011','--inputs',
                    '/tmp/dsv4_tp8_c32_ar_code_workload_20260908.json','--request-count',
