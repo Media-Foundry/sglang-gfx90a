@@ -44,6 +44,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=1200.0)
     parser.add_argument("--dump-dir", type=Path, default=Path("/tmp"))
     parser.add_argument("--result-json", type=Path)
+    parser.add_argument("--skip-france-check", action="store_true",
+                        help="Use an all-code corpus; run the France sentinel separately")
     return parser.parse_args()
 
 
@@ -136,7 +138,7 @@ def main() -> None:
     if lengths != [total_tokens] * args.request_count:
         raise RuntimeError(f"completion lengths are not all {total_tokens}: {lengths}")
     france_exact = output_ids[0][: len(FRANCE_EXPECTED)] == FRANCE_EXPECTED
-    if not france_exact:
+    if not args.skip_france_check and not france_exact:
         raise RuntimeError(
             "France correctness oracle failed: "
             f"got={output_ids[0][:len(FRANCE_EXPECTED)]} expected={FRANCE_EXPECTED}"
@@ -168,6 +170,8 @@ def main() -> None:
         "group_wall_seconds": wall,
         "aggregate_tokens_per_second": args.request_count * total_tokens / wall,
         "france_first9_exact": france_exact,
+        "france_check_required": not args.skip_france_check,
+        "output_ids": output_ids,
         "completion_sha256": [
             hashlib.sha256(json.dumps(tokens, separators=(",", ":")).encode()).hexdigest()
             for tokens in output_ids

@@ -193,10 +193,12 @@ def main() -> None:
             f"expected [passes,{args.num_layers},experts]"
         )
 
-    complete_sum = (
-        args.batch_size * args.topk * args.num_layers * args.world_size
-    )
-    complete_mask = counts.sum(dim=(1, 2)) == complete_sum
+    # Validate every layer, not only a sum that could hide a missing layer
+    # compensated by duplicate counts in another layer.
+    if counts.dtype not in (torch.int32, torch.int64) or torch.any(counts < 0):
+        raise RuntimeError("recorder counts must be nonnegative integer counts")
+    expected_per_layer = args.batch_size * args.topk * args.world_size
+    complete_mask = (counts.sum(dim=2) == expected_per_layer).all(dim=1)
     complete_indices = torch.nonzero(complete_mask, as_tuple=False).flatten()
     required = args.warmup_passes + args.window_passes
     if complete_indices.numel() < required:
