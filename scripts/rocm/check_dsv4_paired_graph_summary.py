@@ -93,7 +93,8 @@ class SummaryTest(unittest.TestCase):
             self.assertAlmostEqual(values['delta_pct'], 1)
 
     def test_fixed_process_rejects_wrong_arm_or_reused_pid(self):
-        for field, bad in [('pid', 100), ('final_arm', True), ('fixed_warmup_single', False)]:
+        for field, bad in [('pid', 100), ('final_arm', True), ('fixed_warmup_single', False),
+                           ('attention_issue_order', 3)]:
             paths = self.fixed_states()
             data = json.loads(paths[1].read_text())
             data[field] = bad

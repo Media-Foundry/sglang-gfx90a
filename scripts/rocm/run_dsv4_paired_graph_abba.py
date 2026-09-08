@@ -36,7 +36,8 @@ def main():
     ref = {r['case']: r['output_ids'] for r in json.loads(reference.read_text())['measurements']
            if r['rep'] == 0}
     record = dict(status='waiting_ready', pid=args.pid, blocks=[],
-                  fixed_warmup_single=args.fixed_warmup_single)
+                  fixed_warmup_single=args.fixed_warmup_single,
+                  attention_issue_order=int(env.get('SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER', '0')))
     def save():
         args.output.write_text(json.dumps(record, indent=2) + '\n')
     def alive():
