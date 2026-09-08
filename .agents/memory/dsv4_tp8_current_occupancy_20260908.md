@@ -56,3 +56,6 @@ histograms alone do not preserve token-to-expert correlations.
 Diagnostic throughput includes recorder/dump overhead and is not comparable
 to the uninstrumented ~983 tok/s warm baseline. Restoration with recorder
 flags removed is running under `/tmp/dsv4_tp8_occupancy_restore_20260908`.
+
+Restoration completed: baseline PID3243459, recorder flags removed, France
+C32 32/32 exact. Restore state is validated. No profiling service remains.
