@@ -14,8 +14,12 @@ class TestLegacyAR(unittest.TestCase):
                      and n.module == 'sglang.srt.environ')]
         self.enabled = True
         self.gate_enabled = False
+        self.attention_enabled = False
+        self.c1_attention_enabled = False
         self.ns = dict(envs=NS(SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR=NS(get=lambda:self.enabled),
-                              SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH=NS(get=lambda:self.gate_enabled)))
+                              SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH=NS(get=lambda:self.gate_enabled),
+                              SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2=NS(get=lambda:self.attention_enabled),
+                              SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2=NS(get=lambda:self.c1_attention_enabled)))
         exec(compile(tree,str(path),'exec'),self.ns)
 
     def test_predicate(self):
@@ -89,6 +93,24 @@ class TestLegacyAR(unittest.TestCase):
                     use_lds_unpack=lds,use_mfma32_prefill=mfma)
             expected=active and tp==8 and gfx and m==32 and i==256 and assignments==4 and rows==2 and blocks==832 and lds and not mfma
             self.assertEqual(eval(code,ns),expected)
+
+    def test_attention_only_does_not_enable_ar_or_gate(self):
+        import torch
+        from unittest.mock import patch
+        self.enabled = self.gate_enabled = False
+        with patch.object(torch.version,'hip','test'), patch.object(
+                torch.cuda,'get_device_properties',return_value=NS(gcnArchName='gfx90a')):
+            for old,c1,m,native,decode in itertools.product(
+                    (False,True),(False,True),(1,2,16,32,64),(False,True),(False,True)):
+                self.attention_enabled, self.c1_attention_enabled = old,c1
+                batch=NS(spec_algorithm=NS(is_none=lambda:native),batch_size=m,
+                         forward_mode=NS(is_decode=lambda:decode))
+                with self.ns['dsv4_ar_scope'](batch,'cuda'):
+                    self.assertFalse(self.ns['_active'].get())
+                    self.assertFalse(self.ns['native_m32_active']())
+                    self.assertEqual(self.ns['native_attention_active'](),
+                                     native and decode and ((old and m in (1,32)) or (c1 and m==1)))
+                self.assertFalse(self.ns['native_attention_active']())
 
 
 if __name__=='__main__':unittest.main()

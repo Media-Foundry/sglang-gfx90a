@@ -51,6 +51,13 @@ initial prefill token from cached-decode counts, and stops comparison after
 the first divergent output. Mock HTTP/first-divergence comparison tests pass;
 GPU/service validation is pending after ABBA, to avoid contaminating timing.
 
+Shared-scope registered unit tests were updated for both attention flags;
+six tests pass, including attention-only not enabling the AR/gate scopes and
+all combinations of native/speculative, prefill/decode and M1/2/16/32/64.
+Three ABBA blocks completed; final A service is starting. A separate watcher
+waits for the live ABBA controller to mark completion before running the
+untimed continuous-decode candidate diagnostic, with an AMD-SMI owner audit.
+
 Startup evidence: candidate service PID 3198487 logged actual fused C1
 two-wave selection on all eight ranks at 17:17:00. No M32 selection log.
 Rank 0 reports max_total_num_tokens=1048576 and available_gpu_mem=15.64 GB,
