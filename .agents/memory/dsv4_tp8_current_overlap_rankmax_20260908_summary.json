@@ -1,0 +1,120 @@
+{
+  "c1": {
+    "log": "/tmp/dsv4_tp8_current_overlap_marker_20260908.log",
+    "start_line": 1800,
+    "stop_line": 2985,
+    "complete_samples": 144,
+    "incomplete_samples": 0,
+    "invalid_log_lines": 0,
+    "tick_us": 0.04,
+    "spans": {
+      "whole_layer": {
+        "count": 144,
+        "rankmax_median_us": 293.36
+      },
+      "attention_mhc_norm": {
+        "count": 144,
+        "rankmax_median_us": 27.52
+      },
+      "attention_entry_gap": {
+        "count": 144,
+        "rankmax_median_us": 1.6
+      },
+      "attention_prepare": {
+        "count": 144,
+        "rankmax_median_us": 81.52000000000001
+      },
+      "attention_core": {
+        "count": 144,
+        "rankmax_median_us": 29.44
+      },
+      "attention_output_collective": {
+        "count": 144,
+        "rankmax_median_us": 39.84
+      },
+      "ffn_mhc_norm": {
+        "count": 144,
+        "rankmax_median_us": 25.04
+      },
+      "moe_collective": {
+        "count": 144,
+        "rankmax_median_us": 103.52
+      },
+      "moe_16_17": {
+        "count": 144,
+        "rankmax_median_us": 7.36
+      },
+      "moe_17_18": {
+        "count": 144,
+        "rankmax_median_us": 14.88
+      },
+      "moe_18_19": {
+        "count": 144,
+        "rankmax_median_us": 49.6
+      },
+      "moe_23_24": {
+        "count": 144,
+        "rankmax_median_us": 24.08
+      }
+    }
+  },
+  "c32": {
+    "log": "/tmp/dsv4_tp8_current_overlap_marker_20260908.log",
+    "start_line": 3152,
+    "stop_line": 3483,
+    "complete_samples": 32,
+    "incomplete_samples": 0,
+    "invalid_log_lines": 0,
+    "tick_us": 0.04,
+    "spans": {
+      "whole_layer": {
+        "count": 32,
+        "rankmax_median_us": 737.2
+      },
+      "attention_mhc_norm": {
+        "count": 32,
+        "rankmax_median_us": 50.16
+      },
+      "attention_entry_gap": {
+        "count": 32,
+        "rankmax_median_us": 1.44
+      },
+      "attention_prepare": {
+        "count": 32,
+        "rankmax_median_us": 150.32
+      },
+      "attention_core": {
+        "count": 32,
+        "rankmax_median_us": 49.92
+      },
+      "attention_output_collective": {
+        "count": 32,
+        "rankmax_median_us": 113.6
+      },
+      "ffn_mhc_norm": {
+        "count": 32,
+        "rankmax_median_us": 51.2
+      },
+      "moe_collective": {
+        "count": 32,
+        "rankmax_median_us": 338.24
+      },
+      "moe_16_17": {
+        "count": 32,
+        "rankmax_median_us": 28.64
+      },
+      "moe_17_18": {
+        "count": 32,
+        "rankmax_median_us": 12.48
+      },
+      "moe_18_19": {
+        "count": 32,
+        "rankmax_median_us": 252.96
+      },
+      "moe_23_24": {
+        "count": 32,
+        "rankmax_median_us": 40.480000000000004
+      }
+    }
+  }
+}
