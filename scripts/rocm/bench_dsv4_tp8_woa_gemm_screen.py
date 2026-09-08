@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TP8 G1 wo_a: bounded multi-weight graph ABBA, no serving modifications."""
+"""TP8 output projections: multi-weight graph ABBA, no serving modifications."""
 import argparse
 import json
 import os
@@ -10,11 +10,32 @@ import subprocess
 import psutil
 
 
+def load_wob_shard(model_dir, layer):
+    """Runtime BF16 TP8 rank-0 column shard; checkpoint remains untouched."""
+    import torch
+    from safetensors import safe_open
+
+    index = json.loads((model_dir / 'model.safetensors.index.json').read_text())['weight_map']
+    tensors = []
+    for suffix in ('weight', 'scale'):
+        key = f'layers.{layer}.attn.wo_b.{suffix}'
+        with safe_open(model_dir / index[key], framework='pt', device='cpu') as f:
+            tensors.append(f.get_tensor(key))
+    packed, scale = tensors
+    assert packed.shape == (4096, 8192) and packed.dtype == torch.float8_e4m3fn
+    assert scale.shape == (32, 64)
+    # Only expand the selected TP shard, using the same 128x128 scale blocks.
+    logical = (packed[:, :1024].float().reshape(32, 128, 8, 128)
+               * scale[:, :8].float()[:, None, :, None])
+    return logical.reshape(4096, 1024).to(torch.bfloat16).contiguous().unsqueeze(0)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--service-pid', type=int, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--hipblaslt', action='store_true', help='Screen supported solutions, then validate fastest three')
+    p.add_argument('--projection', choices=('wo_a', 'wo_b'), default='wo_a')
     a = p.parse_args()
     assert os.getenv('HIP_VISIBLE_DEVICES') == '4'
     service = psutil.Process(a.service_pid)
@@ -36,16 +57,22 @@ def main():
 
     assert torch.cuda.get_device_properties(0).gcnArchName.split(':')[0] == 'gfx90a'
     torch.manual_seed(20908)
-    source = Path('/tmp/dsv4_tp8_rowstable_router_all_20260908/layer_20_rank_0_attn_inverse_rope.pt')
+    fixture = 'attn_inverse_rope' if a.projection == 'wo_a' else 'wo_a'
+    source = Path(f'/tmp/dsv4_tp8_rowstable_router_all_20260908/layer_20_rank_0_{fixture}.pt')
     raw = torch.load(source, map_location='cpu', weights_only=True)
     # A real prefill-state slice, not claimed to be a diverse decode fixture.
-    assert raw.ndim == 3 and raw.shape[1:] == (8,512) and raw.shape[0] >= 32
-    x = raw[:32].contiguous().view(32,1,4096).cuda()
+    assert raw.shape[0] >= 32
+    if a.projection == 'wo_a':
+        assert raw.ndim == 3 and raw.shape[1:] == (8,512)
+    else:
+        assert raw[0].numel() == 1024
+    x = raw[:32].contiguous().view(32,1,-1).cuda()
     seed_x = x.clone()
     layers = [0,6,12,18,20,24,36,42]
     weights = [load_runtime_woa_shard(argparse.Namespace(
         model_dir=Path('/home/pc/models/modelscope'), layer=layer, rank=0
-    )).cuda() for layer in layers]
+    )).cuda() if a.projection == 'wo_a' else load_wob_shard(
+        Path('/home/pc/models/modelscope'), layer).cuda() for layer in layers]
     funcs = {
         'einsum': lambda w: torch.einsum('tgd,grd->tgr', x, w),
         'linear': lambda w: F.linear(x[:,0], w[0]).unsqueeze(1),
@@ -58,7 +85,8 @@ def main():
         g = torch.cuda.CUDAGraph()
         with torch.cuda.graph(g): out = [fn(w) for w in weights]
         return g, out
-    baseline, ref = capture(funcs['einsum'])
+    baseline_label = 'einsum' if a.projection == 'wo_a' else 'linear'
+    baseline, ref = capture(funcs[baseline_label])
     def time_us(g):
         for _ in range(5): g.replay()
         start,end = torch.cuda.Event(enable_timing=True),torch.cuda.Event(enable_timing=True)
@@ -67,6 +95,8 @@ def main():
         end.record(); end.synchronize()
         return start.elapsed_time(end)*1000/(50*len(weights))
     result = {'layers':layers, 'input_source':str(source),
+              'projection':a.projection, 'baseline':baseline_label,
+              'input_shape':list(x.shape), 'weight_shape':list(weights[0].shape),
               'torch_version':str(torch.__version__), 'hip_version':str(torch.version.hip),
               'fixture':'real prefill slice; 8 real TP8 checkpoint weight shards',
               'weight_bytes':sum(w.numel()*w.element_size() for w in weights), 'results':[]}
@@ -95,7 +125,7 @@ def main():
                  (lambda w, solution=row['solution']: hipb_gemm(x[:,0],w[0],solution).unsqueeze(1))
                  for row in result['screen'][:3]}
     for label,fn in funcs.items():
-        if label == 'einsum': continue
+        if label == baseline_label: continue
         g,out = capture(fn)
         x.copy_(seed_x)
         exact = 0; max_abs = 0.; max_rel = 0.
