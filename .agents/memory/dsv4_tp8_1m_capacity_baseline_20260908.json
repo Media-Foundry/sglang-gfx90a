@@ -1,0 +1,104 @@
+{
+  "configuration": {
+    "tp": 8,
+    "ep": 1,
+    "native_ar": true,
+    "pool": 1048576,
+    "mem_fraction": 0.96,
+    "graph_tiers": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      24,
+      32
+    ],
+    "graph_GB_per_GCD": 0.65,
+    "free_GB_after_capture": [
+      15.58,
+      15.64
+    ]
+  },
+  "c1_medians": {
+    "diverse-03": 82.50327099285238,
+    "diverse-15": 82.7058170733508,
+    "diverse-31": 82.76828293200847
+  },
+  "c32": {
+    "median_tok_s": 980.3196171683865,
+    "resident_bs32_median_tok_s": 1027.3754324900542,
+    "round_count": 6,
+    "cross_round_exact_requests": 0,
+    "first_divergence_by_request": [
+      34,
+      5,
+      91,
+      28,
+      23,
+      57,
+      37,
+      27,
+      25,
+      29,
+      52,
+      0,
+      12,
+      34,
+      30,
+      43,
+      21,
+      16,
+      42,
+      53,
+      142,
+      40,
+      27,
+      70,
+      54,
+      31,
+      16,
+      91,
+      48,
+      28,
+      25,
+      22
+    ],
+    "input_manifest_sha256": "90a9436f74937ec3dcf699848292d921b9be235cc6876ad6b540e2b3a9eaf5d1",
+    "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+  },
+  "round_speeds": [
+    {
+      "e2e": 976.7193856480405,
+      "resident": 1028.2495702326542
+    },
+    {
+      "e2e": 979.8476288308542,
+      "resident": 1027.2455909610912
+    },
+    {
+      "e2e": 979.7078262865766,
+      "resident": 1026.6079666429362
+    },
+    {
+      "e2e": 982.237563143357,
+      "resident": 1027.7475820900904
+    },
+    {
+      "e2e": 980.7916055059186,
+      "resident": 1026.9405670676385
+    },
+    {
+      "e2e": 982.0727182009342,
+      "resident": 1027.5052740190174
+    }
+  ],
+  "transition_checks": 12,
+  "france_c32_exact": 32,
+  "artifacts": {
+    "/tmp/dsv4_tp8_1m_20260908_c1.json": "5187578b60ba0917a3ce94f0595d360c54bc6bc05515a62fe95f159767db656a",
+    "/tmp/dsv4_tp8_1m_20260908_c32.json": "19d209fea3a508826dfe2a631f9eb0a805539faff1bb6578736ec6232750962a",
+    "/tmp/dsv4_tp8_1m_20260908_transitions.json": "e077c29faa401db035907bb70ea9a4c300cfde2f3b2a1f8acf0c6c7bad65c0ee",
+    "/tmp/dsv4_tp8_1m_20260908_france_c32.json": "793626f71138c267e1686c6c5d41aead7839076343fa4416927d0d7ef0680b70"
+  }
+}
