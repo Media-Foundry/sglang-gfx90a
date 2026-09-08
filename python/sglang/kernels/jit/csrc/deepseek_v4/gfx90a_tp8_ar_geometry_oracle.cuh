@@ -18,7 +18,7 @@ struct Gfx90aTp8ArGeometryOracle {
         input.dtype().lanes != 1 || output.dtype().lanes != 1 ||
         input.device().device_id != output.device().device_id ||
         input.data_ptr() == output.data_ptr() ||
-        !(blocks == 8 || blocks == 12 || blocks == 16 || blocks == 24 || blocks == 32))
+        !(blocks == 4 || blocks == 8 || blocks == 12 || blocks == 16 || blocks == 24 || blocks == 32))
       throw std::runtime_error("TP8 AR oracle requires separate BF16 M32/H4096 buffers and validated grid");
     auto* comm = reinterpret_cast<aiter::CustomAllreduce*>(handle);
     if (comm->world_size_ != 8 || !comm->full_nvlink_ ||

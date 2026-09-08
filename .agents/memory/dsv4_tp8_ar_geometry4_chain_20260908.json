@@ -1,0 +1,132 @@
+{
+  "rows": 32,
+  "bytes": 262144,
+  "correctness": [
+    {
+      "rank": 0,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 1,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 2,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 3,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 4,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 5,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 6,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    },
+    {
+      "rank": 7,
+      "exact": 100,
+      "max_abs": 0,
+      "stable": true
+    }
+  ],
+  "candidate_blocks": 4,
+  "mutating_chain": {
+    "length": 32,
+    "replays": 1000,
+    "output_bytes": 8388608,
+    "witnesses": [
+      {
+        "rank": 0,
+        "exact": true
+      },
+      {
+        "rank": 1,
+        "exact": true
+      },
+      {
+        "rank": 2,
+        "exact": true
+      },
+      {
+        "rank": 3,
+        "exact": true
+      },
+      {
+        "rank": 4,
+        "exact": true
+      },
+      {
+        "rank": 5,
+        "exact": true
+      },
+      {
+        "rank": 6,
+        "exact": true
+      },
+      {
+        "rank": 7,
+        "exact": true
+      }
+    ],
+    "limitation": "all per-step outputs checked after final replay, not every intermediate replay"
+  },
+  "baseline": "shim legacy blocks16",
+  "rankmax_samples_us": [
+    [
+      28.04391384124756,
+      28.017585277557373,
+      27.57838487625122,
+      27.859184741973877,
+      27.727184295654297,
+      28.048784732818604,
+      27.622675895690918,
+      27.88238525390625,
+      27.757515907287598,
+      27.497520446777344
+    ],
+    [
+      25.09464979171753,
+      25.424785614013672,
+      25.178654193878174,
+      25.029585361480713,
+      25.450384616851807,
+      25.08798599243164,
+      25.13998508453369,
+      25.743184089660645,
+      25.66558599472046,
+      25.033586025238037
+    ]
+  ],
+  "medians_us": [
+    27.808350324630737,
+    25.159319639205933
+  ],
+  "trimmed_us": [
+    27.811103761196136,
+    25.259452164173126
+  ],
+  "log": "/tmp/dsv4_tp8_ar_geometry4_chain_20260908.log",
+  "log_sha256": "58775ecd798bb2a2633812f18fc0dcfe2afd8c435850080bbe75c2a1e873d647"
+}

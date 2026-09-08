@@ -22,11 +22,15 @@ def main():
     p.add_argument('--mutations', type=int, default=100)
     p.add_argument('--iters', type=int, default=200)
     p.add_argument('--rounds', type=int, default=5)
-    p.add_argument('--candidate-blocks', type=int, choices=(8,12,16,24,32))
+    p.add_argument('--candidate-blocks', type=int, choices=(4,8,12,16,24,32))
+    p.add_argument('--chain-length', type=int, default=0, choices=(0,32))
+    p.add_argument('--chain-replays', type=int, default=1000)
     p.add_argument('--shim-baseline', action='store_true',
                    help='compare both geometries through the validated shim, isolating grid effects')
     args = p.parse_args()
     assert not args.shim_baseline or args.candidate_blocks is not None
+    assert not args.chain_length or args.candidate_blocks is not None
+    assert 1 <= args.chain_replays <= 10000
     rank = int(os.environ['LOCAL_RANK'])
     torch.cuda.set_device(rank)
     dist.init_process_group('gloo', timeout=datetime.timedelta(seconds=180))
@@ -80,6 +84,33 @@ def main():
         stable = stable and torch.equal(reference,outputs[1])
     reports=[None]*8
     dist.all_gather_object(reports,dict(rank=rank,exact=exact,max_abs=max_abs,stable=stable))
+    assert all(r['exact'] == args.mutations and r['stable'] and r['max_abs'] == 0 for r in reports), reports
+    chain_report = None
+    if args.chain_length:
+        chain_outputs = [torch.empty_like(x) for _ in range(args.chain_length)]
+        chain = torch.cuda.CUDAGraph()
+        torch.cuda.synchronize()
+        dist.barrier()
+        with torch.cuda.graph(chain):
+            for step, out in enumerate(chain_outputs):
+                # Distinct rank-local inputs at every collective: missing exit
+                # handshakes can no longer hide behind an unchanged input.
+                x.fill_(rank + step)
+                geometry(ar, x, out, args.candidate_blocks)
+        ar.register_graph_buffers()
+        for _ in range(args.chain_replays):
+            chain.replay()
+        torch.cuda.synchronize()
+        chain_exact = all(torch.equal(out, torch.full_like(out, 28 + 8 * step))
+                          for step, out in enumerate(chain_outputs))
+        witnesses = [None] * 8
+        dist.all_gather_object(witnesses, dict(rank=rank, exact=chain_exact))
+        assert all(r['exact'] for r in witnesses), witnesses
+        chain_report = dict(length=args.chain_length, replays=args.chain_replays,
+                            output_bytes=sum(out.numel()*out.element_size() for out in chain_outputs),
+                            witnesses=witnesses,
+                            limitation='all per-step outputs checked after final replay, not every intermediate replay')
+        del chain, chain_outputs
     samples=[[],[]]
     for _ in range(args.rounds):
         for arm in (0,1,1,0):
@@ -97,6 +128,7 @@ def main():
     if rank==0:
         print(json.dumps(dict(rows=args.rows,bytes=x.numel()*2,correctness=reports,
                               candidate_blocks=args.candidate_blocks,
+                              mutating_chain=chain_report,
                               baseline=('new' if geometry is None else
                                         'shim legacy blocks16' if args.shim_baseline else 'legacy blocks16'),
                               rankmax_samples_us=samples,
