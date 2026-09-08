@@ -1016,7 +1016,10 @@ class AiterRunnerCore(MoeRunnerCore):
                     )
                 else:
                     use_down_uniform = False
-                    if envs.SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM.get():
+                    from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                        down_uniform_requested,
+                    )
+                    if down_uniform_requested():
                         from sglang.srt.distributed import (
                             get_tensor_model_parallel_world_size,
                             get_moe_expert_parallel_world_size,

@@ -69,6 +69,12 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
             enable=enable_memory_saver
             and get_bool_env_var("SGLANG_MEMORY_SAVER_CUDA_GRAPH")
         )
+        self._down_graph_pair = None
+        if (get_bool_env_var("SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS")
+                and type(cuda_graph_runner).__name__ == "DecodeCudaGraphRunner"):
+            from .dsv4_down_graph_pair import DownGraphPair
+
+            self._down_graph_pair = DownGraphPair(self, memory_saver=enable_memory_saver)
 
     @staticmethod
     def _maybe_upload_rocm_graph(graph: torch.cuda.CUDAGraph) -> None:
@@ -107,6 +113,22 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
             self._capture_stream = None
 
     def capture_one(
+        self,
+        shape_key: ShapeKey,
+        forward_fn: Callable[[], Any],
+        capture_inputs: Optional[Any] = None,
+        post_warmup_hook: Optional[Callable[[], None]] = None,
+    ) -> None:
+        capture = partial(
+            self._capture_one_impl, shape_key, forward_fn,
+            capture_inputs, post_warmup_hook,
+        )
+        if self._down_graph_pair is None:
+            capture()
+        else:
+            self._down_graph_pair.capture(shape_key, capture)
+
+    def _capture_one_impl(
         self,
         shape_key: ShapeKey,
         forward_fn: Callable[[], Any],
@@ -187,11 +209,16 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
         static_forward_batch: ForwardBatch,
         **kwargs,
     ) -> Any:
+        alternative = (self._down_graph_pair.selected(shape_key)
+                       if self._down_graph_pair is not None else None)
         with graph_pool_replay_scope():
-            self._graphs[shape_key].replay()
-        return self._outputs[shape_key]
+            graph = alternative.graph if alternative is not None else self._graphs[shape_key]
+            graph.replay()
+        return alternative.output if alternative is not None else self._outputs[shape_key]
 
     def cleanup(self) -> None:
+        if self._down_graph_pair is not None:
+            self._down_graph_pair.cleanup()
         self._graphs.clear()
         self._outputs.clear()
         self._pool = None

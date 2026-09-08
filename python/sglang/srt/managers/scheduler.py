@@ -4554,6 +4554,16 @@ class Scheduler(
 
     def set_internal_state(self, recv_req: SetInternalStateReq):
         server_args_dict = recv_req.server_args
+        if "dsv4_down_uniform_arm" in server_args_dict:
+            # This diagnostic command is broadcast to all TP workers. Never
+            # locally skip consensus merely because this worker is busy.
+            if (set(server_args_dict) != {"dsv4_down_uniform_arm"}
+                    or type(server_args_dict["dsv4_down_uniform_arm"]) is not bool):
+                return SetInternalStateReqOutput(updated=False)
+            from sglang.srt.model_executor.runner_backend.dsv4_down_graph_pair import switch_arm
+
+            return SetInternalStateReqOutput(updated=switch_arm(
+                server_args_dict["dsv4_down_uniform_arm"], idle=self.is_fully_idle()))
         args_allow_update = set(
             [
                 "pp_max_micro_batch_size",
