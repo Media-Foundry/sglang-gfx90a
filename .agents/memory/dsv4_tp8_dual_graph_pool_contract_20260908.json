@@ -1,0 +1,212 @@
+{
+  "first_corrected": {
+    "status": "passed",
+    "mutated_replays": 1000,
+    "graph_count": 3,
+    "pool_count": 2,
+    "cross_pool_outputs_preserved": true,
+    "ranks": [
+      {
+        "rank": 0,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 125552241672192,
+          "c1": 125552241418240,
+          "b32": 125552237477888
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 1,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 129536505413632,
+          "c1": 129536505159680,
+          "b32": 129536501219328
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 2,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 131429342380032,
+          "c1": 131429342126080,
+          "b32": 131429338185728
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 3,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 136389280923648,
+          "c1": 136389280669696,
+          "b32": 136389276729344
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 4,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 132398182563840,
+          "c1": 132398182309888,
+          "b32": 132398178369536
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 5,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 130133656862720,
+          "c1": 130133656608768,
+          "b32": 130133652668416
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 6,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 130708685455360,
+          "c1": 130708685201408,
+          "b32": 130708681261056
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 7,
+        "graph_allocated_delta": 535552,
+        "output_pointers": {
+          "a32": 135982177583104,
+          "c1": 135982177329152,
+          "b32": 135982173388800
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      }
+    ]
+  },
+  "memory_accounted_repeat": {
+    "status": "passed",
+    "mutated_replays": 1000,
+    "graph_count": 3,
+    "pool_count": 2,
+    "cross_pool_outputs_preserved": true,
+    "ranks": [
+      {
+        "rank": 0,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 124970019848192,
+          "c1": 124970019594240,
+          "b32": 124970015653888
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 1,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 133169565401088,
+          "c1": 133169565147136,
+          "b32": 133169561206784
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 2,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 127611714142208,
+          "c1": 127611713888256,
+          "b32": 127611709947904
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 3,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 136196219207680,
+          "c1": 136196218953728,
+          "b32": 136196215013376
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 4,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 127065636732928,
+          "c1": 127065636478976,
+          "b32": 127065632538624
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 5,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 130925291896832,
+          "c1": 130925291642880,
+          "b32": 130925287702528
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 6,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 134243827318784,
+          "c1": 134243827064832,
+          "b32": 134243823124480
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      },
+      {
+        "rank": 7,
+        "graph_allocated_delta": 535552,
+        "graph_reserved_delta": 4194304,
+        "device_free_drop": 44040192,
+        "output_pointers": {
+          "a32": 126088965783552,
+          "c1": 126088965529600,
+          "b32": 126088961589248
+        },
+        "graph_identity_stable": true,
+        "shared_pool_overwrites": 375
+      }
+    ]
+  }
+}
