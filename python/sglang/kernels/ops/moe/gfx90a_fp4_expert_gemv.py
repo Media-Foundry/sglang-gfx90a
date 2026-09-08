@@ -289,6 +289,19 @@ def _jit_down_grouped(
 
 
 @cache_once
+def _jit_down_grouped_uniform(*shape) -> Module:
+    assert shape == (256, 32, 6, 4096, 256, 4, 2, 8, 832, 2)
+    args = make_cpp_args(*shape)
+    return load_jit(
+        "gfx90a_fp4_tp8_down_uniform_service", *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_expert_gemv.cuh"],
+        cuda_wrappers=[(name, f"sglang::Gfx90aFp4ExpertDownGroupedKernel<{args}>::{name}")
+                       for name in ("run", "run_partial", "reduce")],
+        extra_cuda_cflags=["-O3", "-DSGLANG_FP4_DOWN_UNIFORM_METADATA_ORACLE=1"],
+    )
+
+
+@cache_once
 def _jit_down_grouped_row_prefetch(
     e: int,
     m: int,
@@ -786,9 +799,15 @@ def gfx90a_fp4_expert_down_grouped(
     runtime_m: bool = False,
     *,
     defer_reduction: bool = False,
+    uniform_metadata: bool = False,
 ) -> torch.Tensor | Gfx90aDeferredFinalize:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
+    if uniform_metadata:
+        assert (e, m, topk, n, k, assignments, rows, waves, blocks) == (
+            256, 32, 6, 4096, 256, 4, 2, 8, 832)
+        assert use_lds_lut and prepacked_weight is None
+        assert not (runtime_m or use_row_prefetch or use_logical_scale or zero_partial or defer_reduction)
     if defer_reduction:
         # Experimental call-owned result; never infer eligibility from M alone.
         # Server-level native/decode/TP/EP guards are required before wiring it.
@@ -861,7 +880,8 @@ def gfx90a_fp4_expert_down_grouped(
         )
         module.reduce(partial, out)
         return out
-    module = _jit_down_grouped(
+    module_loader = _jit_down_grouped_uniform if uniform_metadata else _jit_down_grouped
+    module = module_loader(
         e,
         0 if runtime_m else m,
         topk,

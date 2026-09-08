@@ -21,6 +21,7 @@ def main():
         'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
         'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
         'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
+        'SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     assert a.c1_rounds >= 2
@@ -95,6 +96,7 @@ def main():
                                     'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
                                     'SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK',
                                     'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
+                                    'SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM',
                                     'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2'):
                 result=json.loads(c1.read_text())
                 reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())
@@ -107,7 +109,8 @@ def main():
                 block['c1_reference_exact']=len(measured)
             block.update(status='c32',c1=str(c1));save()
             resource_check()
-            if a.candidate_flag == 'SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE':
+            if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE',
+                                    'SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'):
                 france = Path(str(root)+'_france_c32.json')
                 bench(['scripts/rocm/check_dsv4_france_c32.py'], france)
                 block['france_c32'] = str(france)

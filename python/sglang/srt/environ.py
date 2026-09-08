@@ -1451,6 +1451,7 @@ class Envs:
     # Exact-shape native decode AIter old/new collective A/B; no extra buffers.
     SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH = EnvBool(False)
+    SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE = EnvBool(False)
     # Numerical diagnostic only: fixed-order cached BF16 prefill projections.

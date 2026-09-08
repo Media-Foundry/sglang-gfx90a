@@ -20,6 +20,17 @@ def native_m32_active():
     return _native_active.get()
 
 
+def down_uniform_eligible(*, native_scope, tp_size, ep_size, gfx90a,
+                          hidden_shape, topk_shape, weight_shape, geometry,
+                          incompatible):
+    return bool(native_scope and tp_size == 8 and ep_size == 1 and gfx90a
+                and tuple(hidden_shape) == (32, 4096)
+                and tuple(topk_shape) == (32, 6)
+                and tuple(weight_shape) == (256, 4096, 128)
+                and tuple(geometry) == (4, 2, 8, 832, True)
+                and not incompatible)
+
+
 def eligible(*, enabled, hip, arch, decode, batch_size, native):
     return bool(enabled and hip and arch == 'gfx90a' and decode
                 and batch_size == 32 and native)
@@ -36,14 +47,15 @@ def shared_after_topk_eligible(*, enabled, hip, arch, decode, batch_size,
 def dsv4_ar_scope(batch, device):
     enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR.get()
     gate_enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get()
+    down_enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM.get()
     attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get()
     c1_attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2.get()
-    if not (enabled or gate_enabled or attention_enabled or c1_attention_enabled):
+    if not (enabled or gate_enabled or down_enabled or attention_enabled or c1_attention_enabled):
         yield
         return
     spec = batch.spec_algorithm
     native = spec is None or spec.is_none()
-    active = eligible(enabled=enabled or gate_enabled, hip=bool(torch.version.hip),
+    active = eligible(enabled=enabled or gate_enabled or down_enabled, hip=bool(torch.version.hip),
                       arch=torch.cuda.get_device_properties(device).gcnArchName.split(':')[0]
                       if torch.version.hip else '',
                       decode=batch.forward_mode.is_decode(),

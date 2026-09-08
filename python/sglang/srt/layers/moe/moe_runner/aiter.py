@@ -1015,6 +1015,33 @@ class AiterRunnerCore(MoeRunnerCore):
                         assignments=grouped_assignments,
                     )
                 else:
+                    use_down_uniform = False
+                    if envs.SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM.get():
+                        from sglang.srt.distributed import (
+                            get_tensor_model_parallel_world_size,
+                            get_moe_expert_parallel_world_size,
+                        )
+                        from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                            down_uniform_eligible, native_m32_active,
+                        )
+
+                        use_down_uniform = down_uniform_eligible(
+                            native_scope=native_m32_active(),
+                            tp_size=get_tensor_model_parallel_world_size(),
+                            ep_size=get_moe_expert_parallel_world_size(),
+                            gfx90a=_is_runtime_gfx90a(),
+                            hidden_shape=runner_input.hidden_states.shape,
+                            topk_shape=runner_input.topk_ids.shape,
+                            weight_shape=quant_info.w2_weight.shape,
+                            geometry=(grouped_assignments, grouped_down_rows,
+                                      down_waves, down_blocks, use_lds_unpack),
+                            incompatible=(use_runtime_m or use_down_row_prefetch
+                                or use_logical_down_scale or runner_input.gfx90a_defer_reduction
+                                or envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()),
+                        )
+                        if use_down_uniform and not getattr(self, '_down_uniform_logged', False):
+                            logger.info('DSV4 native TP8 M32 down uniform metadata selected')
+                            self._down_uniform_logged = True
                     output = gfx90a_fp4_expert_down_grouped(
                         down_prequant[0],
                         down_prequant[1],
@@ -1041,6 +1068,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         use_logical_scale=use_logical_down_scale,
                         runtime_m=use_runtime_m,
                         defer_reduction=runner_input.gfx90a_defer_reduction,
+                        uniform_metadata=use_down_uniform,
                     )
             else:
                 output = gfx90a_fp4_expert_down(

@@ -22,6 +22,7 @@ def main():
         "SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2",
         "SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK",
         "SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE",
+        "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM",
     )
     blocks = []
     reference = None
