@@ -1454,6 +1454,8 @@ class Envs:
     SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM = EnvBool(False)
     # Diagnostic only: same-process M32 A/B with a separate, budgeted graph pool.
     SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS = EnvBool(False)
+    # Startup-only single-graph diagnostic; run both down arms in a fixed order.
+    SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_DEFERRED_FINALIZE = EnvBool(False)
     # Numerical diagnostic only: fixed-order cached BF16 prefill projections.

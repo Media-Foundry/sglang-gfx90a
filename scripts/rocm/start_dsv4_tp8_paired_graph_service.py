@@ -22,8 +22,14 @@ def main():
     parser.add_argument('--single-graph-candidate', action='store_true',
                         help='remove paired graph overhead and enable only down-uniform')
     parser.add_argument('--completed-abba', type=Path)
+    parser.add_argument('--fixed-warmup-arm', type=int, choices=(0, 1),
+                        help='single-graph startup with both modules warmed in baseline/candidate order')
     args = parser.parse_args()
     assert not args.output.exists()
+    fixed = args.fixed_warmup_arm is not None
+    if fixed:
+        assert not args.restart_paired and not args.single_graph_candidate
+        assert args.completed_abba is None
     if args.single_graph_candidate:
         assert args.restart_paired and args.completed_abba is not None
         completed = json.loads(args.completed_abba.read_text())
@@ -41,7 +47,11 @@ def main():
                        '--moe-a2a-backend': 'none'}.items():
         assert cmd[cmd.index(key) + 1] == value
     assert env.get(FLAG, '0') == ('1' if args.restart_paired else '0')
-    assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM', '0') == '0'
+    if fixed:
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM', '0') in ('0', '1')
+    else:
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM', '0') == '0'
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP', '0') == '0'
     assert not any(x.startswith('--speculative-') for x in cmd)
     children = service.children(recursive=True)
     owned = {service.pid, *(p.pid for p in children)}
@@ -51,8 +61,9 @@ def main():
     assert seen and not seen - owned, ('foreign GPU PIDs', sorted(seen - owned))
     record = dict(status='stopping', old_pid=service.pid, audited_gpu_pids=sorted(seen),
                   candidate_flag=('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'
-                                  if args.single_graph_candidate else FLAG), kv_pool=1048576,
-                  single_graph_candidate=args.single_graph_candidate)
+                                  if args.single_graph_candidate or fixed else FLAG), kv_pool=1048576,
+                  single_graph_candidate=args.single_graph_candidate,
+                  fixed_warmup_arm=args.fixed_warmup_arm)
     # Preserve the exact baseline launch contract before stopping anything.
     # Environment may contain credentials: private file, never print/commit it.
     snapshot = args.output.with_suffix('.private-launch.json')
@@ -69,9 +80,12 @@ def main():
         process.terminate()
     _, alive = psutil.wait_procs(alive, timeout=10)
     assert not alive, [(p.pid, p.status()) for p in alive]
-    env[FLAG] = '0' if args.single_graph_candidate else '1'
+    env[FLAG] = '0' if args.single_graph_candidate or fixed else '1'
     if args.single_graph_candidate:
         env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'] = '1'
+    if fixed:
+        env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'] = str(args.fixed_warmup_arm)
+        env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP'] = '1'
     log_path = args.output.with_suffix('.service.log')
     with log_path.open('w') as log:
         proc = subprocess.Popen(['numactl', '--interleave=all', *cmd], cwd=cwd,

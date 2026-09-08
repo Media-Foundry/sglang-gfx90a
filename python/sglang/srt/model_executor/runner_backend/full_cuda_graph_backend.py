@@ -76,6 +76,14 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
 
             self._down_graph_pair = DownGraphPair(self, memory_saver=enable_memory_saver)
 
+        self._fixed_down_warmup = get_bool_env_var(
+            "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP"
+        )
+        if self._fixed_down_warmup:
+            from .dsv4_down_fixed_warmup import validate_runner
+
+            validate_runner(self, memory_saver=enable_memory_saver)
+
     @staticmethod
     def _maybe_upload_rocm_graph(graph: torch.cuda.CUDAGraph) -> None:
         """Pre-upload a HIP graph exec once, outside latency-critical replay."""
@@ -119,6 +127,15 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
         capture_inputs: Optional[Any] = None,
         post_warmup_hook: Optional[Callable[[], None]] = None,
     ) -> None:
+        if self._fixed_down_warmup:
+            from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import down_uniform_capture
+            from .dsv4_down_fixed_warmup import warmup_pair
+
+            warmup_pair(
+                shape_key, forward_fn, post_warmup_hook,
+                device=self._device_module, group=self._tp_group,
+                override=down_uniform_capture,
+            )
         capture = partial(
             self._capture_one_impl, shape_key, forward_fn,
             capture_inputs, post_warmup_hook,

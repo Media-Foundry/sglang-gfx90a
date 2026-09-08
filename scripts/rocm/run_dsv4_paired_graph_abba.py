@@ -14,6 +14,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--fixed-warmup-single', action='store_true',
+                        help='validate one fresh single-graph arm; no runtime arm switching')
     args = parser.parse_args()
     assert not args.output.exists()
     process = psutil.Process(args.pid)
@@ -21,11 +23,20 @@ def main():
     for key, value in {'--tp-size': '8', '--ep-size': '1', '--host': '127.0.0.1',
                        '--port': '30011', '--max-total-tokens': '1048576'}.items():
         assert cmd[cmd.index(key) + 1] == value
-    assert process.environ().get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS') == '1'
+    env = process.environ()
+    if args.fixed_warmup_single:
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS', '0') == '0'
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP') == '1'
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM') in ('0', '1')
+        arms = [env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM'] == '1']
+    else:
+        assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS') == '1'
+        arms = [True, False, False, True]
     reference = Path('/tmp/dsv4_runtime_m_c1_B_20260908.json')
     ref = {r['case']: r['output_ids'] for r in json.loads(reference.read_text())['measurements']
            if r['rep'] == 0}
-    record = dict(status='waiting_ready', pid=args.pid, blocks=[])
+    record = dict(status='waiting_ready', pid=args.pid, blocks=[],
+                  fixed_warmup_single=args.fixed_warmup_single)
     def save():
         args.output.write_text(json.dumps(record, indent=2) + '\n')
     def alive():
@@ -64,9 +75,10 @@ def main():
             time.sleep(5)
         else:
             raise TimeoutError('readiness observation timeout; inspect same PID')
-        for index, candidate in enumerate([True, False, False, True]):
+        for index, candidate in enumerate(arms):
             audit()
-            arm(candidate)
+            if not args.fixed_warmup_single:
+                arm(candidate)
             block = dict(index=index, candidate=candidate, status='correctness')
             record['blocks'].append(block)
             record['status'] = 'running'
@@ -94,8 +106,10 @@ def main():
             save()
             print('Completed same-process block', index, 'candidate', candidate, flush=True)
             time.sleep(2)
-        arm(False)
-        record.update(status='complete_pending_c32_hash_review', final_arm=False)
+        if not args.fixed_warmup_single:
+            arm(False)
+        record.update(status='complete_pending_c32_hash_review',
+                      final_arm=arms[-1] if args.fixed_warmup_single else False)
         save()
     except Exception as error:
         record.update(status='failed', error=repr(error))
