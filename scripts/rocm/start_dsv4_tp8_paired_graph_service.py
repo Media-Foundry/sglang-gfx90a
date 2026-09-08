@@ -26,10 +26,14 @@ def main():
                         help='single-graph startup with both modules warmed in baseline/candidate order')
     parser.add_argument('--attention-issue-order', type=int, choices=(0, 1, 2, 3),
                         help='explicit TP8 native diagnostic of existing HIP compressor issue order')
+    parser.add_argument('--ar-blocks', type=int, choices=(0,4,8,16),
+                        help='native M32 graph-only AR geometry; 0 retains library dispatch')
     args = parser.parse_args()
     assert not args.output.exists()
     fixed = args.fixed_warmup_arm is not None
     if args.attention_issue_order is not None:
+        assert fixed
+    if args.ar_blocks is not None:
         assert fixed
     if fixed:
         assert not args.restart_paired and not args.single_graph_candidate
@@ -68,7 +72,7 @@ def main():
                                   if args.single_graph_candidate or fixed else FLAG), kv_pool=1048576,
                   single_graph_candidate=args.single_graph_candidate,
                   fixed_warmup_arm=args.fixed_warmup_arm,
-                  attention_issue_order=args.attention_issue_order)
+                  attention_issue_order=args.attention_issue_order, ar_blocks=args.ar_blocks)
     # Preserve the exact baseline launch contract before stopping anything.
     # Environment may contain credentials: private file, never print/commit it.
     snapshot = args.output.with_suffix('.private-launch.json')
@@ -93,6 +97,8 @@ def main():
         env['SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP'] = '1'
     if args.attention_issue_order is not None:
         env['SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER'] = str(args.attention_issue_order)
+    if args.ar_blocks is not None:
+        env['SGLANG_DSV4_GFX90A_TP8_M32_AR_BLOCKS'] = str(args.ar_blocks)
     log_path = args.output.with_suffix('.service.log')
     with log_path.open('w') as log:
         proc = subprocess.Popen(['numactl', '--interleave=all', *cmd], cwd=cwd,

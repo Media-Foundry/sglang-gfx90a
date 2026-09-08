@@ -94,7 +94,7 @@ class SummaryTest(unittest.TestCase):
 
     def test_fixed_process_rejects_wrong_arm_or_reused_pid(self):
         for field, bad in [('pid', 100), ('final_arm', True), ('fixed_warmup_single', False),
-                           ('attention_issue_order', 3)]:
+                           ('attention_issue_order', 3), ('ar_blocks', 4)]:
             paths = self.fixed_states()
             data = json.loads(paths[1].read_text())
             data[field] = bad

@@ -37,7 +37,8 @@ def main():
            if r['rep'] == 0}
     record = dict(status='waiting_ready', pid=args.pid, blocks=[],
                   fixed_warmup_single=args.fixed_warmup_single,
-                  attention_issue_order=int(env.get('SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER', '0')))
+                  attention_issue_order=int(env.get('SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER', '0')),
+                  ar_blocks=int(env.get('SGLANG_DSV4_GFX90A_TP8_M32_AR_BLOCKS', '0')))
     def save():
         args.output.write_text(json.dumps(record, indent=2) + '\n')
     def alive():

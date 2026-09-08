@@ -24,6 +24,7 @@ def summarize_fixed_processes(paths):
     assert len(paths) == 4
     states = [json.loads(path.read_text()) for path in paths]
     assert len({s.get('attention_issue_order', 0) for s in states}) == 1, 'mixed attention issue order in down ABBA'
+    assert len({s.get('ar_blocks', 0) for s in states}) == 1, 'mixed AR geometry in down ABBA'
     pids = [s['pid'] for s in states]
     assert len(set(pids)) == 4
     blocks = []

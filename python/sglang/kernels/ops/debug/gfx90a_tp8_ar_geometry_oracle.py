@@ -1,4 +1,4 @@
-"""Isolated geometry oracle; never imported by production collective selection."""
+"""Geometry oracle, also reused by the explicit default-off native M32 trial."""
 from torch.utils.cpp_extension import include_paths
 from sglang.kernels.jit.utils import cache_once, load_jit
 

@@ -1450,6 +1450,8 @@ class Envs:
     SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM = EnvBool(False)
     # Exact-shape native decode AIter old/new collective A/B; no extra buffers.
     SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR = EnvBool(False)
+    # Graph-only native TP8 M32 experiment; 0 preserves the existing library.
+    SGLANG_DSV4_GFX90A_TP8_M32_AR_BLOCKS = EnvInt(0)
     SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH = EnvBool(False)
     SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM = EnvBool(False)
     # Diagnostic only: same-process M32 A/B with a separate, budgeted graph pool.
