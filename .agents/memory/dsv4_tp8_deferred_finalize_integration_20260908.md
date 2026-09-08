@@ -44,3 +44,39 @@ Next: inspect controller state/live PID, let ABBA finish, summarize same-run arm
 check both candidate process hit counts/pool logs, and restore default-off baseline
 if rejected. A completed controller leaves the last candidate active; do not
 mistake the last A for baseline. No new E2E speed checkpoint yet.
+
+## First complete ABBA (881ce9d213)
+
+Controller 8074 exited successfully. All four blocks complete; companion
+`dsv4_tp8_deferred_finalize_abba_20260908.json` retains raw warmup/measured wave
+timings, C1 samples, checksums of full output-ID artifacts and validated summary.
+
+| Block | Candidate | C1 tok/s | C32 HTTP warm | C32 resident warm |
+|---|---|---:|---:|---:|
+| 0 | on | 83.81357 | 984.70278 | 1030.68183 |
+| 1 | off | 83.90572 | 983.04307 | 1028.15556 |
+| 2 | off | 83.87244 | 983.00266 | 1028.49324 |
+| 3 | on | 83.54728 | 983.86455 | 1029.20486 |
+
+Geomean of block medians: HTTP 983.02286 -> 984.28357 (+0.12825%);
+resident 1028.32438 -> 1029.94308 (+0.15741%). Both candidate blocks exceed both
+baseline blocks, but there is no confidence interval and process drift is visible.
+C1 83.88908 -> 83.68032 (-0.24885%); C1 is selector-excluded, so this observation
+does not establish a causal C1 kernel regression (nor prove no system effect).
+
+- 24 C1 measured sequences match historical reference; all six fixed-prefix
+  prefill probes per block match this run's first block including logprob fields.
+- France C32 answer-through-EOS prefix exact 32/32 for all four blocks.
+- 768 code requests have validated 256 completion IDs, finish=length and hashes.
+  Cross-round exact requests are 8/8/6/9 of32: full C32 determinism is NOT proven.
+- Last candidate PID3365803: 344 actual selector hits, TP0 graph 0.65GB and
+  available15.64GB, max_total_num_tokens1048576; same coarse logged allocation
+  as first candidate and baseline. No loss of configured KV capacity.
+
+Decision: retain default-off; small positive result merits repeat, not promotion
+yet. Second ABBA starts from live candidate3365803 with four C1 rounds/block,
+same six C32 waves/manifest and same flags. State:
+`/tmp/dsv4_tp8_deferred_finalize_repeat_abba_20260908.json`, controller session4134.
+It is still running at this record; inspect live state before acting. No restart
+on observation timeout. The completed first run's candidate has not yet been
+restored because it is the first arm of this explicit repeat.
