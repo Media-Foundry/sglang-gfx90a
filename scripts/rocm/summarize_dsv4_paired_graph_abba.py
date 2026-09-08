@@ -16,6 +16,32 @@ def geomean(values):
 
 def summarize(path):
     state = json.loads(path.read_text())
+    return summarize_state(state)
+
+
+def summarize_fixed_processes(paths):
+    """Four independently validated single-graph launches, never same-process."""
+    assert len(paths) == 4
+    states = [json.loads(path.read_text()) for path in paths]
+    pids = [s['pid'] for s in states]
+    assert len(set(pids)) == 4
+    blocks = []
+    for index, (state, candidate) in enumerate(zip(states, (True, False, False, True))):
+        assert state['fixed_warmup_single'] is True
+        assert state['status'] == 'complete_pending_c32_hash_review'
+        assert state['final_arm'] is candidate
+        assert len(state['blocks']) == 1
+        block = state['blocks'][0]
+        assert block['index'] == 0 and block['candidate'] is candidate
+        blocks.append(dict(block, index=index))
+    result = summarize_state(dict(status='complete_pending_c32_hash_review',
+                                  final_arm=False, blocks=blocks, pid=None))
+    result.update(mode='fresh-process fixed-first-use ABBA', pids=pids,
+                  state_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths})
+    return result
+
+
+def summarize_state(state):
     assert state['status'] == 'complete_pending_c32_hash_review'
     assert state['final_arm'] is False
     blocks = state['blocks']
@@ -86,10 +112,13 @@ def summarize(path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('state', type=Path)
+    parser.add_argument('state', type=Path, nargs='?')
+    parser.add_argument('--fixed-process-states', nargs=4, type=Path)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    result = summarize(args.state)
+    assert (args.state is None) != (args.fixed_process_states is None)
+    result = (summarize_fixed_processes(args.fixed_process_states)
+              if args.fixed_process_states is not None else summarize(args.state))
     assert not args.output.exists()
     args.output.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result['metrics'], indent=2))

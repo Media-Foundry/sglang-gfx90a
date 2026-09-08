@@ -104,7 +104,8 @@ def main():
                  '--save-output-ids'], c32)
             block.update(c32=str(c32), status='complete')
             save()
-            print('Completed same-process block', index, 'candidate', candidate, flush=True)
+            label = 'fixed-warmup single-process arm' if args.fixed_warmup_single else 'same-process block'
+            print('Completed', label, index, 'candidate', candidate, flush=True)
             time.sleep(2)
         if not args.fixed_warmup_single:
             arm(False)

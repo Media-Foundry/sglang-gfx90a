@@ -1,0 +1,85 @@
+{
+  "pid": null,
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "c1_trimmed": 84.18316169213634,
+      "http_warm": 990.1398332769456,
+      "resident_warm": 1036.124244390715,
+      "c32_cross_round_exact": 10
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "c1_trimmed": 83.8584181102288,
+      "http_warm": 985.101550820877,
+      "resident_warm": 1031.276554194493,
+      "c32_cross_round_exact": 10
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "c1_trimmed": 83.26888809734871,
+      "http_warm": 980.5113742340287,
+      "resident_warm": 1027.020153310306,
+      "c32_cross_round_exact": 3
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "c1_trimmed": 83.41335949261268,
+      "http_warm": 986.4869470581657,
+      "resident_warm": 1034.4276396217676,
+      "c32_cross_round_exact": 6
+    }
+  ],
+  "metrics": {
+    "c1_trimmed": {
+      "control": 83.56313322058551,
+      "candidate": 83.7973766263056,
+      "delta_pct": 0.2803190793501553
+    },
+    "http_warm": {
+      "control": 982.803782733589,
+      "candidate": 988.3117024957543,
+      "delta_pct": 0.5604292391758525
+    },
+    "resident_warm": {
+      "control": 1029.146153271804,
+      "candidate": 1035.2755944578114,
+      "delta_pct": 0.595585103876739
+    }
+  },
+  "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+  "artifact_sha256": {
+    "/tmp/dsv4_tp8_down_fixed_warmup_A1_retry_validation_20260908.block0.c1.json": "ad5d507283261f88a122bcfa0f77257180829d2faf8da53de3930369ac86c608",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A1_retry_validation_20260908.block0.c32.json": "a71243ef47be19a65d8de71b0fd93c93fde68e0d82a907d895c4dbad55927c7e",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A1_retry_validation_20260908.block0.france.json": "88d06a102f75e87060464b75107ddb8f5ece992ec02154d71bcb63a2f2a2776f",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B1_validation_20260908.block0.c1.json": "7f013485423ae7713bb73fafee8928ef9bb4f6847d1104ae2ec5f26e19be307c",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B1_validation_20260908.block0.c32.json": "5591d96eebae646aec883d8769dc4f97718c3c6f5baa6d553ce13aa23dca53e7",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B1_validation_20260908.block0.france.json": "76c7550af5a4835a22f3568b641c125c1dcc4c99a261ea8199ce71500aca3ffe",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B2_validation_20260908.block0.c1.json": "85fa4ccc1d1de23d1f6584627d0f61a14d4f9177ab822517776a2b8a6e263551",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B2_validation_20260908.block0.c32.json": "e9d51cf5b392fa3576351bad8d4a6b00dbdffc210078d778b4f267214f6e6559",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B2_validation_20260908.block0.france.json": "23d466f7592c34b7b106d1b736466fbecbea118e0226d2953e3a90e5228d4acb",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A2_validation_20260908.block0.c1.json": "733a243f5b6123e74b390e30e1f7f4c3150832920665d9cb79c7c811c29ed52b",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A2_validation_20260908.block0.c32.json": "6ebae48bedea1b9a345b173935821b78fa540fa74ffa6cfb40ca939db78f1031",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A2_validation_20260908.block0.france.json": "fcb08900f0b1b15d940b2e7dab53bd87a4177a2cb19d837ce6291a7a0575ae83"
+  },
+  "c1_cross_arm_completion_exact": 48,
+  "c32_completion_length_finish_hash_valid": 768,
+  "caveat": "C32 hash integrity and France prefix are not proof of full semantic or bitwise parity",
+  "mode": "fresh-process fixed-first-use ABBA",
+  "pids": [
+    3564536,
+    3573304,
+    3581829,
+    3589516
+  ],
+  "state_sha256": {
+    "/tmp/dsv4_tp8_down_fixed_warmup_A1_retry_validation_20260908.json": "621f3aa832804994d575b10506a6b797f1a56578ddb25735173715be0fc84a6b",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B1_validation_20260908.json": "452433037fdbfdea8106339039d8e1c85c6c96eb1bc75acfbe516b182f153540",
+    "/tmp/dsv4_tp8_down_fixed_warmup_B2_validation_20260908.json": "5bdac74aacd6212c1715e84b19b2b60012e3c538212ca55ec0a45761a14d8ca7",
+    "/tmp/dsv4_tp8_down_fixed_warmup_A2_validation_20260908.json": "1b55483e8c49e678f64880f332fd562d1b000df95104edc003f801dad2a9a7f1"
+  }
+}

@@ -7,7 +7,7 @@ import struct
 import tempfile
 import unittest
 
-from summarize_dsv4_paired_graph_abba import summarize
+from summarize_dsv4_paired_graph_abba import summarize, summarize_fixed_processes
 
 
 class SummaryTest(unittest.TestCase):
@@ -72,6 +72,34 @@ class SummaryTest(unittest.TestCase):
         file.write_text(json.dumps(data))
         with self.assertRaises(AssertionError):
             summarize(self.state)
+
+    def fixed_states(self):
+        original = json.loads(self.state.read_text())
+        paths = []
+        for i, block in enumerate(original['blocks']):
+            path = self.state.parent / f'process{i}.json'
+            path.write_text(json.dumps(dict(
+                status=original['status'], pid=100 + i, fixed_warmup_single=True,
+                final_arm=block['candidate'], blocks=[dict(block, index=0)],
+            )))
+            paths.append(path)
+        return paths
+
+    def test_fixed_process_delta_and_identity(self):
+        result = summarize_fixed_processes(self.fixed_states())
+        self.assertIsNone(result['pid'])
+        self.assertEqual(result['pids'], [100, 101, 102, 103])
+        for values in result['metrics'].values():
+            self.assertAlmostEqual(values['delta_pct'], 1)
+
+    def test_fixed_process_rejects_wrong_arm_or_reused_pid(self):
+        for field, bad in [('pid', 100), ('final_arm', True), ('fixed_warmup_single', False)]:
+            paths = self.fixed_states()
+            data = json.loads(paths[1].read_text())
+            data[field] = bad
+            paths[1].write_text(json.dumps(data))
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                summarize_fixed_processes(paths)
 
 
 if __name__ == '__main__':
