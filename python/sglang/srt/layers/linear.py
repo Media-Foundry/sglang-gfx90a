@@ -1643,6 +1643,16 @@ class RowParallelLinear(LinearBase):
                     self, input_parallel, output_tensor, bias=bias_
                 )
 
+        # Opt-in DSV4 output-stage diagnostic. Keep the original collective
+        # path intact instead of emulating it outside RowParallelLinear.
+        output_trace = getattr(self, "_gfx90a_output_realtime_trace", None)
+        if output_trace is not None:
+            from sglang.kernels.ops.debug.gfx90a_realtime_marker import (
+                gfx90a_realtime_marker,
+            )
+
+            gfx90a_realtime_marker(output_trace, 31)
+
         # skip_all_reduce: explicit call-site override. Also honor
         # ForwardFlags (fuse_mlp_allreduce / mlp_reduce_scatter) published by
         # the decoder — callers should not thread those flags into modules.

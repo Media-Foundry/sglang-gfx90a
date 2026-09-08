@@ -2140,6 +2140,8 @@ class MQALayer(MqaAttentionBase):
                 inverse=True,
             )
         dump_attn("attn_inverse_rope", o)
+        # Slots25/26 belong to MoE prefetch; output detail uses28..31.
+        mark(29)
 
         o = o.view(o.shape[0], self.n_local_groups, -1)
 
@@ -2219,6 +2221,7 @@ class MQALayer(MqaAttentionBase):
                 else torch.einsum("tgd,grd->tgr", o, wo_a)
             )
         dump_attn("wo_a", o)
+        mark(30)
 
         if tp8_hidden_shard_output:
             if self.attn_tp_size != 8 or get_tp_group().world_size != 8:
@@ -2245,6 +2248,7 @@ class MQALayer(MqaAttentionBase):
         else:
             o, _ = self.wo_b(o.flatten(1))
         dump_attn("wo_b", o)
+        mark(28)
         if self.attn_tp_size > 1 and self.attn_tp_size < get_parallel().tp_size:
             o = attn_tp_all_reduce(o)
 
@@ -2442,6 +2446,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                 persistent=False,
             )
             self.self_attn._gfx90a_realtime_trace = self._gfx90a_realtime_trace
+            self.self_attn.wo_b._gfx90a_output_realtime_trace = self._gfx90a_realtime_trace
             self.mlp._gfx90a_realtime_trace = self._gfx90a_realtime_trace
         else:
             self._gfx90a_realtime_trace = None

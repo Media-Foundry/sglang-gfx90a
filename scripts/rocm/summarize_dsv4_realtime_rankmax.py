@@ -17,6 +17,8 @@ def main():
     p.add_argument('--start-line', type=int, default=1)
     p.add_argument('--stop-line', type=int)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--output-detail', action='store_true',
+                   help='Require slots28..31 for output-stage breakdown')
     a = p.parse_args()
     pattern = re.compile(r'gfx90a realtime layer trace: rank=(\d+) ticks=(\[.*?\]).* replay=(\d+)')
     samples = {}
@@ -35,7 +37,18 @@ def main():
              'ffn_mhc_norm':(5,6), 'moe_collective':(6,7),
              'moe_16_17':(16,17), 'moe_17_18':(17,18),
              'moe_18_19':(18,19), 'moe_23_24':(23,24)}
+    if a.output_detail:
+        spans.update({'inverse_rope':(4,29), 'wo_a':(29,30),
+                      'wo_b_matmul':(30,31), 'wo_b_collective':(31,28),
+                      'output_tail':(28,5)})
     complete = {r:v for r,v in samples.items() if set(v)==set(range(8))}
+    if a.output_detail:
+        assert complete, 'no complete eight-rank samples'
+        order = [4,29,30,31,28,5]
+        assert all(all(t[i] > 0 for i in order) and
+                   all(t[hi] >= t[lo] for lo,hi in zip(order,order[1:]))
+                   for ranks in complete.values() for t in ranks.values()), (
+            'missing or nonmonotonic output-stage markers')
     stats = {}
     for name,(lo,hi) in spans.items():
         values = [max((t[hi]-t[lo])*.04 for t in ranks.values())
