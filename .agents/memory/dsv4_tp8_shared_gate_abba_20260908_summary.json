@@ -1,0 +1,91 @@
+{
+  "state": "/tmp/dsv4_tp8_shared_gate_abba_20260908.json",
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "service_pid": 3047323,
+      "c1_tok_s": 83.9658086820398,
+      "c32_warm_tok_s": 982.2615514751186,
+      "resident_warm_tok_s": 1028.7507596967578,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 6,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "service_pid": 3056528,
+      "c1_tok_s": 84.25399352921931,
+      "c32_warm_tok_s": 981.735234324183,
+      "resident_warm_tok_s": 1027.190863353998,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 6,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "service_pid": 3056528,
+      "c1_tok_s": 84.13351904655647,
+      "c32_warm_tok_s": 982.5177955679895,
+      "resident_warm_tok_s": 1027.7369909705756,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 8,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "service_pid": 3064969,
+      "c1_tok_s": 84.02666746958535,
+      "c32_warm_tok_s": 981.1867702604685,
+      "resident_warm_tok_s": 1027.1810348198737,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 6,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    }
+  ],
+  "comparison": {
+    "c1_tok_s": {
+      "candidate": 83.99623256397032,
+      "baseline": 84.19373473922518,
+      "change_percent": -0.23458060848182694
+    },
+    "c32_warm_tok_s": {
+      "candidate": 981.7240137853961,
+      "baseline": 982.1264370027008,
+      "change_percent": -0.04097468535037008
+    },
+    "resident_warm_tok_s": {
+      "candidate": 1027.9655976330364,
+      "baseline": 1027.4638908769039,
+      "change_percent": 0.04882962414418657
+    }
+  },
+  "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+}
