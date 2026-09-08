@@ -1450,6 +1450,7 @@ class Envs:
     SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM = EnvBool(False)
     # Exact-shape native decode AIter old/new collective A/B; no extra buffers.
     SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR = EnvBool(False)
+    SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH = EnvBool(False)
     # Fuse the M=1 C4 wqkv_a, core-compressor and indexer-compressor BF16
     # projections into one mixed-output wave64 launch.
     SGLANG_DSV4_GFX90A_FUSED_ATTN_PREP_GEMV = EnvBool(False)

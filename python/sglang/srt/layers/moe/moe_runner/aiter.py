@@ -799,6 +799,29 @@ class AiterRunnerCore(MoeRunnerCore):
                     )
                     or use_dspark_m51_specialization
                 )
+                if envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get():
+                    from sglang.srt.distributed import get_tensor_model_parallel_world_size
+                    from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import native_m32_active
+
+                    use_tp8_gate_prefetch = (
+                        native_m32_active()
+                        and get_tensor_model_parallel_world_size() == 8
+                        and _is_runtime_gfx90a()
+                        and runner_input.hidden_states.shape == (32, 4096)
+                        and runner_input.topk_ids.shape == (32, 6)
+                        and quant_info.w13_weight.shape == (256, 512, 2048)
+                        and quant_info.w2_weight.shape == (256, 4096, 128)
+                        and grouped_assignments == 4
+                        and grouped_gate_rows == 2
+                        and gate_blocks == 832
+                        and use_lds_unpack
+                        and not use_mfma32_prefill
+                    )
+                    if use_tp8_gate_prefetch:
+                        use_gate_row_prefetch = True
+                        if not getattr(self, '_tp8_gate_prefetch_logged', False):
+                            logger.info('DSV4 native TP8 M32 I256 gate row-prefetch selected')
+                            self._tp8_gate_prefetch_logged = True
                 if use_mfma32_prefill:
                     intermediate = gfx90a_fp4_expert_gate_up_mfma32(
                         gate_prequant[0],

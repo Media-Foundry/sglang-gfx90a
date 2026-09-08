@@ -1,0 +1,129 @@
+{
+  "status": "complete",
+  "arms": [
+    {
+      "arm": "GPA1",
+      "flag": "0",
+      "parent": 2799724,
+      "server_log": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA1_server.log",
+      "diagnostic_trace_layer": null,
+      "c1_start_line": 1436,
+      "c1": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA1_c1.json",
+      "c1_medians": {
+        "diverse-03": 84.16742151111066,
+        "diverse-15": 84.00755955354019,
+        "diverse-31": 84.02181371801976
+      },
+      "c1_stop_line": 2381,
+      "c32_start_line": 2382,
+      "c32_stop_line": 3889,
+      "c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA1_c32.json",
+      "e2e_tok_s": 970.6427851559854,
+      "decode_tok_s": 1016.7661418198156,
+      "transitions": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA1_transitions.json",
+      "france_c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA1_france_c32.json",
+      "france32_exact": 32,
+      "transition_exact": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    {
+      "arm": "GPB1",
+      "flag": "1",
+      "parent": 2807120,
+      "server_log": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB1_server.log",
+      "diagnostic_trace_layer": null,
+      "c1_start_line": 1781,
+      "c1": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB1_c1.json",
+      "c1_medians": {
+        "diverse-03": 84.24274250356308,
+        "diverse-15": 84.1567853767817,
+        "diverse-31": 84.08074466384281
+      },
+      "c1_stop_line": 2726,
+      "c32_start_line": 2727,
+      "c32_stop_line": 3978,
+      "c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB1_c32.json",
+      "e2e_tok_s": 980.9196703280438,
+      "decode_tok_s": 1027.228071125973,
+      "transitions": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB1_transitions.json",
+      "france_c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB1_france_c32.json",
+      "france32_exact": 32,
+      "transition_exact": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    {
+      "arm": "GPB2",
+      "flag": "1",
+      "parent": 2814415,
+      "server_log": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB2_server.log",
+      "diagnostic_trace_layer": null,
+      "c1_start_line": 1780,
+      "c1": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB2_c1.json",
+      "c1_medians": {
+        "diverse-03": 84.08484157459479,
+        "diverse-15": 84.2130752694958,
+        "diverse-31": 84.19932280657791
+      },
+      "c1_stop_line": 2725,
+      "c32_start_line": 2726,
+      "c32_stop_line": 4489,
+      "c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB2_c32.json",
+      "e2e_tok_s": 979.9511591404762,
+      "decode_tok_s": 1025.5370496850442,
+      "transitions": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB2_transitions.json",
+      "france_c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPB2_france_c32.json",
+      "france32_exact": 32,
+      "transition_exact": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    {
+      "arm": "GPA2",
+      "flag": "0",
+      "parent": 2821603,
+      "server_log": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA2_server.log",
+      "diagnostic_trace_layer": null,
+      "c1_start_line": 1436,
+      "c1": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA2_c1.json",
+      "c1_medians": {
+        "diverse-03": 83.74480712549658,
+        "diverse-15": 83.61033717625463,
+        "diverse-31": 83.68962119427121
+      },
+      "c1_stop_line": 2381,
+      "c32_start_line": 2382,
+      "c32_stop_line": 3377,
+      "c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA2_c32.json",
+      "e2e_tok_s": 974.0552490988014,
+      "decode_tok_s": 1019.7992987807002,
+      "transitions": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA2_transitions.json",
+      "france_c32": "/tmp/dsv4_tp8_gate_prefetch_abba_20260908_GPA2_france_c32.json",
+      "france32_exact": 32,
+      "transition_exact": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    }
+  ],
+  "parent": 2821603,
+  "switch": "SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH",
+  "e2e_tok_s_comparison": {
+    "A": 972.3490171273934,
+    "B": 980.43541473426,
+    "gain_percent": 0.83163529395609
+  },
+  "decode_tok_s_comparison": {
+    "A": 1018.2827203002579,
+    "B": 1026.3825604055087,
+    "gain_percent": 0.79544118188144
+  }
+}

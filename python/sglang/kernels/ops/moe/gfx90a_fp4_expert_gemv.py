@@ -668,10 +668,11 @@ def gfx90a_fp4_expert_gate_up_grouped(
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
     if use_row_prefetch:
         assert e == 256 and m in (32, 51, 64)
-        assert (topk, i, k) == (6, 512, 4096)
+        tp8_m32 = (m, topk, i, k, blocks) == (32, 6, 256, 4096, 832)
+        assert tp8_m32 or (topk, i, k) == (6, 512, 4096)
         assert (assignments, rows, waves, weight_mode) == (4, 2, 8, 2)
         assert (
-            (m == 51 and blocks == 1664)
+            tp8_m32 or (m == 51 and blocks == 1664)
             or (m in (32, 64) and blocks == 2080)
         )
     elif use_dpp_reduction:

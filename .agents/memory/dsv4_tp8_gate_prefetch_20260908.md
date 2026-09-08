@@ -42,3 +42,48 @@ Artifacts:
 /tmp/dsv4_tp8_gate_prefetch_screen_20260908.log
 /tmp/dsv4_tp8_gate_prefetch_full_20260908.log
 Script: scripts/rocm/bench_dsv4_tp8_gate_prefetch_screen.py (--full for chain).
+
+## Default-off service experiment started (pending)
+
+SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH uses the DSV4 forward scope for
+native/decode/batch32/gfx90a gating. AR and gate flags are independent: gate-only
+scope cannot enable legacy AR. AIter additionally checks TP8, exact hidden,
+topk and both weight shapes, A4/R2/G832/LDS, no MFMA prefill. Public row-prefetch
+wrapper adds only M32/I256/G832 to existing accepted shapes; DPP-only guard and
+TP4 down paths unchanged. Existing same HIP template, no new buffers.
+
+Eight CPU tests pass, including actual selector Cartesian cases, scope cleanup
+and gate-only/AR independence. Service ABBA now running in exec76271:
+prefix /tmp/dsv4_tp8_gate_prefetch_abba_20260908
+arms GPA1:0 GPB1:1 GPB2:1 GPA2:0, --france-c32 on every arm.
+Each: C1 probes, six32-distinct-code waves,12transition probes,32France sentinels
+(correctness only). C4 overlap and legacy AR retained in all arms. Pool131072,
+mem0.80, original weights. amd-smi showed no external GPU PIDs. Final control
+left active; do not promote until E2E and all correctness gates pass.
+
+## Service ABBA complete
+
+|Arm|E2E tok/s|Resident decode tok/s|
+|---|---:|---:|
+|GPA1 off|970.64279|1016.76614|
+|GPB1 on|980.91967|1027.22807|
+|GPB2 on|979.95116|1025.53705|
+|GPA2 off|974.05525|1019.79930|
+
+Mean of service medians: E2E972.34902->980.43541 (+~0.83%), resident
+1018.28272->1026.38256 (+~0.80%). Both B services exceed both A services.
+C1 controls~83.61–84.17, candidates~84.08–84.24tok/s; no observed C1 regression,
+but do not claim a C1 speedup from a selector which excludes C1.
+
+All four arms: France C32 32/32 through EOS exact (128/128 total), twelve
+post-C32 fixed-prefix checks exact (48/48 total IDs/input-logprobs/top20-logprobs),
+C1 measured full completion hashes and initial fixed-prefix probes match
+reference. Full diverse C32 completion bitwise parity remains unproven and is
+not implied by these bounded checks. Candidate logs344hits=43layers x8ranks;
+graph capture and request transitions succeeded. Graph0.62GB/GCD, available
+28.57–28.63GB, pool131072 unchanged. No persistent weight cache added.
+
+Retain default-off TP8 M32 option as a small validated E2E gain; no TP4,
+prefill, speculative or C1 selector expansion. Final service is control/off,
+PID2821603. Legacy AR and C4 overlap remain enabled as in every arm. Full
+ABBA results and micro samples are in adjacent JSONs. Broader goal stays active.

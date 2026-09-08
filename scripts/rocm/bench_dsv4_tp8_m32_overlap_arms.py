@@ -22,7 +22,8 @@ def main():
     p.add_argument('--switch', default='SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM',
                    choices=['SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM',
                             'SGLANG_DSV4_GFX90A_FUSED_ATTN_PREP_GEMV',
-                            'SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR'])
+                            'SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR',
+                            'SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH'])
     p.add_argument('--prefix', type=Path, required=True)
     p.add_argument('--reference', type=Path, required=True)
     p.add_argument('--inputs', type=Path, required=True)
