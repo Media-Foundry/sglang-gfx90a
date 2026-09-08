@@ -1,0 +1,950 @@
+{
+  "summary": {
+    "state": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908.json",
+    "candidate_flag": "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM",
+    "blocks": [
+      {
+        "index": 0,
+        "candidate": true,
+        "service_pid": 3441083,
+        "c1_tok_s": 83.19365293054021,
+        "c1_trimmed_tok_s": 83.19365293054021,
+        "c1_case_samples": {
+          "diverse-03": [
+            83.27233027847163,
+            83.15761412165942,
+            83.14721562590005,
+            83.35791585952597
+          ],
+          "diverse-15": [
+            83.08437177163484,
+            82.76420316263203,
+            83.22430499705183,
+            83.13420480313489
+          ],
+          "diverse-31": [
+            83.20787560221035,
+            83.19088197287608,
+            83.30565993633572,
+            83.31245461295272
+          ]
+        },
+        "c32_warm_tok_s": 988.5745693217366,
+        "resident_warm_tok_s": 1035.2041044824914,
+        "c1_ids_exact": 12,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 5,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 1,
+        "candidate": false,
+        "service_pid": 3449939,
+        "c1_tok_s": 84.31887948500739,
+        "c1_trimmed_tok_s": 84.31887948500739,
+        "c1_case_samples": {
+          "diverse-03": [
+            84.30557927568911,
+            84.39294619372585,
+            84.42324907585558,
+            83.84920775037851
+          ],
+          "diverse-15": [
+            84.35811586236426,
+            84.29008520408688,
+            84.41985311653212,
+            84.35828748682594
+          ],
+          "diverse-31": [
+            84.15428877181022,
+            84.38633911945354,
+            84.33712132968458,
+            84.16131362419993
+          ]
+        },
+        "c32_warm_tok_s": 985.136719318302,
+        "resident_warm_tok_s": 1030.5667966626158,
+        "c1_ids_exact": 12,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 6,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 2,
+        "candidate": false,
+        "service_pid": 3449939,
+        "c1_tok_s": 84.17782553184743,
+        "c1_trimmed_tok_s": 84.17782553184743,
+        "c1_case_samples": {
+          "diverse-03": [
+            84.28373125429688,
+            84.32343345094948,
+            84.32073134939512,
+            84.35942286200817
+          ],
+          "diverse-15": [
+            83.37355493935695,
+            83.73265241793337,
+            84.11331724725738,
+            83.99118733707925
+          ],
+          "diverse-31": [
+            84.22458982801913,
+            84.39341325378108,
+            84.474930095847,
+            84.30732401890408
+          ]
+        },
+        "c32_warm_tok_s": 983.9767820242218,
+        "resident_warm_tok_s": 1030.4496123796139,
+        "c1_ids_exact": 12,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 8,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      },
+      {
+        "index": 3,
+        "candidate": true,
+        "service_pid": 3459680,
+        "c1_tok_s": 83.5694298425193,
+        "c1_trimmed_tok_s": 83.5694298425193,
+        "c1_case_samples": {
+          "diverse-03": [
+            83.28978928605157,
+            83.22387478357358,
+            83.61709931055607,
+            83.66288639949074
+          ],
+          "diverse-15": [
+            83.58560737569313,
+            83.66219370290133,
+            83.55315979189993,
+            83.67997821417129
+          ],
+          "diverse-31": [
+            83.64149173217666,
+            83.58282239994614,
+            83.62914866009481,
+            83.6329827699171
+          ]
+        },
+        "c32_warm_tok_s": 990.3854010323832,
+        "resident_warm_tok_s": 1037.1832605217671,
+        "c1_ids_exact": 12,
+        "teacher_forced_exact": {
+          "output_ids": 6,
+          "input_token_logprobs": 6,
+          "output_top_logprobs": 6
+        },
+        "c32_cross_round_exact": 6,
+        "c32_requests_validated": 192,
+        "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+      }
+    ],
+    "comparison": {
+      "c1_tok_s": {
+        "candidate": 83.3813296962916,
+        "baseline": 84.24832298823415,
+        "change_percent": -1.0290926408869083
+      },
+      "c1_trimmed_tok_s": {
+        "candidate": 83.3813296962916,
+        "baseline": 84.24832298823415,
+        "change_percent": -1.0290926408869083
+      },
+      "c32_warm_tok_s": {
+        "candidate": 989.4795709301548,
+        "baseline": 984.5565798514177,
+        "change_percent": 0.5000211444912583
+      },
+      "resident_warm_tok_s": {
+        "candidate": 1036.1932099722842,
+        "baseline": 1030.508202855413,
+        "change_percent": 0.5516702439746446
+      }
+    },
+    "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+  },
+  "raw_rates_and_artifacts": [
+    {
+      "index": 0,
+      "candidate": true,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.280629404005595,
+          "aggregate_tok_s": 989.2967793048773,
+          "resident_bs32_wall_s": 7.852321055019274,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.2353072476412
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.286678875039797,
+          "aggregate_tok_s": 988.5745693217366,
+          "resident_bs32_wall_s": 7.852843824017327,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.1663909497436
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.279221591015812,
+          "aggregate_tok_s": 989.4650010200886,
+          "resident_bs32_wall_s": 7.851931261946447,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.2866993877465
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.292210184969008,
+          "aggregate_tok_s": 987.9151417132847,
+          "resident_bs32_wall_s": 7.852557736972813,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.2041044824914
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.293662225012667,
+          "aggregate_tok_s": 987.7421792382542,
+          "resident_bs32_wall_s": 7.851565885997843,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.3348768934006
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.281423867039848,
+          "aggregate_tok_s": 989.2018729537856,
+          "resident_bs32_wall_s": 7.855756130011287,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1034.782631419125
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_0_c1.json",
+          "sha256": "dce212fed362290fa1499ba7bebbe021bbc990e2141831938cc1ce7ad371e0be"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_0_c32.json",
+          "sha256": "d85d918918435b9f7d9d1f3ad7993102e547c56af3086f634a3aec3b794a1d80"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_0_france_c32.json",
+          "sha256": "0d4164c0f6a5da69be79445a6d0b7fc99173ee0421a80a232475fbab13f0525b"
+        }
+      }
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.320747249003034,
+          "aggregate_tok_s": 984.5269607223726,
+          "resident_bs32_wall_s": 7.890042809012812,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.2859181846552
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.330929104005918,
+          "aggregate_tok_s": 983.3236962802728,
+          "resident_bs32_wall_s": 7.893107677984517,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.885861391887
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.30932262603892,
+          "aggregate_tok_s": 985.8806028699299,
+          "resident_bs32_wall_s": 7.883629652962554,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1031.1240326903533
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.312745456001721,
+          "aggregate_tok_s": 985.4746597690485,
+          "resident_bs32_wall_s": 7.88528116903035,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.908071094137
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.315597053035162,
+          "aggregate_tok_s": 985.136719318302,
+          "resident_bs32_wall_s": 7.88789239700418,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.5667966626158
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.31964727200102,
+          "aggregate_tok_s": 984.6571293436195,
+          "resident_bs32_wall_s": 7.891200640995521,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.1347500618713
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_1_c1.json",
+          "sha256": "be6e9a432cf8dbb5d89fc2d9b6fdf79c8484ee6e4c63be37be020f2c17628406"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_1_c32.json",
+          "sha256": "bb4a2c917e8a3e767f585b11ed12b9989d6b7530013fbda2d19a3d5b73613a2f"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_1_france_c32.json",
+          "sha256": "e74cbec5e5a0d0bbff358e333b49af232ca923bd7a10b3140d4a3652d94a2c54"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.313926553993952,
+          "aggregate_tok_s": 985.3346606802319,
+          "resident_bs32_wall_s": 7.882942591968458,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1031.2139033312558
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.325399694032967,
+          "aggregate_tok_s": 983.9767820242218,
+          "resident_bs32_wall_s": 7.884058093011845,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1031.0679987512094
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.314481174049433,
+          "aggregate_tok_s": 985.268933624901,
+          "resident_bs32_wall_s": 7.88878942001611,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.4496123796139
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.313105670036748,
+          "aggregate_tok_s": 985.4319583025085,
+          "resident_bs32_wall_s": 7.8833793079829775,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1031.1567771156588
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.328540640999563,
+          "aggregate_tok_s": 983.6056943364839,
+          "resident_bs32_wall_s": 7.889280009025242,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1030.3855346369403
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.329166087962221,
+          "aggregate_tok_s": 983.5318342180184,
+          "resident_bs32_wall_s": 7.892331812006887,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1029.987105665408
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_2_c1.json",
+          "sha256": "60ac7568cbca4163f37bb1e53d598558d6f08c6324f51267cc8e4acbdbbc5e5a"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_2_c32.json",
+          "sha256": "08703fe6997feb5f86f52ef65a3ecbcc43a8fa510fb2359d3efa6aa1fdbb5a86"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_2_france_c32.json",
+          "sha256": "00a62a3551c10a0cba72c861e045ede788136b4f62535a49a437451be834c04b"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.286470633000135,
+          "aggregate_tok_s": 988.5994125624588,
+          "resident_bs32_wall_s": 7.847402032988612,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1035.8842284143998
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.26443083601771,
+          "aggregate_tok_s": 991.2358349346886,
+          "resident_bs32_wall_s": 7.8344377760076895,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.5983870718053
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.283948012045585,
+          "aggregate_tok_s": 988.900460032839,
+          "resident_bs32_wall_s": 7.838211391004734,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.0988474907656
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.271527418983169,
+          "aggregate_tok_s": 990.3854010323832,
+          "resident_bs32_wall_s": 7.837573464028537,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.1832605217671
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.280025919957552,
+          "aggregate_tok_s": 989.3688835266347,
+          "resident_bs32_wall_s": 7.8360489789629355,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.3850421077684
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.266674859041814,
+          "aggregate_tok_s": 990.9667598744207,
+          "resident_bs32_wall_s": 7.838300481031183,
+          "resident_bs32_tokens": 8129,
+          "resident_bs32_tok_s": 1037.0870598380752
+        }
+      ],
+      "artifacts": {
+        "c1": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_3_c1.json",
+          "sha256": "2a171b5079db22d8c6d6bf1a9e0f2d1de43c2cc9992823e5a86dbb50a2cbd3fd"
+        },
+        "c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_3_c32.json",
+          "sha256": "57d5231aaaa1e66f3ebd383a7052e304b63b4e455537a6f49b23cb599368efce"
+        },
+        "france_c32": {
+          "path": "/tmp/dsv4_tp8_down_uniform_repeat_abba_20260908_3_france_c32.json",
+          "sha256": "112af89e8fac87143f9f978efb7a8baff3a900fca0104da18946bcac87841603"
+        }
+      }
+    }
+  ],
+  "module_audit": {
+    "baseline": {
+      "pid": 3450230,
+      "modules": [
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_clamp_position_int64_t/build-9565050c776b8b9a/deps-060030c0c80f14a0/sgl_kernel_jit_clamp_position_int64_t.so",
+          "sha256": "174b10b269bb51e29740eee044c9acbdcada472b43f59fbbb859206801a24466"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_128_v2_512_fp32_t_fp32_t_fp32_t_false/build-d7cb944d7d07c839/deps-ab00692cedc40d51/sgl_kernel_jit_dpsk_v4_compress_128_v2_512_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "f438a46d6c5d1c9b5d9c0e55335781851a889ce4c8ce7196b44f89a1a7f910e6"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_4_v2_128_fp32_t_fp32_t_fp32_t_false/build-2bab449f72f2ed7e/deps-675187769cf3cb31/sgl_kernel_jit_dpsk_v4_compress_4_v2_128_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "f0527ff9212f176d77738fbce0acc5b6fbc872af9eb0e730807cad03422d50f8"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_4_v2_512_fp32_t_fp32_t_fp32_t_false/build-f5a050f4cb2f21a4/deps-675187769cf3cb31/sgl_kernel_jit_dpsk_v4_compress_4_v2_512_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "582b4b11a89401e8d45827d2951559f062d7075216341fd799134a6bc1e7ef9b"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_plan/build-4ded6ad6e98772f4/deps-5adc0fcc64ecd110/sgl_kernel_jit_dpsk_v4_compress_plan.so",
+          "sha256": "e7e47d704d586a3233b259d6c8fd6bcc240bf9333cf487332dc330e49ce4c3e5"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_bf16_t_512_64_false/build-7e73d34d1183513d/deps-9ce177db5b6a6fa9/sgl_kernel_jit_dpsk_v4_fused_norm_rope_bf16_t_512_64_false.so",
+          "sha256": "93781ed8ea9cfbb7479f95896ff26d17273fd6a10f82e61ec0c76b94b577506d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_128_64_64_false_16_false/build-79a7244f3a7a46fd/deps-921e886a34691380/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_128_64_64_false_16_false.so",
+          "sha256": "ac640c3bf64b194f5125f6264d92b3f865891b576a9d33d37aa7e458f9e818c1"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_512_64_1_false_16_true/build-da57479c809377a5/deps-921e886a34691380/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_512_64_1_false_16_true.so",
+          "sha256": "5356bb50f66e0280b8d593c7f5f6f68408f59c089886b6e369059ab76ec8855b"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_main_q_norm_rope_bf16_t_512_64_false/build-911e09bb833bb78d/deps-ad994f513a06c2e5/sgl_kernel_jit_dpsk_v4_main_q_norm_rope_bf16_t_512_64_false.so",
+          "sha256": "da646451cee9512fcf613df3fabb720352683c192a02a491c74698a5f9d9e053"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_topk_deterministic_hip/build-bfa9cd1308296fa1/deps-3f5f51ad93798f8a/sgl_kernel_jit_dpsk_v4_topk_deterministic_hip.so",
+          "sha256": "f84513ac66fcc266034beb61ab96d4bc2ac03e02be51066178c3abe18e4474b7"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_1024_4096_1_2_4/build-b2067cef7a85afc1/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_1024_4096_1_2_4.so",
+          "sha256": "e7b554b8251f4fee1c48889ed5ec751d239a3b7a0c3b66c05ad226bbee38b8a3"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_2048_4096_1_2_4/build-684383246fc3a7b6/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_2048_4096_1_2_4.so",
+          "sha256": "490d40d723d330298b34ebbd1020c722b73be9ebec2ba29253591fb092716034"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_512_4096_1_2_8/build-1604fca07acda695/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_512_4096_1_2_8.so",
+          "sha256": "311c146c58e66a5ad1e7b775a8c86bc5abd6ec7e5e765f11eefc6be37209b6ce"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_1536_4096_1_2_8/build-cb144f9181d7b2a9/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_1536_4096_1_2_8.so",
+          "sha256": "50cc918903b0007330d7ec6bcb379384ad0bbb58572b965cb702532f9a4e96de"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_16160_4096_2_2_8/build-6b5a883369c9362a/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_16160_4096_2_2_8.so",
+          "sha256": "842b53c36a7e34c0b83df95fbb1a6b4363b6c7687a65cf89947436d76274009d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_256_4096_1_2_8/build-c18a09e5f9fb633d/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_256_4096_1_2_8.so",
+          "sha256": "dca41e798e2bbe4befffaadd92696e09350d617a458649d9818d0073830a9689"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_4096_1024_1_2_4/build-47bee90435e51272/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_4096_1024_1_2_4.so",
+          "sha256": "4105ca0586e651f0d41eb45899bd4456e966bff3ee5cb0903bc36ddefce8f9c5"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_512_4096_2_2_8/build-95760e688b2c283b/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_512_4096_2_2_8.so",
+          "sha256": "1b09629d56175e002a3441b49df2ac9463681145e533176bff64d4dccda67eb0"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_8192_1024_2_1_4/build-b90fe211c7eee36f/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_8192_1024_2_1_4.so",
+          "sha256": "ae38a3df8b99f023faedad46beafa42a81b9a79af776bf5779c593657b70119f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_1536_4096_1_2_8/build-82c2fecbc922d64c/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_1536_4096_1_2_8.so",
+          "sha256": "1e5a6a2b41f1bbe9d0791fa797c1a758770460e735db580712ba5758e532543d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_16160_4096_2_2_8/build-5ef4cd780595673a/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_16160_4096_2_2_8.so",
+          "sha256": "9644c543e420bfa956355507e89c90e7b11c2d1e102a5c2bd5aae80cabb02fa6"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_4096_1024_1_2_4/build-ad7d71bb65a9f0b5/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_4096_1024_1_2_4.so",
+          "sha256": "50200366c67fc97409356268ce35eefee1bfa9388310d85fe3465abd4fe24b53"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_512_4096_2_2_8/build-759627c4d10378ee/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_512_4096_2_2_8.so",
+          "sha256": "2cb386bb0ab5239ab643767a703c0f2850d8207029e505a13b69fd31a68c083f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_8192_1024_2_1_4/build-167c86e3b153bd4d/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_8192_1024_2_1_4.so",
+          "sha256": "8a2cd8d9dc96e7131bcf591075469857f60f5ba473b021703891fb0b8c00029e"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_1536_4096_1_2_8/build-7ed30be0dcdd7fdc/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_1536_4096_1_2_8.so",
+          "sha256": "47f32b155b5c4292f06cecc6810a00e69a768100687bba18566a8001f2785528"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_16160_4096_2_2_8/build-70fd82212c719449/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_16160_4096_2_2_8.so",
+          "sha256": "5c154994c55f04f2ce2a454d82468c77ec9a7bb4d0e51eb16efed9a84de4a251"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_4096_1024_1_2_4/build-242820acb6c46dfa/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_4096_1024_1_2_4.so",
+          "sha256": "a5d3584478f4954cbb01c3bca1a90f31f6c1c31c41c1277fbe463e6bfbd5731f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_512_4096_2_2_8/build-79891bfb507b8db0/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_512_4096_2_2_8.so",
+          "sha256": "3ece7adabd59543a5741c67eb3d45b0ac0fc0c32516e90414eb23a63fd9fe4ab"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_8192_1024_2_1_4/build-79a5c008d0873880/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_8192_1024_2_1_4.so",
+          "sha256": "d915dd2f175cc9c884d5c40c860d3f314d5038dff2a1109d269296678e7c4f5e"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_grouped_gemv_1_1_1024_4096_1_2_4/build-e00b5f8f7717df68/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_grouped_gemv_1_1_1024_4096_1_2_4.so",
+          "sha256": "49a24c2c10ae545d6562f9400ea75c153944925d5ac103129342a22565414f62"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_256_1_6_256_4096_256_2_8_208_0_6/build-cadd951aba4595c6/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_256_1_6_256_4096_256_2_8_208_0_6.so",
+          "sha256": "199ac701fde177db4f575ff2c55b62c532e644d218f26a2c5079208a40ff3c45"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_0_6_4096_256_4_2_8_312_0/build-39177d41e7efa056/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_0_6_4096_256_4_2_8_312_0.so",
+          "sha256": "e99880ad905b5e67de18069a60d183c3c4e484292ca012dae37c973feff098dc"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_11_6_4096_256_4_2_8_832_2/build-9a92bbf6c7bd6d76/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_11_6_4096_256_4_2_8_832_2.so",
+          "sha256": "c640f44ff6ad40baa5cdc2db7210090cadcb5a4d4e51ea77f56ea5d4c879302d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_13_6_4096_256_4_2_8_832_2/build-d2a3eeafab283ae6/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_13_6_4096_256_4_2_8_832_2.so",
+          "sha256": "d5d81948687deca34c77b99197395dfb666fd919a6b4c1dd7a8699b24f58e96f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_14_6_4096_256_4_2_8_832_2/build-a3e304ad07d07d62/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_14_6_4096_256_4_2_8_832_2.so",
+          "sha256": "68e71f6113141daa8ff1cbef3781c547bf2500c8d7b93b2dbf067f8d4178e653"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_16_6_4096_256_4_2_8_832_2/build-9facfe98c4dd5b03/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_16_6_4096_256_4_2_8_832_2.so",
+          "sha256": "951d26732a272228b22025e0a9fdc51ed9cd13651931ef3cae088c084ec3efdc"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_24_6_4096_256_4_2_8_832_2/build-68ab2c8d027be44a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_24_6_4096_256_4_2_8_832_2.so",
+          "sha256": "3ea4fb687b1b07fcc670fa3a34594aa2df573aadc38d4575d7cdeaef22dd0131"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_2_6_4096_256_4_2_8_832_2/build-a25bf95feb3c8e31/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_2_6_4096_256_4_2_8_832_2.so",
+          "sha256": "c33e31e7acb8787039a5dd8fd4d11f25a45fb798d86bc1b5df27b8f4a8135cd9"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2/build-60b5ef01bae271dd/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2.so",
+          "sha256": "9b49cbbeb5c1106ad8650ded62880538a961bf8fd3085547d03991306c6a173c"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_45_6_4096_256_4_2_8_832_2/build-f02da436dfc4650a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_45_6_4096_256_4_2_8_832_2.so",
+          "sha256": "8c79d268a6eb1715519fa15550f0530acf1d066f72e3e972ff7bae587fff9457"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_46_6_4096_256_4_2_8_832_2/build-8f046a343d16789f/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_46_6_4096_256_4_2_8_832_2.so",
+          "sha256": "5d6ea706fc6a29fd15cf86187e6c705dbcc44345deedc9c7fb4fb30e61e3088f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_4_6_4096_256_4_2_8_832_2/build-d639bfebc6b65a0a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_4_6_4096_256_4_2_8_832_2.so",
+          "sha256": "cb274a4730c00f0151dfef4ecd684f562fcd88c07cc9ff1dedd6eff76b2bfc15"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_8_6_4096_256_4_2_8_832_2/build-d83d3d3e975c376a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_8_6_4096_256_4_2_8_832_2.so",
+          "sha256": "5b4f3ecbdf6abb6005e8e9c34469920275ecf77ea9bfa8644fa16cce0cc9f86a"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_row_prefetch_256_32_6_256_4096_4_2_8_832_2/build-ebb5857f5aec6cb0/deps-7385c0ef5bb16019/sgl_kernel_jit_gfx90a_fp4_expert_gate_row_prefetch_256_32_6_256_4096_4_2_8_832_2.so",
+          "sha256": "80c6d33015320d9ffb290af178318e2c0a52aef3a04844019479365ac6e9e523"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_256_1_6_256_256_4096_2_8_208_0_6/build-c520cfc5765e3318/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_256_1_6_256_256_4096_2_8_208_0_6.so",
+          "sha256": "246c96a202698078b14ec8d4fab6c1399a30ecf8283ae96b2391046cabeaa099"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_0_6_256_4096_4_2_8_416_0/build-b2a7b3c431f2770d/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_0_6_256_4096_4_2_8_416_0.so",
+          "sha256": "6babc74b94ffdeea73fa5fdb5b6371026b129725da345078d6f70668be10e314"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_11_6_256_4096_4_2_8_832_2/build-dff4a0f00cf1082a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_11_6_256_4096_4_2_8_832_2.so",
+          "sha256": "fc48179c3520c224f793f6eab41d80b163510d52e0b78e9e9ffc57a405b166af"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_13_6_256_4096_4_2_8_832_2/build-1571354a61601ea7/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_13_6_256_4096_4_2_8_832_2.so",
+          "sha256": "fb699bcd3a04384cd72607bc13b2f493df2511ea6081b1884e7a2484f6c3d348"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_14_6_256_4096_4_2_8_832_2/build-4a6dfcc5065fa8c0/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_14_6_256_4096_4_2_8_832_2.so",
+          "sha256": "621fba203b1e0784568644dbea33119a5b4adf4a280a413c1c7af573d6498e84"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_16_6_256_4096_4_2_8_832_2/build-c653316c7e679ecb/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_16_6_256_4096_4_2_8_832_2.so",
+          "sha256": "c50dce67121bc4b25b68de8a2326dab1345ea571b3bd8e5df0874c7df3d753e9"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_24_6_256_4096_4_2_8_832_2/build-9886b759f98ffbbf/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_24_6_256_4096_4_2_8_832_2.so",
+          "sha256": "0409dfc07ca665a7f0e835a321e9782912320e238ae7cf2e384d73bcc3ec6a97"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_2_6_256_4096_4_2_8_832_2/build-192a9f84a3096757/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_2_6_256_4096_4_2_8_832_2.so",
+          "sha256": "07c5a4d522759e7b0533beeb417b18bcdf32225d99fd012fae1dc5fd0bbd33df"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_45_6_256_4096_4_2_8_832_2/build-0513c083247f07b1/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_45_6_256_4096_4_2_8_832_2.so",
+          "sha256": "9b658f3099d5779741c23dc5fe74b134b57c663a86c19b0e8494ff0aa8db2e5c"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_46_6_256_4096_4_2_8_832_2/build-74c2e7ed5cb3ea68/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_46_6_256_4096_4_2_8_832_2.so",
+          "sha256": "d6ab7dca26b484bb238c230990342b5fd7b24d9e6f65becef9bf466ca79ab940"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_4_6_256_4096_4_2_8_832_2/build-350577e81ec16e68/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_4_6_256_4096_4_2_8_832_2.so",
+          "sha256": "28ee18c1fdf061b81affd3eab30c7507c7d1633c232afe949f6b12e339237568"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_8_6_256_4096_4_2_8_832_2/build-d178c17d61651936/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_8_6_256_4096_4_2_8_832_2.so",
+          "sha256": "583649bb3daf6abb269eb13f752ea0468f647e257d29e6b8224fa55be4613979"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_mhc_pre_mix_wave64/build-aa395673eb1819ff/deps-9796c5f100f4dced/sgl_kernel_jit_gfx90a_mhc_pre_mix_wave64.so",
+          "sha256": "aeb7c40457cddaded9ce96988eac385df9198781d273185d6f19ab0024945c51"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_mhc_sinkhorn_wave64_i20/build-8c01077b1ad4546e/deps-29d6a1062a3a0591/sgl_kernel_jit_gfx90a_mhc_sinkhorn_wave64_i20.so",
+          "sha256": "779216db62a85c26bb44ce93c20d5c7f2523bf53c57e8e37d73677b2ba0df5cd"
+        }
+      ]
+    },
+    "candidate": {
+      "pid": 3459945,
+      "modules": [
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_clamp_position_int64_t/build-9565050c776b8b9a/deps-060030c0c80f14a0/sgl_kernel_jit_clamp_position_int64_t.so",
+          "sha256": "174b10b269bb51e29740eee044c9acbdcada472b43f59fbbb859206801a24466"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_128_v2_512_fp32_t_fp32_t_fp32_t_false/build-d7cb944d7d07c839/deps-ab00692cedc40d51/sgl_kernel_jit_dpsk_v4_compress_128_v2_512_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "f438a46d6c5d1c9b5d9c0e55335781851a889ce4c8ce7196b44f89a1a7f910e6"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_4_v2_128_fp32_t_fp32_t_fp32_t_false/build-2bab449f72f2ed7e/deps-675187769cf3cb31/sgl_kernel_jit_dpsk_v4_compress_4_v2_128_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "f0527ff9212f176d77738fbce0acc5b6fbc872af9eb0e730807cad03422d50f8"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_4_v2_512_fp32_t_fp32_t_fp32_t_false/build-f5a050f4cb2f21a4/deps-675187769cf3cb31/sgl_kernel_jit_dpsk_v4_compress_4_v2_512_fp32_t_fp32_t_fp32_t_false.so",
+          "sha256": "582b4b11a89401e8d45827d2951559f062d7075216341fd799134a6bc1e7ef9b"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_compress_plan/build-4ded6ad6e98772f4/deps-5adc0fcc64ecd110/sgl_kernel_jit_dpsk_v4_compress_plan.so",
+          "sha256": "e7e47d704d586a3233b259d6c8fd6bcc240bf9333cf487332dc330e49ce4c3e5"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_bf16_t_512_64_false/build-7e73d34d1183513d/deps-9ce177db5b6a6fa9/sgl_kernel_jit_dpsk_v4_fused_norm_rope_bf16_t_512_64_false.so",
+          "sha256": "93781ed8ea9cfbb7479f95896ff26d17273fd6a10f82e61ec0c76b94b577506d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_128_64_64_false_16_false/build-79a7244f3a7a46fd/deps-921e886a34691380/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_128_64_64_false_16_false.so",
+          "sha256": "ac640c3bf64b194f5125f6264d92b3f865891b576a9d33d37aa7e458f9e818c1"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_512_64_1_false_16_true/build-da57479c809377a5/deps-921e886a34691380/sgl_kernel_jit_dpsk_v4_fused_norm_rope_v2_fp32_t_512_64_1_false_16_true.so",
+          "sha256": "5356bb50f66e0280b8d593c7f5f6f68408f59c089886b6e369059ab76ec8855b"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_main_q_norm_rope_bf16_t_512_64_false/build-911e09bb833bb78d/deps-ad994f513a06c2e5/sgl_kernel_jit_dpsk_v4_main_q_norm_rope_bf16_t_512_64_false.so",
+          "sha256": "da646451cee9512fcf613df3fabb720352683c192a02a491c74698a5f9d9e053"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dpsk_v4_topk_deterministic_hip/build-bfa9cd1308296fa1/deps-3f5f51ad93798f8a/sgl_kernel_jit_dpsk_v4_topk_deterministic_hip.so",
+          "sha256": "f84513ac66fcc266034beb61ab96d4bc2ac03e02be51066178c3abe18e4474b7"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_1024_4096_1_2_4/build-b2067cef7a85afc1/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_1024_4096_1_2_4.so",
+          "sha256": "e7b554b8251f4fee1c48889ed5ec751d239a3b7a0c3b66c05ad226bbee38b8a3"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_2048_4096_1_2_4/build-684383246fc3a7b6/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_2048_4096_1_2_4.so",
+          "sha256": "490d40d723d330298b34ebbd1020c722b73be9ebec2ba29253591fb092716034"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_512_4096_1_2_8/build-1604fca07acda695/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_fp32_gemv_512_4096_1_2_8.so",
+          "sha256": "311c146c58e66a5ad1e7b775a8c86bc5abd6ec7e5e765f11eefc6be37209b6ce"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_1536_4096_1_2_8/build-cb144f9181d7b2a9/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_1536_4096_1_2_8.so",
+          "sha256": "50cc918903b0007330d7ec6bcb379384ad0bbb58572b965cb702532f9a4e96de"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_16160_4096_2_2_8/build-6b5a883369c9362a/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_16160_4096_2_2_8.so",
+          "sha256": "842b53c36a7e34c0b83df95fbb1a6b4363b6c7687a65cf89947436d76274009d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_256_4096_1_2_8/build-c18a09e5f9fb633d/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_256_4096_1_2_8.so",
+          "sha256": "dca41e798e2bbe4befffaadd92696e09350d617a458649d9818d0073830a9689"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_4096_1024_1_2_4/build-47bee90435e51272/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_4096_1024_1_2_4.so",
+          "sha256": "4105ca0586e651f0d41eb45899bd4456e966bff3ee5cb0903bc36ddefce8f9c5"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_512_4096_2_2_8/build-95760e688b2c283b/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_512_4096_2_2_8.so",
+          "sha256": "1b09629d56175e002a3441b49df2ac9463681145e533176bff64d4dccda67eb0"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_1_8192_1024_2_1_4/build-b90fe211c7eee36f/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_1_8192_1024_2_1_4.so",
+          "sha256": "ae38a3df8b99f023faedad46beafa42a81b9a79af776bf5779c593657b70119f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_1536_4096_1_2_8/build-82c2fecbc922d64c/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_1536_4096_1_2_8.so",
+          "sha256": "1e5a6a2b41f1bbe9d0791fa797c1a758770460e735db580712ba5758e532543d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_16160_4096_2_2_8/build-5ef4cd780595673a/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_16160_4096_2_2_8.so",
+          "sha256": "9644c543e420bfa956355507e89c90e7b11c2d1e102a5c2bd5aae80cabb02fa6"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_4096_1024_1_2_4/build-ad7d71bb65a9f0b5/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_4096_1024_1_2_4.so",
+          "sha256": "50200366c67fc97409356268ce35eefee1bfa9388310d85fe3465abd4fe24b53"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_512_4096_2_2_8/build-759627c4d10378ee/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_512_4096_2_2_8.so",
+          "sha256": "2cb386bb0ab5239ab643767a703c0f2850d8207029e505a13b69fd31a68c083f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_2_8192_1024_2_1_4/build-167c86e3b153bd4d/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_2_8192_1024_2_1_4.so",
+          "sha256": "8a2cd8d9dc96e7131bcf591075469857f60f5ba473b021703891fb0b8c00029e"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_1536_4096_1_2_8/build-7ed30be0dcdd7fdc/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_1536_4096_1_2_8.so",
+          "sha256": "47f32b155b5c4292f06cecc6810a00e69a768100687bba18566a8001f2785528"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_16160_4096_2_2_8/build-70fd82212c719449/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_16160_4096_2_2_8.so",
+          "sha256": "5c154994c55f04f2ce2a454d82468c77ec9a7bb4d0e51eb16efed9a84de4a251"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_4096_1024_1_2_4/build-242820acb6c46dfa/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_4096_1024_1_2_4.so",
+          "sha256": "a5d3584478f4954cbb01c3bca1a90f31f6c1c31c41c1277fbe463e6bfbd5731f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_512_4096_2_2_8/build-79891bfb507b8db0/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_512_4096_2_2_8.so",
+          "sha256": "3ece7adabd59543a5741c67eb3d45b0ac0fc0c32516e90414eb23a63fd9fe4ab"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_gemv_4_8192_1024_2_1_4/build-79a5c008d0873880/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_gemv_4_8192_1024_2_1_4.so",
+          "sha256": "d915dd2f175cc9c884d5c40c860d3f314d5038dff2a1109d269296678e7c4f5e"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_bf16_grouped_gemv_1_1_1024_4096_1_2_4/build-e00b5f8f7717df68/deps-4f38ea3a099f256f/sgl_kernel_jit_gfx90a_bf16_grouped_gemv_1_1_1024_4096_1_2_4.so",
+          "sha256": "49a24c2c10ae545d6562f9400ea75c153944925d5ac103129342a22565414f62"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_256_1_6_256_4096_256_2_8_208_0_6/build-cadd951aba4595c6/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_256_1_6_256_4096_256_2_8_208_0_6.so",
+          "sha256": "199ac701fde177db4f575ff2c55b62c532e644d218f26a2c5079208a40ff3c45"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_0_6_4096_256_4_2_8_312_0/build-39177d41e7efa056/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_0_6_4096_256_4_2_8_312_0.so",
+          "sha256": "e99880ad905b5e67de18069a60d183c3c4e484292ca012dae37c973feff098dc"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_11_6_4096_256_4_2_8_832_2/build-9a92bbf6c7bd6d76/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_11_6_4096_256_4_2_8_832_2.so",
+          "sha256": "c640f44ff6ad40baa5cdc2db7210090cadcb5a4d4e51ea77f56ea5d4c879302d"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_13_6_4096_256_4_2_8_832_2/build-d2a3eeafab283ae6/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_13_6_4096_256_4_2_8_832_2.so",
+          "sha256": "d5d81948687deca34c77b99197395dfb666fd919a6b4c1dd7a8699b24f58e96f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_14_6_4096_256_4_2_8_832_2/build-a3e304ad07d07d62/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_14_6_4096_256_4_2_8_832_2.so",
+          "sha256": "68e71f6113141daa8ff1cbef3781c547bf2500c8d7b93b2dbf067f8d4178e653"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_16_6_4096_256_4_2_8_832_2/build-9facfe98c4dd5b03/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_16_6_4096_256_4_2_8_832_2.so",
+          "sha256": "951d26732a272228b22025e0a9fdc51ed9cd13651931ef3cae088c084ec3efdc"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_24_6_4096_256_4_2_8_832_2/build-68ab2c8d027be44a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_24_6_4096_256_4_2_8_832_2.so",
+          "sha256": "3ea4fb687b1b07fcc670fa3a34594aa2df573aadc38d4575d7cdeaef22dd0131"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_2_6_4096_256_4_2_8_832_2/build-a25bf95feb3c8e31/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_2_6_4096_256_4_2_8_832_2.so",
+          "sha256": "c33e31e7acb8787039a5dd8fd4d11f25a45fb798d86bc1b5df27b8f4a8135cd9"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_45_6_4096_256_4_2_8_832_2/build-f02da436dfc4650a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_45_6_4096_256_4_2_8_832_2.so",
+          "sha256": "8c79d268a6eb1715519fa15550f0530acf1d066f72e3e972ff7bae587fff9457"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_46_6_4096_256_4_2_8_832_2/build-8f046a343d16789f/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_46_6_4096_256_4_2_8_832_2.so",
+          "sha256": "5d6ea706fc6a29fd15cf86187e6c705dbcc44345deedc9c7fb4fb30e61e3088f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_4_6_4096_256_4_2_8_832_2/build-d639bfebc6b65a0a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_4_6_4096_256_4_2_8_832_2.so",
+          "sha256": "cb274a4730c00f0151dfef4ecd684f562fcd88c07cc9ff1dedd6eff76b2bfc15"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_8_6_4096_256_4_2_8_832_2/build-d83d3d3e975c376a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_8_6_4096_256_4_2_8_832_2.so",
+          "sha256": "5b4f3ecbdf6abb6005e8e9c34469920275ecf77ea9bfa8644fa16cce0cc9f86a"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_row_prefetch_256_32_6_256_4096_4_2_8_832_2/build-ebb5857f5aec6cb0/deps-7385c0ef5bb16019/sgl_kernel_jit_gfx90a_fp4_expert_gate_row_prefetch_256_32_6_256_4096_4_2_8_832_2.so",
+          "sha256": "80c6d33015320d9ffb290af178318e2c0a52aef3a04844019479365ac6e9e523"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_256_1_6_256_256_4096_2_8_208_0_6/build-c520cfc5765e3318/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_256_1_6_256_256_4096_2_8_208_0_6.so",
+          "sha256": "246c96a202698078b14ec8d4fab6c1399a30ecf8283ae96b2391046cabeaa099"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_0_6_256_4096_4_2_8_416_0/build-b2a7b3c431f2770d/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_0_6_256_4096_4_2_8_416_0.so",
+          "sha256": "6babc74b94ffdeea73fa5fdb5b6371026b129725da345078d6f70668be10e314"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_11_6_256_4096_4_2_8_832_2/build-dff4a0f00cf1082a/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_11_6_256_4096_4_2_8_832_2.so",
+          "sha256": "fc48179c3520c224f793f6eab41d80b163510d52e0b78e9e9ffc57a405b166af"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_13_6_256_4096_4_2_8_832_2/build-1571354a61601ea7/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_13_6_256_4096_4_2_8_832_2.so",
+          "sha256": "fb699bcd3a04384cd72607bc13b2f493df2511ea6081b1884e7a2484f6c3d348"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_14_6_256_4096_4_2_8_832_2/build-4a6dfcc5065fa8c0/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_14_6_256_4096_4_2_8_832_2.so",
+          "sha256": "621fba203b1e0784568644dbea33119a5b4adf4a280a413c1c7af573d6498e84"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_16_6_256_4096_4_2_8_832_2/build-c653316c7e679ecb/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_16_6_256_4096_4_2_8_832_2.so",
+          "sha256": "c50dce67121bc4b25b68de8a2326dab1345ea571b3bd8e5df0874c7df3d753e9"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_24_6_256_4096_4_2_8_832_2/build-9886b759f98ffbbf/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_24_6_256_4096_4_2_8_832_2.so",
+          "sha256": "0409dfc07ca665a7f0e835a321e9782912320e238ae7cf2e384d73bcc3ec6a97"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_2_6_256_4096_4_2_8_832_2/build-192a9f84a3096757/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_2_6_256_4096_4_2_8_832_2.so",
+          "sha256": "07c5a4d522759e7b0533beeb417b18bcdf32225d99fd012fae1dc5fd0bbd33df"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_45_6_256_4096_4_2_8_832_2/build-0513c083247f07b1/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_45_6_256_4096_4_2_8_832_2.so",
+          "sha256": "9b658f3099d5779741c23dc5fe74b134b57c663a86c19b0e8494ff0aa8db2e5c"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_46_6_256_4096_4_2_8_832_2/build-74c2e7ed5cb3ea68/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_46_6_256_4096_4_2_8_832_2.so",
+          "sha256": "d6ab7dca26b484bb238c230990342b5fd7b24d9e6f65becef9bf466ca79ab940"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_4_6_256_4096_4_2_8_832_2/build-350577e81ec16e68/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_4_6_256_4096_4_2_8_832_2.so",
+          "sha256": "28ee18c1fdf061b81affd3eab30c7507c7d1633c232afe949f6b12e339237568"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_8_6_256_4096_4_2_8_832_2/build-d178c17d61651936/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_gate_up_grouped_256_8_6_256_4096_4_2_8_832_2.so",
+          "sha256": "583649bb3daf6abb269eb13f752ea0468f647e257d29e6b8224fa55be4613979"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2/build-19d7610e3d7edc65/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2.so",
+          "sha256": "8afb668810a17b04ade234ea45717a3ab88bad02410a1200c25ed1a45e67f70f"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_mhc_pre_mix_wave64/build-aa395673eb1819ff/deps-9796c5f100f4dced/sgl_kernel_jit_gfx90a_mhc_pre_mix_wave64.so",
+          "sha256": "aeb7c40457cddaded9ce96988eac385df9198781d273185d6f19ab0024945c51"
+        },
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_mhc_sinkhorn_wave64_i20/build-8c01077b1ad4546e/deps-29d6a1062a3a0591/sgl_kernel_jit_gfx90a_mhc_sinkhorn_wave64_i20.so",
+          "sha256": "779216db62a85c26bb44ce93c20d5c7f2523bf53c57e8e37d73677b2ba0df5cd"
+        }
+      ]
+    },
+    "diff": {
+      "baseline_count": 58,
+      "candidate_count": 58,
+      "common_same_sha": 57,
+      "baseline_only": [
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2/build-60b5ef01bae271dd/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_expert_down_grouped_256_32_6_4096_256_4_2_8_832_2.so",
+          "sha256": "9b49cbbeb5c1106ad8650ded62880538a961bf8fd3085547d03991306c6a173c"
+        }
+      ],
+      "candidate_only": [
+        {
+          "path": "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2/build-19d7610e3d7edc65/deps-10b0d16bfe985520/sgl_kernel_jit_gfx90a_fp4_tp8_down_uniform_service_256_32_6_4096_256_4_2_8_832_2.so",
+          "sha256": "8afb668810a17b04ade234ea45717a3ab88bad02410a1200c25ed1a45e67f70f"
+        }
+      ]
+    }
+  }
+}

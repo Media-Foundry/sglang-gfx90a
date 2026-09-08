@@ -76,3 +76,42 @@ Follow the live controller; no automatic restart on an observation timeout.
 Default remains False. Restore utility now accepts this exact flag as well
 as deferred-finalize, still requiring completed state, matching live PID,
 exact TP8/EP1/1M/loopback/model command and exclusive GPU ownership.
+
+## Repeat completed: do not promote the joint C1/C32 default
+
+Controller61092 exited0. Candidate A0 reused3441083; new control3449939
+served B/B; new final candidate3459680. Four measured C1 reps/case/block,
+per-case min/max trimmed, then block/arm geomeans. Same six C32 waves with
+wave0 discarded.
+
+| Metric | Control | Candidate | Change |
+|---|---:|---:|---:|
+|C1 HTTP tok/s|84.24832|83.38133|-1.0291%|
+|C32 HTTP tok/s|984.55658|989.47957|+0.5000%|
+|C32 resident tok/s|1030.50820|1036.19321|+0.5517%|
+
+The small C32 gain repeats, but the observed C1 loss also repeats. This fails
+joint default acceptance. Retain the opt-in experiment for diagnosis; do not
+claim a general performance checkpoint or dismiss C1 because its predicate
+does not select the new kernel. No proven mechanism for C1 slowdown yet.
+
+Correctness:48/48 measured C1 outputs equal reference; fixed-prefix recompute
+probes6/6 per field/block match (not cached decode oracle). All four FranceC32
+answer-through-EOS prefixes32/32. All768 real-code responses pass length/finish/
+hash validation; cross-round exact5/6/8/6 of32, not full determinism. C32
+selection log344 in candidate,0 in control. New TP0 captures12.04s control,
+12.06s candidate, both0.65GB/15.64GB available, actual pool1048576.
+
+Read-only /proc module audit after benchmarks started: control TP0 PID3450230
+and candidate TP0 PID3459945 each map58 SGLang gfx90a JIT modules.57 share
+identical paths and binary SHA256. The sole replacement is the expected M32
+down module. This excludes a different SGLang JIT binary for C1 in these
+inventories; it does not inventory every AIter/BLAS binary, establish identical
+allocation addresses, or explain the latency difference. Full inventories and
+raw samples/artifact hashes are retained in the repeat JSON.
+
+Restoration started with exact final PID3459680 and completed repeat state,
+removing only DOWN_UNIFORM. Restore state:
+`/tmp/dsv4_tp8_down_uniform_restore_20260908.json`, controller9543.
+Wait for validation before calling the service restored. No other optimization
+flag is removed, and the1M pool remains in the cloned command.
