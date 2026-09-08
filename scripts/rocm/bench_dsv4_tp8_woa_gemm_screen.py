@@ -71,8 +71,11 @@ def main():
               'fixture':'real prefill slice; 8 real TP8 checkpoint weight shards',
               'weight_bytes':sum(w.numel()*w.element_size() for w in weights), 'results':[]}
     if a.hipblaslt:
+        from aiter import tuned_gemm
         from aiter.ops.gradlib import hipb_create_extension, hipb_findallsols
-        hipb_create_extension()
+        if not tuned_gemm.extensions_created:
+            hipb_create_extension()
+            tuned_gemm.extensions_created = True
         solutions = hipb_findallsols(x[:,0], weights[0][0].t(), out_dtype=x.dtype)
         assert len(solutions) <= 4096, ('screen requires narrower bounds',len(solutions))
         screen = []

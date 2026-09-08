@@ -2215,6 +2215,13 @@ class MQALayer(MqaAttentionBase):
                 stable = maybe_row_stable_linear(o[:, 0], wo_a[0])
                 if stable is not None:
                     grouped_output = stable.unsqueeze(1)
+            if (
+                grouped_output is None
+                and envs.SGLANG_DSV4_GFX90A_TP8_M32_WOA_HIPBLASLT.get()
+            ):
+                from sglang.srt.layers.quantization.dsv4_woa_experiment import maybe_woa
+
+                grouped_output = maybe_woa(o, wo_a, forward_batch, self.attn_tp_size)
             o = (
                 grouped_output
                 if grouped_output is not None
