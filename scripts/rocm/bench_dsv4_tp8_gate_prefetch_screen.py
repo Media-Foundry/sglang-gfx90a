@@ -22,9 +22,12 @@ def main():
                         help='Measure prefetched gate, quant, down and reducer separately; diagnostic only')
     parser.add_argument('--gate-row-stripe', type=int, choices=(8,16,32,64,128),
                         help='Standalone task-order oracle against accepted prefetched gate')
+    parser.add_argument('--gate-blocks', type=int, choices=(416,624,832,1040,1248),
+                        help='Only change accepted prefetched gate CTA count; full chain comparison')
     parsed=parser.parse_args()
-    full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe)
+    full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe) or bool(parsed.gate_blocks)
     assert not (parsed.gate_row_stripe and parsed.down_prefetch)
+    assert not (parsed.gate_blocks and (parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown))
     assert torch.cuda.get_device_properties(0).gcnArchName.startswith('gfx90a')
     torch.manual_seed(20908)
     m,t,e,i,k=32,6,256,256,4096
@@ -35,6 +38,9 @@ def main():
     args=(e,m,t,i,k,4,2,8,832,2)
     mods=[_jit_gate_up_grouped(*args),_jit_gate_up_grouped_row_prefetch(*args)]
     if parsed.down_prefetch:mods=[mods[1],mods[1]]
+    if parsed.gate_blocks:
+        candidate_args=(*args[:8],parsed.gate_blocks,args[9])
+        mods=[mods[1],_jit_gate_up_grouped_row_prefetch(*candidate_args)]
     if parsed.gate_row_stripe:
         cpp=make_cpp_args(*args)
         mods=[mods[1],load_jit(
@@ -99,7 +105,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
