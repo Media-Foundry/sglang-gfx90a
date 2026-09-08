@@ -115,3 +115,10 @@ removing only DOWN_UNIFORM. Restore state:
 `/tmp/dsv4_tp8_down_uniform_restore_20260908.json`, controller9543.
 Wait for validation before calling the service restored. No other optimization
 flag is removed, and the1M pool remains in the cloned command.
+
+Restoration completed: controller9543 exited0, state `validated`, live baseline
+PID3468727, DOWN_UNIFORM absent in its environment, command pool1048576.
+FranceC32 answer-through-EOS prefix32/32. Final AMD-SMI ownership check found
+only this service tree. No candidate controller or GPU oracle remains running.
+The restored process has not received a fresh full C1/C32 speed benchmark;
+the above control rates belong to the completed repeat, not this new process.
