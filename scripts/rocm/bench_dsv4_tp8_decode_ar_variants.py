@@ -22,26 +22,42 @@ def main():
     p.add_argument('--mutations', type=int, default=100)
     p.add_argument('--iters', type=int, default=200)
     p.add_argument('--rounds', type=int, default=5)
+    p.add_argument('--candidate-blocks', type=int, choices=(8,12,16,24,32))
+    p.add_argument('--shim-baseline', action='store_true',
+                   help='compare both geometries through the validated shim, isolating grid effects')
     args = p.parse_args()
+    assert not args.shim_baseline or args.candidate_blocks is not None
     rank = int(os.environ['LOCAL_RANK'])
     torch.cuda.set_device(rank)
     dist.init_process_group('gloo', timeout=datetime.timedelta(seconds=180))
     assert dist.get_world_size() == 8
     ar = CustomAllreduce(dist.group.WORLD, torch.device('cuda',rank), max_size=1024*1024)
     assert not ar.disabled
+    geometry = None
+    if args.candidate_blocks is not None:
+        assert args.rows == 32
+        from sglang.kernels.ops.debug.gfx90a_tp8_ar_geometry_oracle import module, run
+        # Validate the shared Signal layout before using the independent shim.
+        assert module().signal_bytes() == aiter.meta_size()
+        geometry = run
     storage = aiter.allocate_meta_buffer(args.rows*4096*2)
     x = storage.view(torch.bfloat16).view(args.rows,4096)
     ar.register_buffer(x)
     outputs = [torch.empty_like(x),torch.empty_like(x)]
     graphs = []
     x.fill_(rank+1)
-    for use_new,y in zip((True,False),outputs):
-        ar.all_reduce(x,out=y,registered=True,use_new=use_new)
+    for arm,(use_new,y) in enumerate(zip((True,False),outputs)):
+        def forward():
+            if geometry is not None and (arm == 1 or args.shim_baseline):
+                geometry(ar,x,y,args.candidate_blocks if arm == 1 else 16)
+            else:
+                ar.all_reduce(x,out=y,registered=True,use_new=use_new if geometry is None else False)
+        forward()
         torch.cuda.synchronize()
         dist.barrier()
         g = torch.cuda.CUDAGraph()
         with torch.cuda.graph(g):
-            ar.all_reduce(x,out=y,registered=True,use_new=use_new)
+            forward()
         ar.register_graph_buffers()
         graphs.append(g)
     exact = 0
@@ -80,6 +96,9 @@ def main():
             samples[arm].append(max(values))
     if rank==0:
         print(json.dumps(dict(rows=args.rows,bytes=x.numel()*2,correctness=reports,
+                              candidate_blocks=args.candidate_blocks,
+                              baseline=('new' if geometry is None else
+                                        'shim legacy blocks16' if args.shim_baseline else 'legacy blocks16'),
                               rankmax_samples_us=samples,
                               medians_us=[statistics.median(v) for v in samples],
                               trimmed_us=[statistics.mean(sorted(v)[1:-1]) for v in samples])),flush=True)

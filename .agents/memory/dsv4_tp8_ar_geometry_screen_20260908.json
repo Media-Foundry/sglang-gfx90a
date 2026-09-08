@@ -1,0 +1,283 @@
+{
+  "experiments": [
+    {
+      "rows": 32,
+      "bytes": 262144,
+      "correctness": [
+        {
+          "rank": 0,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 1,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 2,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 3,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 4,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 5,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 6,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 7,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        }
+      ],
+      "candidate_blocks": 16,
+      "baseline": "legacy blocks16",
+      "rankmax_samples_us": [
+        [
+          27.890799045562744,
+          27.77604579925537,
+          27.792844772338867,
+          27.923309803009033,
+          28.366515636444092,
+          28.004844188690186,
+          27.847309112548828,
+          27.7177095413208,
+          28.08600425720215,
+          28.452844619750977
+        ],
+        [
+          27.70724058151245,
+          27.69320011138916,
+          27.60091543197632,
+          27.660911083221436,
+          27.982449531555176,
+          27.783315181732178,
+          27.517645359039307,
+          27.844114303588867,
+          27.710444927215576,
+          27.770509719848633
+        ]
+      ],
+      "medians_us": [
+        27.90705442428589,
+        27.708842754364014
+      ],
+      "trimmed_us": [
+        27.96095907688141,
+        27.721331417560577
+      ],
+      "log": "/tmp/dsv4_tp8_ar_geometry16_20260908.log",
+      "log_sha256": "66d38dd2115411cafb15a0aa6c15569479898b4e64d8781e01dd0bc88961f0f5"
+    },
+    {
+      "rows": 32,
+      "bytes": 262144,
+      "correctness": [
+        {
+          "rank": 0,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 1,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 2,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 3,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 4,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 5,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 6,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 7,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        }
+      ],
+      "candidate_blocks": 24,
+      "baseline": "shim legacy blocks16",
+      "rankmax_samples_us": [
+        [
+          27.6104998588562,
+          27.711234092712402,
+          27.85203456878662,
+          27.97369956970215,
+          27.910430431365967,
+          27.77122974395752,
+          28.39050531387329,
+          27.70090103149414,
+          27.776904106140137,
+          27.55523443222046
+        ],
+        [
+          30.179314613342285,
+          30.382440090179443,
+          30.38203477859497,
+          30.41163444519043,
+          30.072109699249268,
+          30.128910541534424,
+          30.320115089416504,
+          30.297229290008545,
+          30.27611017227173,
+          31.010515689849854
+        ]
+      ],
+      "medians_us": [
+        27.774066925048828,
+        30.308672189712524
+      ],
+      "trimmed_us": [
+        27.788366675376892,
+        30.29722362756729
+      ],
+      "log": "/tmp/dsv4_tp8_ar_geometry24_20260908.log",
+      "log_sha256": "6d8859c2fda98cfc3b881c109f460eea657c8c1004865fcca4bfcbbe3671c8bb"
+    },
+    {
+      "rows": 32,
+      "bytes": 262144,
+      "correctness": [
+        {
+          "rank": 0,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 1,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 2,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 3,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 4,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 5,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 6,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        },
+        {
+          "rank": 7,
+          "exact": 100,
+          "max_abs": 0,
+          "stable": true
+        }
+      ],
+      "candidate_blocks": 8,
+      "baseline": "shim legacy blocks16",
+      "rankmax_samples_us": [
+        [
+          27.625041007995605,
+          27.78183937072754,
+          27.780749797821045,
+          27.76714563369751,
+          27.762339115142822,
+          27.728679180145264,
+          27.80263900756836,
+          27.587075233459473,
+          27.627949714660645,
+          27.58307933807373
+        ],
+        [
+          25.553815364837646,
+          25.53114891052246,
+          25.738625526428223,
+          25.72235107421875,
+          25.79355478286743,
+          25.674290657043457,
+          25.514349937438965,
+          25.63462495803833,
+          25.970354080200195,
+          25.694355964660645
+        ]
+      ],
+      "medians_us": [
+        27.745509147644043,
+        25.68432331085205
+      ],
+      "trimmed_us": [
+        27.707602381706238,
+        25.667845904827118
+      ],
+      "log": "/tmp/dsv4_tp8_ar_geometry8_20260908.log",
+      "log_sha256": "7b6eb64b4c1fdde45809014dccbce30e0d3b4a20866552ea7f9b14302f0669f9"
+    }
+  ],
+  "service_pid": 3611667,
+  "scope": "isolated TP8 native-size collective oracle; no service changes",
+  "aiter_header_sha256": "d1df0e9e6fc73db8a018388c19fbc0b8886481d6fe432bbc6179d5bbf2b332e4"
+}
