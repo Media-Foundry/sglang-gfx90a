@@ -46,3 +46,6 @@ Baseline restoration is running with both two-wave flags removed, same1M KV
 pool, under `/tmp/dsv4_tp8_c1_long_restore_20260908`; FranceC32 follows
 readiness. The finished candidate service PID3269280 was explicitly verified
 and stopped after AMD-SMI ownership checks.
+
+Restoration completed: PID3277900, both attention two-wave flags absent,
+FranceC32 32/32 exact. Restore state validated; no instrumented service left.

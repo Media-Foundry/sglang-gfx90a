@@ -26,7 +26,12 @@ def main():
                         help='Only change accepted prefetched gate CTA count; full chain comparison')
     parser.add_argument('--paired-scale-load', action='store_true',
                         help='Standalone gate/up scale uint16 load; unchanged scale layout')
+    parser.add_argument('--lut-replicas', type=int, choices=(8,16,32),
+                        help='Standalone lane-replicated LDS LUT, no new accumulators')
     parsed=parser.parse_args()
+    if parsed.lut_replicas:
+        assert not (parsed.paired_scale_load or parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown)
+        parsed.full=True
     full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe) or bool(parsed.gate_blocks) or parsed.paired_scale_load
     assert not (parsed.gate_row_stripe and parsed.down_prefetch)
     assert not (parsed.gate_blocks and (parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown))
@@ -51,6 +56,13 @@ def main():
             cuda_files=['deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh'],
             cuda_wrappers=[('run',f'sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{cpp}>::run')],
             extra_cuda_cflags=['-O3','-DSGLANG_FP4_GATE_PAIRED_SCALE_LOAD_ORACLE=1'])]
+    if parsed.lut_replicas:
+        cpp=make_cpp_args(*args)
+        mods=[mods[1],load_jit(
+            'gfx90a_fp4_gate_lut_replicas_oracle',*args,parsed.lut_replicas,
+            cuda_files=['deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh'],
+            cuda_wrappers=[('run',f'sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{cpp}>::run')],
+            extra_cuda_cflags=['-O3',f'-DSGLANG_FP4_GATE_LUT_REPLICAS_ORACLE={parsed.lut_replicas}'])]
     if parsed.gate_row_stripe:
         cpp=make_cpp_args(*args)
         mods=[mods[1],load_jit(
@@ -115,7 +127,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,lut_replicas=parsed.lut_replicas,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,

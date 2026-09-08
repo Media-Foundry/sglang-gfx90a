@@ -9,6 +9,20 @@ union Gfx90aGatePackedRow16 {
   uint16_t halves[8];
 };
 
+__device__ __forceinline__ int32_t gfx90a_gate_oracle_lut_decode(
+    uint16_t packed, const uint32_t* lut, uint32_t lane) {
+#ifdef SGLANG_FP4_GATE_LUT_REPLICAS_ORACLE
+  constexpr uint32_t copies = SGLANG_FP4_GATE_LUT_REPLICAS_ORACLE;
+  static_assert(copies == 8 || copies == 16 || copies == 32);
+  const uint32_t replica = lane % copies;
+  const uint32_t lo = lut[(packed & 255u) * copies + replica];
+  const uint32_t hi = lut[(packed >> 8) * copies + replica];
+  return static_cast<int32_t>(lo | (hi << 16));
+#else
+  return gfx90a_fp4_pack4_i8_lds(packed, lut);
+#endif
+}
+
 // Oracle-only A4/R2 grouped gate/up.  The task mapping, LUT decode, SDOT,
 // accumulation and DPP reduction are production-identical.  The sole schedule
 // change is to request gate/up packed rows and scales for both R2 rows before
@@ -26,11 +40,20 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
         const int32_t* __restrict__ sorted_expert_ids,
         const int32_t* __restrict__ num_valid_ids, float limit) {
   static_assert(kRows == 2, "row-prefetch oracle is fixed to R2");
+#ifdef SGLANG_FP4_GATE_LUT_REPLICAS_ORACLE
+  constexpr uint32_t copies = SGLANG_FP4_GATE_LUT_REPLICAS_ORACLE;
+  __shared__ uint32_t pair_lut[256 * copies];
+  for (uint32_t index = threadIdx.x; index < 256 * copies; index += blockDim.x) {
+    pair_lut[index] = static_cast<uint32_t>(
+        gfx90a_fp4_pack4_i8(static_cast<uint16_t>(index / copies))) & 0xffffu;
+  }
+#else
   __shared__ uint32_t pair_lut[256];
   if (threadIdx.x < 256) {
     pair_lut[threadIdx.x] = static_cast<uint32_t>(
         gfx90a_fp4_pack4_i8(static_cast<uint16_t>(threadIdx.x))) & 0xffffu;
   }
+#endif
   __syncthreads();
 
   constexpr uint32_t kTilesPerExpertBlock = I / kRows;
@@ -138,9 +161,9 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
 #pragma unroll
         for (uint32_t j = 0; j < 8; ++j) {
           gate_i8[j] =
-              gfx90a_fp4_pack4_i8_lds(gate_packed[r].halves[j], pair_lut);
+              gfx90a_gate_oracle_lut_decode(gate_packed[r].halves[j], pair_lut, lane);
           up_i8[j] =
-              gfx90a_fp4_pack4_i8_lds(up_packed[r].halves[j], pair_lut);
+              gfx90a_gate_oracle_lut_decode(up_packed[r].halves[j], pair_lut, lane);
         }
 #pragma unroll
         for (uint32_t assignment = 0; assignment < kAssignments;
