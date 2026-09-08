@@ -4990,10 +4990,15 @@ class DeepseekV4ForCausalLM(nn.Module):
         from sglang.srt.layers.quantization.dsv4_projection_experiment import (
             projection_scope,
         )
+        from sglang.srt.layers.quantization.dsv4_shared_gate_experiment import (
+            shared_gate_scope,
+        )
 
         with get_attn_tp_context().maybe_input_scattered(forward_batch), dsv4_ar_scope(
             forward_batch, input_ids.device
-        ), projection_scope(forward_batch, input_ids.device):
+        ), projection_scope(forward_batch, input_ids.device), shared_gate_scope(
+            forward_batch, input_ids.device
+        ):
             hidden_states = self.model.forward(
                 input_ids, positions, forward_batch, input_embeds, pp_proxy_tensors
             )

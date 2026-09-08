@@ -356,6 +356,23 @@ class DeepseekV2MLP(nn.Module):
             return x
 
         if (
+            envs.SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND.get()
+            # The MLP constructor keeps the optional override (often None).
+            # The projection resolves it to the actual tensor-parallel size.
+            and self.gate_up_proj.tp_size == 8
+            and not isinstance(x, tuple)
+            and gateup_pre_quant is None
+            and getattr(self.gate_up_proj, "_use_cached_block_fp8_bf16_weight", False)
+        ):
+            from sglang.srt.layers.quantization.dsv4_shared_gate_experiment import (
+                maybe_shared_gate,
+            )
+
+            gated = maybe_shared_gate(x, self.gate_up_proj.weight, self.swiglu_limit)
+            if gated is not None:
+                return self.down_proj(gated)[0]
+
+        if (
             getattr(self, "_use_aiter_bounded_gated_gemm", False)
             and not isinstance(x, tuple)
             and x.shape[0] == 1

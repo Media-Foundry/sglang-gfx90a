@@ -13,6 +13,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--pid',type=int,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--candidate-flag', choices=[
+        'SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL',
+        'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
+    ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     service=psutil.Process(a.pid)
     cmd,env,cwd=service.cmdline(),service.environ(),service.cwd()
@@ -23,7 +27,7 @@ def main():
     assert env.get('SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')=='1'
     assert not any(k.startswith('SGLANG_DSV4_DEBUG_') for k in env)
     state={'status':'running','protocol':'A(candidate),B(baseline),B,A',
-           'service_pid':service.pid,'blocks':[]}
+           'candidate_flag':a.candidate_flag,'service_pid':service.pid,'blocks':[]}
     def save():
         a.output.write_text(json.dumps(state,indent=2)+'\n')
     def resource_check():
@@ -55,7 +59,7 @@ def main():
                            stdout=log,stderr=subprocess.STDOUT,check=True)
     save()
     try:
-        active=True
+        active=env.get(a.candidate_flag, '0') == '1'
         for index,wanted in enumerate([True,False,False,True]):
             resource_check()
             if active!=wanted:
@@ -65,7 +69,7 @@ def main():
                 for child in alive:child.terminate()
                 _,alive=psutil.wait_procs(alive,timeout=10)
                 assert not alive,[(x.pid,x.status()) for x in alive]
-                env['SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL']=str(int(wanted))
+                env[a.candidate_flag]=str(int(wanted))
                 with a.output.with_name(a.output.stem+f'_service_{index}.log').open('w') as log:
                     child=subprocess.Popen(['numactl','--interleave=all',*cmd],cwd=cwd,
                         env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -79,6 +83,16 @@ def main():
             bench(['scripts/rocm/bench_dsv4_c1_mhc_recovery.py','--arm',f'ABBA{index}',
                    '--rounds','2','--skip-freeze-gc','--reference',
                    '/tmp/dsv4_runtime_m_c1_B_20260908.json'],c1)
+            if a.candidate_flag == 'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND':
+                result=json.loads(c1.read_text())
+                reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())
+                expected={row['case']:row['output_ids'] for row in reference['measurements']
+                          if row['rep']==0}
+                assert result['france_exact']
+                measured=[row for row in result['measurements'] if row['rep']>=0]
+                assert len(measured)==6
+                assert all(row['output_ids']==expected[row['case']] for row in measured)
+                block['c1_reference_exact']=len(measured)
             block.update(status='c32',c1=str(c1));save()
             resource_check()
             bench(['scripts/rocm/bench_dsv4_tp4_diverse_concurrent.py','--base-url',

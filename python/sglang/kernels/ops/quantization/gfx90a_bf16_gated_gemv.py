@@ -11,6 +11,23 @@ if TYPE_CHECKING:
 
 
 @cache_once
+def _jit_gfx90a_tp8_shared_gate_round_module() -> Module:
+    import logging
+
+    args = make_cpp_args(512, 4096, 1, 2, 4, True)
+    module = load_jit(
+        "dsv4_tp8_shared_gate_torch_round_oracle", *args,
+        cuda_files=["gemm/gfx90a_bf16_gated_gemv.cuh"],
+        cuda_wrappers=[("run", f"sglang::Gfx90aBf16GatedGemvKernel<{args}>::run")],
+        extra_cuda_cflags=["-O3"],
+    )
+    logging.getLogger(__name__).info(
+        "DSV4 TP8 C1 shared gate round kernel selected: N512/K4096/R1/U2/W4"
+    )
+    return module
+
+
+@cache_once
 def _jit_gfx90a_bf16_gated_gemv_module(n: int, k: int) -> Module:
     rows, unroll, waves = (2, 1, 8)
     args = make_cpp_args(n, k, rows, unroll, waves)
