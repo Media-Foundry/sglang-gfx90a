@@ -4557,13 +4557,16 @@ class Scheduler(
         if "dsv4_down_uniform_arm" in server_args_dict:
             # This diagnostic command is broadcast to all TP workers. Never
             # locally skip consensus merely because this worker is busy.
-            if (set(server_args_dict) != {"dsv4_down_uniform_arm"}
-                    or type(server_args_dict["dsv4_down_uniform_arm"]) is not bool):
+            from sglang.srt.model_executor.runner_backend.dsv4_down_graph_pair import (
+                parse_arm_request, switch_arm,
+            )
+            try:
+                selected_arm = parse_arm_request(server_args_dict)
+            except ValueError:
                 return SetInternalStateReqOutput(updated=False)
-            from sglang.srt.model_executor.runner_backend.dsv4_down_graph_pair import switch_arm
 
             return SetInternalStateReqOutput(updated=switch_arm(
-                server_args_dict["dsv4_down_uniform_arm"], idle=self.is_fully_idle()))
+                selected_arm, idle=self.is_fully_idle()))
         args_allow_update = set(
             [
                 "pp_max_micro_batch_size",

@@ -20,6 +20,15 @@ exec(compile(ast.Module(body=definitions, type_ignores=[]), str(PATH), 'exec'), 
 
 
 class PairTest(unittest.TestCase):
+    def test_numeric_control_wire_contract(self):
+        for value in (0, 1):
+            self.assertIs(ns['parse_arm_request']({'dsv4_down_uniform_arm': value}), bool(value))
+        for value in (-1, 2, 0.0, '1', None, (False,)):
+            with self.assertRaises(ValueError):
+                ns['parse_arm_request']({'dsv4_down_uniform_arm': value})
+        with self.assertRaises(ValueError):
+            ns['parse_arm_request']({'dsv4_down_uniform_arm': 1, 'another': 0})
+
     def setUp(self):
         self.key = NS(size=32, stream_idx=None, variant_label=None, dsa_variant=None)
         # Hashable shape-key surrogate, with the same public fields.

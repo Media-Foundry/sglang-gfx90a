@@ -17,6 +17,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--restart-paired', action='store_true',
+                        help='explicitly replace an existing paired diagnostic after its controller exits')
     args = parser.parse_args()
     assert not args.output.exists()
     service = psutil.Process(args.pid)
@@ -27,7 +29,7 @@ def main():
                        '--model-path': '/home/pc/models/modelscope',
                        '--moe-a2a-backend': 'none'}.items():
         assert cmd[cmd.index(key) + 1] == value
-    assert env.get(FLAG, '0') == '0'
+    assert env.get(FLAG, '0') == ('1' if args.restart_paired else '0')
     assert env.get('SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM', '0') == '0'
     assert not any(x.startswith('--speculative-') for x in cmd)
     children = service.children(recursive=True)

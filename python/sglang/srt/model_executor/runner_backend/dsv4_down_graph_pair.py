@@ -15,6 +15,17 @@ _pair = None
 logger = logging.getLogger(__name__)
 
 
+def parse_arm_request(arguments):
+    """SetInternalStateReq carries numeric knobs, not a boolean wire type."""
+    key = 'dsv4_down_uniform_arm'
+    if set(arguments) != {key}:
+        raise ValueError('arm must be the only control key')
+    value = arguments[key]
+    if type(value) is not int or value not in (0, 1):
+        raise ValueError('arm must be integer 0 or 1')
+    return bool(value)
+
+
 def switch_arm(enabled, *, idle):
     """Called by every TP worker for the same broadcast control request."""
     pair = _pair
