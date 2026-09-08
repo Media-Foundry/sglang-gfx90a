@@ -52,6 +52,7 @@ the captured launch sequence.
 from __future__ import annotations
 
 import functools
+import logging
 
 import torch
 import triton
@@ -62,6 +63,7 @@ from sglang.kernels.ops.quantization.fp8_kernel import is_fp8_fnuz
 
 LOG2E = 1.4426950408889634  # log2(e); folded into qk_scale so softmax can use exp2.
 _MAX_KV_SPLITS = 64  # Hard cap on kv_splits (see _kv_splits_heuristic).
+_tp8_warps2_logged = set()
 
 # FP8 KV cache (1xGROUP_SIZE block-scale quantization).
 #
@@ -879,6 +881,27 @@ def _sparse_attn_v4_paged_decode_triton(
         ):
             num_warps = 2
             num_stages = 2
+
+    # Default-off native TP8 H8 oracle winner. Preserve all mathematical
+    # tiles, split count and reduction; do not touch prefill or verification.
+    if (_oracle_num_warps is None and _oracle_num_stages is None
+            and not quant_kv and not fuse_inverse_rope
+            and q.dtype == torch.bfloat16 and T in (1,32) and H == 8
+            and D == 512 and block_h == 16 and block_k == 16 and kv_splits > 1):
+        from sglang.srt.environ import envs
+        if envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get():
+            from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import native_attention_active
+            from sglang.srt.runtime_context import get_parallel
+            from sglang.srt.utils.common import is_gfx90a_supported
+            if (native_attention_active() and is_gfx90a_supported()
+                    and get_parallel().tp_size == 8
+                    and get_parallel().attn_tp_size == 8
+                    and get_parallel().moe_ep_size == 1):
+                num_warps, num_stages = 2, 2
+                if T not in _tp8_warps2_logged:
+                    logging.getLogger(__name__).info(
+                        'DSV4 native TP8 H8 decode attention selected: M=%s waves=2 stages=2 splits=%s', T, kv_splits)
+                    _tp8_warps2_logged.add(T)
 
     # Kernel reads (kv_scales_ptr, ks_stride_n) only when QUANT_KV — supply a
     # dummy 1-element fp32 tensor on the bf16 path so the launch signature

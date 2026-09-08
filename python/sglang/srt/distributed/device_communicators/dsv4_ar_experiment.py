@@ -9,6 +9,11 @@ from sglang.srt.environ import envs
 
 _active = ContextVar('dsv4_tp8_m32_legacy_ar', default=False)
 _native_active = ContextVar('dsv4_native_m32_experiment', default=False)
+_attention_active = ContextVar('dsv4_native_decode_attention', default=False)
+
+
+def native_attention_active():
+    return _attention_active.get()
 
 
 def native_m32_active():
@@ -24,7 +29,8 @@ def eligible(*, enabled, hip, arch, decode, batch_size, native):
 def dsv4_ar_scope(batch, device):
     enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR.get()
     gate_enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get()
-    if not (enabled or gate_enabled):
+    attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get()
+    if not (enabled or gate_enabled or attention_enabled):
         yield
         return
     spec = batch.spec_algorithm
@@ -36,11 +42,15 @@ def dsv4_ar_scope(batch, device):
                       batch_size=batch.batch_size, native=native)
     token = _active.set(active and enabled)
     native_token = _native_active.set(active)
+    attention_token = _attention_active.set(
+        attention_enabled and native and batch.forward_mode.is_decode()
+        and batch.batch_size in (1,32))
     try:
         yield
     finally:
         _active.reset(token)
         _native_active.reset(native_token)
+        _attention_active.reset(attention_token)
 
 
 def adapt_dsv4_ar(aiter_cls):

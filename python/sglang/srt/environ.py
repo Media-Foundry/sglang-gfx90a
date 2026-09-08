@@ -1615,6 +1615,7 @@ class Envs:
     SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM = EnvBool(False)
     # Two-wave unified-KV split core for exact TP4/M32/H16/D512 BF16 decode.
     SGLANG_DSV4_GFX90A_TP4_M32_PAGED_DECODE_WARPS2 = EnvBool(False)
+    SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2 = EnvBool(False)
     # CK-style native MFMA unified sparse decode for the exact TP4/M64 C128
     # BF16 graph tier. It uses a persistent 4 MiB split-K workspace per rank.
     SGLANG_DSV4_GFX90A_TP4_M64_CK_SPARSE_DECODE = EnvBool(False)

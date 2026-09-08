@@ -16,6 +16,7 @@ def main():
     p.add_argument('--candidate-flag', choices=[
         'SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL',
         'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
+        'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
     service=psutil.Process(a.pid)
@@ -83,7 +84,8 @@ def main():
             bench(['scripts/rocm/bench_dsv4_c1_mhc_recovery.py','--arm',f'ABBA{index}',
                    '--rounds','2','--skip-freeze-gc','--reference',
                    '/tmp/dsv4_runtime_m_c1_B_20260908.json'],c1)
-            if a.candidate_flag == 'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND':
+            if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
+                                    'SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2'):
                 result=json.loads(c1.read_text())
                 reference=json.loads(Path('/tmp/dsv4_runtime_m_c1_B_20260908.json').read_text())
                 expected={row['case']:row['output_ids'] for row in reference['measurements']

@@ -52,6 +52,8 @@ def main():
     p.add_argument('--output', type=Path)
     p.add_argument('--ragged-check', action='store_true',
                    help='Validate 2-wave/stage2 with changing lengths, indices, empty rows and 1000 replays')
+    p.add_argument('--inverse-rope', action='store_true',
+                   help='Validate the fused inverse-RoPE reducer used by production C1')
     args = p.parse_args()
     torch.manual_seed(20260830)
 
@@ -65,6 +67,11 @@ def main():
         indptr = torch.arange(0, (t + 1) * context, context,
                               dtype=torch.int32, device="cuda")
         sink = torch.randn((h,), dtype=torch.float32, device="cuda")
+        rope_freqs=rope_positions=None
+        if args.inverse_rope:
+            angles=torch.randn((max(1024,context+t+1),32),device='cuda')
+            rope_freqs=torch.stack((angles.cos(),angles.sin()),dim=-1).flatten(1).contiguous()
+            rope_positions=torch.arange(t,device='cuda',dtype=torch.int64)+context
 
         def run(profile):
             warps, stages = profile
@@ -73,6 +80,8 @@ def main():
                 block_h=16, kv_splits=splits, block_k=16,
                 _oracle_num_warps=warps,
                 _oracle_num_stages=stages,
+                inverse_rope_freqs=rope_freqs,
+                inverse_rope_positions=rope_positions,
             )
 
         graphs, outputs = {}, {}
@@ -126,6 +135,7 @@ def main():
                 indptr.copy_(ptr.to(device='cuda',dtype=torch.int32))
                 indices.random_(0,t*context)
                 q.normal_();kv.normal_();sink.normal_()
+                if rope_positions is not None:rope_positions.random_(0,rope_freqs.shape[0])
                 graphs[BASELINE].replay();graphs[(2,2)].replay()
                 torch.cuda.synchronize()
                 assert torch.equal(outputs[BASELINE],outputs[(2,2)]), (context,mutation)
@@ -136,6 +146,7 @@ def main():
             assert torch.equal(saved,outputs[(2,2)])
             print(f'RAGGED ctx={context} mutations=100 empty_rows=True graph1000_exact=True')
         results.append(dict(tokens=t,heads=h,context=context,splits=splits,
+                            fused_inverse_rope=args.inverse_rope,
                             mutations=args.mutations,all_profiles_exact=True,
                             ragged100_graph1000_exact=args.ragged_check,
                             samples_us={str(k):v for k,v in values.items()},

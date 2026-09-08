@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate complete shared-gate ABBA artifacts and summarize warm rates."""
+"""Validate scoped TP8 shared-gate/attention ABBA and summarize warm rates."""
 import argparse
 import hashlib
 import json
@@ -16,7 +16,10 @@ def main():
     state = json.loads(args.state.read_text())
     assert state["status"] == "complete", "ABBA is not complete"
     assert [b["candidate"] for b in state["blocks"]] == [True, False, False, True]
-    assert state["candidate_flag"] == "SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND"
+    assert state["candidate_flag"] in (
+        "SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND",
+        "SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2",
+    )
     blocks = []
     reference = None
     forced_reference = None
@@ -41,6 +44,9 @@ def main():
                 r[field] == forced_reference[(r["case"], r["continuation_length"])][field]
                 for r in c1["teacher_forced"]
             )
+        if state["candidate_flag"] == "SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2":
+            assert len(c1["teacher_forced"]) == 6
+            assert all(n == 6 for n in forced_exact.values()), forced_exact
         assert c32["request_count"] == 32 and c32["tokens"] == 256
         assert len(c32["rounds"]) == 6
         for row in c32["rounds"]:
@@ -72,7 +78,8 @@ def main():
         baseline = statistics.geometric_mean(b[metric] for b in blocks if not b["candidate"])
         comparison[metric] = {"candidate": candidate, "baseline": baseline,
                               "change_percent": 100 * (candidate / baseline - 1)}
-    result = {"state": str(args.state), "blocks": blocks, "comparison": comparison,
+    result = {"state": str(args.state), "candidate_flag":state["candidate_flag"],
+              "blocks": blocks, "comparison": comparison,
               "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."}
     args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
