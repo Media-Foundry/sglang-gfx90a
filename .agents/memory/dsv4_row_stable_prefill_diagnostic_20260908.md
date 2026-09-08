@@ -67,3 +67,58 @@ Raw results:
 The flag remains default-off. No new throughput result; do not replace the
 accepted C1~82.7 / C32 E2E~980 baseline with diagnostic service timings.
 Next: locate the first later-layer divergence with the same fixed-prefix input.
+
+## Layer1 follow-up
+
+Same candidate/config, only dump layer changed; PID2920553.
+`/tmp/dsv4_tp8_rowstable_layer1_20260908` contains the tensors.
+Layer1 rank0 input, normalized input, Q/core/inverse RoPE, wo_a,
+wo_b_partial/global, attention output and FFN output are all736/736 row-exact.
+32/32 next-token IDs match reference. No throughput test with debug hooks.
+The stage comparison script now accepts `--layer` and `--rank` (default0/0);
+its default was rechecked against the layer0 fixture without changing results.
+
+## Next first divergence: layer2 attention/compressor
+
+Layer3 input already differed (664/736 exact, max0.00390625), so the first
+learned router is not the first source. Layer2 narrowed it further:
+input/norm/Q all736 exact; attention core717 exact, max0.00390625;
+global wo_b and FFN output664 exact. Layer2 MHC residual/post/comb all736 exact.
+Dump: `/tmp/dsv4_tp8_rowstable_layer2_20260908`, PID2935898 (replaced).
+
+Isolated GPU4 replay of its identical `attn_norm` and raw saved compressor
+weights, with USE_AITER=1, BF16_ATTN_LINEAR=1, WAVE64_FP32_GEMV=1:
+
+| Projection | Shape (M,N,K) | Current exact rows | Max row delta | Candidate exact rows |
+|---|---|---:|---:|---:|
+| core compressor |736,2048,4096|553|0.001953125|736|
+| index compressor |736,512,4096|682|0.000244140625|736|
+
+An earlier standalone run without the service AIter flags used another backend;
+its ~4e-6 FP32 deltas are not used as the service-path evidence.
+The AIter helper returns BF16 GEMM output promoted to FP32. The new diagnostic
+hook preserves that BF16-round-then-FP32 contract, scopes through the existing
+native TP8 prefill ContextVar, and leaves non-AIter and decode paths unchanged.
+It introduces no persistent allocation or weight cache.
+
+## Compressor hook service result
+
+PID2944434, `/tmp/dsv4_tp8_rowstable_compressor_layer2_20260908.log`,
+dump directory of the same basename (without `.log`).
+Layer2 rank0 input/norm/Q/core/inverse RoPE/wo_a/wo_b_partial/global,
+attention output, MHC residual/post/comb, and FFN output now all736/736
+identical rows, max delta0, finite. This eliminates the observed layer2
+attention discrepancy without changing its indices/cache/addressing kernels.
+
+Three homogeneous32-client waves:96/96 next IDs match the sequential reference.
+Final input/output logprobs still not reference-exact; unique arrays per wave
+drop12->3, multiplicities8/8/16, multiset identical across all3 rounds.
+This is not proof that all remaining error magnitudes shrink or that the whole
+model is slot-invariant. France C32 again32/32 passes through EOS.
+Raw results `/tmp/dsv4_tp8_rowstable_compressor_probe_20260908.json` and
+`/tmp/dsv4_tp8_rowstable_compressor_france_20260908.json`.
+
+Default remains off. Native TP8 decode unchanged; no speed claim, no KV pool
+reduction. Next isolate the remaining later-layer or final-logit source before
+performance acceptance. Earlier candidate services listed above were terminated
+before each replacement; only PID2944434 is current at this checkpoint.

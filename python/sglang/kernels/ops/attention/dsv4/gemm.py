@@ -168,6 +168,15 @@ def linear_bf16_fp32(
         if output is not None:
             return output
     if _use_aiter and y.dtype == torch.bfloat16:
+        if envs.SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL.get():
+            from sglang.srt.layers.quantization.dsv4_projection_experiment import (
+                maybe_row_stable_linear,
+            )
+
+            stable = maybe_row_stable_linear(x, y)
+            if stable is not None:
+                # Preserve this backend's BF16 rounding before FP32 promotion.
+                return stable.float()
         return tgemm.mm(x, y, otype=x.dtype).float()
     elif hpc_kernel_min_m is not None:
         output = _linear_bf16_fp32_hpc(x, y, min_m=hpc_kernel_min_m)
