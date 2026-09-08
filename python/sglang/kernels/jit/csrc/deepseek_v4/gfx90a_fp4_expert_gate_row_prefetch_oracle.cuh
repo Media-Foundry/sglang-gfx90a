@@ -100,6 +100,18 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
             *reinterpret_cast<const uint4*>(weight + gate_base);
         up_packed[r].vector =
             *reinterpret_cast<const uint4*>(weight + up_base);
+#ifdef SGLANG_FP4_GATE_PAIRED_SCALE_LOAD_ORACLE
+        if constexpr (!kLogicalScale) {
+          // AIter gate/up scale layout ends in pack2: adjacent low/high bytes.
+          // gate_row<I gives pack2=0 and therefore an even aligned offset.
+          const size_t offset =
+              gfx90a_gate_up_scale_offset<E, I, K>(expert, gate_row, group);
+          const uint16_t pair =
+              *reinterpret_cast<const uint16_t*>(weight_scale + offset);
+          gate_scale_raw[r] = static_cast<uint8_t>(pair);
+          up_scale_raw[r] = static_cast<uint8_t>(pair >> 8);
+        } else {
+#endif
         gate_scale_raw[r] = weight_scale[
             kLogicalScale
                 ? (static_cast<size_t>(expert) * (2 * I) + gate_row) *
@@ -112,6 +124,9 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
                       (K / 32) + group
                 : gfx90a_gate_up_scale_offset<E, I, K>(expert, up_row,
                                                         group)];
+#ifdef SGLANG_FP4_GATE_PAIRED_SCALE_LOAD_ORACLE
+        }
+#endif
       }
 
 #pragma unroll

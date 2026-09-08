@@ -24,10 +24,13 @@ def main():
                         help='Standalone task-order oracle against accepted prefetched gate')
     parser.add_argument('--gate-blocks', type=int, choices=(416,624,832,1040,1248),
                         help='Only change accepted prefetched gate CTA count; full chain comparison')
+    parser.add_argument('--paired-scale-load', action='store_true',
+                        help='Standalone gate/up scale uint16 load; unchanged scale layout')
     parsed=parser.parse_args()
-    full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe) or bool(parsed.gate_blocks)
+    full=parsed.full or parsed.down_prefetch or parsed.breakdown or bool(parsed.gate_row_stripe) or bool(parsed.gate_blocks) or parsed.paired_scale_load
     assert not (parsed.gate_row_stripe and parsed.down_prefetch)
     assert not (parsed.gate_blocks and (parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown))
+    assert not (parsed.paired_scale_load and (parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown))
     assert torch.cuda.get_device_properties(0).gcnArchName.startswith('gfx90a')
     torch.manual_seed(20908)
     m,t,e,i,k=32,6,256,256,4096
@@ -41,6 +44,13 @@ def main():
     if parsed.gate_blocks:
         candidate_args=(*args[:8],parsed.gate_blocks,args[9])
         mods=[mods[1],_jit_gate_up_grouped_row_prefetch(*candidate_args)]
+    if parsed.paired_scale_load:
+        cpp=make_cpp_args(*args)
+        mods=[mods[1],load_jit(
+            'gfx90a_fp4_gate_paired_scale_oracle',*args,
+            cuda_files=['deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh'],
+            cuda_wrappers=[('run',f'sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{cpp}>::run')],
+            extra_cuda_cflags=['-O3','-DSGLANG_FP4_GATE_PAIRED_SCALE_LOAD_ORACLE=1'])]
     if parsed.gate_row_stripe:
         cpp=make_cpp_args(*args)
         mods=[mods[1],load_jit(
@@ -105,7 +115,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
