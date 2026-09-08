@@ -28,6 +28,29 @@ Results pending. Do not promote or claim a speedup before complete E2E and
 correctness checks. The controller leaves A active on successful completion;
 explicit restoration is required if the candidate fails acceptance.
 
+First A block: C1 case medians 82.9103 / 83.2903 / 83.1096 tok/s;
+France passes and all six 256-token sequences match the historical reference.
+However, teacher-forced input/output logprobs match in 0/6 fixtures against
+`/tmp/dsv4_runtime_m_c1_B_20260908.json`. Maximum compared input logprob
+delta is 0.21915; output top-logprob delta is 0.50000, with 47 nonfloat or
+structural differences (including top-token membership/order). Do not call
+this bitwise exact based on synthetic kernel fixtures or generated text.
+Same-run B comparison is still pending and needed to attribute the difference.
+
+Follow-up: first B case medians 83.1919 / 83.2281 / 83.1201 tok/s.
+All six A/B fixed-prefix probes match exactly in input IDs, output IDs,
+input logprobs and output top-logprobs. The historical-reference discrepancy
+is therefore not evidence of this candidate causing numeric drift.
+
+Important coverage correction: the existing fixed-prefix probes request only
+one output token, computed during prefill. They do not exercise the modified
+cached-decode kernel. Added `check_dsv4_c1_decode_logprobs.py` for a separate,
+untimed 256-token continuous-decode probe. It compares output top-20 and
+selected logprobs only at positions with identical prefixes, excludes the
+initial prefill token from cached-decode counts, and stops comparison after
+the first divergent output. Mock HTTP/first-divergence comparison tests pass;
+GPU/service validation is pending after ABBA, to avoid contaminating timing.
+
 Startup evidence: candidate service PID 3198487 logged actual fused C1
 two-wave selection on all eight ranks at 17:17:00. No M32 selection log.
 Rank 0 reports max_total_num_tokens=1048576 and available_gpu_mem=15.64 GB,
