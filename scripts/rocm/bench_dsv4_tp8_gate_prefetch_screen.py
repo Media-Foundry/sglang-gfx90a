@@ -10,12 +10,16 @@ from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
     _jit_gate_up_grouped, _jit_gate_up_grouped_row_prefetch, _jit_down_grouped,
 )
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
+from sglang.kernels.jit.utils import load_jit, make_cpp_args
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--full',action='store_true')
-    full=parser.parse_args().full
+    parser.add_argument('--down-prefetch',action='store_true',
+                        help='Keep prefetched gate fixed; test isolated subgroup8 down candidate')
+    parsed=parser.parse_args()
+    full=parsed.full or parsed.down_prefetch
     assert torch.cuda.get_device_properties(0).gcnArchName.startswith('gfx90a')
     torch.manual_seed(20908)
     m,t,e,i,k=32,6,256,256,4096
@@ -25,11 +29,20 @@ def main():
     ws=torch.full((e,2*i,k//32),127,dtype=torch.uint8,device='cuda')
     args=(e,m,t,i,k,4,2,8,832,2)
     mods=[_jit_gate_up_grouped(*args),_jit_gate_up_grouped_row_prefetch(*args)]
+    if parsed.down_prefetch:mods=[mods[1],mods[1]]
     if full:
         down=_jit_down_grouped(e,m,t,k,i,4,2,8,832,2)
         w2=torch.randint(0,256,(e,k,i//2),dtype=torch.uint8,device='cuda')
         s2=torch.randint(122,128,(e,k,i//32),dtype=torch.uint8,device='cuda')
         router_weights=torch.rand((m,t),device='cuda')
+        downs=[down,down]
+        if parsed.down_prefetch:
+            cpp=make_cpp_args(e,m,t,k,i,4,8,832,2)
+            downs[1]=load_jit('gfx90a_fp4_tp8_down_prefetch_oracle',*cpp,
+                             cuda_files=['deepseek_v4/gfx90a_fp4_tp8_down_prefetch_oracle.cuh'],
+                             cuda_wrappers=[('run_partial',f'sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::run_partial'),
+                                            ('reduce',f'sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::reduce')],
+                             extra_cuda_cflags=['-O3'])
     for expert_pool in (256,128,32):
         ids=torch.rand((m,expert_pool),device='cuda').topk(t,dim=1).indices.int()
         meta=make_metadata(ids,assignments=4)
@@ -42,14 +55,14 @@ def main():
                 mod.run(x,scale,w,ws,meta.sorted_ids,meta.sorted_experts,meta.valid,out,10.)
                 if full:
                     q,qs=per_token_group_quant_int8(out,32)
-                    down.run_partial(q,qs,w2,s2,meta.sorted_ids,meta.sorted_experts,
+                    downs[arm].run_partial(q,qs,w2,s2,meta.sorted_ids,meta.sorted_experts,
                                      meta.valid,router_weights,partials[arm])
-                    down.reduce(partials[arm],finals[arm])
+                    downs[arm].reduce(partials[arm],finals[arm])
             run();torch.cuda.synchronize()
             g=torch.cuda.CUDAGraph()
             with torch.cuda.graph(g):run()
             graphs.append(g)
-        exact=0;max_abs=0.;stable=True
+        exact=0;partial_exact=0;max_abs=0.;stable=True
         for n in range(100):
             x.random_(-127,128)
             scale.uniform_(.001,.02)
@@ -57,6 +70,7 @@ def main():
             for g in graphs:g.replay()
             torch.cuda.synchronize()
             exact+=int(torch.equal(*outputs) and torch.equal(*finals))
+            if full:partial_exact+=int(torch.equal(*partials))
             max_abs=max(max_abs,float((finals[0]-finals[1]).abs().max()))
             assert all(torch.isfinite(o).all() for o in finals)
             expected=finals[1].clone()
@@ -73,8 +87,9 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
+                              partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
                               trimmed_us=[statistics.mean(sorted(v)[1:-1]) for v in samples])),flush=True)
 
