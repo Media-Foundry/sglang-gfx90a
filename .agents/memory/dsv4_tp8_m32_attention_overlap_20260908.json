@@ -1,0 +1,1402 @@
+{
+  "scope": "native TP8 EP1 no-A2A, original checkpoint, KV131072, memory0.80, graph1/2/4/8/16/24/32, interleave all",
+  "arms": {
+    "A3": {
+      "sources": [
+        "/tmp/dsv4_tp8_m32_overlap_c1_A3_20260908.json",
+        "/tmp/dsv4_tp8_m32_overlap_c32_A3_20260908.json"
+      ],
+      "flag": 0,
+      "c1_medians": {
+        "diverse-03": 83.68050423452092,
+        "diverse-15": 83.66192689997504,
+        "diverse-31": 83.71681143064467
+      },
+      "france_c1_exact": true,
+      "teacher_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "c1_measurements": [
+        {
+          "case": "diverse-03",
+          "rep": -1,
+          "tok_s": 83.2226642841809,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": -1,
+          "tok_s": 83.8353137853241,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": -1,
+          "tok_s": 83.24022499598506,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 0,
+          "tok_s": 83.88824679436729,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 0,
+          "tok_s": 83.67351588406719,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 0,
+          "tok_s": 83.79002003627889,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 1,
+          "tok_s": 83.47276167467454,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 1,
+          "tok_s": 83.6503379158829,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 1,
+          "tok_s": 83.64360282501046,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        }
+      ],
+      "median_tok_s": 919.6070845614856,
+      "trimmed_mean_tok_s": 919.4643351195692,
+      "resident_bs32_median_tok_s": 959.9591335767278,
+      "resident_bs32_trimmed_mean_tok_s": 959.9405937778183,
+      "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+      "cross_round_exact_requests": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.938742310012458,
+          "aggregate_tok_s": 916.4600248990266,
+          "resident_bs32_tok_s": 959.7904971260041,
+          "scheduler_decode_tok_s": 967.7049972352993
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.903549697017297,
+          "aggregate_tok_s": 920.0824703370087,
+          "resident_bs32_tok_s": 959.6843814118067,
+          "scheduler_decode_tok_s": 966.9554673771369
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.908313071995508,
+          "aggregate_tok_s": 919.5904919139701,
+          "resident_bs32_tok_s": 960.449691199377,
+          "scheduler_decode_tok_s": 968.3315167150214
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.907991608983139,
+          "aggregate_tok_s": 919.6236772090011,
+          "resident_bs32_tok_s": 960.1277700274516,
+          "scheduler_decode_tok_s": 967.6558405787002
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.89293970199651,
+          "aggregate_tok_s": 921.1802030054082,
+          "resident_bs32_tok_s": 960.1597265460107,
+          "scheduler_decode_tok_s": 967.6029882869364
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.918300108984113,
+          "aggregate_tok_s": 918.5607010182969,
+          "resident_bs32_tok_s": 958.6018867266321,
+          "scheduler_decode_tok_s": 966.3336102073284
+        }
+      ],
+      "all_requests_length256": true
+    },
+    "B3": {
+      "sources": [
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B3_c1.json",
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B3_c32.json"
+      ],
+      "flag": 1,
+      "c1_medians": {
+        "diverse-03": 84.20387948747774,
+        "diverse-15": 84.05466444404823,
+        "diverse-31": 84.17760225404528
+      },
+      "france_c1_exact": true,
+      "teacher_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "c1_measurements": [
+        {
+          "case": "diverse-03",
+          "rep": -1,
+          "tok_s": 83.58925230477212,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": -1,
+          "tok_s": 84.13833778033582,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": -1,
+          "tok_s": 83.56371888706028,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 0,
+          "tok_s": 84.16913741628093,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 0,
+          "tok_s": 83.91926427488954,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 0,
+          "tok_s": 84.2065432634353,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 1,
+          "tok_s": 84.23862155867454,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 1,
+          "tok_s": 84.19006461320693,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 1,
+          "tok_s": 84.14866124465527,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        }
+      ],
+      "median_tok_s": 963.4007478746682,
+      "trimmed_mean_tok_s": 963.2373093688826,
+      "resident_bs32_median_tok_s": 1008.3149966377913,
+      "resident_bs32_trimmed_mean_tok_s": 1008.3137546009357,
+      "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+      "cross_round_exact_requests": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.530006981018232,
+          "aggregate_tok_s": 960.3743605637842,
+          "resident_bs32_tok_s": 1008.3415785846574,
+          "scheduler_decode_tok_s": 1016.6966300826668
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.502798623987474,
+          "aggregate_tok_s": 963.4474909107372,
+          "resident_bs32_tok_s": 1008.3268464547311,
+          "scheduler_decode_tok_s": 1016.3448743377941
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.511763251008233,
+          "aggregate_tok_s": 962.43278371607,
+          "resident_bs32_tok_s": 1009.5062161564159,
+          "scheduler_decode_tok_s": 1017.5900034853967
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.503623754979344,
+          "aggregate_tok_s": 963.3540048385994,
+          "resident_bs32_tok_s": 1008.2834465435029,
+          "scheduler_decode_tok_s": 1016.5853080318777
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.492305253981613,
+          "aggregate_tok_s": 964.63795812794,
+          "resident_bs32_tok_s": 1008.153106310859,
+          "scheduler_decode_tok_s": 1015.9668425366845
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.500438777991803,
+          "aggregate_tok_s": 963.714958010124,
+          "resident_bs32_tok_s": 1008.3031468208515,
+          "scheduler_decode_tok_s": 1016.5152336032615
+        }
+      ],
+      "all_requests_length256": true,
+      "post_c32_probes": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    "B4": {
+      "sources": [
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B4_c1.json",
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B4_c32.json"
+      ],
+      "flag": 1,
+      "c1_medians": {
+        "diverse-03": 83.97898069064425,
+        "diverse-15": 83.9144482865299,
+        "diverse-31": 83.92420245617126
+      },
+      "france_c1_exact": true,
+      "teacher_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "c1_measurements": [
+        {
+          "case": "diverse-03",
+          "rep": -1,
+          "tok_s": 83.3486748077863,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": -1,
+          "tok_s": 83.84576587475118,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": -1,
+          "tok_s": 83.22360360748971,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 0,
+          "tok_s": 83.99465326008558,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 0,
+          "tok_s": 83.88511124478777,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 0,
+          "tok_s": 83.99495279983333,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 1,
+          "tok_s": 83.96330812120293,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 1,
+          "tok_s": 83.94378532827203,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 1,
+          "tok_s": 83.85345211250919,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        }
+      ],
+      "median_tok_s": 957.7885637234972,
+      "trimmed_mean_tok_s": 957.6455277855689,
+      "resident_bs32_median_tok_s": 1002.259924885095,
+      "resident_bs32_trimmed_mean_tok_s": 1002.1606219582496,
+      "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+      "cross_round_exact_requests": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.598814181983471,
+          "aggregate_tok_s": 952.6895019041298,
+          "resident_bs32_tok_s": 1002.1916953456068,
+          "scheduler_decode_tok_s": 1010.5065975621279
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.548688184993807,
+          "aggregate_tok_s": 958.2756819204226,
+          "resident_bs32_tok_s": 1001.7026106509327,
+          "scheduler_decode_tok_s": 1009.0074101474291
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.55738810202456,
+          "aggregate_tok_s": 957.3014455265719,
+          "resident_bs32_tok_s": 1002.3281544245832,
+          "scheduler_decode_tok_s": 1010.5767289992956
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.547474596998654,
+          "aggregate_tok_s": 958.4117398695195,
+          "resident_bs32_tok_s": 1002.4200274118758,
+          "scheduler_decode_tok_s": 1010.609906074195
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.539466274989536,
+          "aggregate_tok_s": 959.3105395817068,
+          "resident_bs32_tok_s": 1002.8085523027137,
+          "scheduler_decode_tok_s": 1011.0252452853891
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.563723455998115,
+          "aggregate_tok_s": 956.5932438257618,
+          "resident_bs32_tok_s": 1001.4589591409591,
+          "scheduler_decode_tok_s": 1009.5173444706106
+        }
+      ],
+      "all_requests_length256": true,
+      "post_c32_probes": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    "A4": {
+      "sources": [
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_A4_c1.json",
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_A4_c32.json"
+      ],
+      "flag": 0,
+      "c1_medians": {
+        "diverse-03": 83.6680665271466,
+        "diverse-15": 83.76417207132629,
+        "diverse-31": 83.84326740613659
+      },
+      "france_c1_exact": true,
+      "teacher_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "c1_measurements": [
+        {
+          "case": "diverse-03",
+          "rep": -1,
+          "tok_s": 83.2532925826115,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": -1,
+          "tok_s": 83.78175493998809,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": -1,
+          "tok_s": 82.70899091924834,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 0,
+          "tok_s": 83.53379941506793,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 0,
+          "tok_s": 83.65444533355141,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 0,
+          "tok_s": 83.88327135084151,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 1,
+          "tok_s": 83.8023336392253,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 1,
+          "tok_s": 83.87389880910116,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 1,
+          "tok_s": 83.80326346143167,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        }
+      ],
+      "median_tok_s": 918.7283985955876,
+      "trimmed_mean_tok_s": 918.8874727845496,
+      "resident_bs32_median_tok_s": 959.2287589712446,
+      "resident_bs32_trimmed_mean_tok_s": 959.1680161942699,
+      "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+      "cross_round_exact_requests": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.95720241498202,
+          "aggregate_tok_s": 914.5712713042941,
+          "resident_bs32_tok_s": 960.2228930459138,
+          "scheduler_decode_tok_s": 968.0483077150077
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.905966449994594,
+          "aggregate_tok_s": 919.8327936666517,
+          "resident_bs32_tok_s": 959.3892913484804,
+          "scheduler_decode_tok_s": 967.1295413636622
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.921217652008636,
+          "aggregate_tok_s": 918.2603002803714,
+          "resident_bs32_tok_s": 958.5715927942149,
+          "scheduler_decode_tok_s": 966.5124218215487
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.915663907013368,
+          "aggregate_tok_s": 918.8323029489583,
+          "resident_bs32_tok_s": 959.0682265940087,
+          "scheduler_decode_tok_s": 966.7682951585638
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.905560497980332,
+          "aggregate_tok_s": 919.8747234222755,
+          "resident_bs32_tok_s": 959.5404225898582,
+          "scheduler_decode_tok_s": 966.9777573616797
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.917680783983087,
+          "aggregate_tok_s": 918.6244942422169,
+          "resident_bs32_tok_s": 958.6741242447322,
+          "scheduler_decode_tok_s": 966.2075589510729
+        }
+      ],
+      "all_requests_length256": true,
+      "post_c32_probes": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    },
+    "B5": {
+      "sources": [
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B5_c1.json",
+        "/tmp/dsv4_tp8_overlap_interleave_20260908_B5_c32.json"
+      ],
+      "flag": 1,
+      "c1_medians": {
+        "diverse-03": 83.97460681123655,
+        "diverse-15": 83.94028322337321,
+        "diverse-31": 84.03173134797919
+      },
+      "france_c1_exact": true,
+      "teacher_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "c1_measurements": [
+        {
+          "case": "diverse-03",
+          "rep": -1,
+          "tok_s": 83.50280763639668,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": -1,
+          "tok_s": 84.05041216077429,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": -1,
+          "tok_s": 83.36283889383193,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 0,
+          "tok_s": 83.9576733106353,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 0,
+          "tok_s": 83.99253912474256,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 0,
+          "tok_s": 84.02293513532923,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        },
+        {
+          "case": "diverse-03",
+          "rep": 1,
+          "tok_s": 83.99154031183781,
+          "sha256": "bba331d6f1e0fe1534c8e60689b49b75926614b48479c08af4e4ce6345ade6e8"
+        },
+        {
+          "case": "diverse-15",
+          "rep": 1,
+          "tok_s": 83.88802732200386,
+          "sha256": "bc54aacf3bfc2b941c26a031774ab010bdd213a8bf9c2b028c23a6ae595a71fd"
+        },
+        {
+          "case": "diverse-31",
+          "rep": 1,
+          "tok_s": 84.04052756062914,
+          "sha256": "10377663cc5d9fbd5bc163ad9ace407c7cde260021c69697141c47246774256e"
+        }
+      ],
+      "median_tok_s": 957.0258522967797,
+      "trimmed_mean_tok_s": 956.6760975780873,
+      "resident_bs32_median_tok_s": 1002.1026518266165,
+      "resident_bs32_trimmed_mean_tok_s": 1002.112231869935,
+      "selected_workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424",
+      "cross_round_exact_requests": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "group_wall_s": 8.589654882001923,
+          "aggregate_tok_s": 953.7053714654895,
+          "resident_bs32_tok_s": 1001.471122026236,
+          "scheduler_decode_tok_s": 1009.6552020002546
+        },
+        {
+          "round": 1,
+          "group_wall_s": 8.551622019003844,
+          "aggregate_tok_s": 957.9469230276228,
+          "resident_bs32_tok_s": 1002.5373963744398,
+          "scheduler_decode_tok_s": 1010.6231522829086
+        },
+        {
+          "round": 2,
+          "group_wall_s": 8.580654187011532,
+          "aggregate_tok_s": 954.7057626911669,
+          "resident_bs32_tok_s": 1001.7062274520674,
+          "scheduler_decode_tok_s": 1009.9007949600762
+        },
+        {
+          "round": 3,
+          "group_wall_s": 8.56567171899951,
+          "aggregate_tok_s": 956.3756665842482,
+          "resident_bs32_tok_s": 1002.0718985989481,
+          "scheduler_decode_tok_s": 1010.2803765141259
+        },
+        {
+          "round": 4,
+          "group_wall_s": 8.530593818984926,
+          "aggregate_tok_s": 960.3082943380352,
+          "resident_bs32_tok_s": 1003.0825273954098,
+          "scheduler_decode_tok_s": 1011.2002669888451
+        },
+        {
+          "round": 5,
+          "group_wall_s": 8.55404090200318,
+          "aggregate_tok_s": 957.6760380093111,
+          "resident_bs32_tok_s": 1002.1334050542849,
+          "scheduler_decode_tok_s": 1010.258188600579
+        }
+      ],
+      "all_requests_length256": true,
+      "post_c32_probes": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      }
+    }
+  },
+  "abba_decode_gain_percent": 4.761755184563277,
+  "france32_A4": {
+    "exact_count": 32,
+    "request_count": 32,
+    "resident_window_s": 7.806541234982433,
+    "decode_moments_delta": [
+      253.0,
+      8096.0,
+      7712025.0,
+      259072.0,
+      246784800.0,
+      8096.0
+    ],
+    "purpose": "correctness-only repeated sentinel",
+    "first9": [
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ]
+    ]
+  },
+  "france32_B5": {
+    "exact_count": 32,
+    "request_count": 32,
+    "resident_window_s": 7.53294637799263,
+    "decode_moments_delta": [
+      253.0,
+      8096.0,
+      7441114.0,
+      259072.0,
+      238115648.0,
+      8096.0
+    ],
+    "purpose": "correctness-only repeated sentinel",
+    "first9": [
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ],
+      [
+        671,
+        6102,
+        294,
+        8760,
+        344,
+        2619,
+        51119,
+        42499,
+        1
+      ]
+    ]
+  }
+}

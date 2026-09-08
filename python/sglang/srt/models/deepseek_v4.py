@@ -955,6 +955,12 @@ class MQALayer(MqaAttentionBase):
             or (_is_npu and envs.SGLANG_NPU_USE_MULTI_STREAM.get())
             or (
                 _is_hip
+                and envs.SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM.get()
+                and self.attn_tp_size == 8
+                and self.compress_ratio == 4
+            )
+            or (
+                _is_hip
                 and envs.SGLANG_DSV4_GFX90A_TP4_M32_ATTN_MULTISTREAM.get()
                 and self.attn_tp_size == 4
                 and self.compress_ratio == 4
@@ -1931,9 +1937,27 @@ class MQALayer(MqaAttentionBase):
             and forward_batch.forward_mode.is_target_verify()
             and unified_kv
         )
+        enable_tp8_m32_hip_streams = (
+            _is_hip
+            and envs.SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM.get()
+            and self.attn_tp_size == 8
+            and self.compress_ratio == 4
+            and x.shape[0] == 32
+            and forward_batch.batch_size == 32
+            and forward_batch.forward_mode.is_decode()
+            and unified_kv
+        )
         enable_multi_stream = (
             (
-                envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
+                (
+                    envs.SGLANG_OPT_USE_MULTI_STREAM_OVERLAP.get()
+                    and not (
+                        _is_hip
+                        and self.attn_tp_size == 8
+                        and envs.SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM.get()
+                    )
+                )
+                or enable_tp8_m32_hip_streams
                 or enable_tp4_m32_hip_streams
                 or enable_tp4_m64_c128_hip_streams
                 or enable_dspark_tp4_m128_hip_streams
