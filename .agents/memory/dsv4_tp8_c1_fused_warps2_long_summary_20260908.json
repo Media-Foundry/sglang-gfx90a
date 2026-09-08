@@ -1,0 +1,205 @@
+{
+  "state": "/tmp/dsv4_tp8_c1_fused_warps2_long_abba_20260908.json",
+  "candidate_flag": "SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2",
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "service_pid": 3253272,
+      "c1_tok_s": 83.46685210567297,
+      "c1_trimmed_tok_s": 83.44241392985327,
+      "c1_case_samples": {
+        "diverse-03": [
+          83.1804405094822,
+          83.51056351876574,
+          83.15764243150475,
+          83.47943816688017,
+          83.55477254553684,
+          83.51354692262721
+        ],
+        "diverse-15": [
+          83.32984009838196,
+          83.39440168010984,
+          83.37378647342393,
+          83.47727562930248,
+          83.5683072272604,
+          83.54056598636406
+        ],
+        "diverse-31": [
+          83.3688212866158,
+          83.56088717273319,
+          83.41506168418054,
+          83.15046621408342,
+          83.53069082227064,
+          83.52439307111915
+        ]
+      },
+      "c32_warm_tok_s": 984.0773528639281,
+      "resident_warm_tok_s": 1029.6096250574842,
+      "c1_ids_exact": 18,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 9,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "service_pid": 3260856,
+      "c1_tok_s": 83.94436068354338,
+      "c1_trimmed_tok_s": 83.92051442322652,
+      "c1_case_samples": {
+        "diverse-03": [
+          83.4329509739003,
+          83.98912754901869,
+          83.92714572874736,
+          83.87350560196606,
+          83.71968427875794,
+          83.96347654642739
+        ],
+        "diverse-15": [
+          83.91645437990334,
+          83.97231602636138,
+          83.96885946291385,
+          83.88538114182226,
+          84.02873719023349,
+          84.012375775596
+        ],
+        "diverse-31": [
+          83.91264206727058,
+          84.01173029890937,
+          84.0495225436634,
+          83.66404712630778,
+          83.7270676913157,
+          84.04102654072166
+        ]
+      },
+      "c32_warm_tok_s": 981.6807725342678,
+      "resident_warm_tok_s": 1027.7599126962937,
+      "c1_ids_exact": 18,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 9,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "service_pid": 3260856,
+      "c1_tok_s": 83.84283705269308,
+      "c1_trimmed_tok_s": 83.82812229514875,
+      "c1_case_samples": {
+        "diverse-03": [
+          83.77362081519139,
+          83.84246237293488,
+          83.85017354871623,
+          83.88435013327339,
+          83.9788365236776,
+          83.83469916562304
+        ],
+        "diverse-15": [
+          83.84602431496603,
+          83.84077569828659,
+          84.04556069306383,
+          83.74631276337348,
+          83.83190322001067,
+          83.84414650845648
+        ],
+        "diverse-31": [
+          83.29513381061697,
+          83.90684687418393,
+          83.8505833165025,
+          83.57667304715622,
+          83.82888113243992,
+          84.01113572270515
+        ]
+      },
+      "c32_warm_tok_s": 982.5551706080388,
+      "resident_warm_tok_s": 1027.5986136585204,
+      "c1_ids_exact": 18,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 9,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "service_pid": 3269280,
+      "c1_tok_s": 83.31121611434696,
+      "c1_trimmed_tok_s": 83.29537365059934,
+      "c1_case_samples": {
+        "diverse-03": [
+          83.30475776789218,
+          83.32894722480724,
+          83.12363847786287,
+          83.32943168781891,
+          83.37990730817053,
+          83.1211137385087
+        ],
+        "diverse-15": [
+          83.22030926398418,
+          83.30121583335932,
+          83.14166416378231,
+          83.26029917218894,
+          83.26840065072568,
+          83.39910003925527
+        ],
+        "diverse-31": [
+          83.3053917497323,
+          83.36352734687993,
+          83.33913335298215,
+          83.36143785973123,
+          83.3435011870321,
+          83.43163276991598
+        ]
+      },
+      "c32_warm_tok_s": 982.645118912999,
+      "resident_warm_tok_s": 1027.5172186535576,
+      "c1_ids_exact": 18,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 8,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    }
+  ],
+  "comparison": {
+    "c1_tok_s": {
+      "candidate": 83.38899780042902,
+      "baseline": 83.8935835107955,
+      "change_percent": -0.6014592406838104
+    },
+    "c1_trimmed_tok_s": {
+      "candidate": 83.36886137278773,
+      "baseline": 83.8743056373168,
+      "change_percent": -0.6026211015262128
+    },
+    "c32_warm_tok_s": {
+      "candidate": 983.3609751381045,
+      "baseline": 982.11787425952,
+      "change_percent": 0.12657349093883052
+    },
+    "resident_warm_tok_s": {
+      "candidate": 1028.5628897826314,
+      "baseline": 1027.6792600128274,
+      "change_percent": 0.08598303032727461
+    }
+  },
+  "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+}
