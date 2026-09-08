@@ -30,13 +30,19 @@ def main():
     parser.add_argument('--bk',type=int,choices=(64,128,256),default=64)
     parser.add_argument('--warps',type=int,default=4)
     parser.add_argument('--stages',type=int,default=2)
+    parser.add_argument('--request-bmm',action='store_true',
+                        help='Use shared-weight batched GEMM over16 equal46-token prefixes')
     args=parser.parse_args()
     print('config',vars(args),flush=True)
     p=Path('/tmp/dsv4_tp8_slot_layer0_20260908')
     x=torch.load(p/'layer_0_rank_0_attn_norm.pt',weights_only=True).cuda()
     w=torch.load(p/'layer_0_rank_0_projection_wqkv_a.pt',weights_only=True).cuda()
     y=torch.empty((x.shape[0],w.shape[0]),device='cuda',dtype=torch.bfloat16)
-    def candidate():gemm[(triton.cdiv(x.shape[0],args.bm),triton.cdiv(w.shape[0],args.bn))](x,w,y,x.shape[0],w.shape[0],x.shape[1],BM=args.bm,BN=args.bn,BK=args.bk,num_warps=args.warps,num_stages=args.stages)
+    def candidate():
+        if args.request_bmm:
+            torch.bmm(x.view(16,46,4096),w.t().expand(16,-1,-1),out=y.view(16,46,1536))
+        else:
+            gemm[(triton.cdiv(x.shape[0],args.bm),triton.cdiv(w.shape[0],args.bn))](x,w,y,x.shape[0],w.shape[0],x.shape[1],BM=args.bm,BN=args.bn,BK=args.bk,num_warps=args.warps,num_stages=args.stages)
     candidate();torch.cuda.synchronize()
     # FP64 is diagnostic only; use the first46 rows to bound temporary memory.
     reference=(x[:46].double()@w.double().t()).bfloat16()
