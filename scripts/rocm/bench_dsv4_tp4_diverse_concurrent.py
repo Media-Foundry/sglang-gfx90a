@@ -47,6 +47,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tokens", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument("--save-output-ids", action="store_true",
+                        help="retain full completion IDs for offline semantic review")
     parser.add_argument(
         "--request-count",
         type=int,
@@ -511,6 +513,8 @@ def main() -> None:
                 else None
             ),
         }
+        if args.save_output_ids:
+            record["output_ids"] = ids
         rounds.append(record)
         print(json.dumps(record, separators=(",", ":")), flush=True)
 
