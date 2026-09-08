@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real layer0 repeated-prefix projection oracle; no production wiring."""
 import torch
+import argparse
 import statistics
 import triton
 import triton.language as tl
@@ -8,13 +9,14 @@ from pathlib import Path
 
 
 @triton.jit
-def gemm(X,W,Y,M:tl.constexpr,N:tl.constexpr,K:tl.constexpr):
-    m=tl.program_id(0)*16+tl.arange(0,16)
-    n=tl.program_id(1)*64+tl.arange(0,64)
-    k=tl.arange(0,64)
-    acc=tl.zeros((16,64),tl.float32)
-    for start in range(tl.cdiv(K,64)):
-        kk=start*64+k
+def gemm(X,W,Y,M:tl.constexpr,N:tl.constexpr,K:tl.constexpr,
+         BM:tl.constexpr=16,BN:tl.constexpr=64,BK:tl.constexpr=64):
+    m=tl.program_id(0)*BM+tl.arange(0,BM)
+    n=tl.program_id(1)*BN+tl.arange(0,BN)
+    k=tl.arange(0,BK)
+    acc=tl.zeros((BM,BN),tl.float32)
+    for start in range(tl.cdiv(K,BK)):
+        kk=start*BK+k
         a=tl.load(X+m[:,None]*K+kk[None,:],m[:,None]<M,other=0)
         b=tl.load(W+n[None,:]*K+kk[:,None],n[None,:]<N,other=0)
         acc=tl.dot(a,b,acc)
@@ -22,11 +24,19 @@ def gemm(X,W,Y,M:tl.constexpr,N:tl.constexpr,K:tl.constexpr):
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--bm',type=int,default=16)
+    parser.add_argument('--bn',type=int,default=64)
+    parser.add_argument('--bk',type=int,choices=(64,128,256),default=64)
+    parser.add_argument('--warps',type=int,default=4)
+    parser.add_argument('--stages',type=int,default=2)
+    args=parser.parse_args()
+    print('config',vars(args),flush=True)
     p=Path('/tmp/dsv4_tp8_slot_layer0_20260908')
     x=torch.load(p/'layer_0_rank_0_attn_norm.pt',weights_only=True).cuda()
     w=torch.load(p/'layer_0_rank_0_projection_wqkv_a.pt',weights_only=True).cuda()
     y=torch.empty((x.shape[0],w.shape[0]),device='cuda',dtype=torch.bfloat16)
-    def candidate():gemm[(triton.cdiv(x.shape[0],16),triton.cdiv(w.shape[0],64))](x,w,y,x.shape[0],w.shape[0],x.shape[1],num_warps=4)
+    def candidate():gemm[(triton.cdiv(x.shape[0],args.bm),triton.cdiv(w.shape[0],args.bn))](x,w,y,x.shape[0],w.shape[0],x.shape[1],BM=args.bm,BN=args.bn,BK=args.bk,num_warps=args.warps,num_stages=args.stages)
     candidate();torch.cuda.synchronize()
     # FP64 is diagnostic only; use the first46 rows to bound temporary memory.
     reference=(x[:46].double()@w.double().t()).bfloat16()

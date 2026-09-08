@@ -44,3 +44,21 @@ old shared-gate fusion shape guard or blame the>=8192 CK branch.
 Scripts:check_dsv4_identical_prefix_stages.py and
 bench_dsv4_slot_stable_projection.py. Existing graph/correctness baseline
 remains in3029524f14; no claim of completed repair or improved E2E yet.
+
+## Fixed-order tile screen
+
+Extended isolated oracle with BM/BN/BK/warps/stages parameters. Ten candidates
+on idle physicalGPU4 while diagnostic service had no requests; amd-smi PIDs
+all belonged to that service. No extra resident weight cache or model changes.
+Best BM64/BN64/BK64/W4:112.966us versus pairedtorch89.636us, down from initial
+210.814us but still26%slower. All ten candidates preserve736/736 row equality
+on real input and100/100 repeated-input mutations. FP64-rounded reference
+maximum error0.000244140625 remains unchanged on the real46-row subset.
+BK128/256 did not help; best of these130.301us. Full candidate medians and
+numeric witnesses in adjacent dsv4_slot_projection_tiles_20260908.json.
+
+Not a completed fix: slot-stable wqkv_a alone cannot prove downstream Q/wo
+projections or fullmodel invariance. Do not enable a global replacement based
+on this isolated fixture. Next plausible implementation should retain a tuned
+MFMA pipeline (e.g. explicit stable CK/BLAS solution) and verify identical-row
+contract, rather than indiscriminately increasing Triton tile sizes.

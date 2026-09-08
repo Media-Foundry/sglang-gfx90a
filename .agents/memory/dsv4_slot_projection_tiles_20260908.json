@@ -1,0 +1,176 @@
+[
+  {
+    "config": {
+      "bm": 32,
+      "bn": 64,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.59648609161377,
+      "B": 318.0708885192871
+    }
+  },
+  {
+    "config": {
+      "bm": 32,
+      "bn": 128,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.79250431060791,
+      "B": 134.57634925842285
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 64,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.63571071624756,
+      "B": 112.96604633331299
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 128,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.65012550354004,
+      "B": 128.33481311798096
+    }
+  },
+  {
+    "config": {
+      "bm": 32,
+      "bn": 128,
+      "warps": 8,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.72294330596924,
+      "B": 667.4964904785156
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 128,
+      "warps": 8,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_tiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.72297191619873,
+      "B": 133.5060453414917
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 64,
+      "bk": 128,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_ktiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.81020927429199,
+      "B": 130.30051708221436
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 64,
+      "bk": 256,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_ktiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.8150110244751,
+      "B": 148.82609367370605
+    }
+  },
+  {
+    "config": {
+      "bm": 32,
+      "bn": 128,
+      "bk": 128,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_ktiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.79023456573486,
+      "B": 206.06439590454102
+    }
+  },
+  {
+    "config": {
+      "bm": 64,
+      "bn": 128,
+      "bk": 128,
+      "warps": 4,
+      "stages": 2
+    },
+    "log": "/tmp/dsv4_slot_projection_ktiles_20260908.log",
+    "fp64_max_abs": 0.000244140625,
+    "max_row_delta": 0.0,
+    "exact_rows": 736,
+    "mutation_exact": 100,
+    "median_us": {
+      "A": 89.64863777160645,
+      "B": 173.62287521362305
+    }
+  }
+]
