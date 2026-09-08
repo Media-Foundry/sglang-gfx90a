@@ -126,7 +126,9 @@ class FullCudaGraphBackend(BaseCudaGraphBackend):
         if self._down_graph_pair is None:
             capture()
         else:
-            self._down_graph_pair.capture(shape_key, capture)
+            self._down_graph_pair.capture(
+                shape_key, capture, reset_after_capture=post_warmup_hook,
+            )
 
     def _capture_one_impl(
         self,

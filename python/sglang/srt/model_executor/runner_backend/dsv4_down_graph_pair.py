@@ -68,7 +68,7 @@ class DownGraphPair:
         dist.all_reduce(flag, op=dist.ReduceOp.MIN, group=self.backend._tp_group.cpu_group)
         return bool(flag.item())
 
-    def capture(self, key, capture):
+    def capture(self, key, capture, *, reset_after_capture):
         # Always capture the baseline arm, including C1 and all other tiers.
         with down_uniform_capture(False):
             capture()
@@ -86,6 +86,12 @@ class DownGraphPair:
         free_before, _ = device.mem_get_info()
         if not self.consensus(free_before >= self.EXTRA_LIMIT + self.FREE_RESERVE):
             raise RuntimeError('paired graph free-memory admission failed; do not shrink KV')
+        # Capture upgrades Raw -> Full on the host, but its metadata kernels
+        # have only been recorded, not executed. A second eager warmup must
+        # start from Raw again, just like the original warmup/capture boundary.
+        if reset_after_capture is None:
+            raise RuntimeError('paired DSV4 capture requires an attention metadata reset hook')
+        reset_after_capture()
         pool = device.graph_pool_handle()
         with down_uniform_capture(True):
             alternative = capture_alternative(

@@ -49,7 +49,27 @@ class PairTest(unittest.TestCase):
         def callback():
             self.backend._graphs[key] = object()
             self.backend._outputs[key] = object()
-        self.pair.capture(key, callback)
+        self.pair.capture(key, callback, reset_after_capture=lambda: None)
+
+    def test_raw_metadata_restored_before_second_warmup(self):
+        state = {'kind': 'raw', 'captures': 0}
+        def callback():
+            self.assertEqual(state['kind'], 'raw', 'unexecuted graph metadata reused')
+            self.backend._graphs[self.key] = object()
+            self.backend._outputs[self.key] = object()
+            state.update(kind='full_recorded_not_executed', captures=state['captures'] + 1)
+        def reset():
+            self.assertEqual(state['kind'], 'full_recorded_not_executed')
+            state['kind'] = 'raw'
+        self.pair.capture(self.key, callback, reset_after_capture=reset)
+        self.assertEqual(state['captures'], 2)
+
+    def test_missing_metadata_reset_fails_before_candidate(self):
+        calls = []
+        with self.assertRaisesRegex(RuntimeError, 'reset hook'):
+            self.pair.capture(self.key, lambda: calls.append(1), reset_after_capture=None)
+        self.assertEqual(len(calls), 1)
+        self.assertIsNone(self.pair.alternative)
 
     def test_capture_select_and_idle_switch(self):
         self.capture(self.c1)
