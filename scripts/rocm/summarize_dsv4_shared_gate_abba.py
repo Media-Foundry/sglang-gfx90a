@@ -24,13 +24,18 @@ def main():
     blocks = []
     reference = None
     forced_reference = None
+    c1_rounds = state.get('c1_rounds', 2)
+    assert isinstance(c1_rounds, int) and c1_rounds >= 2
     for block in state["blocks"]:
         assert block["status"] == "complete"
         c1 = json.loads(Path(block["c1"]).read_text())
         c32 = json.loads(Path(block["c32"]).read_text())
         assert c1["status"] == "complete" and c1["france_exact"]
         measured = [r for r in c1["measurements"] if r["rep"] >= 0]
-        assert len(measured) == 6
+        assert len(measured) == 3*c1_rounds
+        expected_cases = {'diverse-03', 'diverse-15', 'diverse-31'}
+        assert {(r['case'], r['rep']) for r in measured} == {
+            (case, rep) for case in expected_cases for rep in range(c1_rounds)}
         if reference is None:
             reference = {r["case"]: r["output_ids"] for r in measured}
             forced_reference = {(r["case"], r["continuation_length"]): r
@@ -62,10 +67,16 @@ def main():
         cases = sorted(reference)
         medians = [statistics.median(r["tok_s"] for r in measured if r["case"] == case)
                    for case in cases]
+        case_samples = {case: [r['tok_s'] for r in measured if r['case'] == case]
+                        for case in cases}
+        trimmed = [statistics.mean(sorted(values)[1:-1] if len(values) >= 4 else values)
+                   for values in case_samples.values()]
         blocks.append({
             "index": block["index"], "candidate": block["candidate"],
             "service_pid": block["service_pid"],
             "c1_tok_s": statistics.geometric_mean(medians),
+            "c1_trimmed_tok_s": statistics.geometric_mean(trimmed),
+            "c1_case_samples": case_samples,
             "c32_warm_tok_s": statistics.median(r["aggregate_tok_s"] for r in warm),
             "resident_warm_tok_s": statistics.median(r["resident_bs32_tok_s"] for r in warm),
             "c1_ids_exact": len(measured), "teacher_forced_exact": forced_exact,
@@ -75,7 +86,7 @@ def main():
         })
     assert len({b["workload_sha256"] for b in blocks}) == 1
     comparison = {}
-    for metric in ("c1_tok_s", "c32_warm_tok_s", "resident_warm_tok_s"):
+    for metric in ("c1_tok_s", "c1_trimmed_tok_s", "c32_warm_tok_s", "resident_warm_tok_s"):
         candidate = statistics.geometric_mean(b[metric] for b in blocks if b["candidate"])
         baseline = statistics.geometric_mean(b[metric] for b in blocks if not b["candidate"])
         comparison[metric] = {"candidate": candidate, "baseline": baseline,

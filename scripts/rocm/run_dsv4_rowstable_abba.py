@@ -13,6 +13,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--pid',type=int,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--c1-rounds',type=int,default=2)
     p.add_argument('--candidate-flag', choices=[
         'SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL',
         'SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
@@ -20,6 +21,7 @@ def main():
         'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
     ], default='SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')
     a=p.parse_args()
+    assert a.c1_rounds >= 2
     service=psutil.Process(a.pid)
     cmd,env,cwd=service.cmdline(),service.environ(),service.cwd()
     assert cmd[1:3]==['-m','sglang.launch_server']
@@ -28,8 +30,10 @@ def main():
     assert cmd[cmd.index('--port')+1]=='30011'
     assert env.get('SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL')=='1'
     assert not any(k.startswith('SGLANG_DSV4_DEBUG_') for k in env)
+    assert '--expert-distribution-recorder-mode' not in cmd, 'Remove recorder before timing'
     state={'status':'running','protocol':'A(candidate),B(baseline),B,A',
-           'candidate_flag':a.candidate_flag,'service_pid':service.pid,'blocks':[]}
+           'candidate_flag':a.candidate_flag,'service_pid':service.pid,
+           'c1_rounds':a.c1_rounds,'blocks':[]}
     def save():
         a.output.write_text(json.dumps(state,indent=2)+'\n')
     def resource_check():
@@ -83,7 +87,7 @@ def main():
             root=a.output.with_name(a.output.stem+f'_{index}')
             c1=Path(str(root)+'_c1.json');c32=Path(str(root)+'_c32.json')
             bench(['scripts/rocm/bench_dsv4_c1_mhc_recovery.py','--arm',f'ABBA{index}',
-                   '--rounds','2','--skip-freeze-gc','--reference',
+                   '--rounds',str(a.c1_rounds),'--skip-freeze-gc','--reference',
                    '/tmp/dsv4_runtime_m_c1_B_20260908.json'],c1)
             if a.candidate_flag in ('SGLANG_DSV4_GFX90A_TP8_C1_SHARED_GATE_ROUND',
                                     'SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2',
@@ -94,7 +98,7 @@ def main():
                           if row['rep']==0}
                 assert result['france_exact']
                 measured=[row for row in result['measurements'] if row['rep']>=0]
-                assert len(measured)==6
+                assert len(measured)==3*a.c1_rounds
                 assert all(row['output_ids']==expected[row['case']] for row in measured)
                 block['c1_reference_exact']=len(measured)
             block.update(status='c32',c1=str(c1));save()
