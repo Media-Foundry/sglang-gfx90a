@@ -1,0 +1,11 @@
+{
+  "mutations_raw_bits_exact": 100,
+  "interleaved_calls_exact": true,
+  "independent_partials": true,
+  "replay1000_exact": true,
+  "allocation_stable": true,
+  "cross_stream_mutations_exact": 100,
+  "cross_stream_replay1000_exact": true,
+  "partial_bytes": 3145728,
+  "scope": "full grouped down; synthetic shared producer; no service selector/E2E"
+}

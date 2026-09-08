@@ -9,6 +9,8 @@ from sglang.kernels.jit.utils import cache_once, load_jit, make_cpp_args
 if TYPE_CHECKING:
     from tvm_ffi.module import Module
 
+    from sglang.kernels.ops.moe.gfx90a_deferred_finalize import Gfx90aDeferredFinalize
+
 
 @cache_once
 def _jit_gate_up(
@@ -782,9 +784,16 @@ def gfx90a_fp4_expert_down_grouped(
     use_row_prefetch: bool = False,
     use_logical_scale: bool = False,
     runtime_m: bool = False,
-) -> torch.Tensor:
+    *,
+    defer_reduction: bool = False,
+) -> torch.Tensor | Gfx90aDeferredFinalize:
     e, n, packed_k = weight.shape
     m, topk, k = xq.shape
+    if defer_reduction:
+        # Experimental call-owned result; never infer eligibility from M alone.
+        # Server-level native/decode/TP/EP guards are required before wiring it.
+        assert (e, m, topk, n, k) == (256, 32, 6, 4096, 256)
+        assert not (runtime_m or use_row_prefetch or use_logical_scale or zero_partial)
     assert packed_k * 2 == k
     assert xq.dtype == torch.int8 and xq.is_contiguous()
     assert x_scale.shape == (m, topk, k // 32)
@@ -852,7 +861,7 @@ def gfx90a_fp4_expert_down_grouped(
         )
         module.reduce(partial, out)
         return out
-    _jit_down_grouped(
+    module = _jit_down_grouped(
         e,
         0 if runtime_m else m,
         topk,
@@ -863,7 +872,20 @@ def gfx90a_fp4_expert_down_grouped(
         waves,
         blocks,
         weight_mode,
-    ).run(
+    )
+    if defer_reduction:
+        from sglang.kernels.ops.moe.gfx90a_deferred_finalize import (
+            Gfx90aDeferredFinalize,
+        )
+
+        module.run_partial(
+            xq, x_scale,
+            kernel_weight if prepacked_weight is not None else kernel_weight.view(torch.uint8),
+            weight_scale.view(torch.uint8).reshape(e, n, k // 32),
+            sorted_ids, sorted_expert_ids, num_valid_ids, topk_weights, partial,
+        )
+        return Gfx90aDeferredFinalize(partial=partial, out=out)
+    module.run(
         xq,
         x_scale,
         (
