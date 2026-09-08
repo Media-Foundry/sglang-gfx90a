@@ -1,0 +1,96 @@
+{
+  "status": "complete",
+  "arms": [
+    {
+      "arm": "ARA1",
+      "flag": "0",
+      "parent": 2741665,
+      "server_log": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA1_server.log",
+      "c1": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA1_c1.json",
+      "c1_medians": {
+        "diverse-03": 84.18588351352714,
+        "diverse-15": 84.2148083556389,
+        "diverse-31": 84.1912168173555
+      },
+      "c32": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA1_c32.json",
+      "e2e_tok_s": 965.099759988794,
+      "decode_tok_s": 1010.117173861965,
+      "transitions": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA1_transitions.json",
+      "transition_exact_counts": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      },
+      "france_c1_exact": true
+    },
+    {
+      "arm": "ARB1",
+      "flag": "1",
+      "parent": 2749465,
+      "server_log": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB1_server.log",
+      "c1": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB1_c1.json",
+      "c1_medians": {
+        "diverse-03": 83.01768499290398,
+        "diverse-15": 83.16902163718493,
+        "diverse-31": 83.14762977517992
+      },
+      "c32": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB1_c32.json",
+      "e2e_tok_s": 976.8664661533462,
+      "decode_tok_s": 1022.6217984615673,
+      "transitions": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB1_transitions.json",
+      "transition_exact_counts": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      },
+      "france_c1_exact": true
+    },
+    {
+      "arm": "ARB2",
+      "flag": "1",
+      "parent": 2756481,
+      "server_log": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB2_server.log",
+      "c1": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB2_c1.json",
+      "c1_medians": {
+        "diverse-03": 83.74907583460572,
+        "diverse-15": 83.59127769885015,
+        "diverse-31": 83.67524693150949
+      },
+      "c32": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB2_c32.json",
+      "e2e_tok_s": 972.0228528665544,
+      "decode_tok_s": 1017.3288449240051,
+      "transitions": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARB2_transitions.json",
+      "transition_exact_counts": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      },
+      "france_c1_exact": true
+    },
+    {
+      "arm": "ARA2",
+      "flag": "0",
+      "parent": 2763962,
+      "server_log": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA2_server.log",
+      "c1": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA2_c1.json",
+      "c1_medians": {
+        "diverse-03": 83.35069528999341,
+        "diverse-15": 83.63192826040887,
+        "diverse-31": 83.41397339364353
+      },
+      "c32": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA2_c32.json",
+      "e2e_tok_s": 961.8442110074257,
+      "decode_tok_s": 1006.5499783855023,
+      "transitions": "/tmp/dsv4_tp8_m32_legacy_ar_abba_20260908_ARA2_transitions.json",
+      "transition_exact_counts": {
+        "next_id_exact": 12,
+        "input_logprobs_exact": 12,
+        "output_logprobs_exact": 12
+      },
+      "france_c1_exact": true
+    }
+  ],
+  "parent": 2763962,
+  "switch": "SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR",
+  "acceptance": "Opt-in C32 only: third candidate E2E 977.2296949140762, resident 1022.9583024304461; control and candidate France C32 both 32/32 exact. C1 non-regression not established; default remains false. See companion markdown."
+}

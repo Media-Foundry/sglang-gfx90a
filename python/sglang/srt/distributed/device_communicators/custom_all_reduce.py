@@ -475,6 +475,11 @@ def dispatch_custom_allreduce(
             AiterCustomAllreduce = _adapt_aiter_all_gather_api(
                 AiterCustomAllreduce
             )
+            from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                adapt_dsv4_ar,
+            )
+
+            AiterCustomAllreduce = adapt_dsv4_ar(AiterCustomAllreduce)
             logger.info("[AR] Using AiterCustomAllreduce (AMD default)")
             tms_cudagraph = envs.SGLANG_MEMORY_SAVER_CUDA_GRAPH.get()
             if "enable_register_for_capturing" not in inspect.signature(

@@ -4970,7 +4970,13 @@ class DeepseekV4ForCausalLM(nn.Module):
                             attn_backend.init_forward_metadata_indexer(core_meta)
                         )
 
-        with get_attn_tp_context().maybe_input_scattered(forward_batch):
+        from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+            dsv4_ar_scope,
+        )
+
+        with get_attn_tp_context().maybe_input_scattered(forward_batch), dsv4_ar_scope(
+            forward_batch, input_ids.device
+        ):
             hidden_states = self.model.forward(
                 input_ids, positions, forward_batch, input_embeds, pp_proxy_tensors
             )

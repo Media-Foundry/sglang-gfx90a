@@ -19,9 +19,15 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--parent', type=int, required=True)
     p.add_argument('--arms', nargs='+', default=['B3:1', 'B4:1', 'A4:0'])
+    p.add_argument('--switch', default='SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM',
+                   choices=['SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM',
+                            'SGLANG_DSV4_GFX90A_FUSED_ATTN_PREP_GEMV',
+                            'SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR'])
     p.add_argument('--prefix', type=Path, required=True)
     p.add_argument('--reference', type=Path, required=True)
     p.add_argument('--inputs', type=Path, required=True)
+    p.add_argument('--france-c32', action='store_true',
+                   help='Run repeated France sentinel after performance, correctness only')
     a = p.parse_args()
     parent = psutil.Process(a.parent)
     assert 'sglang.launch_server' in parent.cmdline()
@@ -29,7 +35,7 @@ def main():
     assert not any(arg.startswith('--speculative-') for arg in cmd)
     assert env.get('TP_SIZE') == '8' and env.get('EP_SIZE') == '1'
     assert env.get('MOE_A2A_BACKEND') == 'none'
-    report = {'status':'running', 'arms':[], 'parent':parent.pid}
+    report = {'status':'running', 'arms':[], 'parent':parent.pid, 'switch':a.switch}
     def save():
         Path(str(a.prefix)+'_state.json').write_text(json.dumps(report,indent=2)+'\n')
     def bench(argv, logfile):
@@ -44,7 +50,7 @@ def main():
         parent.terminate()
         _, alive = psutil.wait_procs([parent,*children],timeout=15)
         assert not [p for p in alive if p.status()!=psutil.STATUS_ZOMBIE], 'inspect remaining processes'
-        env['SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM'] = flag
+        env[a.switch] = flag
         for k in ('SGLANG_DSV4_GFX90A_REALTIME_TRACE_LAYER',
                   'SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY',
                   'SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY'):
@@ -92,6 +98,13 @@ def main():
         assert all(x[k] for x in checks['responses']
                    for k in ('next_id_exact','input_logprobs_exact','output_logprobs_exact'))
         row['transitions']=transition
+        if a.france_c32:
+            sentinel = stem+'_france_c32.json'
+            bench(['scripts/rocm/check_dsv4_france_c32.py', '--output', sentinel],
+                  stem+'_france_c32.log')
+            checks = json.loads(Path(sentinel).read_text())
+            assert checks['exact_count'] == checks['request_count'] == 32
+            row['france_c32'] = sentinel
         save();print('completed',name,row['e2e_tok_s'],row['decode_tok_s'],flush=True)
     report['status']='complete';save()
 
