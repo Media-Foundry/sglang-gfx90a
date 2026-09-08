@@ -1,0 +1,157 @@
+{
+  "state": "/tmp/dsv4_tp8_shared_after_topk_abba_20260908.json",
+  "candidate_flag": "SGLANG_DSV4_GFX90A_TP8_M32_SHARED_AFTER_TOPK",
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "service_pid": 3301315,
+      "c1_tok_s": 84.09226572425837,
+      "c1_trimmed_tok_s": 84.09226572425837,
+      "c1_case_samples": {
+        "diverse-03": [
+          84.10171316694412,
+          84.1744154634394
+        ],
+        "diverse-15": [
+          84.17272431674253,
+          83.88136524260447
+        ],
+        "diverse-31": [
+          83.99818531353371,
+          84.22527089064319
+        ]
+      },
+      "c32_warm_tok_s": 978.6531454685876,
+      "resident_warm_tok_s": 1024.9999343852594,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 5,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "service_pid": 3309414,
+      "c1_tok_s": 84.14212832578005,
+      "c1_trimmed_tok_s": 84.14212832578005,
+      "c1_case_samples": {
+        "diverse-03": [
+          84.20268291970615,
+          84.20086005748415
+        ],
+        "diverse-15": [
+          84.23208790130734,
+          83.87427968099344
+        ],
+        "diverse-31": [
+          84.1756890166245,
+          84.16731697584319
+        ]
+      },
+      "c32_warm_tok_s": 984.7147435169686,
+      "resident_warm_tok_s": 1030.521907337585,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 6,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "service_pid": 3309414,
+      "c1_tok_s": 83.98851147384424,
+      "c1_trimmed_tok_s": 83.98851147384424,
+      "c1_case_samples": {
+        "diverse-03": [
+          84.16374522657696,
+          83.95031898782939
+        ],
+        "diverse-15": [
+          83.69297649193255,
+          84.14961362096857
+        ],
+        "diverse-31": [
+          84.00179470407933,
+          83.97272952364578
+        ]
+      },
+      "c32_warm_tok_s": 984.5931593165511,
+      "resident_warm_tok_s": 1030.391334347597,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 8,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "service_pid": 3317419,
+      "c1_tok_s": 83.62393740001538,
+      "c1_trimmed_tok_s": 83.62393740001538,
+      "c1_case_samples": {
+        "diverse-03": [
+          83.65765365971106,
+          83.55475643039138
+        ],
+        "diverse-15": [
+          83.63451229131591,
+          83.61280346779996
+        ],
+        "diverse-31": [
+          83.66658999962245,
+          83.61731619353338
+        ]
+      },
+      "c32_warm_tok_s": 982.6242508130578,
+      "resident_warm_tok_s": 1028.1234947137684,
+      "c1_ids_exact": 6,
+      "teacher_forced_exact": {
+        "output_ids": 6,
+        "input_token_logprobs": 6,
+        "output_top_logprobs": 6
+      },
+      "c32_cross_round_exact": 9,
+      "c32_requests_validated": 192,
+      "workload_sha256": "4d7f83aa48de5df30bf819fe33800bb7f12ecfd4e02ce9215188f62bfd16a424"
+    }
+  ],
+  "comparison": {
+    "c1_tok_s": {
+      "candidate": 83.85777462317277,
+      "baseline": 84.06528481081506,
+      "change_percent": -0.24684409041053623
+    },
+    "c1_trimmed_tok_s": {
+      "candidate": 83.85777462317277,
+      "baseline": 84.06528481081506,
+      "change_percent": -0.24684409041053623
+    },
+    "c32_warm_tok_s": {
+      "candidate": 980.6366880103525,
+      "baseline": 984.653949540121,
+      "change_percent": -0.4079871442799532
+    },
+    "resident_warm_tok_s": {
+      "candidate": 1026.5605265261063,
+      "baseline": 1030.4566187744172,
+      "change_percent": -0.3780937671053808
+    }
+  },
+  "notes": "Discard C32 round0; B/B reuse one process. No statistical confidence or full C32 parity claim."
+}
