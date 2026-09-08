@@ -1,0 +1,79 @@
+{
+  "blocks": [
+    {
+      "index": 0,
+      "candidate": true,
+      "c1_case_medians": {
+        "diverse-03": 84.19564421024054,
+        "diverse-15": 84.26123017566294,
+        "diverse-31": 84.38782115229048
+      },
+      "c1_geomean": 84.28152744504861,
+      "c1_reference_exact": 6,
+      "c32_warm_e2e": 985.6892262084734,
+      "c32_warm_resident": 1031.396626976119,
+      "c32_cross_round_exact": 8
+    },
+    {
+      "index": 1,
+      "candidate": false,
+      "c1_case_medians": {
+        "diverse-03": 84.40141684558463,
+        "diverse-15": 84.36282705578915,
+        "diverse-31": 84.37451852206488
+      },
+      "c1_geomean": 84.37958592773222,
+      "c1_reference_exact": 6,
+      "c32_warm_e2e": 976.8440482510965,
+      "c32_warm_resident": 1023.9750385285201,
+      "c32_cross_round_exact": 0
+    },
+    {
+      "index": 2,
+      "candidate": false,
+      "c1_case_medians": {
+        "diverse-03": 84.12049471037031,
+        "diverse-15": 84.26861558148615,
+        "diverse-31": 84.20445456066031
+      },
+      "c1_geomean": 84.19783310529131,
+      "c1_reference_exact": 6,
+      "c32_warm_e2e": 977.6093763972602,
+      "c32_warm_resident": 1024.2727412727368,
+      "c32_cross_round_exact": 0
+    },
+    {
+      "index": 3,
+      "candidate": true,
+      "c1_case_medians": {
+        "diverse-03": 84.80153662935655,
+        "diverse-15": 84.75382119771476,
+        "diverse-31": 84.74028510372162
+      },
+      "c1_geomean": 84.76521023953805,
+      "c1_reference_exact": 6,
+      "c32_warm_e2e": 981.587837029036,
+      "c32_warm_resident": 1027.600540215059,
+      "c32_cross_round_exact": 3
+    }
+  ],
+  "comparison": {
+    "c1_geomean": {
+      "candidate": 84.52302285879831,
+      "baseline": 84.28866052700556,
+      "percent": 0.27804728456641836
+    },
+    "c32_warm_e2e": {
+      "candidate": 983.6363939672012,
+      "baseline": 977.2266374020562,
+      "percent": 0.6559130011217551
+    },
+    "c32_warm_resident": {
+      "candidate": 1029.4968339225961,
+      "baseline": 1024.1238790832206,
+      "percent": 0.5246391524612593
+    }
+  },
+  "service_pid": 3013729,
+  "all_768_c32_lengths_finishes_hashes_verified": true
+}
