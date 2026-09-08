@@ -3,11 +3,14 @@
 
 import argparse
 import statistics
+import json
+from pathlib import Path
 
 import torch
 
 from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.paged_decode import (
     _sparse_attn_v4_paged_decode_triton,
+    _kv_splits_heuristic,
 )
 
 
@@ -44,11 +47,18 @@ def main():
     p.add_argument("--rounds", type=int, default=7)
     p.add_argument("--iterations", type=int, default=100)
     p.add_argument("--mutations", type=int, default=100)
+    p.add_argument('--heads', type=int, choices=(8,16), default=16)
+    p.add_argument('--tokens', type=int, choices=(1,32), default=32)
+    p.add_argument('--output', type=Path)
+    p.add_argument('--ragged-check', action='store_true',
+                   help='Validate 2-wave/stage2 with changing lengths, indices, empty rows and 1000 replays')
     args = p.parse_args()
     torch.manual_seed(20260830)
 
+    results=[]
     for context in (int(x) for x in args.contexts.split(",")):
-        t, h, d = 32, 16, 512
+        t, h, d = args.tokens, args.heads, 512
+        splits=_kv_splits_heuristic(t,h,16)
         q = torch.randn((t, h, d), dtype=torch.bfloat16, device="cuda")
         kv = torch.randn((t * context, d), dtype=torch.bfloat16, device="cuda")
         indices = torch.arange(t * context, dtype=torch.int32, device="cuda")
@@ -60,7 +70,7 @@ def main():
             warps, stages = profile
             return _sparse_attn_v4_paged_decode_triton(
                 q, kv, indices, indptr, sink, 1.0 / (d ** 0.5),
-                block_h=16, kv_splits=4, block_k=16,
+                block_h=16, kv_splits=splits, block_k=16,
                 _oracle_num_warps=warps,
                 _oracle_num_stages=stages,
             )
@@ -79,14 +89,17 @@ def main():
 
         for mutation in range(args.mutations):
             q.normal_()
-            graphs[BASELINE].replay(); graphs[(2, 1)].replay()
+            if mutation%10==0:
+                kv.normal_();sink.normal_()
+            for g in graphs.values():g.replay()
             torch.cuda.synchronize()
-            if not torch.equal(outputs[BASELINE], outputs[(2, 1)]):
-                delta = (outputs[BASELINE].float() - outputs[(2, 1)].float()).abs().max().item()
-                raise RuntimeError(
-                    f"ctx={context} mutation={mutation} best mismatch max_abs={delta}"
-                )
-        print(f"MUTATIONS ctx={context} count={args.mutations} best_bitwise_exact=True")
+            for profile,out in outputs.items():
+                if not torch.equal(outputs[BASELINE], out):
+                    delta = (outputs[BASELINE].float() - out.float()).abs().max().item()
+                    raise RuntimeError(
+                        f"ctx={context} mutation={mutation} profile={profile} mismatch max_abs={delta}"
+                    )
+        print(f"MUTATIONS ctx={context} count={args.mutations} all_profiles_bitwise_exact=True")
 
         values = {profile: [] for profile in PROFILES}
         order = list(PROFILES)
@@ -105,6 +118,29 @@ def main():
                 f"gain_pct={(base/value-1)*100:.3f}"
             )
         best = min(summary, key=summary.get); value = summary[best]
+        if args.ragged_check:
+            for mutation in range(100):
+                lengths=torch.randint(0,context+1,(t,),device='cpu')
+                if mutation%10==0:lengths.zero_()
+                ptr=torch.cat((torch.zeros(1,dtype=torch.int64),lengths.cumsum(0)))
+                indptr.copy_(ptr.to(device='cuda',dtype=torch.int32))
+                indices.random_(0,t*context)
+                q.normal_();kv.normal_();sink.normal_()
+                graphs[BASELINE].replay();graphs[(2,2)].replay()
+                torch.cuda.synchronize()
+                assert torch.equal(outputs[BASELINE],outputs[(2,2)]), (context,mutation)
+                assert torch.isfinite(outputs[(2,2)]).all()
+            saved=outputs[(2,2)].clone()
+            for _ in range(1000):graphs[(2,2)].replay()
+            torch.cuda.synchronize()
+            assert torch.equal(saved,outputs[(2,2)])
+            print(f'RAGGED ctx={context} mutations=100 empty_rows=True graph1000_exact=True')
+        results.append(dict(tokens=t,heads=h,context=context,splits=splits,
+                            mutations=args.mutations,all_profiles_exact=True,
+                            ragged100_graph1000_exact=args.ragged_check,
+                            samples_us={str(k):v for k,v in values.items()},
+                            trimmed_us={str(k):v for k,v in summary.items()}))
+        if args.output:args.output.write_text(json.dumps(results,indent=2)+'\n')
         print(
             f"DECISION ctx={context} baseline_us={base:.3f} best={best} "
             f"best_us={value:.3f} pass={(base-value)>=5.0 or (base/value-1)>=0.10}"
