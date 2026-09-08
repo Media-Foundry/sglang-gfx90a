@@ -80,3 +80,50 @@ same six C32 waves/manifest and same flags. State:
 It is still running at this record; inspect live state before acting. No restart
 on observation timeout. The completed first run's candidate has not yet been
 restored because it is the first arm of this explicit repeat.
+
+## Repeat completed: reject performance promotion
+
+Controller4134 completed normally. Four C1 rounds/block, otherwise same real code
+manifest, six C32 waves/block, warmup discarded. Raw repeat samples and hashes are
+in `dsv4_tp8_deferred_finalize_repeat_abba_20260908.json`.
+
+| Block | Candidate | C1 tok/s | C32 HTTP warm | C32 resident warm |
+|---|---|---:|---:|---:|
+| 0 | on | 83.40359 | 983.47121 | 1028.67129 |
+| 1 | off | 83.71991 | 985.18280 | 1031.55481 |
+| 2 | off | 83.54893 | 985.08056 | 1031.02845 |
+| 3 | on | 83.73192 | 983.24726 | 1028.44594 |
+
+Repeat geomeans: resident **1031.29160 -> 1028.55861 (-0.26501%)**;
+HTTP **985.13168 -> 983.35923 (-0.17992%)**;
+C1 **83.63438 -> 83.56759 (-0.07986%)**. The first run's positive sign does
+not reproduce; do NOT enable by default or claim a stable throughput gain.
+This does not invalidate the exact local kernel's ~1.60us saving, but it is not
+a sufficient end-to-end win after moving reduction across the shared join.
+No profile establishes the reason for reversal; do not assert a hardware fault,
+clock problem, or a specific graph scheduling cause from timings alone.
+
+48/48 measured C1 sequences exact; fixed-prefix probes match all six entries
+per field per block. France C32 prefix32/32 all blocks. All768 code completions
+validate length/finish/hash. Full cross-round exact counts7/7/6/6 of32 remain
+limited, consistent with the previously documented baseline variability; this
+is not a new claim of deterministic C32 inference.
+
+Default-off implementation/oracles are retained for potential future consumer
+fusion, but this standalone service candidate's performance acceptance is closed.
+Restore started with exact candidatePID3382940 only after controller completion,
+using `restore_dsv4_tp8_deferred_baseline.py`. It validates the completed state,
+TP8/EP1/model/loopback/1M command, candidate flag, and AMD-SMI ownership before
+terminating only that process tree. Removes only this flag and keeps all other
+settings. Readiness timeout must preserve the new PID for inspection.
+Restore state: `/tmp/dsv4_tp8_deferred_finalize_restore_20260908.json`;
+controller session4767. Completion must be checked, not inferred from this note.
+
+### Restore verified
+
+Restore4767 exited0, state validated. Live baselinePID3391501, candidate flag
+absent from its environment and zero candidate hit logs. TP0 graph0.65GB,
+available15.64GB, max_total_num_tokens1048576. France answer-prefix32/32 exact.
+Post-restore AMD-SMI audit found only this baseline process tree, no foreign GPU
+PIDs. No benchmark controller remains active. The restore utility itself was
+exercised successfully; do not reuse its old PID/state for a future service.
