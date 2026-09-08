@@ -18,8 +18,10 @@ def main():
     parser.add_argument('--full',action='store_true')
     parser.add_argument('--down-prefetch',action='store_true',
                         help='Keep prefetched gate fixed; test isolated subgroup8 down candidate')
+    parser.add_argument('--breakdown', action='store_true',
+                        help='Measure prefetched gate, quant, down and reducer separately; diagnostic only')
     parsed=parser.parse_args()
-    full=parsed.full or parsed.down_prefetch
+    full=parsed.full or parsed.down_prefetch or parsed.breakdown
     assert torch.cuda.get_device_properties(0).gcnArchName.startswith('gfx90a')
     torch.manual_seed(20908)
     m,t,e,i,k=32,6,256,256,4096
@@ -92,6 +94,53 @@ def main():
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
                               trimmed_us=[statistics.mean(sorted(v)[1:-1]) for v in samples])),flush=True)
+        if parsed.breakdown:
+            # Match the accepted prefetched gate, not the old unprefetched arm.
+            arm = 1
+            graphs[arm].replay()
+            torch.cuda.synchronize()
+            expected_partial = partials[arm].clone()
+            expected_final = finals[arm].clone()
+            stage_graphs = []
+            g = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(g):
+                mods[arm].run(x,scale,w,ws,meta.sorted_ids,meta.sorted_experts,
+                              meta.valid,outputs[arm],10.)
+            stage_graphs.append(('gate',g))
+            g = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(g):
+                quant, quant_scale = per_token_group_quant_int8(outputs[arm],32)
+            stage_graphs.append(('intermediate_quant',g))
+            g = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(g):
+                downs[arm].run_partial(quant,quant_scale,w2,s2,meta.sorted_ids,
+                                      meta.sorted_experts,meta.valid,router_weights,partials[arm])
+            stage_graphs.append(('down_partial',g))
+            g = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(g):
+                downs[arm].reduce(partials[arm],finals[arm])
+            stage_graphs.append(('fixed_reducer',g))
+            for _,g in stage_graphs:g.replay()
+            torch.cuda.synchronize()
+            assert torch.equal(partials[arm],expected_partial)
+            assert torch.equal(finals[arm],expected_final)
+            stage_samples={name:[] for name,_ in stage_graphs}
+            # Alternate measurement order to limit monotonic drift. Isolated
+            # graph durations do not add up to the multistream service path.
+            for cycle in range(10):
+                order=stage_graphs if cycle%2==0 else list(reversed(stage_graphs))
+                for name,g in order:
+                    for _ in range(20):g.replay()
+                    start,end=torch.cuda.Event(enable_timing=True),torch.cuda.Event(enable_timing=True)
+                    start.record()
+                    for _ in range(100):g.replay()
+                    end.record();end.synchronize()
+                    stage_samples[name].append(start.elapsed_time(end)*10)
+            print(json.dumps(dict(diagnostic='isolated_prefetched_chain',
+                                  expert_pool=expert_pool,exact_split_chain=True,
+                                  samples_us=stage_samples,
+                                  trimmed_us={name:statistics.mean(sorted(v)[1:-1])
+                                              for name,v in stage_samples.items()})),flush=True)
 
 
 if __name__=='__main__':main()
