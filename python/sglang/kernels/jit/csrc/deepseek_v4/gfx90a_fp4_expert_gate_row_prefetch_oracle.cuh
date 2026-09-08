@@ -80,7 +80,12 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     const uint32_t expert_block = task / kTilesPerExpertBlock;
     const uint32_t row0 = (task % kTilesPerExpertBlock) * kRows;
 #endif
-    const int32_t expert_id = sorted_expert_ids[expert_block];
+    int32_t expert_id = sorted_expert_ids[expert_block];
+#ifdef SGLANG_FP4_GATE_UNIFORM_METADATA_ORACLE
+    // Every lane of this wave owns the same task and metadata index.
+    // Standalone experiment only: preserve task and arithmetic order.
+    expert_id = __builtin_amdgcn_readfirstlane(expert_id);
+#endif
     if (expert_id < 0 || expert_id >= static_cast<int32_t>(E)) continue;
     const uint32_t expert = static_cast<uint32_t>(expert_id);
 
@@ -91,8 +96,11 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     float up_acc[kAssignments][kRows] = {};
 #pragma unroll
     for (uint32_t assignment = 0; assignment < kAssignments; ++assignment) {
-      const uint32_t encoded = static_cast<uint32_t>(
+      uint32_t encoded = static_cast<uint32_t>(
           sorted_ids[expert_block * kAssignments + assignment]);
+#ifdef SGLANG_FP4_GATE_UNIFORM_METADATA_ORACLE
+      encoded = __builtin_amdgcn_readfirstlane(encoded);
+#endif
       tokens[assignment] = encoded & 0x00ffffffu;
       slots[assignment] = encoded >> 24;
       assignment_valid[assignment] =

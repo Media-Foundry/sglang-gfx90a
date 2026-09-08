@@ -28,7 +28,14 @@ def main():
                         help='Standalone gate/up scale uint16 load; unchanged scale layout')
     parser.add_argument('--lut-replicas', type=int, choices=(8,16,32),
                         help='Standalone lane-replicated LDS LUT, no new accumulators')
+    parser.add_argument('--uniform-metadata', action='store_true',
+                        help='Standalone readfirstlane expert/token metadata; unchanged arithmetic')
+    parser.add_argument('--uniform-waves', type=int, choices=(4,8), default=8,
+                        help='Uniform candidate wave count, preserving total grid waves')
     parsed=parser.parse_args()
+    if parsed.uniform_metadata:
+        assert not (parsed.lut_replicas or parsed.paired_scale_load or parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown)
+        parsed.full=True
     if parsed.lut_replicas:
         assert not (parsed.paired_scale_load or parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown)
         parsed.full=True
@@ -45,6 +52,14 @@ def main():
     ws=torch.full((e,2*i,k//32),127,dtype=torch.uint8,device='cuda')
     args=(e,m,t,i,k,4,2,8,832,2)
     mods=[_jit_gate_up_grouped(*args),_jit_gate_up_grouped_row_prefetch(*args)]
+    if parsed.uniform_metadata:
+        uniform_args=(*args[:7],parsed.uniform_waves,832*8//parsed.uniform_waves,args[9])
+        cpp=make_cpp_args(*uniform_args)
+        mods=[mods[1],load_jit(
+            'gfx90a_fp4_gate_uniform_metadata_oracle',*uniform_args,
+            cuda_files=['deepseek_v4/gfx90a_fp4_expert_gate_row_prefetch_oracle.cuh'],
+            cuda_wrappers=[('run',f'sglang::Gfx90aFp4ExpertGateRowPrefetchOracle<{cpp}>::run')],
+            extra_cuda_cflags=['-O3','-DSGLANG_FP4_GATE_UNIFORM_METADATA_ORACLE=1'])]
     if parsed.down_prefetch:mods=[mods[1],mods[1]]
     if parsed.gate_blocks:
         candidate_args=(*args[:8],parsed.gate_blocks,args[9])
@@ -127,7 +142,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,lut_replicas=parsed.lut_replicas,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,uniform_metadata=parsed.uniform_metadata,uniform_waves=parsed.uniform_waves,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,lut_replicas=parsed.lut_replicas,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,
