@@ -1,0 +1,318 @@
+{
+  "baseline_commit": "fd366a15ff",
+  "synthetic": [
+    {
+      "full_stage": true,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 256,
+      "active_experts": 133,
+      "scans": 133,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          275.38843154907227,
+          275.4300308227539,
+          275.5484390258789,
+          275.382022857666,
+          275.33403396606445,
+          275.5756378173828,
+          275.5484390258789,
+          275.41242599487305,
+          275.35804748535156,
+          275.5324363708496
+        ],
+        [
+          273.2156181335449,
+          273.1180191040039,
+          273.3772087097168,
+          273.1100273132324,
+          273.06522369384766,
+          273.1676483154297,
+          272.9852104187012,
+          273.2908248901367,
+          273.0876350402832,
+          273.25403213500977
+        ]
+      ],
+      "trimmed_us": [
+        275.4500341415405,
+        273.16362857818604
+      ]
+    },
+    {
+      "full_stage": true,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 128,
+      "active_experts": 104,
+      "scans": 105,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          241.81707382202148,
+          242.2730827331543,
+          242.16108322143555,
+          242.1978759765625,
+          242.0602798461914,
+          242.15307235717773,
+          242.03947067260742,
+          241.96428298950195,
+          242.1658706665039,
+          242.14187622070312
+        ],
+        [
+          237.76426315307617,
+          237.49067306518555,
+          237.74986267089844,
+          237.5274658203125,
+          237.4490737915039,
+          237.4362564086914,
+          237.64427185058594,
+          237.5978660583496,
+          237.84906387329102,
+          237.63946533203125
+        ]
+      ],
+      "trimmed_us": [
+        242.11047649383545,
+        237.60786771774292
+      ]
+    },
+    {
+      "full_stage": true,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 32,
+      "active_experts": 32,
+      "scans": 61,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          183.2904052734375,
+          183.46002578735352,
+          183.44881057739258,
+          183.31121444702148,
+          183.3864402770996,
+          183.29042434692383,
+          183.26322555541992,
+          183.24081420898438,
+          183.3736228942871,
+          183.38483810424805
+        ],
+        [
+          179.30160522460938,
+          179.12559509277344,
+          179.18479919433594,
+          178.98000717163086,
+          179.1320037841797,
+          179.17999267578125,
+          179.25519943237305,
+          179.32239532470703,
+          179.2136001586914,
+          179.18800354003906
+        ]
+      ],
+      "trimmed_us": [
+        183.34362268447876,
+        179.1975998878479
+      ]
+    }
+  ],
+  "recorded_histogram": [
+    {
+      "full_stage": true,
+      "recorder": "/tmp/expert_distribution_recorder_1788860446.3842516.pt",
+      "recorded_layer": 0,
+      "pass_index": 80,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 256,
+      "active_experts": 136,
+      "scans": 136,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          279.81895446777344,
+          279.42535400390625,
+          279.72936630249023,
+          279.8957633972168,
+          279.75975036621094,
+          279.7581672668457,
+          279.33895111083984,
+          279.7805595397949,
+          279.73575592041016,
+          279.59815979003906
+        ],
+        [
+          275.5069160461426,
+          275.6077575683594,
+          275.6589126586914,
+          275.5229377746582,
+          275.6845474243164,
+          275.6541633605957,
+          275.5757522583008,
+          275.52133560180664,
+          275.5773162841797,
+          275.7453155517578
+        ]
+      ],
+      "trimmed_us": [
+        279.70075845718384,
+        275.6003403663635
+      ]
+    },
+    {
+      "full_stage": true,
+      "recorder": "/tmp/expert_distribution_recorder_1788860446.3842516.pt",
+      "recorded_layer": 20,
+      "pass_index": 80,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 256,
+      "active_experts": 83,
+      "scans": 97,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          221.4986801147461,
+          221.4506721496582,
+          221.29867553710938,
+          221.43468856811523,
+          221.1530876159668,
+          221.1130714416504,
+          221.39947891235352,
+          221.2586784362793,
+          221.36905670166016,
+          221.62187576293945
+        ],
+        [
+          217.8618621826172,
+          217.80424118041992,
+          217.8570556640625,
+          217.60427474975586,
+          217.71944046020508,
+          218.01544189453125,
+          217.83624649047852,
+          217.86985397338867,
+          217.68585205078125,
+          217.62983322143555
+        ]
+      ],
+      "trimmed_us": [
+        221.35787725448608,
+        217.78304815292358
+      ]
+    },
+    {
+      "full_stage": true,
+      "recorder": "/tmp/expert_distribution_recorder_1788860446.3842516.pt",
+      "recorded_layer": 40,
+      "pass_index": 80,
+      "down_uniform": true,
+      "uniform_metadata": false,
+      "uniform_waves": 8,
+      "down_prefetch": false,
+      "gate_row_stripe": null,
+      "gate_blocks": null,
+      "paired_scale_load": false,
+      "lut_replicas": null,
+      "expert_pool": 256,
+      "active_experts": 79,
+      "scans": 97,
+      "exact_mutations": 100,
+      "partial_exact_mutations": 100,
+      "max_abs": 0,
+      "stable": true,
+      "samples_us": [
+        [
+          227.52750396728516,
+          227.46030807495117,
+          227.42029190063477,
+          227.52910614013672,
+          227.26190567016602,
+          227.53231048583984,
+          227.42509841918945,
+          227.3531150817871,
+          227.6683235168457,
+          227.5419044494629
+        ],
+        [
+          222.0010757446289,
+          221.87307357788086,
+          221.7978858947754,
+          221.8042755126953,
+          221.76267623901367,
+          221.89708709716797,
+          221.88907623291016,
+          221.5850830078125,
+          221.78508758544922,
+          221.75148010253906
+        ]
+      ],
+      "trimmed_us": [
+        227.4737048149109,
+        221.82008028030396
+      ]
+    }
+  ],
+  "resources": {
+    "baseline": {
+      "vgpr": 48,
+      "sgpr": 36,
+      "lds": 1024,
+      "scratch": 0
+    },
+    "candidate": {
+      "vgpr": 40,
+      "sgpr": 42,
+      "lds": 1024,
+      "scratch": 0
+    }
+  }
+}

@@ -32,7 +32,14 @@ def main():
                         help='Standalone readfirstlane expert/token metadata; unchanged arithmetic')
     parser.add_argument('--uniform-waves', type=int, choices=(4,8), default=8,
                         help='Uniform candidate wave count, preserving total grid waves')
+    parser.add_argument('--down-uniform', action='store_true',
+                        help='Standalone down wave-uniform expert/token metadata')
+    parser.add_argument('--recorder', help='Real TP8 occupancy histogram; does not retain token correlations')
+    parser.add_argument('--pass-index', type=int, default=80)
     parsed=parser.parse_args()
+    if parsed.down_uniform:
+        assert not (parsed.uniform_metadata or parsed.lut_replicas or parsed.paired_scale_load or parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown)
+        parsed.full=True
     if parsed.uniform_metadata:
         assert not (parsed.lut_replicas or parsed.paired_scale_load or parsed.gate_blocks or parsed.gate_row_stripe or parsed.down_prefetch or parsed.breakdown)
         parsed.full=True
@@ -52,6 +59,7 @@ def main():
     ws=torch.full((e,2*i,k//32),127,dtype=torch.uint8,device='cuda')
     args=(e,m,t,i,k,4,2,8,832,2)
     mods=[_jit_gate_up_grouped(*args),_jit_gate_up_grouped_row_prefetch(*args)]
+    if parsed.down_uniform:mods=[mods[1],mods[1]]
     if parsed.uniform_metadata:
         uniform_args=(*args[:7],parsed.uniform_waves,832*8//parsed.uniform_waves,args[9])
         cpp=make_cpp_args(*uniform_args)
@@ -91,6 +99,15 @@ def main():
         s2=torch.randint(122,128,(e,k,i//32),dtype=torch.uint8,device='cuda')
         router_weights=torch.rand((m,t),device='cuda')
         downs=[down,down]
+        if parsed.down_uniform:
+            down_args=(e,m,t,k,i,4,2,8,832,2)
+            cpp=make_cpp_args(*down_args)
+            downs[1]=load_jit(
+                'gfx90a_fp4_tp8_down_uniform_oracle',*down_args,
+                cuda_files=['deepseek_v4/gfx90a_fp4_expert_gemv.cuh'],
+                cuda_wrappers=[(name,f'sglang::Gfx90aFp4ExpertDownGroupedKernel<{cpp}>::{name}')
+                               for name in ('run_partial','reduce')],
+                extra_cuda_cflags=['-O3','-DSGLANG_FP4_DOWN_UNIFORM_METADATA_ORACLE=1'])
         if parsed.down_prefetch:
             cpp=make_cpp_args(e,m,t,k,i,4,8,832,2)
             downs[1]=load_jit('gfx90a_fp4_tp8_down_prefetch_oracle',*cpp,
@@ -98,8 +115,24 @@ def main():
                              cuda_wrappers=[('run_partial',f'sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::run_partial'),
                                             ('reduce',f'sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::reduce')],
                              extra_cuda_cflags=['-O3'])
-    for expert_pool in (256,128,32):
-        ids=torch.rand((m,expert_pool),device='cuda').topk(t,dim=1).indices.int()
+    route_cases=[]
+    if parsed.recorder:
+        from bench_dsv4_tp4_m32_noa2a_ep2_oracle import reconstruct_topk_from_counts
+        payload=torch.load(parsed.recorder,map_location='cpu',weights_only=False)
+        for layer in (0,20,40):
+            raw=payload['logical_count'][parsed.pass_index,layer]
+            assert (raw%8==0).all()
+            counts=raw//8
+            assert counts.sum()==m*t and counts.max()<=m
+            ids=reconstruct_topk_from_counts(counts).cuda()
+            assert torch.equal(torch.bincount(ids.cpu().flatten().long(),minlength=e),counts)
+            route_cases.append((256,layer,ids))
+    else:
+        for expert_pool in (256,128,32):
+            route_cases.append((expert_pool,None,None))
+    for expert_pool,recorded_layer,ids in route_cases:
+        if ids is None:
+            ids=torch.rand((m,expert_pool),device='cuda').topk(t,dim=1).indices.int()
         meta=make_metadata(ids,assignments=4)
         outputs=[torch.empty((m,t,i),dtype=torch.bfloat16,device='cuda') for _ in mods]
         finals=[torch.empty((m,k),dtype=torch.bfloat16,device='cuda') for _ in mods] if full else outputs
@@ -132,6 +165,11 @@ def main():
             for _ in range(10):graphs[1].replay()
             torch.cuda.synchronize()
             stable=stable and torch.equal(expected,finals[1])
+        assert exact == 100 and stable and max_abs == 0., (
+            'candidate correctness failed before timing', expert_pool, exact,
+            stable, max_abs)
+        if full:
+            assert partial_exact == 100, ('FP32 partial mismatch', expert_pool, partial_exact)
         samples=[[],[]]
         for _ in range(5):
             for arm in (0,1,1,0):
@@ -142,7 +180,7 @@ def main():
                 for _ in range(100):graphs[arm].replay()
                 end.record();end.synchronize()
                 samples[arm].append(begin.elapsed_time(end)*10)
-        print(json.dumps(dict(full_stage=full,uniform_metadata=parsed.uniform_metadata,uniform_waves=parsed.uniform_waves,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,lut_replicas=parsed.lut_replicas,expert_pool=expert_pool,active_experts=ids.unique().numel(),
+        print(json.dumps(dict(full_stage=full,recorder=parsed.recorder,recorded_layer=recorded_layer,pass_index=parsed.pass_index if parsed.recorder else None,down_uniform=parsed.down_uniform,uniform_metadata=parsed.uniform_metadata,uniform_waves=parsed.uniform_waves,down_prefetch=parsed.down_prefetch,gate_row_stripe=parsed.gate_row_stripe,gate_blocks=parsed.gate_blocks,paired_scale_load=parsed.paired_scale_load,lut_replicas=parsed.lut_replicas,expert_pool=expert_pool,active_experts=ids.unique().numel(),
                               scans=meta.sorted_experts.numel(),exact_mutations=exact,
                               partial_exact_mutations=partial_exact if full else None,
                               max_abs=max_abs,stable=stable,samples_us=samples,

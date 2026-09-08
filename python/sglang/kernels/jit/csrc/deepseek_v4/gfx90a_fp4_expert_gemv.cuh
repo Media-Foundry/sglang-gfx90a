@@ -995,6 +995,11 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
                 "grouped down subgroup width must divide wave64");
   constexpr uint32_t kSubgroupsPerWave = kFp4ExpertWave / kSubgroupWidth;
   constexpr uint32_t kTilesPerExpertBlock = (N + kRows - 1) / kRows;
+#ifdef SGLANG_FP4_DOWN_UNIFORM_METADATA_ORACLE
+  // A wave must not straddle two sorted expert blocks. The grid stride is
+  // a multiple of kSubgroupsPerWave, preserving this invariant each iteration.
+  static_assert(kTilesPerExpertBlock % kSubgroupsPerWave == 0);
+#endif
   const uint32_t lane = threadIdx.x % kFp4ExpertWave;
   const uint32_t subgroup = lane / kSubgroupWidth;
   const uint32_t subgroup_lane = lane % kSubgroupWidth;
@@ -1013,7 +1018,10 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
        task += total_subgroups) {
     const uint32_t expert_block = task / kTilesPerExpertBlock;
     const uint32_t row0 = (task % kTilesPerExpertBlock) * kRows;
-    const int32_t expert_id = sorted_expert_ids[expert_block];
+    int32_t expert_id = sorted_expert_ids[expert_block];
+#ifdef SGLANG_FP4_DOWN_UNIFORM_METADATA_ORACLE
+    expert_id = __builtin_amdgcn_readfirstlane(expert_id);
+#endif
     if (expert_id < 0 || expert_id >= static_cast<int32_t>(E)) continue;
     const uint32_t expert = static_cast<uint32_t>(expert_id);
 
@@ -1023,8 +1031,11 @@ __global__ void __launch_bounds__(kNumWaves * kFp4ExpertWave)
     float acc[kAssignments][kRows] = {};
 #pragma unroll
     for (uint32_t assignment = 0; assignment < kAssignments; ++assignment) {
-      const uint32_t encoded = static_cast<uint32_t>(
+      uint32_t encoded = static_cast<uint32_t>(
           sorted_ids[expert_block * kAssignments + assignment]);
+#ifdef SGLANG_FP4_DOWN_UNIFORM_METADATA_ORACLE
+      encoded = __builtin_amdgcn_readfirstlane(encoded);
+#endif
       tokens[assignment] = encoded & 0x00ffffffu;
       slots[assignment] = encoded >> 24;
       assignment_valid[assignment] =
