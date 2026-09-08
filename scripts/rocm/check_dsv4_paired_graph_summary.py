@@ -102,6 +102,29 @@ class SummaryTest(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(AssertionError):
                 summarize_fixed_processes(paths)
 
+    def geometry_states(self):
+        paths = self.fixed_states()
+        for path, blocks in zip(paths, (4,16,16,4)):
+            data = json.loads(path.read_text())
+            data.update(ar_blocks=blocks, final_arm=True)
+            data['blocks'][0]['candidate'] = True
+            path.write_text(json.dumps(data))
+        return paths
+
+    def test_geometry_delta_uses_blocks_not_down_arm(self):
+        result = summarize_fixed_processes(self.geometry_states(), ar_geometry=True)
+        for values in result['metrics'].values():
+            self.assertAlmostEqual(values['delta_pct'], 1)
+
+    def test_geometry_rejects_wrong_grid_and_changed_down(self):
+        for key, bad in [('ar_blocks',8),('final_arm',False)]:
+            paths = self.geometry_states()
+            data = json.loads(paths[1].read_text())
+            data[key] = bad
+            paths[1].write_text(json.dumps(data))
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                summarize_fixed_processes(paths, ar_geometry=True)
+
 
 if __name__ == '__main__':
     unittest.main()
