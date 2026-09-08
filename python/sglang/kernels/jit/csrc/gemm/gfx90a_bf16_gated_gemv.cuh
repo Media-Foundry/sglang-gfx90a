@@ -35,7 +35,7 @@ __device__ __forceinline__ float gfx90a_gated_dot8(const float4 wv,
 }
 
 template <uint32_t N, uint32_t K, uint32_t kRows, uint32_t kUnroll,
-          uint32_t kNumWaves>
+          uint32_t kNumWaves, bool kTorchRound = false>
 __global__ void __launch_bounds__(kNumWaves * kGfx90aGatedWave)
     gfx90a_bf16_gated_gemv_kernel(bf16_t* __restrict__ out,
                                   const bf16_t* __restrict__ x,
@@ -108,9 +108,14 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aGatedWave)
 #pragma unroll
     for (uint32_t r = 0; r < kRows; ++r) {
       if (row0 + r < kOut) {
+        if constexpr (kTorchRound) {
+          gate[r] = cast<float>(cast<bf16_t>(gate[r]));
+          up[r] = cast<float>(cast<bf16_t>(up[r]));
+        }
         const float g = fminf(gate[r], limit);
         const float u = fmaxf(fminf(up[r], limit), -limit);
-        const float silu = g / (1.0f + expf(-g));
+        float silu = g / (1.0f + expf(-g));
+        if constexpr (kTorchRound) silu = cast<float>(cast<bf16_t>(silu));
         out[row0 + r] = cast<bf16_t>(silu * u);
       }
     }
@@ -118,7 +123,7 @@ __global__ void __launch_bounds__(kNumWaves * kGfx90aGatedWave)
 }
 
 template <uint32_t N, uint32_t K, uint32_t kRows, uint32_t kUnroll,
-          uint32_t kNumWaves>
+          uint32_t kNumWaves, bool kTorchRound = false>
 struct Gfx90aBf16GatedGemvKernel {
   static_assert(K % (kGfx90aGatedWave * kGfx90aGatedVec * kUnroll) == 0,
                 "K must cover complete wave64 vector strides");
@@ -143,7 +148,7 @@ struct Gfx90aBf16GatedGemvKernel {
     constexpr uint32_t kBlocks =
         (N / 2 + kRowsPerBlock - 1) / kRowsPerBlock;
     LaunchKernel(kBlocks, kNumWaves * kGfx90aGatedWave, device.unwrap())(
-        gfx90a_bf16_gated_gemv_kernel<N, K, kRows, kUnroll, kNumWaves>,
+        gfx90a_bf16_gated_gemv_kernel<N, K, kRows, kUnroll, kNumWaves, kTorchRound>,
         static_cast<bf16_t*>(out.data_ptr()),
         static_cast<const bf16_t*>(x.data_ptr()),
         static_cast<const bf16_t*>(weight.data_ptr()), limit);
