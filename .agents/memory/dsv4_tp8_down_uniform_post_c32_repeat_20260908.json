@@ -1,0 +1,74 @@
+{
+  "pid": 3542331,
+  "trimmed_geomean": 82.80385891035942,
+  "per_case_trimmed": {
+    "diverse-03": 82.85566453950592,
+    "diverse-15": 82.85307926470514,
+    "diverse-31": 82.70292531546534
+  },
+  "reference_exact": 12,
+  "samples": [
+    {
+      "case": "diverse-03",
+      "rep": 0,
+      "tok_s": 82.90335978134323
+    },
+    {
+      "case": "diverse-15",
+      "rep": 0,
+      "tok_s": 82.82780142413763
+    },
+    {
+      "case": "diverse-31",
+      "rep": 0,
+      "tok_s": 82.72247174511156
+    },
+    {
+      "case": "diverse-03",
+      "rep": 1,
+      "tok_s": 82.81637564212895
+    },
+    {
+      "case": "diverse-15",
+      "rep": 1,
+      "tok_s": 82.87835710527266
+    },
+    {
+      "case": "diverse-31",
+      "rep": 1,
+      "tok_s": 82.6833788858191
+    },
+    {
+      "case": "diverse-03",
+      "rep": 2,
+      "tok_s": 82.8949534368829
+    },
+    {
+      "case": "diverse-15",
+      "rep": 2,
+      "tok_s": 82.69823909619899
+    },
+    {
+      "case": "diverse-31",
+      "rep": 2,
+      "tok_s": 82.4548477624111
+    },
+    {
+      "case": "diverse-03",
+      "rep": 3,
+      "tok_s": 82.25429376856103
+    },
+    {
+      "case": "diverse-15",
+      "rep": 3,
+      "tok_s": 82.95404698932757
+    },
+    {
+      "case": "diverse-31",
+      "rep": 3,
+      "tok_s": 82.80073367696573
+    }
+  ],
+  "artifact": "/tmp/dsv4_tp8_down_uniform_single_post_c32_20260908.json",
+  "artifact_sha256": "f3eadbbb2e0c4e056a67c003cc907e8c6bd6a89602db350a2fbbd3ab333ba9eb"
+}
