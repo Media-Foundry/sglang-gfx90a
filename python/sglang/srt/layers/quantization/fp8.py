@@ -1086,6 +1086,14 @@ class Fp8LinearMethod(LinearMethodBase):
             if isinstance(x, tuple):
                 raise TypeError("Cached BF16 block-FP8 weight requires BF16 activation")
             if bias is None:
+                if envs.SGLANG_DSV4_GFX90A_ROW_STABLE_PREFILL.get():
+                    from sglang.srt.layers.quantization.dsv4_projection_experiment import (
+                        maybe_row_stable_linear,
+                    )
+
+                    stable = maybe_row_stable_linear(x, layer.weight)
+                    if stable is not None:
+                        return stable
                 if envs.SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV.get() and hasattr(
                     layer, "gfx90a_int8_weight"
                 ):
