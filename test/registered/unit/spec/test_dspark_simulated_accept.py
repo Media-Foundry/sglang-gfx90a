@@ -7,6 +7,9 @@ from sglang.srt.speculative.dspark_components.dspark_verify import (
     TargetVerifyExecutor,
     bonus_for_correct_len,
 )
+from sglang.srt.speculative.dspark_components.dspark_worker_v2 import (
+    synchronize_draft_tokens_across_tp,
+)
 
 
 def test_bonus_is_reselected_after_simulated_correct_len_override():
@@ -73,3 +76,31 @@ def test_dspark_accept_sync_rebuilds_commit_from_authoritative_decision():
     assert synced.commit_lens.tolist() == [3, 1]
     assert synced.new_seq_lens.tolist() == [103, 201]
     assert synced.out_tokens.tolist() == [[10, 11, 42, 0], [43, 21, 22, 0]]
+
+
+def test_dspark_draft_sync_updates_graph_owned_tensor_in_place():
+    draft_tokens = torch.tensor([[10, 11, 12], [20, 21, 22]])
+
+    class FakeGroup:
+        world_size = 8
+
+        @staticmethod
+        def broadcast(tensor, src=0):
+            assert src == 0 and tensor.is_contiguous()
+            tensor.copy_(torch.tensor([[30, 31, 32], [40, 41, 42]]))
+
+    with (
+        patch(
+            "sglang.srt.speculative.dspark_components.dspark_worker_v2."
+            "envs.SGLANG_DSPARK_SYNC_DRAFT_ACROSS_TP.get",
+            return_value=True,
+        ),
+        patch(
+            "sglang.srt.speculative.dspark_components.dspark_worker_v2.get_tp_group",
+            return_value=FakeGroup(),
+        ),
+    ):
+        synced = synchronize_draft_tokens_across_tp(draft_tokens)
+
+    assert synced.data_ptr() == draft_tokens.data_ptr()
+    assert synced.tolist() == [[30, 31, 32], [40, 41, 42]]

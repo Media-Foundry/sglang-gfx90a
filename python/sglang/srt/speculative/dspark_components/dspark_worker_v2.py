@@ -10,6 +10,7 @@ from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
 )
 from sglang.srt.configs.hybrid_arch import mambaish_config
 from sglang.srt.distributed.parallel_state_wrapper import ParallelState
+from sglang.srt.distributed.parallel_state import get_tp_group
 from sglang.srt.environ import envs
 from sglang.srt.layers.logprob_processor import compute_spec_logprobs
 from sglang.srt.lora.layers import unwrap_lora_layer
@@ -82,6 +83,23 @@ from sglang.srt.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def synchronize_draft_tokens_across_tp(draft_tokens: torch.Tensor) -> torch.Tensor:
+    """Make rank 0's speculative chain authoritative before target TP runs."""
+    tp_group = get_tp_group()
+    if (
+        not envs.SGLANG_DSPARK_SYNC_DRAFT_ACROSS_TP.get()
+        or tp_group.world_size == 1
+    ):
+        return draft_tokens
+    if not draft_tokens.is_contiguous():
+        raise RuntimeError(
+            "DSpark TP draft synchronization requires contiguous draft tokens, "
+            f"got stride={draft_tokens.stride()}"
+        )
+    tp_group.broadcast(draft_tokens, src=0)
+    return draft_tokens
 
 _is_npu = is_npu()
 
@@ -664,6 +682,12 @@ class DSparkWorkerV2(BaseSpecWorker):
         draft_block_ids = proposal.draft_block_ids
         draft_block = proposal.draft_block
         draft_tokens = draft_block.draft_tokens
+
+        # The target TP collective must consume one identical token chain on
+        # every rank.  Broadcast the graph-owned output in place so
+        # DraftBlockResult and all subsequent users retain one authoritative
+        # tensor without another allocation.
+        draft_tokens = synchronize_draft_tokens_across_tp(draft_tokens)
 
         confidence = proposal.confidence
         if confidence is None:

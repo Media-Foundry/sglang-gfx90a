@@ -1634,6 +1634,11 @@ class Envs:
     # from SYNC_TOKEN_IDS_ACROSS_TP, whose sampler collective is not ordered
     # consistently across the draft and target workers.
     SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP = EnvBool(False)
+    # Keep every target TP rank on the same speculative chain.  A tiny
+    # rank-local draft-logit difference must not turn into different token IDs
+    # entering the collective target forward; synchronizing accept afterwards
+    # is already too late for that case.
+    SGLANG_DSPARK_SYNC_DRAFT_ACROSS_TP = EnvBool(False)
     # Diagnostic only: disable decode graphs; capture one selected H8 layer.
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR = EnvStr("")
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER = EnvInt(2)

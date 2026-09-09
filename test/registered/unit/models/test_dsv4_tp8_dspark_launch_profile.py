@@ -33,6 +33,7 @@ def test_profile_resolves_full_target_defaults_without_starting_gpu(tmp_path):
     assert env['SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4']=='1'
     assert env['SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED']=='1'
     assert env['SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP']=='1'
+    assert env['SGLANG_DSPARK_SYNC_DRAFT_ACROSS_TP']=='1'
     assert env['SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH']=='0'
     assert env['HIP_VISIBLE_DEVICES']=='0,1,2,3,4,5,6,7'
     graph_values=[]
