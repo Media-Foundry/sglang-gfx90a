@@ -53,11 +53,8 @@ Full chronology: `.agents/memory/dsv4_tp8_dspark_transplant_20260909.md`.
 
 `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE=1` enables the ported
 H8 CK C128 attention path and is now the default inside this opt-in profile.
-Set it to0 for the communication-only control. The C4 extension
-`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4` also stays off after one severe
-looping response; a passing single-layer replay does not resolve that failure.
-
-An independent, default-off refinement is available for experiments only:
+Set it to0 for the communication-only control. The C4 extension and its
+refined-probability implementation are enabled by this explicit profile:
 `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED=1`, together with the parent
 C4 switch. It uses a BF16 high/residual-low probability pair for PV, not a
 different checkpoint precision. The existing TP8/DSpark-target/M128/C4 guards
@@ -67,8 +64,14 @@ tests do **not** establish whole-model quality or repair the earlier loop.
 Its separate C4 ABBA completed: 925.21 /937.05 /938.75 /920.40 tok/s,
 control mean922.80 versus refined937.90 (**+1.64% observed**). All128
 measured outputs passed the severe-repetition screen, but neither control
-nor candidate had cross-round full-output hash parity. Retained as an
-explicit opt-in, not a default promotion or a proven historical-loop fix.
+nor candidate had cross-round full-output hash parity.
+
+The profile also enables `SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP=1`. It
+broadcasts rank0's target accept decision before cache commit and therefore
+uses eager accept/commit rather than the folded graph epilogue. Six C32x2048
+real-code waves passed the severe-repetition gate; this hardens rank
+consistency but does not claim cross-run bitwise output identity. See
+`.agents/memory/dsv4_tp8_dspark_accept_sync_20260910.md`.
 To reproduce the screened candidate:
 
 ```bash

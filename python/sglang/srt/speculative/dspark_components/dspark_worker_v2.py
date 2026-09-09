@@ -720,6 +720,10 @@ class DSparkWorkerV2(BaseSpecWorker):
             and verify_logits_adjustments_are_noop(sampling_info)
             and self._simulate_acc_len <= 0
             and not batch.has_grammar
+            # An in-graph epilogue commits target hidden KV before a target-TP
+            # decision broadcast can run.  The debug sync mode must therefore
+            # accept and commit eagerly, after every rank has the rank-0 result.
+            and not envs.SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP.get()
         )
         prepare_mamba_track_for_verify(batch)
         with self._observers.segment(InfoSegment.TARGET_VERIFY):
@@ -771,6 +775,11 @@ class DSparkWorkerV2(BaseSpecWorker):
             layout=layout,
             prefix_lens=prefix_lens,
             draft_tokens=draft_tokens,
+        )
+        accept = self._verify_executor.synchronize_accept_across_tp(
+            accept=accept,
+            draft_tokens=draft_tokens,
+            prefix_lens=prefix_lens,
         )
         if batch.return_logprob:
             compute_spec_logprobs(

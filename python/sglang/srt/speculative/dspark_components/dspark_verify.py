@@ -27,6 +27,8 @@ from sglang.kernels.ops.speculative.dspark.dspark_verify_window import (
     scatter_compact_to_strided_into,
 )
 from sglang.srt.layers.logits_processor import LogitsProcessorOutput
+from sglang.srt.distributed.parallel_state import get_tp_group
+from sglang.srt.environ import envs
 from sglang.srt.managers.schedule_batch import ScheduleBatch
 from sglang.srt.model_executor.forward_batch_info import CaptureHiddenMode, ForwardMode
 from sglang.srt.speculative.dflash_info import DFlashVerifyInput
@@ -112,6 +114,72 @@ class TargetVerifyExecutor:
         self._verify_backend_self_adds_seq_lens_cache: Optional[bool] = None
         self._simulate_acc_len = float(simulate_acc_len)
         self._simulated_correct_drafts_buf: Optional[torch.Tensor] = None
+        self._accept_sync_buf: Optional[torch.Tensor] = None
+
+    def synchronize_accept_across_tp(
+        self,
+        *,
+        accept: AcceptOuts,
+        draft_tokens: torch.Tensor,
+        prefix_lens: torch.Tensor,
+    ) -> AcceptOuts:
+        """Broadcast one authoritative DSpark accept decision after graph replay.
+
+        The ordinary sampler TP-sync cannot be used here: draft and target
+        workers do not enter that sampler collective in the same order.  This
+        boundary is target-only and is reached by every target TP rank once per
+        verify step, after any folded CUDA-graph epilogue has completed.
+        """
+        tp_group = get_tp_group()
+        if (
+            not envs.SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP.get()
+            or tp_group.world_size == 1
+        ):
+            return accept
+
+        bs = accept.correct_len.numel()
+        buf = self._accept_sync_buf
+        needed = 3 * bs
+        if (
+            buf is None
+            or buf.numel() < needed
+            or buf.device != accept.correct_len.device
+        ):
+            buf = torch.empty(
+                (3 * max(bs, 256),),
+                dtype=torch.int64,
+                device=accept.correct_len.device,
+            )
+            self._accept_sync_buf = buf
+        decisions = buf[:needed]
+        decisions[:bs].copy_(accept.correct_len)
+        decisions[bs : 2 * bs].copy_(accept.bonus)
+        decisions[2 * bs :].copy_(accept.cap_trim_lens)
+        tp_group.broadcast(decisions, src=0)
+
+        correct_len = decisions[:bs]
+        bonus = decisions[bs : 2 * bs]
+        cap_trim_lens = decisions[2 * bs :].to(torch.int32)
+        finalized = FinalizeAcceptLens.execute(
+            correct_len=correct_len,
+            cap_trim_lens=cap_trim_lens,
+            prefix_lens=prefix_lens,
+        )
+        out_tokens = BuildOutTokens.execute(
+            draft_tokens=draft_tokens,
+            correct_len=correct_len,
+            bonus=bonus,
+            verify_num_draft_tokens=self.verify_num_draft_tokens,
+            gamma=self.gamma,
+        )
+        return AcceptOuts(
+            correct_len=correct_len,
+            bonus=bonus,
+            cap_trim_lens=finalized.cap_trim_lens,
+            commit_lens=finalized.commit_lens,
+            new_seq_lens=finalized.new_seq_lens,
+            out_tokens=out_tokens,
+        )
 
     def accept_and_finalize(
         self,

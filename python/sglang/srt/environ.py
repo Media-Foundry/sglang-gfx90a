@@ -1629,6 +1629,11 @@ class Envs:
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS = EnvInt(0)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH = EnvBool(False)
+    # Debug/correctness guard: make rank 0 authoritative for the DSpark accept
+    # decision after target-verify graph replay.  This is deliberately separate
+    # from SYNC_TOKEN_IDS_ACROSS_TP, whose sampler collective is not ordered
+    # consistently across the draft and target workers.
+    SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP = EnvBool(False)
     # Diagnostic only: disable decode graphs; capture one selected H8 layer.
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR = EnvStr("")
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER = EnvInt(2)

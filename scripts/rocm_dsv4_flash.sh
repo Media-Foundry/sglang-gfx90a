@@ -325,6 +325,7 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # tok/s (+1.97%).  The refinement preserves full target verification.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED:-1}"
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4:-1}"
+  export SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP="${SGLANG_DSPARK_SYNC_ACCEPT_ACROSS_TP:-1}"
 fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"
