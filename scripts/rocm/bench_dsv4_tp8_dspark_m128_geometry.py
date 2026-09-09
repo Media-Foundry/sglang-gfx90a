@@ -142,6 +142,16 @@ def main() -> None:
             "current G832/D832 path; component-only and never a service selector"
         ),
     )
+    parser.add_argument(
+        "--breakdown",
+        action="store_true",
+        help="time gate, intermediate quant, down partial and reducer separately",
+    )
+    parser.add_argument(
+        "--screen-prefetch-grid",
+        action="store_true",
+        help="scan bounded gate/down CTA counts for the row-prefetch tactic",
+    )
     args = parser.parse_args()
     if args.mutations < 100 or args.graph_replays < 1000 or args.rounds != 1:
         raise ValueError("formal oracle requires 100 mutations, 1000 replays, one ABBA")
@@ -208,8 +218,22 @@ def main() -> None:
         )
     if args.screen_row_prefetch:
         geometries["row_prefetch"] = (4, 2, 8, 832, 832)
+    if args.screen_prefetch_grid:
+        if not args.screen_row_prefetch:
+            raise ValueError("--screen-prefetch-grid requires --screen-row-prefetch")
+        geometries.update(
+            {
+                "row_prefetch_g624_d832": (4, 2, 8, 624, 832),
+                "row_prefetch_g1040_d832": (4, 2, 8, 1040, 832),
+                "row_prefetch_g1248_d832": (4, 2, 8, 1248, 832),
+                "row_prefetch_g832_d624": (4, 2, 8, 832, 624),
+                "row_prefetch_g832_d1040": (4, 2, 8, 832, 1040),
+                "row_prefetch_g832_d1248": (4, 2, 8, 832, 1248),
+            }
+        )
     states: dict[str, dict[str, torch.Tensor]] = {}
     runs = {}
+    modules = {}
     for name, (
         assignments,
         rows,
@@ -218,7 +242,7 @@ def main() -> None:
         down_blocks,
     ) in geometries.items():
         metadata = metadata_a4 if assignments == 4 else metadata_a8
-        if name == "row_prefetch":
+        if name.startswith("row_prefetch"):
             # The existing row-prefetch kernels stage decoded FP4 through LDS.
             # Keep this an explicit oracle rather than silently conflating it
             # with the production non-LDS lookup mode.
@@ -277,6 +301,7 @@ def main() -> None:
 
         states[name] = state
         runs[name] = run
+        modules[name] = (gate, down, metadata)
 
     def assert_exact(label: str) -> None:
         for tensor_name in states["prefill"]:
@@ -373,6 +398,67 @@ def main() -> None:
             f"gain_pct={(decode_us / candidate_us - 1.0) * 100.0:.3f}",
             flush=True,
         )
+    if args.screen_prefetch_grid:
+        reference_us = trimmed(values["row_prefetch"])
+        for name in geometries:
+            if not name.startswith("row_prefetch_"):
+                continue
+            candidate_us = trimmed(values[name])
+            print(
+                f"PREFETCH_GRID_RESULT name={name} reference_us={reference_us:.3f} "
+                f"candidate_us={candidate_us:.3f} "
+                f"saving_us={reference_us - candidate_us:.3f} "
+                f"gain_pct={(reference_us / candidate_us - 1.0) * 100.0:.3f}",
+                flush=True,
+            )
+    if args.breakdown:
+        for name in ("decode", "row_prefetch"):
+            if name not in modules:
+                continue
+            gate, down, metadata = modules[name]
+            state = states[name]
+            stage_runs = {
+                "gate": lambda gate=gate, metadata=metadata, state=state: gate.run(
+                    xq, xscale, w13, s13, metadata.sorted_ids,
+                    metadata.sorted_experts, metadata.valid,
+                    state["intermediate"], 10.0
+                ),
+                "intermediate_quant": lambda state=state: quant_into(
+                    state["intermediate"], state["iq"], state["iscale"]
+                ),
+                "down_partial": lambda down=down, metadata=metadata, state=state: down.run_partial(
+                    state["iq"], state["iscale"], w2, s2,
+                    metadata.sorted_ids, metadata.sorted_experts,
+                    metadata.valid, topk_weights, state["partial"]
+                ),
+                "reducer": lambda down=down, state=state: down.reduce(
+                    state["partial"], state["output"]
+                ),
+            }
+            stage_graphs = {}
+            for stage, stage_run in stage_runs.items():
+                stage_run()
+                torch.cuda.synchronize()
+                graph = torch.cuda.CUDAGraph()
+                with torch.cuda.graph(graph):
+                    stage_run()
+                stage_graphs[stage] = graph
+            stage_values = {stage: [] for stage in stage_graphs}
+            for order in (
+                tuple(stage_graphs),
+                tuple(reversed(stage_graphs)),
+                tuple(stage_graphs),
+                tuple(reversed(stage_graphs)),
+            ):
+                for stage in order:
+                    stage_values[stage].append(time_graph(stage_graphs[stage], args.iterations))
+            print(
+                "BREAKDOWN",
+                name,
+                {stage: round(trimmed(samples), 3)
+                 for stage, samples in stage_values.items()},
+                flush=True,
+            )
 
 
 if __name__ == "__main__":

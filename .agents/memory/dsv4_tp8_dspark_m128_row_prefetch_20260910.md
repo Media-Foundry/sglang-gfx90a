@@ -75,3 +75,35 @@ Enable M128 row-prefetch in the explicit TP8 full-target profile. Keep the
 strict runtime shape/scope checks and do not generalize it to native AR,
 prefill, TP4, other speculative widths, or other expert shapes without new
 component and E2E validation.
+
+## Follow-up screens
+
+The accepted row-prefetch stage breaks down at M128 balanced routing as roughly
+`402.3 us` gate, `13.0 us` intermediate quantization, `332.2 us` down, and
+`16.6 us` fixed-order reduction. A bounded CTA-grid screen found only a narrow
+balanced-only result at G832/D1248 (`+3.41%`) and essentially no skewed gain
+(`+0.51%`), so production remains G832/D832.
+
+The same component kernel is bitwise exact and substantially faster at the
+strict gamma-one/two shapes (M64 and M96), but a real-service gamma-two ABBA
+lost to gamma three after the M128 checkpoint:
+
+| Strict profile | Real-code resident tok/s (two fresh processes) |
+|---|---:|
+| gamma 3 / M128 | 1093.7031, 1080.8286 |
+| gamma 2 / M96 | 1083.2458, 1080.9771 |
+
+Means are `1087.2658` versus `1082.1114 tok/s` (`-0.47%` for gamma two).
+Therefore the temporary M64/M96 runtime wiring was removed; those shapes remain
+component evidence only. Artifacts are under
+`/tmp/dsv4_tp8_prefetched_gamma3_gamma2_abba_retry2_20260910/`.
+
+An isolated down-kernel activation-fragment reuse oracle also preserved the
+eight-SDOT arithmetic order and passed 100 mutations plus 1000 graph replays,
+but improved the full routed stage by only `2.02%` for balanced routing and
+regressed it by `0.95%` for skewed routing. The extra live activation fragments
+likely consumed the saved VMEM latency through VGPR/occupancy pressure. It was
+removed and was never connected to the service. Logs:
+
+- `/tmp/dsv4_tp8_m128_down_xq_reuse_balanced_20260910.log`
+- `/tmp/dsv4_tp8_m128_down_xq_reuse_skewed_20260910.log`
