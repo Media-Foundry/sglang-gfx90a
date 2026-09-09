@@ -337,3 +337,32 @@ M32 prefetch or call it a completed DSpark C32 transplant: its central target
 shape depends on a rejected approximation. Any new M128 prefetch needs its
 own shape-specific full-stage oracle; lower-concurrency/drain behavior is a
 separate question. No prefetch production selector changed in this audit.
+
+## C4 performance acceptance paused: one severe looping response
+
+First complete C4 round: 920.229777 tok/s, 36,640 resident output tokens /
+39.816143 seconds. During the next round's first saved wave, request index7
+entered sustained repetition of four `mamba_extra_buffer_lazy_ckpt_*` field
+assignments and hit the 2048-token cap. Tail8 duplicate fraction 0.914851;
+1/128 saved responses exceeded0.75 (previous checkpoint was0/96).
+This is not merely a hash difference. Do NOT label the candidate
+correctness-accepted, and do NOT report a three-round C4 median.
+
+Full input/token/text fixture is preserved in
+`dsv4_tp8_ck_c4_repetition_fixture_20260909.json`, output SHA256
+`b23686a5b29ab35fdf4b2931346638ff39bb513d51ea8de803c0df008a9deefe`.
+The corresponding request in each of nine B2 and nine C3b measured waves
+terminated coherently without this loop. However those trajectories diverge
+within3–22 initial output tokens, so final text does not locate first numeric
+divergence or prove a CK kernel bug. Single-GPU component oracles still pass.
+
+Stopped queue PID4134211, controller4129828 and benchmark4134946 after exact
+command checks. Sessions7321/57515 are therefore cancelled, not pending.
+Raw measured JSON remains an incomplete snapshot; its `running` status must
+not be interpreted as a live benchmark. No collective oracle ran.
+
+Owned service4127259 was stopped after AMD PID checks. Starting fresh A2
+control with both TP8 CK flags0, retaining overlap and all other settings;
+same real-code manifest, full-target verification, original weights and1Mpool.
+Log `/tmp/dsv4_tp8_dspark_control_a2_20260909.service.log`, output root without
+`.service.log`. This control is needed before attributing the failure to CK.
