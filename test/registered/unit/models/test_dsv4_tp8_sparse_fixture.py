@@ -43,3 +43,19 @@ def test_sparse_fixture_compaction_and_validation(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match='eager'):
         module.save_fixture(tmp_path/'graph.pt', **args)
     assert not (tmp_path/'graph.pt').exists()
+
+
+def test_replay_error_metrics_cpu():
+    import ast
+    root = Path(__file__).resolve().parents[4]
+    path = root / 'scripts/rocm/replay_dsv4_tp8_sparse_fixture.py'
+    tree = ast.parse(path.read_text())
+    node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                and n.name == 'error_metrics')
+    scope = {'torch': torch}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(path), 'exec'), scope)
+    metrics = scope['error_metrics']
+    x = torch.zeros(4)
+    assert metrics(x, x) == {'max_abs': 0.0, 'relative_l2': 0.0, 'exact': True}
+    a = metrics(torch.tensor([2., 0.]), torch.tensor([1., 0.]))
+    assert a == {'max_abs': 1.0, 'relative_l2': 1.0, 'exact': False}

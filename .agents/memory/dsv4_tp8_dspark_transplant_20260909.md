@@ -382,3 +382,17 @@ CPU tests validate remapping, empty rows, duplicate slots, shape/address
 rejection, exclusive-file creation and graph-capture rejection. GPU capture
 and replay comparison are still pending. Do not interpret this diagnostic
 as a numerical fix or throughput gain. It is OFF in the running A2 benchmark.
+
+A2 warmup completed: 872.728517 tok/s, 13.565501 resident seconds;
+32 responses, tail8 duplicate median0.054455, zero above0.75. Controller
+PID4144473 (session82939) started formal benchmark child4151044.
+
+Prepared `scripts/rocm/replay_dsv4_tp8_sparse_fixture.py` for the pending
+real fixture: compares CK and Triton against FP32 attention on identical
+Q/K/indices, reports max-absolute/relative-L2 errors and captured-output
+agreement, checks1000 graph replays, and measures five ABBA blocks.
+Numerical failures write a diagnostic result without accepting timings.
+CPU fixture/metric tests2/2 pass; actual capture and GPU replay have NOT run.
+This work does not establish the cause of the C4 looping response. The next
+diagnostic needs a separate eager service after A2 finishes, not a capture
+hook inserted into the current timed graph.
