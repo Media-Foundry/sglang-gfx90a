@@ -379,6 +379,14 @@ def main() -> None:
                 f"wall={steady_wall} tokens={steady_tokens}"
             )
         has_resident_window = steady_wall > 0 and steady_tokens > 0
+        # With heterogeneous requests, completion times can be disjoint even
+        # though the scheduler processed a continuous decode stream.  When
+        # explicitly allowed, retain a server-side scheduler fallback instead
+        # of silently dropping the resident metric.  The field is tagged so
+        # callers do not confuse it with the common-window measurement.
+        resident_metric_source = "common_window" if has_resident_window else None
+        if not has_resident_window and args.allow_no_resident_window:
+            resident_metric_source = "scheduler_fallback"
         position_bins = []
         if args.position_bin_size > 0:
             for lo in range(0, args.tokens, args.position_bin_size):
@@ -452,6 +460,13 @@ def main() -> None:
             if gpu_seconds_before is not None and gpu_seconds_after is not None
             else None
         )
+        scheduler_fallback_tok_s = (
+            moments_delta[5] / (moments_delta[2] / 1e6)
+            if args.allow_no_resident_window
+            and moments_delta
+            and moments_delta[2] > 0
+            else None
+        )
         record = {
             "round": rep,
             "request_count": len(requests),
@@ -461,8 +476,11 @@ def main() -> None:
             "resident_bs32_wall_s": steady_wall if has_resident_window else None,
             "resident_bs32_tokens": steady_tokens if has_resident_window else None,
             "resident_bs32_tok_s": (
-                steady_tokens / steady_wall if has_resident_window else None
+                steady_tokens / steady_wall
+                if has_resident_window
+                else scheduler_fallback_tok_s
             ),
+            "resident_metric_source": resident_metric_source,
             "position_bins": position_bins,
             "resident_time_bins": resident_time_bins,
             "lengths": lengths,
