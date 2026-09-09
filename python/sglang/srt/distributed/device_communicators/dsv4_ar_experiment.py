@@ -57,7 +57,8 @@ def dspark_m128_moe_eligible(*, active, tp_size, ep_size, gfx90a,
                 and tuple(topk_shape) == (128, 6)
                 and tuple(w13_shape) == (256, 512, 2048)
                 and tuple(w2_shape) == (256, 4096, 128)
-                and tuple(geometry) == (4, 2, 2, True))
+                and tuple(geometry[:3]) == (4, 2, 2)
+                and isinstance(geometry[3], bool))
 
 
 def down_uniform_eligible(*, native_scope, tp_size, ep_size, gfx90a,

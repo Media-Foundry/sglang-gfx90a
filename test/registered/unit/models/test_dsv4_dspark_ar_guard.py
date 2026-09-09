@@ -18,11 +18,11 @@ def test_dspark_moe_geometry_narrow_guard():
                 w13_shape=(256,512,2048), w2_shape=(256,4096,128),
                 geometry=(4,2,2,True))
     assert scope[fn.name](**good)
+    assert scope[fn.name](**(good | {'geometry': (4,2,2,False)}))
     for key, value in [('active',False), ('tp_size',4), ('ep_size',2),
                        ('gfx90a',False), ('hidden_shape',(32,4096)),
                        ('topk_shape',(128,8)), ('w13_shape',(256,1024,2048)),
-                       ('w2_shape',(256,4096,256)), ('geometry',(8,2,2,True)),
-                       ('geometry',(4,2,2,False))]:
+                       ('w2_shape',(256,4096,256)), ('geometry',(8,2,2,True))]:
         assert not scope[fn.name](**(good | {key:value})), (key,value)
 
 

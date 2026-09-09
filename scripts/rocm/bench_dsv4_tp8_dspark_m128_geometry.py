@@ -94,6 +94,11 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=1)
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument(
+        "--no-lds-lut",
+        action="store_true",
+        help="match the production TP8 DSpark M128 non-LDS lookup path",
+    )
+    parser.add_argument(
         "--screen-a8",
         action="store_true",
         help="also compare A8/R1/W4 decode geometries against production A4",
@@ -145,6 +150,7 @@ def main() -> None:
     w2 = torch.randint(0, 256, (E, N, I // 2), dtype=torch.uint8, device="cuda")
     s2 = torch.randint(123,128,(E, N, I // 32), dtype=torch.uint8, device="cuda")
 
+    lds_lut = False if args.no_lds_lut else LDS_LUT
     geometries = {
         "prefill": (4, 2, 8, 416, 312),
         "decode": (4, 2, 8, 832, 832),
@@ -182,10 +188,10 @@ def main() -> None:
     ) in geometries.items():
         metadata = metadata_a4 if assignments == 4 else metadata_a8
         gate = _jit_gate_up_grouped(
-            E, tokens, T, I, H, assignments, rows, waves, gate_blocks, LDS_LUT
+            E, tokens, T, I, H, assignments, rows, waves, gate_blocks, lds_lut
         )
         down = _jit_down_grouped(
-            E, tokens, T, N, I, assignments, rows, waves, down_blocks, LDS_LUT
+            E, tokens, T, N, I, assignments, rows, waves, down_blocks, lds_lut
         )
         state = {
             "intermediate": torch.zeros(

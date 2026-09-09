@@ -9,6 +9,12 @@ Component single-ABBA: balanced +2.687%, skewed +4.684%; these are not
 end-to-end gains. Component mutation and graph checks passed (see main
 2k goal memory). Integration: syntax checks and 10 unit tests passed.
 
+The service audit found production M128 uses the non-LDS lookup path. A
+matched non-LDS component ABBA then measured balanced +5.270% and skewed
++6.621%, again with 100 mutations and 1000 graph replays bitwise exact.
+The guard therefore permits both already-validated lookup modes while keeping
+the exact A4/R2, shape, topology and DSpark-target constraints.
+
 Next: one real-code C32 E2E ABBA, same manifest in all arms, excluded warmup
 per process, full target verification and 1M pool. Results pending.
 Controller: `/tmp/dsv4_tp8_geometry_abba.py`.
