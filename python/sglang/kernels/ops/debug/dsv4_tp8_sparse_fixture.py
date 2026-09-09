@@ -27,9 +27,16 @@ def save_fixture(path, *, q, kv, indices, indptr, sink, output, scale,
             or bool((ptr_cpu[1:] < ptr_cpu[:-1]).any())):
         raise ValueError("invalid ragged offsets")
     selected = indices[:total].detach().long()
-    if total and (int(selected.min()) < 0 or int(selected.max()) >= kv.shape[0]):
+    # Unified sparse decode treats negative slots as ragged padding/sentinels
+    # (see the production CK kernels' ``slot >= 0`` guard).  Preserve those
+    # entries in the fixture and compact only referenced physical KV rows.
+    if total and int(selected.max()) >= kv.shape[0]:
         raise ValueError("invalid physical KV slot")
-    slots, remap = torch.unique(selected, sorted=True, return_inverse=True)
+    valid = selected >= 0
+    valid_slots = selected[valid]
+    slots, compact = torch.unique(valid_slots, sorted=True, return_inverse=True)
+    remap = selected.to(torch.int32)
+    remap[valid] = compact.to(torch.int32)
     payload = dict(
         format="dsv4_tp8_sparse_fixture_v1",
         q=q.detach().cpu().contiguous(),
