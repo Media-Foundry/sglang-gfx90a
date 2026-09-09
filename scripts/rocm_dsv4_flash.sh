@@ -16,6 +16,30 @@ DEFAULT_MAX_TOTAL_TOKENS="8192"
 DEFAULT_SWA_FULL_TOKENS_RATIO="0.65"
 DEFAULT_MEM_FRACTION_STATIC="0.80"
 
+# Full-target TP8 DSpark transplant, separate from the rejected anchor-only
+# profile below. Set TP before the optional prefill profile supplies defaults.
+GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE="${SGLANG_DSV4_GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE:-0}"
+if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
+  case "${1:-}" in
+    start-dspark|serve-dspark|bench-dspark|bench-dspark-concurrent) ;;
+    *) echo "TP8 full-target profile requires a DSpark command" >&2; exit 2 ;;
+  esac
+  if [[ "${TP_SIZE:-8}" != "8" || "${EP_SIZE:-1}" != "1" ||
+        "${MOE_A2A_BACKEND:-none}" != "none" ||
+        "${SGLANG_DSV4_GFX90A_TP4_BS32_PROFILE:-0}" != "0" ||
+        "${SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE:-0}" != "0" ||
+        "${SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED:-0}" != "0" ||
+        "${SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT:-0}" != "0" ]]; then
+    echo "TP8 full-target profile requires TP8/EP1/no-A2A and no anchor-only profiles" >&2
+    exit 2
+  fi
+  TP_SIZE=8
+  EP_SIZE=1
+  MOE_A2A_BACKEND=none
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32}"
+  export SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=1
+fi
+
 # Default-off large-prefill throughput profile for four gfx90a GCDs. A 20 ms
 # prefill-only aggregation window makes the 16+16 admission shape consistently
 # outperform 12+12+8 on the fixed 32-request heterogeneous code workload while
@@ -273,6 +297,23 @@ if [[ "${SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE:-0}" == "1" ]]; then
   export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM=0
   export SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH=0
   echo "REJECTED EXPERIMENT: TP8 anchor-only caused code repetition; not for serving or exact verification" >&2
+fi
+if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
+  # Single real-code C32 service ABBA: 882.55 -> 903.18 tok/s (+2.34%).
+  # This changes only the target M128 communication geometry. CK H8 C128 is
+  # separately available; its combination with this profile is not measured.
+  SPECULATIVE_DSPARK_BLOCK_SIZE=3
+  SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER=1
+  CUDA_GRAPH_MAX_BS_DECODE=32
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32}"
+  export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=256
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED=0
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT=0
+  export SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH=0
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS:-12}"
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM:-1}"
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE:-0}"
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4:-0}"
 fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"

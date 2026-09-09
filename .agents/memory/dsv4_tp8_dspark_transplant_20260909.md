@@ -543,3 +543,34 @@ differ by~2.54%, so retain the single-ABBA/variable-output caveat. No speed
 claim for combining it with CK H8 attention yet. Mixed-tier and native negative
 checks are pending; controller62234 is restoring grid0 control35919 before
 waiter52194 may take ownership. Do not launch another GPU experiment.
+
+## Post-ABBA checks passed; reusable profile packaging
+
+Both controller62234 and post-check52194 finished exit0. Mixed-tier log:
+`/tmp/dsv4_tp8_dspark_post_abba_checks_20260909/mixed_tiers.log`.
+All8 ranks100/100 exact, independent integer failures0;32 alternating
+M128 tuned/M64 installed collectives x1000 replays pass the final per-step
+output checks. Chain outputs24 MiB/rank. Component medians67.661815 vs
+47.683110 us; this repeat is not an additional E2E measurement.
+
+Native negative service43272: France chat output "The capital of France is
+**Paris**." C32x256 real-code smoke returned32 outputs with no spec acceptance
+metadata and no actual DSpark H8/AR hit logs. DSpark H8 C4/C128/overlap flags
+were ON, AR grid override OFF. Diagnostic rate957.495063 is a different short
+smoke protocol, not a native performance comparison with the2048-token matrix.
+This verifies selection isolation, not whole-model bitwise parity.
+
+Added opt-in launcher `SGLANG_DSV4_GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE=1`,
+with TP8/EP1/no-A2A and no-anchor conflict guards, gamma3,1M pool, explicit
+graph tiers and tuned target AR grid12. Both CK attention flags remain OFF.
+Seven CPU tests pass, including actual shell argument/environment resolution
+through a harmless Python stub and rejection of native/incompatible modes.
+README: `scripts/rocm/README_dsv4_tp8_dspark.md`.
+
+Now validating the packaged profile itself with one France and C32x512 real
+code smoke, not another performance screen. Script
+`/tmp/dsv4_tp8_profile_smoke.py`, session96271, outputs
+`/tmp/dsv4_tp8_dspark_full_target_profile_20260909`. It verifies all8 actual
+grid12 hits and leaves that service alive on success; on failure restores
+the full-target grid0 control. Previous restored-control49557 belongs to this
+task and is being replaced. No other queued GPU work remains.
