@@ -631,3 +631,22 @@ restores the grid12/CK-off TP8 service in finally. Output directory (created
 after combination completes): `/tmp/dsv4_tp8_refined_probability_20260909`.
 No concurrent GPU experiment has started. Session61450 remains the active
 combination benchmark; its A1 warm result905.071056 is excluded from timing.
+
+### Combination first measured pair and C4 failure-position check
+
+Combination A1 measured908.047355 tok/s. B1 warm929.646460 (excluded), then
+measured939.127274 tok/s; both measured waves pass severe repetition checks.
+First pair~+3.42%, NOT a completed ABBA gain. B1 logged C128 CK hits at layer3
+on all8 ranks; B2 service84154 has started under the same controller61450.
+
+Read the saved C4 looping fixture without GPU changes. It has512 input and
+2048 output tokens. The first128-token sliding window (stride64) exceeding
+60% duplicate8-grams begins at generated576/absolute1088 (fraction0.644628).
+This is a coarse repeat-window locator, not exact first-divergence timing.
+That query row is still below the raw~2048 C4 Top-512 selection threshold;
+this alone does NOT exclude batch-wide metadata transitions driven by other
+requests. Do not label indexer or probability rounding the proven root cause.
+The Triton paged-decode contract also explicitly requires all slots inside
+indptr to be valid and has no negative-sentinel masking; no supported-input
+semantic difference was found there. Refined-probability GPU oracle remains
+queued after the combination screen, not running concurrently.
