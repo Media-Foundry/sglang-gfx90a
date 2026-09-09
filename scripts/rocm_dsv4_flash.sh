@@ -36,7 +36,9 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   TP_SIZE=8
   EP_SIZE=1
   MOE_A2A_BACKEND=none
-  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32}"
+  # C32 is the strict TP8 DSpark target; avoid compiling unrelated graph
+  # tiers during startup and keep their memory available to the resident pool.
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-32}"
   export SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=1
 fi
 
@@ -305,7 +307,9 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   SPECULATIVE_DSPARK_BLOCK_SIZE="${SPECULATIVE_DSPARK_BLOCK_SIZE:-3}"
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER=1
   export CUDA_GRAPH_MAX_BS_DECODE="${CUDA_GRAPH_MAX_BS_DECODE:-32}"
-  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32}"
+  # C32 is the strict TP8 DSpark target; avoid compiling unrelated graph
+  # tiers during startup and keep their memory available to the resident pool.
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-32}"
   export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=256
   export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED=0
   export SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT=0
