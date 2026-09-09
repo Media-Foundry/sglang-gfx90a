@@ -20,7 +20,7 @@ from aiter.dist.device_communicators.custom_all_reduce import CustomAllreduce
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--rows', type=int, default=32, choices=(1,32,64,128))
+    p.add_argument('--rows', type=int, default=32, choices=(1,32,64,128,192))
     p.add_argument('--mutations', type=int, default=100)
     p.add_argument('--iters', type=int, default=200)
     p.add_argument('--rounds', type=int, default=5)
@@ -37,14 +37,18 @@ def main():
     assert args.mutations > 0 and args.iters > 0 and args.rounds > 0
     assert not args.shim_baseline or args.candidate_blocks is not None
     assert not args.chain_length or args.candidate_blocks is not None
-    assert not args.dspark_two_stage or (args.candidate_blocks is not None and args.rows in (64,128))
+    assert not args.dspark_two_stage or (args.candidate_blocks is not None and args.rows in (64,128,192))
     assert not args.chain_mixed_tiers or (args.chain_length and args.dspark_two_stage and args.rows == 128)
     assert 1 <= args.chain_replays <= 10000
     rank = int(os.environ['LOCAL_RANK'])
     torch.cuda.set_device(rank)
     dist.init_process_group('gloo', timeout=datetime.timedelta(seconds=180))
     assert dist.get_world_size() == 8
-    ar = CustomAllreduce(dist.group.WORLD, torch.device('cuda',rank), max_size=1024*1024)
+    ar = CustomAllreduce(
+        dist.group.WORLD,
+        torch.device('cuda', rank),
+        max_size=max(1024 * 1024, args.rows * 4096 * 2),
+    )
     assert not ar.disabled
     geometry = None
     baseline_blocks = min(80, args.rows) if args.dspark_two_stage else 16

@@ -326,6 +326,9 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   if [[ "${SPECULATIVE_DSPARK_BLOCK_SIZE}" == "5" ]]; then
     export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH:-1}"
     export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE:-1}"
+    # M192/1.5-MiB TP8 oracle: blocks16 58.63 us versus blocks80 87.60 us;
+    # 100 mutations and a 1000-replay graph chain were bitwise exact.
+    export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_AR_BLOCKS="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_AR_BLOCKS:-16}"
   fi
   # Draft-only experiment: gamma remains three and target verification remains
   # the exact M128 path.  Only the three-layer M96 draft model may select it.

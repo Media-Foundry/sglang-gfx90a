@@ -1628,6 +1628,9 @@ class Envs:
     # Experimental probability hi+lo PV; only used after the C4 parent guard.
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS = EnvInt(0)
+    # Independent strict gamma-five target selector.  M192 has a 1.5-MiB
+    # payload and a different optimum from the established M128 path.
+    SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_AR_BLOCKS = EnvInt(0)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH = EnvBool(False)

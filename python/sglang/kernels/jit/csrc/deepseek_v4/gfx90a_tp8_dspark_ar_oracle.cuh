@@ -11,7 +11,7 @@ struct Gfx90aTp8DsparkArOracle {
   static void run(int64_t handle, tvm::ffi::TensorView input,
                   tvm::ffi::TensorView output, int64_t blocks) {
     if (!handle || input.ndim() != 2 || output.ndim() != 2 ||
-        !(input.size(0) == 64 || input.size(0) == 128) ||
+        !(input.size(0) == 64 || input.size(0) == 128 || input.size(0) == 192) ||
         input.size(1) != 4096 || output.size(0) != input.size(0) ||
         output.size(1) != 4096 ||
         input.dtype().code != kDLBfloat || input.dtype().bits != 16 ||
@@ -19,7 +19,7 @@ struct Gfx90aTp8DsparkArOracle {
         input.dtype().lanes != 1 || output.dtype().lanes != 1 ||
         input.device().device_id != output.device().device_id ||
         input.data_ptr() == output.data_ptr() || blocks < 1 || blocks > aiter::kMaxBlocks)
-      throw std::runtime_error("TP8 DSpark AR oracle requires separate BF16 M64/M128 H4096 buffers");
+      throw std::runtime_error("TP8 DSpark AR oracle requires separate BF16 M64/M128/M192 H4096 buffers");
     auto* comm = reinterpret_cast<aiter::CustomAllreduce*>(handle);
     if (comm->world_size_ != 8 || !comm->full_nvlink_ || comm->rank_ < 0 || comm->rank_ >= 8)
       throw std::runtime_error("TP8 DSpark AR communicator mismatch");
