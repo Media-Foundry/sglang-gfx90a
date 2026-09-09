@@ -414,3 +414,24 @@ Restore log: `/tmp/dsv4_tp8_dspark_control_a2_restored_20260909.service.log`.
 Inspect session61566 for success/failure and restored PID; do not launch a
 competing GPU experiment while it or the A2 controller is live. The previously
 cancelled collective queue remains cancelled and must not be assumed pending.
+
+## User changed screening protocol to ABBA
+
+User requested ABBA during optimization rather than repeated three-round
+screens. Stopped old controller4144473/benchmark4151044 and waiter4154769;
+preserved partial A2 JSON (first saved round35.067248 seconds /30,947 tokens,
+96 outputs with no tail8 fraction>0.75). This is not a completed3-round result.
+Session61566 is cancelled. Updated the diagnostic controller to run immediately
+from that preserved evidence, without relabeling it complete. New session76606
+started eager service4158031; it reached ready at13:52:33. Tensor capture not
+yet observed; actual M128 hit must be verified before accepting its oracle.
+
+Implemented independent `gfx90a_tp8_dspark_ar_oracle` C++/Python shim for
+M64/M128 BF16 payloads. Calls AIter's exact new two-stage kernel with existing
+peer registration, pack width, rank order and synchronization, but explicit
+CTA count. Does not modify installed AIter or native M32 shim. Benchmark adds
+`--dspark-two-stage --candidate-blocks N --rounds 1`; one ABBA is supported
+without empty trimmed-mean arrays. Existing mutation/independent-integer and
+optional mutating graph-chain checks remain mandatory. Python AST passes;
+HIP compile, ABI runtime validation and GPU timings have NOT run. This is an
+oracle entry point, not yet a production communication selector.

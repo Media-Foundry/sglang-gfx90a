@@ -24,14 +24,18 @@ def main():
     p.add_argument('--mutations', type=int, default=100)
     p.add_argument('--iters', type=int, default=200)
     p.add_argument('--rounds', type=int, default=5)
-    p.add_argument('--candidate-blocks', type=int, choices=(4,8,12,16,24,32))
+    p.add_argument('--candidate-blocks', type=int, choices=(4,8,12,16,24,32,64,80))
+    p.add_argument('--dspark-two-stage', action='store_true',
+                   help='independent M64/M128 new AIter two-stage grid oracle')
     p.add_argument('--chain-length', type=int, default=0, choices=(0,32))
     p.add_argument('--chain-replays', type=int, default=1000)
     p.add_argument('--shim-baseline', action='store_true',
                    help='compare both geometries through the validated shim, isolating grid effects')
     args = p.parse_args()
+    assert args.mutations > 0 and args.iters > 0 and args.rounds > 0
     assert not args.shim_baseline or args.candidate_blocks is not None
     assert not args.chain_length or args.candidate_blocks is not None
+    assert not args.dspark_two_stage or (args.candidate_blocks is not None and args.rows in (64,128))
     assert 1 <= args.chain_replays <= 10000
     rank = int(os.environ['LOCAL_RANK'])
     torch.cuda.set_device(rank)
@@ -40,9 +44,13 @@ def main():
     ar = CustomAllreduce(dist.group.WORLD, torch.device('cuda',rank), max_size=1024*1024)
     assert not ar.disabled
     geometry = None
+    baseline_blocks = min(80, args.rows) if args.dspark_two_stage else 16
     if args.candidate_blocks is not None:
-        assert args.rows == 32
-        from sglang.kernels.ops.debug.gfx90a_tp8_ar_geometry_oracle import module, run
+        if args.dspark_two_stage:
+            from sglang.kernels.ops.debug.gfx90a_tp8_dspark_ar_oracle import module, run
+        else:
+            assert args.rows == 32 and args.candidate_blocks <= 32
+            from sglang.kernels.ops.debug.gfx90a_tp8_ar_geometry_oracle import module, run
         # Validate the shared Signal layout before using the independent shim.
         assert module().signal_bytes() == aiter.meta_size()
         geometry = run
@@ -55,9 +63,10 @@ def main():
     for arm,(use_new,y) in enumerate(zip((True,False),outputs)):
         def forward():
             if geometry is not None and (arm == 1 or args.shim_baseline):
-                geometry(ar,x,y,args.candidate_blocks if arm == 1 else 16)
+                geometry(ar,x,y,args.candidate_blocks if arm == 1 else baseline_blocks)
             else:
-                ar.all_reduce(x,out=y,registered=True,use_new=use_new if geometry is None else False)
+                ar.all_reduce(x,out=y,registered=True,
+                              use_new=use_new if geometry is None else args.dspark_two_stage)
         forward()
         torch.cuda.synchronize()
         dist.barrier()
@@ -141,12 +150,15 @@ def main():
     if rank==0:
         print(json.dumps(dict(rows=args.rows,bytes=x.numel()*2,correctness=reports,
                               candidate_blocks=args.candidate_blocks,
+                              dspark_two_stage=args.dspark_two_stage,
                               mutating_chain=chain_report,
-                              baseline=('new' if geometry is None else
+                              baseline=(f'new two-stage blocks{baseline_blocks}' if args.dspark_two_stage else
+                                        'new' if geometry is None else
                                         'shim legacy blocks16' if args.shim_baseline else 'legacy blocks16'),
                               rankmax_samples_us=samples,
                               medians_us=[statistics.median(v) for v in samples],
-                              trimmed_us=[statistics.mean(sorted(v)[1:-1]) for v in samples])),flush=True)
+                              trimmed_us=[statistics.mean(sorted(v)[1:-1] if len(v) > 2 else v)
+                                          for v in samples])),flush=True)
     dist.barrier()
     dist.destroy_process_group()
 
