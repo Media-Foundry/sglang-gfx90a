@@ -109,8 +109,6 @@ def main() -> None:
         help="scan independent A4 gate/down grids around the production geometry",
     )
     args = parser.parse_args()
-    if args.screen_grid or args.screen_a8:
-        raise ValueError("This TP8 screen compares only G416/D312 vs G832/D832 in ABBA")
     if args.mutations < 100 or args.graph_replays < 1000 or args.rounds != 1:
         raise ValueError("formal oracle requires 100 mutations, 1000 replays, one ABBA")
     if torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0] != "gfx90a":
@@ -158,14 +156,11 @@ def main() -> None:
     if args.screen_grid:
         geometries.update(
             {
-                "g1248_d832": (4, 2, 8, 1248, 832),
-                "g1664_d832": (4, 2, 8, 1664, 832),
-                "g2496_d832": (4, 2, 8, 2496, 832),
-                "g3120_d832": (4, 2, 8, 3120, 832),
-                "g2080_d624": (4, 2, 8, 2080, 624),
-                "g2080_d1040": (4, 2, 8, 2080, 1040),
-                "g2080_d1248": (4, 2, 8, 2080, 1248),
-                "w4_g2080_d832": (4, 2, 4, 2080, 832),
+                "g624_d832": (4, 2, 8, 624, 832),
+                "g1040_d832": (4, 2, 8, 1040, 832),
+                "g832_d624": (4, 2, 8, 832, 624),
+                "g832_d1040": (4, 2, 8, 832, 1040),
+                "g832_d1248": (4, 2, 8, 832, 1248),
             }
         )
     if args.screen_a8:
