@@ -3,6 +3,8 @@
 
 Run with torchrun --standalone --nproc-per-node=8, on idle service GPUs.
 No library rebuilds, global environment changes, or production modifications.
+Rows 64/128 screen DSpark 512-KiB/1-MiB payloads; the independent geometry
+shim remains restricted to its validated M32 contract.
 """
 import argparse
 import datetime
@@ -18,7 +20,7 @@ from aiter.dist.device_communicators.custom_all_reduce import CustomAllreduce
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--rows', type=int, default=32, choices=(1,32))
+    p.add_argument('--rows', type=int, default=32, choices=(1,32,64,128))
     p.add_argument('--mutations', type=int, default=100)
     p.add_argument('--iters', type=int, default=200)
     p.add_argument('--rounds', type=int, default=5)
@@ -67,24 +69,35 @@ def main():
     exact = 0
     max_abs = 0.
     stable = True
+    integer_failures = 0
+    # Bounded integers have an exactly representable sum in BF16 on all
+    # eight ranks. Unlike comparing two implementations alone, this catches
+    # shared IPC-address errors and stale data in both implementations.
+    position = torch.arange(x.numel(), device=x.device).view_as(x)
     torch.manual_seed(20908+rank)
     for i in range(args.mutations):
         x.normal_()
         if i%4 == 0:
-            x.copy_(torch.randint(-8,9,x.shape,device=x.device).to(x.dtype))
+            x.copy_(((position + rank * 3 + i) % 17 - 8).to(x.dtype))
+            expected = sum((position + peer * 3 + i) % 17 - 8
+                           for peer in range(8)).to(x.dtype)
         torch.cuda.synchronize()
         dist.barrier()
         for g in graphs:g.replay()
         torch.cuda.synchronize()
         exact += int(torch.equal(*outputs))
+        if i%4 == 0:
+            integer_failures += int(any(not torch.equal(y, expected) for y in outputs))
         max_abs=max(max_abs,float((outputs[0]-outputs[1]).abs().max()))
         reference=outputs[1].clone()
         for _ in range(10):graphs[1].replay()
         torch.cuda.synchronize()
         stable = stable and torch.equal(reference,outputs[1])
     reports=[None]*8
-    dist.all_gather_object(reports,dict(rank=rank,exact=exact,max_abs=max_abs,stable=stable))
-    assert all(r['exact'] == args.mutations and r['stable'] and r['max_abs'] == 0 for r in reports), reports
+    dist.all_gather_object(reports,dict(rank=rank,exact=exact,max_abs=max_abs,
+                                      stable=stable,integer_failures=integer_failures))
+    assert all(r['exact'] == args.mutations and r['stable'] and r['max_abs'] == 0
+               and r['integer_failures'] == 0 for r in reports), reports
     chain_report = None
     if args.chain_length:
         chain_outputs = [torch.empty_like(x) for _ in range(args.chain_length)]

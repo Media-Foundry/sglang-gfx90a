@@ -255,3 +255,18 @@ finalized. Across these 192 saved real-code responses, tail 8-gram duplicate
 fraction median 0.0594 and none above 0.75. This is a degeneration screen,
 not an exhaustive semantic correctness claim. Controller 4104722 and queued
 long-oracle waiter 4110605 were confirmed live; no competing GPU test started.
+
+## Next communication screen prepared (not run)
+
+Reused `scripts/rocm/bench_dsv4_tp8_decode_ar_variants.py`, which already
+uses direct HIP allocation, explicit IPC registration, eight-rank mutation
+checks and rank-max ABBA. Extended its old/new AIter comparison to M64/M128
+(512 KiB / 1 MiB). The custom geometry shim still asserts M32; this does NOT
+pretend the existing TP4 CTA environment hooks work on TP8.
+
+Every fourth mutation now has a position/rank/iteration-dependent bounded
+integer input and an independent exact sum, checked for both implementations.
+This supplements old-vs-new equality, which alone could hide a common IPC
+addressing failure. AST and CPU bounds checks pass. GPU validation and timings
+remain pending; no AIter library or production path modified. Run this only
+after the C3b and queued H8 oracle finish, with exclusive GPU ownership.
