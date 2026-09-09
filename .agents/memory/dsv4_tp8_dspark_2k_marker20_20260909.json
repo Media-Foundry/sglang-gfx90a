@@ -1,0 +1,128 @@
+{
+  "tick_us": 0.04,
+  "ranks": 8,
+  "valid_rank_samples": 96,
+  "matched_replays": [
+    120,
+    128,
+    136,
+    144,
+    152,
+    160,
+    168,
+    176,
+    184,
+    192,
+    200,
+    208
+  ],
+  "rankmax_median_us": {
+    "attn_mhc_norm": 117.84,
+    "attention_entry": 1.3599999999999999,
+    "attention_prepare": 210.24,
+    "attention_core": 236.56,
+    "attention_output_collective": 154.64,
+    "ffn_mhc_norm": 118.56,
+    "moe_collective": 1138.88,
+    "whole_layer": 1956.48
+  },
+  "per_rank_median_us": {
+    "attn_mhc_norm": [
+      116.32,
+      115.84,
+      116.96000000000001,
+      116.24000000000001,
+      114.24000000000001,
+      115.12,
+      115.28,
+      113.52000000000001
+    ],
+    "attention_entry": [
+      1.28,
+      1.28,
+      1.28,
+      1.28,
+      1.28,
+      1.28,
+      1.28,
+      1.28
+    ],
+    "attention_prepare": [
+      197.76,
+      208.08,
+      208.32,
+      207.68,
+      202.56,
+      200.96,
+      204.88,
+      205.44
+    ],
+    "attention_core": [
+      236,
+      234.8,
+      235.51999999999998,
+      235.52,
+      235.20000000000002,
+      236,
+      235.52,
+      235.44
+    ],
+    "attention_output_collective": [
+      153.2,
+      143.04,
+      142.56,
+      142.95999999999998,
+      150.8,
+      152.16,
+      148.56,
+      148.32
+    ],
+    "ffn_mhc_norm": [
+      116.72,
+      114.16,
+      114.96000000000001,
+      117.12,
+      117.36,
+      113.76,
+      115.92,
+      114.88
+    ],
+    "moe_collective": [
+      1132.72,
+      1135.6,
+      1138.1599999999999,
+      1132.08,
+      1134.24,
+      1138.8000000000002,
+      1136.4,
+      1137.2800000000002
+    ],
+    "whole_layer": [
+      1956.3200000000002,
+      1955.3600000000001,
+      1955.04,
+      1954.96,
+      1956.08,
+      1955.52,
+      1955.76,
+      1955.92
+    ]
+  },
+  "warning": "Instrumented spans include marker and arrival-wait costs; the sum of component rank-max medians is not a critical path.",
+  "moe_rankmax_median_us": {
+    "6_16": 1.44,
+    "16_17": 42.16,
+    "17_18": 15.92,
+    "18_19": 1011.28,
+    "19_20": 4.16,
+    "20_21": 5.5200000000000005,
+    "21_22": 1.6,
+    "22_23": 1.6,
+    "23_24": 71.92,
+    "24_7": 1.6
+  },
+  "source_log": "/tmp/dsv4_tp8_dspark_2k_marker20_20260909/marker20.service.log",
+  "source_sha256": "5ffdf9293b268f801391f84a4aad077676af2d45ad7bcbba52e35e21b817cc48",
+  "dropped_first_pending_replay": 112,
+  "scope": "Full-target TP8 DSpark C32 M128, layer20 only, async hardware timestamp diagnostic; no E2E win"
+}

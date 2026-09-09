@@ -111,3 +111,40 @@ Finally restores the profile with all marker selectors OFF. Artifacts:
 Require complete monotonic coarse samples matched by replay ID across eight
 ranks; never subtract raw clock values from different GCDs. No accepted new
 optimization or2k result yet.
+
+## Layer20 markers completed; first grid candidate screened
+
+Marker controller82254 completed both waves and restored service234817.
+No invalid marker warnings. Excluding the first pending warm readback leaves
+12 replay-ID-matched eight-rank samples. Rank-max median spans (us): layer
+1956.48; attention MHC117.84, prepare210.24, core236.56, output/collective
+154.64; FFN MHC118.56; MoE/collective1138.88. Dual-stream MoE slots18->19
+(actual routed experts call)1011.28; router42.16, TopK15.92, final collective
+71.92. These independently selected medians must not be summed as a critical
+path or extrapolated to all43 layers without further evidence. Portable data:
+`dsv4_tp8_dspark_2k_marker20_20260909.json`.
+
+Concrete selector gap: aiter.py's use_m128_decode_geometry only accepts TP4
+w13[256,1024,2048]/w2[256,4096,256]. TP8's I256 shape fails it and executes
+the M>=128 defaults G416/D312, ignoring configured decode G832/D832. This is
+not proof that the larger grid is faster; it motivates an independent oracle.
+
+Added standalone `scripts/rocm/bench_dsv4_tp8_dspark_m128_geometry.py` for I256,
+single ABBA, same A4/R2/W8/LDS lookup and fixed-slot FP32 reduction. Synthetic
+balanced/skewed unique-top6 routes, random nonconstant scales; NOT captured
+real routing. Initial input quant and sorter are excluded from timed stage.
+Both distributions pass100 activation/router-weight mutations (metadata fixed
+within each distribution) and1000 graph replays, all intermediate/output
+tensors exact between grid choices.
+
+GPU4, with owned service stopped, single ABBA results (us):
+- Balanced: A824.058380 /B802.546234 /B802.731857 /A824.357605.
+  A824.207993, B802.639046; speedup2.687%, time saving21.568947us.
+- Skewed: A792.184753 /B757.102966 /B756.333313 /A792.146301.
+  A792.165527, B756.718140; speedup4.684%, time saving35.447388us.
+
+Artifacts `/tmp/dsv4_tp8_dspark_2k_geometry_20260909`, controller
+`/tmp/dsv4_tp8_dspark_2k_geometry.py`, session7744. Both oracles completed;
+restored_control service243031 is starting. No production selector changed
+yet. Next: default-off TP8 DSpark-target/M128/I256-only selector, guard tests,
+then real-code C32 ABBA. This small candidate alone cannot reach2k.
