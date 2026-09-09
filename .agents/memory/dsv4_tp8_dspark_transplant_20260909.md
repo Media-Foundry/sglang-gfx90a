@@ -650,3 +650,10 @@ The Triton paged-decode contract also explicitly requires all slots inside
 indptr to be valid and has no negative-sentinel masking; no supported-input
 semantic difference was found there. Refined-probability GPU oracle remains
 queued after the combination screen, not running concurrently.
+
+Combination B2 warm916.215936 (excluded), measured925.296544 tok/s. B1/B2
+mean932.211909; both measured32-output waves pass severe repetition checks.
+A2 service93008 started under controller65738/session61450. No completed
+combination gain claim until A2 is measured. Precision waiter74884/session93041
+is confirmed alive waiting for that exact controller; it has not started GPU
+work. Current user-requested ABBA order has not been changed.
