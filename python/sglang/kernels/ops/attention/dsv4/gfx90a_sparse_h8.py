@@ -23,15 +23,16 @@ def run_if_supported(q, kv, indices, indptr, sink, scale):
     # entries are this TP8 rank's real heads; slicing is allocation-free.
     if sink.ndim == 1 and sink.shape[0] >= 8:
         sink = sink[:8]
-    if not (q.shape == (128, 8, 512) and q.dtype == torch.bfloat16
+    tokens = q.shape[0]
+    if not (tokens in (128, 192) and q.shape == (tokens, 8, 512) and q.dtype == torch.bfloat16
             and kv.ndim == 2 and kv.shape[1] == 512 and kv.dtype == q.dtype
             and indices.dtype == torch.int32 and indptr.dtype == torch.int32
-            and indptr.shape == (129,) and sink.shape == (8,)
+            and indptr.shape == (tokens + 1,) and sink.shape == (8,)
             and sink.dtype == torch.float32
             and all(t.is_cuda and t.is_contiguous() and t.device == q.device
                     for t in (q, kv, indices, indptr, sink))):
         return None
     output = torch.empty_like(q)
-    workspace = torch.empty(128*2*8*514*4, device=q.device, dtype=torch.uint8)
+    workspace = torch.empty(tokens*2*8*514*4, device=q.device, dtype=torch.uint8)
     _module().run(q, kv, indices, indptr, sink, output, workspace, scale)
     return output

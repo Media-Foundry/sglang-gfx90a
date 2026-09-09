@@ -11,7 +11,7 @@ struct Gfx90aDsv4SparseH8Oracle {
                   tvm::ffi::TensorView sink, tvm::ffi::TensorView out,
                   tvm::ffi::TensorView scratch, double scale) {
     const int tokens = q.size(0);
-    if(q.ndim()!=3 || tokens<=0 || tokens>128 || q.size(1)!=8 || q.size(2)!=512 ||
+    if(q.ndim()!=3 || tokens<=0 || tokens>192 || q.size(1)!=8 || q.size(2)!=512 ||
        kv.ndim()!=2 || kv.size(1)!=512 || out.ndim()!=3 ||
        out.size(0)!=tokens || out.size(1)!=8 || out.size(2)!=512 ||
        indptr.size(0)!=tokens+1 || sink.size(0)!=8 ||

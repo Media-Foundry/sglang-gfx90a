@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import functools
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import (
     TYPE_CHECKING,
@@ -1332,24 +1333,40 @@ class DeepseekV4HipRadixBackend(
             else:
                 raise ValueError(f"bad compress_ratio {compress_ratio}")
             output = None
-            if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get():
-                from sglang.srt.layers.attention.dsv4_dspark_tp8 import m128_ck_eligible, refined_probability_eligible
+            if (
+                envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get()
+                or envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE.get()
+            ):
+                from sglang.srt.layers.attention.dsv4_dspark_tp8 import (
+                    m128_ck_eligible,
+                    m192_ck_eligible,
+                    refined_probability_eligible,
+                )
                 from sglang.srt.utils.common import is_gfx90a_supported
 
-                if m128_ck_eligible(
-                    enabled=True, gfx90a=is_gfx90a_supported(),
+                gfx90a = is_gfx90a_supported()
+                use_m128_ck = m128_ck_eligible(
+                    enabled=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get(), gfx90a=gfx90a,
                     dspark=self.is_dspark_target,
                     allow_c4=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4.get(),
                     tp_size=get_parallel().attn_tp_size, compress_ratio=compress_ratio,
                     rows=T, batch_size=forward_batch.batch_size,
                     target_verify=forward_batch.forward_mode.is_target_verify(),
                     width=getattr(forward_batch.spec_info, "num_tokens_per_req", None),
-                    inverse_rope=inverse_rope_freqs is not None or inverse_rope_positions is not None,
-                ):
+                    inverse_rope=inverse_rope_freqs is not None or inverse_rope_positions is not None)
+                use_m192_ck = m192_ck_eligible(
+                    enabled=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE.get(),
+                    gfx90a=gfx90a, dspark=self.is_dspark_target,
+                    tp_size=get_parallel().attn_tp_size, compress_ratio=compress_ratio,
+                    rows=T, batch_size=forward_batch.batch_size,
+                    target_verify=forward_batch.forward_mode.is_target_verify(),
+                    width=getattr(forward_batch.spec_info, "num_tokens_per_req", None),
+                    inverse_rope=inverse_rope_freqs is not None or inverse_rope_positions is not None)
+                if use_m128_ck or use_m192_ck:
                     from sglang.kernels.ops.attention.dsv4.gfx90a_sparse_h8 import run_if_supported
 
                     refined = refined_probability_eligible(
-                        ck_eligible=True, compress_ratio=compress_ratio,
+                        ck_eligible=use_m128_ck, compress_ratio=compress_ratio,
                         enabled=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED.get(),
                     )
                     if refined:
@@ -1357,7 +1374,7 @@ class DeepseekV4HipRadixBackend(
                     output = run_if_supported(q, unified, kv_indices, kv_indptr, attn_sink, self.softmax_scale)
                     logged_attr = f"_tp8_ck_h8_c{compress_ratio}_logged"
                     if output is not None and not getattr(self, logged_attr, False):
-                        logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M128 C%s", get_parallel().attn_tp_rank, layer_id, compress_ratio)
+                        logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M%s C%s", get_parallel().attn_tp_rank, layer_id, T, compress_ratio)
                         if refined:
                             logger.info("DSV4 TP8 DSpark refined C4 probability hit rank=%s layer=%s M128", get_parallel().attn_tp_rank, layer_id)
                         setattr(self, logged_attr, True)
@@ -1400,6 +1417,26 @@ class DeepseekV4HipRadixBackend(
                 )
                 self._tp8_sparse_fixture_saved = True
                 logger.info("Saved TP8 sparse attention fixture layer=%s", layer_id)
+            if os.getenv("SGLANG_DSV4_CK_REPLAY_DUMP_DIR"):
+                from sglang.kernels.ops.debug.dsv4_ck_replay import (
+                    maybe_dump_unified_sparse,
+                )
+
+                maybe_dump_unified_sparse(
+                    layer_id=layer_id,
+                    tp_rank=get_parallel().attn_tp_rank,
+                    compress_ratio=compress_ratio,
+                    q=q,
+                    unified_kv=unified,
+                    kv_indices=kv_indices,
+                    kv_indptr=kv_indptr,
+                    attn_sink=attn_sink,
+                    output=output,
+                    softmax_scale=self.softmax_scale,
+                    positions=positions,
+                    inverse_rope_freqs=inverse_rope_freqs,
+                    inverse_rope_positions=inverse_rope_positions,
+                )
             return output
 
         # prefill / extend

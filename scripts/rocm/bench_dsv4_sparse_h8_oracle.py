@@ -15,6 +15,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--lengths', type=int, nargs='+', default=[0, 17, 128, 512])
+    parser.add_argument('--tokens', type=int, choices=(128, 192), default=128)
     args = parser.parse_args()
     torch.manual_seed(909)
     module = load_jit(
@@ -31,10 +32,11 @@ def main():
     for length in args.lengths:
         assert length >= 0
         pool_slots = max(1024, length * 2)
-        q = torch.randn((128, 8, 512), device='cuda', dtype=torch.bfloat16) * .25
+        tokens = args.tokens
+        q = torch.randn((tokens, 8, 512), device='cuda', dtype=torch.bfloat16) * .25
         kv = torch.randn((pool_slots, 512), device='cuda', dtype=torch.bfloat16)
         sink = torch.randn((8,), device='cuda', dtype=torch.float32)
-        lengths = [length if i % 4 else length // 2 for i in range(128)]
+        lengths = [length if i % 4 else length // 2 for i in range(tokens)]
         ptr = [0]
         for n in lengths:
             ptr.append(ptr[-1] + n)
@@ -43,7 +45,7 @@ def main():
         # indptr remains all-zero, so the sentinel is never consumed.
         indices = torch.randint(pool_slots, (max(1, ptr[-1]),), device='cuda', dtype=torch.int32)
         out = torch.empty_like(q)
-        scratch = torch.empty(128*2*8*514*4, device='cuda', dtype=torch.uint8)
+        scratch = torch.empty(tokens*2*8*514*4, device='cuda', dtype=torch.uint8)
         def run():
             module.run(q, kv, indices, indptr, sink, out, scratch, 512**-.5)
         max_error = 0.
@@ -70,9 +72,10 @@ def main():
         q16 = torch.cat([q, torch.randn_like(q)], dim=1).contiguous()
         sink16 = torch.cat([sink, torch.randn_like(sink)])
         out16 = torch.empty_like(q16)
-        scratch16 = torch.empty(128*2*16*514*4, device='cuda', dtype=torch.uint8)
-        module.run_h16(q16, kv, indices, indptr, sink16, out16, scratch16, 512**-.5)
-        assert torch.equal(out, out16[:, :8]), 'H8 differs from corresponding H16 heads'
+        if tokens <= 128:
+            scratch16 = torch.empty(tokens*2*16*514*4, device='cuda', dtype=torch.uint8)
+            module.run_h16(q16, kv, indices, indptr, sink16, out16, scratch16, 512**-.5)
+            assert torch.equal(out, out16[:, :8]), 'H8 differs from corresponding H16 heads'
         torch.cuda.synchronize()
         graph = torch.cuda.CUDAGraph()
         with torch.cuda.graph(graph):
@@ -123,7 +126,7 @@ def main():
                                speedup=(a0 + a1) / (b0 + b1)))
         timings = [v for block in paired for v in block['ck_us']]
         control_times = [v for block in paired for v in block['triton_us']]
-        results.append(dict(length=length, median_us=statistics.median(timings),
+        results.append(dict(tokens=tokens, length=length, median_us=statistics.median(timings),
                             triton_median_us=statistics.median(control_times),
                             max_abs_error=max_error, replay_exact=True,
                             timing_protocol='5x ABBA, A=Triton B=CK, 100 replays/sample',

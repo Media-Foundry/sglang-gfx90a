@@ -1622,6 +1622,7 @@ class Envs:
     # Independent TP8/H8 target-only transplant; never enables native AR.
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE = EnvBool(False)
+    SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE = EnvBool(False)
     # Separate C4 expansion after ragged H8 long-row oracle validation.
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4 = EnvBool(False)
     # Experimental probability hi+lo PV; only used after the C4 parent guard.

@@ -325,6 +325,7 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # static verifier executes all six rows per request (C32 -> M192).
   if [[ "${SPECULATIVE_DSPARK_BLOCK_SIZE}" == "5" ]]; then
     export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH:-1}"
+    export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_CK_SPARSE_DECODE:-1}"
   fi
   # Draft-only experiment: gamma remains three and target verification remains
   # the exact M128 path.  Only the three-layer M96 draft model may select it.

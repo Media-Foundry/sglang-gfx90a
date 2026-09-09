@@ -20,5 +20,15 @@ def m128_ck_eligible(*, enabled, gfx90a, tp_size, compress_ratio, rows,
                 and width == 4 and not inverse_rope)
 
 
+def m192_ck_eligible(*, enabled, gfx90a, tp_size, compress_ratio, rows,
+                     batch_size, target_verify, width, inverse_rope,
+                     dspark=False):
+    """Strict gamma-five HCA target shape; C4 keeps its refined M128 path."""
+    return bool(enabled and dspark and gfx90a and tp_size == 8
+                and compress_ratio == 128 and rows == 192
+                and batch_size == 32 and target_verify and width == 6
+                and not inverse_rope)
+
+
 def refined_probability_eligible(*, ck_eligible, compress_ratio, enabled):
     return bool(ck_eligible and compress_ratio == 4 and enabled)
