@@ -108,6 +108,7 @@ def dsv4_ar_scope(batch, device):
     dspark_enabled = (
         envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS.get() != 0
         or envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY.get()
+        or envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH.get()
     )
     if not (enabled or gate_enabled or down_enabled or attention_enabled or c1_attention_enabled or dspark_enabled):
         yield
@@ -125,10 +126,17 @@ def dsv4_ar_scope(batch, device):
         native and batch.forward_mode.is_decode()
         and ((attention_enabled and batch.batch_size in (1,32))
              or (c1_attention_enabled and batch.batch_size == 1)))
+    verify_width = getattr(batch.spec_info, 'num_tokens_per_req', None)
     dspark_token = _dspark_m128_active.set(
         dspark_enabled and spec is not None and spec.is_dspark()
         and batch.forward_mode.is_target_verify() and batch.batch_size == 32
-        and getattr(batch.spec_info, 'num_tokens_per_req', None) == 4)
+        and (
+            verify_width == 4
+            or (
+                verify_width == 6
+                and envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH.get()
+            )
+        ))
     try:
         yield
     finally:

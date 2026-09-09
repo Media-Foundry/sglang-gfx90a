@@ -321,6 +321,11 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # The runtime selector is additionally guarded to strict TP8/EP1 M128
   # DSpark target verification, so native AR and prefill cannot enter it.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH:-1}"
+  # Default-off strict gamma-five target experiment. Unlike compact M128, the
+  # static verifier executes all six rows per request (C32 -> M192).
+  if [[ "${SPECULATIVE_DSPARK_BLOCK_SIZE}" == "5" ]]; then
+    export SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M192_ROW_PREFETCH:-1}"
+  fi
   # Draft-only experiment: gamma remains three and target verification remains
   # the exact M128 path.  Only the three-layer M96 draft model may select it.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH:-1}"

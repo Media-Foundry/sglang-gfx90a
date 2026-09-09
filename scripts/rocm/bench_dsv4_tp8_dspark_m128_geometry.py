@@ -127,7 +127,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorder", type=Path)
     parser.add_argument("--distribution", choices=("balanced","skewed"), default="balanced")
-    parser.add_argument("--tokens", type=int, choices=(64, 96, 128), default=128)
+    parser.add_argument("--tokens", type=int, choices=(64, 96, 128, 192), default=128)
     parser.add_argument("--layer", type=int, default=20)
     parser.add_argument("--stat-pass", type=int, default=-1)
     parser.add_argument("--world-size", type=int, default=8)
