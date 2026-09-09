@@ -673,3 +673,34 @@ These two ABBA improvements must not be summed as a measured cumulative gain.
 The combined profile default still needs a final packaging smoke. Controller
 61450 is restoring explicit CK-off control102287 before precision waiter93041
 can run; changing the profile default does not override its explicit CK=0.
+
+### Refined C4 component and combined-profile packaging (completed)
+
+The previous pending status is superseded: both controllers finished. The
+combined AR-grid12 + C128 profile passed fresh-process France and C32 smoke;
+service117261 was retained with C4 OFF. Artifacts:
+`/tmp/dsv4_tp8_refined_mutations_and_combined_profile_20260909`.
+
+Refined probability uses BF16 high + residual-low PV terms, leaving QK,
+denominator, checkpoint weights and original production CK unchanged. Real
+C4 fixture relative L2 against FP32 improved from original CK0.00271214 to
+0.00166264 (Triton0.00171559). This is not bitwise parity or a proven loop fix.
+100 Q/KV/index/sink mutations, including empty/ragged rows, passed tolerance
+and ten stable replays per input; initial1000 graph replays were stable.
+Post-restore component ABBA: Triton308.634930us, refined183.434534us.
+Mutation metrics are in the artifact directory's `mutations.json`.
+
+Added default-off CK_C4_REFINED selector under the existing gfx90a TP8
+DSpark-target M128/C4 guards. Nine CPU guard/profile/fixture tests pass.
+Native AR and C128 do not enter this candidate.
+
+### Refined C4 E2E ABBA (started, not yet a result)
+
+Controller `/tmp/dsv4_tp8_refined_c4_abba.py`, exec session61938. It replaces
+only owned service117261 after an amd-smi PID check. AR-grid12 and C128 CK
+remain enabled in all arms; A=C4 Triton, B=refined C4 CK. Each fresh process
+gets one excluded warm wave and one measured wave of the identical32 real
+code requests, natural EOS/max2048. Order A1/B1/B2/A2, no extra screening
+rounds. All ranks must log the intended backend; full-output repetition gate
+is mandatory. Finally restores the validated profile with C4/refinement OFF.
+Artifacts: `/tmp/dsv4_tp8_dspark_refined_c4_abba_20260909`.

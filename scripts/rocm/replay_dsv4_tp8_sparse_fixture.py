@@ -26,8 +26,11 @@ def main():
     parser.add_argument('--refined-probabilities', action='store_true',
                         help='isolated BF16 probability hi+lo PV oracle; no production changes')
     parser.add_argument('--rounds', type=int, default=1)
+    parser.add_argument('--mutations', type=int, default=0,
+                        help='vary Q/KV/indices/sink and ragged/empty rows against FP32')
     args = parser.parse_args()
     assert args.rounds > 0
+    assert args.mutations >= 0
     selected_ck = run_if_supported
     if args.refined_probabilities:
         from sglang.kernels.ops.debug.gfx90a_sparse_h8_refined_probability import run_if_supported as refined
@@ -52,14 +55,17 @@ def main():
         return _sparse_attn_v4_paged_decode_triton(q, kv, indices, ptr, sink, scale)
 
     a, b = triton(), ck()
-    reference = torch.empty_like(q, dtype=torch.float32)
     host_ptr = data['kv_indptr'].tolist()
-    for row in range(128):
-        slots = indices[host_ptr[row]:host_ptr[row+1]].long()
-        keys = kv[slots].float()
-        scores = q[row].float() @ keys.T * scale
-        probs = torch.softmax(torch.cat((scores, sink[:, None]), dim=1), dim=1)
-        reference[row] = probs[:, :-1] @ keys
+    def fp32_reference(offsets):
+        result = torch.empty_like(q, dtype=torch.float32)
+        for row in range(128):
+            slots = indices[offsets[row]:offsets[row+1]].long()
+            keys = kv[slots].float()
+            scores = q[row].float() @ keys.T * scale
+            probs = torch.softmax(torch.cat((scores, sink[:, None]), dim=1), dim=1)
+            result[row] = probs[:, :-1] @ keys
+        return result
+    reference = fp32_reference(host_ptr)
     report = dict(provenance=data['provenance'],
                   refined_probabilities=args.refined_probabilities,
                   q_abs_max=float(q.abs().max()), kv_abs_max=float(kv.abs().max()),
@@ -98,6 +104,51 @@ def main():
     torch.cuda.synchronize()
     assert all(torch.equal(x, y) for x, y in zip(outputs, expected)), 'stale graph output'
     report['replay_exact'] = True
+
+    if args.mutations:
+        originals = [x.clone() for x in (q, kv, indices, ptr, sink)]
+        torch.manual_seed(20909)
+        worst = [0., 0.]
+        for trial in range(args.mutations):
+            q.copy_((originals[0].float() * (0.75 + trial % 5 * .125)).to(q.dtype))
+            kv.copy_((originals[1].roll(trial % 17, 0).float()
+                      * (-1 if trial % 3 == 0 else 1)).to(kv.dtype))
+            indices.copy_((originals[2] + trial * 37) % kv.shape[0])
+            sink.copy_(originals[4] + (trial % 7 - 3) * .25)
+            offsets = list(host_ptr)
+            if trial % 10 == 0:
+                offsets = [0] * len(offsets)
+            elif trial % 3 == 0:
+                # Empty alternating rows; neighbors span two original rows.
+                for row in range(0, 128, 2):
+                    offsets[row+1] = offsets[row]
+            ptr.copy_(torch.tensor(offsets, device=ptr.device, dtype=ptr.dtype))
+            for graph in graphs:
+                graph.replay()
+            expected_fp32 = fp32_reference(offsets)
+            checks = [bool(torch.allclose(x.float(), expected_fp32, atol=.004, rtol=.02))
+                      for x in outputs]
+            mutation_metrics = [error_metrics(x, expected_fp32) for x in outputs]
+            for arm, metric in enumerate(mutation_metrics):
+                worst[arm] = max(worst[arm], metric['relative_l2'])
+            replay_refs = [x.clone() for x in outputs]
+            for _ in range(10):
+                for graph in graphs:
+                    graph.replay()
+            stable = all(torch.equal(x, y) for x, y in zip(outputs, replay_refs))
+            if not all(checks) or not stable:
+                report['mutation_failure'] = dict(trial=trial, numerical=checks,
+                                                   stable=stable, metrics=mutation_metrics)
+                with open(args.output, 'x') as f:
+                    json.dump(report, f, indent=2)
+                raise AssertionError(report['mutation_failure'])
+        report['mutations'] = dict(count=args.mutations, passed=True,
+                                   worst_relative_l2=worst, repeat_replays_per_input=10)
+        for tensor, saved in zip((q, kv, indices, ptr, sink), originals):
+            tensor.copy_(saved)
+        for graph in graphs:
+            graph.replay()
+        torch.cuda.synchronize()
 
     def timing(graph):
         start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)

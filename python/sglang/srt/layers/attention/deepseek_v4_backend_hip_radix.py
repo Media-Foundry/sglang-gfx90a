@@ -1333,7 +1333,7 @@ class DeepseekV4HipRadixBackend(
                 raise ValueError(f"bad compress_ratio {compress_ratio}")
             output = None
             if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get():
-                from sglang.srt.layers.attention.dsv4_dspark_tp8 import m128_ck_eligible
+                from sglang.srt.layers.attention.dsv4_dspark_tp8 import m128_ck_eligible, refined_probability_eligible
                 from sglang.srt.utils.common import is_gfx90a_supported
 
                 if m128_ck_eligible(
@@ -1348,10 +1348,18 @@ class DeepseekV4HipRadixBackend(
                 ):
                     from sglang.kernels.ops.attention.dsv4.gfx90a_sparse_h8 import run_if_supported
 
+                    refined = refined_probability_eligible(
+                        ck_eligible=True, compress_ratio=compress_ratio,
+                        enabled=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED.get(),
+                    )
+                    if refined:
+                        from sglang.kernels.ops.debug.gfx90a_sparse_h8_refined_probability import run_if_supported
                     output = run_if_supported(q, unified, kv_indices, kv_indptr, attn_sink, self.softmax_scale)
                     logged_attr = f"_tp8_ck_h8_c{compress_ratio}_logged"
                     if output is not None and not getattr(self, logged_attr, False):
                         logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M128 C%s", get_parallel().attn_tp_rank, layer_id, compress_ratio)
+                        if refined:
+                            logger.info("DSV4 TP8 DSpark refined C4 probability hit rank=%s layer=%s M128", get_parallel().attn_tp_rank, layer_id)
                         setattr(self, logged_attr, True)
             if output is None:
                 output = runtime.decode(

@@ -1,4 +1,4 @@
-"""Diagnostic-only refined-probability H8 oracle; no production selector."""
+"""Default-off refined-probability experiment; caller owns target/C4 guards."""
 import torch
 from torch.utils.cpp_extension import include_paths
 from sglang.kernels.jit.utils import cache_once, load_jit

@@ -38,6 +38,17 @@ def test_tp8_ck_target_only_guard():
     for name, value in [('allow_c4',False), ('dspark',False), ('target_verify',False),
                         ('rows',32), ('tp_size',4), ('compress_ratio',1)]:
         assert not module.m128_ck_eligible(**(c4 | {name:value})), name
+    assert module.refined_probability_eligible(
+        ck_eligible=module.m128_ck_eligible(**c4), compress_ratio=4, enabled=True)
+    assert not module.refined_probability_eligible(
+        ck_eligible=True, compress_ratio=128, enabled=True)
+    assert not module.refined_probability_eligible(
+        ck_eligible=True, compress_ratio=4, enabled=False)
+    for name, value in [('allow_c4',False), ('dspark',False), ('target_verify',False),
+                        ('rows',32), ('tp_size',4)]:
+        assert not module.refined_probability_eligible(
+            ck_eligible=module.m128_ck_eligible(**(c4 | {name:value})),
+            compress_ratio=4, enabled=True), name
 
 
 def test_h8_wrapper_accepts_padded_local_sink_without_copy(monkeypatch):

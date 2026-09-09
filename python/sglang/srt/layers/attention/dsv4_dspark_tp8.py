@@ -18,3 +18,7 @@ def m128_ck_eligible(*, enabled, gfx90a, tp_size, compress_ratio, rows,
                 and (compress_ratio == 128 or (allow_c4 and compress_ratio == 4))
                 and rows == 128 and batch_size == 32 and target_verify
                 and width == 4 and not inverse_rope)
+
+
+def refined_probability_eligible(*, ck_eligible, compress_ratio, enabled):
+    return bool(ck_eligible and compress_ratio == 4 and enabled)
