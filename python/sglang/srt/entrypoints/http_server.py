@@ -286,7 +286,10 @@ async def lifespan(fast_api_app: FastAPI):
 
     # Add prometheus middleware
     if get_observability().enable_metrics:
-        add_prometheus_middleware(app)
+        # Register on the actual FastAPI instance passed to lifespan. Using
+        # the module-level app here misses tokenizer/worker app instances and
+        # leaves /metrics returning 404 on the serving port.
+        add_prometheus_middleware(fast_api_app)
         enable_func_timer()
 
     # Init tracing
