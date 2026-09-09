@@ -1,4 +1,4 @@
-# TP8 DSpark transplant — in progress
+# TP8 DSpark transplant — completed with scoped opt-in results
 
 **B1 anchor-only transplant REJECTED:** natural-code warmup collapsed into
 repetition despite a correct France answer. Do not use the opt-in approximate
@@ -725,3 +725,41 @@ Formal metrics, output hashes and limitations are recorded in
 Controller126525/session61938 finished all four measurements and started
 restored_control service165825, with C4/refinement OFF. Wait for its final
 ready/assertions before declaring service restoration complete.
+
+### Final restoration and completion audit
+
+Controller126525/session61938 exited0 after all ABBA arms and restoration.
+Service165825 is alive and ready on127.0.0.1:30011. Whitelisted runtime env
+confirms full-target profile1, AR grid12, C128 CK1, C4=0, refinement=0.
+Final OpenAI chat smoke returned `The capital of France is **Paris**.` with
+finish=stop,9 completion tokens. Nine unit/launch-profile tests pass (only
+the known unknown asyncio_mode pytest-config warning).
+
+Scope audit:
+- H16-to-H8 CK port: independent H8 component oracle, actual eight-rank C128
+  hits and completed matched C128 ABBA. Enabled inside the opt-in profile.
+- TP8 target overlap: separate shape/target guards, independent service
+  validation; historical screen did not demonstrate standalone speed gain.
+  Present in the tested combination, not credited as a measured speed win.
+- TP8 communication: eight-rank exact mutations and mixed M128/M64 graph
+  chain rechecked in post-check logs; grid12 E2E ABBA complete. No native or
+  M64 override claim.
+- C4 extension: original unrefined failure retained in history; refined
+  implementation passed mutation/graph tests and single ABBA. Preserve as
+  opt-in only; do not claim a root-cause fix or whole-model determinism.
+- Original weights/full target: no anchor-only compaction in accepted profile.
+  TP4 anchor-dependent M32 gate-prefetch is deliberately excluded, not
+  represented as a working TP8 port. Historical1.5k is not a comparable goal.
+- Native isolation: re-inspected native C32 artifact,32/32 requests have no
+  speculative metadata; service log has no target-only CK/AR hit. Current
+  refined selector remains behind the same target-only outer guard and its
+  unit negatives pass. This is not a native performance ABBA.
+- Reproduction/reporting: launcher and README committed; communication,
+  C128, refined C4 metric JSONs retain independent comparisons and raw hashes.
+  Only the requested single ABBA was used for each later optimization screen.
+
+The requested transplant is complete. The accepted conservative profile is
+usable; the extra screened refined-C4 option is documented separately. No
+GPU experiment remains queued. Unrelated pre-existing worktree changes were
+not staged or reverted. Remaining whole-model numeric drift and general
+code-quality evaluation are limitations, not claimed solved by this port.
