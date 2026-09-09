@@ -300,3 +300,19 @@ workers and other speculative algorithms. Per-ratio hit markers distinguish
 C4 from C128. Three guard/ABI tests pass. E2E C4 results remain pending.
 Output root `/tmp/dsv4_tp8_dspark_ck_c4_20260909`; startup log adds
 `.service.log`. Gate requires C4 hits on all eight ranks before benchmarking.
+
+C4 service PID 4127259: all ranks logged both C4 (layer2) and C128 (layer3)
+hits at 13:21:25; ready at 13:21:39. France: "The capital of France is
+**Paris**." Controller PID 4129828, session 57515, started real-code warmup.
+No C4 throughput result yet.
+
+Session 7321 runs `/tmp/dsv4_after_c4_collective_oracle.py`: it waits for the
+exact C4 controller birth and complete JSON, verifies AMD GPU PID ownership,
+then stops only service 4127259 and runs the prepared TP8 M64/M128 old/new
+all-reduce oracle sequentially. Each has 100 mutations and five ABBA rounds,
+ten-minute timeout with worker process-group cleanup. Logs:
+`/tmp/dsv4_tp8_dspark_ar_m64_20260909.log` and
+`/tmp/dsv4_tp8_dspark_ar_m128_20260909.log`. Finally restores C4 and prints
+the new PID, with log
+`/tmp/dsv4_tp8_dspark_ck_c4_restored_20260909.service.log`.
+Do not start competing GPU tests while either controller is live.
