@@ -80,3 +80,34 @@ Diagnostic times are not E2E performance claims. Next action is to identify
 the target critical kernels and validate a specific structural change with
 correctness + single ABBA. No speed optimization has yet been accepted for
 the new2k objective.
+
+## Kernel trace failed; use existing async markers
+
+Legacy CPU+GPU /start_profile produced eight EXTEND traces but no DECODE
+trace. queue_interposition.cpp signal-handler wait counters kept increasing
+without value changes; a separate bounded health request timed out. Do NOT
+read those waits as model-kernel costs. This repeats the instrumentation
+failure already recorded in dsv4_tp8_bs1_marker_profile_20260907.md; that
+history should have been checked before attempting this profiler route.
+
+Only owned trace controller214097, its benchmark child, and service210544's
+tree were terminated after amd-smi ownership validation. Controller63235
+exited143 (cancelled, not complete). Recovery script
+`/tmp/dsv4_tp8_recover_profiler_20260909.py`, session17212, stopped all tracked
+processes and started service219876 without the profiler. Recovery artifacts
+`/tmp/dsv4_tp8_profiler_recovery_20260909`. No hardware fault established.
+
+Replacement uses the already-implemented nonblocking RealtimeTraceReadback
+and s_memrealtime markers (not the older blocking readback). Native TP8's
+successful20260908 marker history was inspected; the markers add overhead
+and their cross-stream spans include waits. This is not a throughput test.
+
+Queued controller `/tmp/dsv4_tp8_dspark_2k_marker20.py`, session82254, waits
+for recovery controller219479 to finish. It then verifies ownership, enables
+only layer20 markers, graph-only, every8 replays; C4 remains OFF. One real
+C32x256 warm wave, one diagnostic wave, save log byte offset at their boundary.
+Finally restores the profile with all marker selectors OFF. Artifacts:
+`/tmp/dsv4_tp8_dspark_2k_marker20_20260909`.
+Require complete monotonic coarse samples matched by replay ID across eight
+ranks; never subtract raw clock values from different GCDs. No accepted new
+optimization or2k result yet.
