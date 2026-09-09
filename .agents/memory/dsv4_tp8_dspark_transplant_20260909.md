@@ -574,3 +574,18 @@ code smoke, not another performance screen. Script
 grid12 hits and leaves that service alive on success; on failure restores
 the full-target grid0 control. Previous restored-control49557 belongs to this
 task and is being replaced. No other queued GPU work remains.
+
+### Packaged profile smoke passed
+
+Session96271 finished exit0. Retained service57286 uses the new full-target
+profile, all8 physical GCDs, TP8/EP1, 1M pool, AR grid12 and CK attention OFF.
+All8 target graph hit logs verified. France answered Paris. C32x512 real-code
+smoke returned32 valid speculative responses with no severe repetition; sample
+outputs0/7/26 remain structured explanations, not blank/repeated text.
+Artifacts and complete.json are in the profile directory above. This is a
+wiring/quality smoke, not an extra ABBA performance estimate.
+
+Communication migration now has component exactness, E2E ABBA, mixed-tier
+coverage, native negative-path smoke and reusable-profile evidence. Further
+combination with the separately ported CK H8 C128 path still needs E2E ABBA;
+C4 quality investigation remains distinct and must not be silently enabled.

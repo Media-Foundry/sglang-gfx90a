@@ -1,5 +1,5 @@
 {
-  "status": "measured_abba_complete_post_checks_pending",
+  "status": "measured_abba_and_post_checks_complete",
   "scope": "TP8 EP1 full-target DSpark, C32, original weights, 1M token pool",
   "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
   "source_directory": "/tmp/dsv4_tp8_dspark_ar_abba_20260909",
