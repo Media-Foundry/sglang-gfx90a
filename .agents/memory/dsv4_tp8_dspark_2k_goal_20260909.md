@@ -38,3 +38,45 @@ No optimization result yet. Next: close draft/target/host-step budgets for
 actual C32/M128 rows, then choose a structural candidate. Exact ragged verify
 or draft-budget changes require checking target-verification semantics and
 realized acceptance, not merely raising a block-size setting.
+
+## Phase diagnostic completed
+
+Controller produced warm and profile records, then began restoring service
+210544 with observers OFF. Profile request output passed the repetition gate;
+its911.18 tok/s is diagnostic, not a performance comparison. Subtracting warm
+records by forward_ct111 leaves137 C32 records, all static M128; excluding
+eight edge records each side leaves121. Median /10%-trimmed mean in ms:
+
+| Segment | Median | Trimmed mean |
+| --- | ---: | ---: |
+| CPU step interval |95.8250|95.7400|
+| GPU step |95.4449|95.3661|
+| Draft |10.4842|10.4876|
+| Target verify |82.3529|82.3191|
+
+Median GPU residual2.5495ms. Mean observed sum of request acc_len87.9091 per
+step; event-derived diagnostic throughput922.784 tok/s. At unchanged accepted
+output,2000 tok/s requires43.9545ms total step, not merely a few microseconds
+off a tail kernel. Target accounts for roughly86% of the observed GPU step.
+These rank0 event boundaries include waits and are not kernel-duration sums;
+request-detail recording adds D2H/event overhead. Do not attribute every
+CPU/GPU difference to uninstrumented scheduler overhead.
+
+Historical review: TP4 forced-budget pruning retained the same graph tier and
+lost acceptance without reducing step time. A future exact compact candidate
+must prove both actual row-count and graph-tier reduction. TP4's old~1573
+segment profile belongs to the prior anchor-dependent profile, not the new
+full-target TP8 baseline. Do not reuse its kernel budget as current evidence.
+
+## Next GPU diagnostic queued
+
+`/tmp/dsv4_tp8_dspark_2k_kernel_trace.py`, exec session63235, waits for the exact
+phase controller202141 to finish restoration before using service210544. It
+rechecks amd-smi ownership, verifies observer env OFF, warms the same real C32
+requests, then records eight CPU/GPU profile steps by stage. It does not
+restart the service or modify model code. Artifacts:
+`/tmp/dsv4_tp8_dspark_2k_kernel_trace_20260909`.
+Diagnostic times are not E2E performance claims. Next action is to identify
+the target critical kernels and validate a specific structural change with
+correctness + single ABBA. No speed optimization has yet been accepted for
+the new2k objective.
