@@ -2003,6 +2003,18 @@ class MQALayer(MqaAttentionBase):
             and not forward_batch.forward_mode.is_extend_or_draft_extend_or_mixed()
         )
 
+        if (
+            enable_dspark_tp8_m128_hip_streams
+            and enable_multi_stream
+            and not getattr(self, "_tp8_dspark_overlap_logged", False)
+        ):
+            logger.info(
+                "DSV4 TP8 DSpark overlap hit layer=%s rank=%s M=128 C=32 width=4",
+                self.layer_id,
+                self.attn_tp_rank,
+            )
+            self._tp8_dspark_overlap_logged = True
+
         tp_slice, q_padded, q_out = slice(None), None, None
         if self.attn_tp_size > 1:
             if unified_kv:

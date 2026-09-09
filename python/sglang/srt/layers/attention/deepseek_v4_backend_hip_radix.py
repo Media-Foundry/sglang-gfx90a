@@ -1327,16 +1327,37 @@ class DeepseekV4HipRadixBackend(
                 )
             else:
                 raise ValueError(f"bad compress_ratio {compress_ratio}")
-            return runtime.decode(
-                q=q,
-                unified_kv=unified,
-                kv_indices=kv_indices,
-                kv_indptr=kv_indptr,
-                attn_sink=attn_sink,
-                softmax_scale=self.softmax_scale,
-                inverse_rope_freqs=inverse_rope_freqs,
-                inverse_rope_positions=inverse_rope_positions,
-            )
+            output = None
+            if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get():
+                from sglang.srt.layers.attention.dsv4_dspark_tp8 import m128_ck_eligible
+                from sglang.srt.utils.common import is_gfx90a_supported
+
+                if m128_ck_eligible(
+                    enabled=True, gfx90a=is_gfx90a_supported(),
+                    tp_size=get_parallel().attn_tp_size, compress_ratio=compress_ratio,
+                    rows=T, batch_size=forward_batch.batch_size,
+                    target_verify=forward_batch.forward_mode.is_target_verify(),
+                    width=getattr(forward_batch.spec_info, "num_tokens_per_req", None),
+                    inverse_rope=inverse_rope_freqs is not None or inverse_rope_positions is not None,
+                ):
+                    from sglang.kernels.ops.attention.dsv4.gfx90a_sparse_h8 import run_if_supported
+
+                    output = run_if_supported(q, unified, kv_indices, kv_indptr, attn_sink, self.softmax_scale)
+                    if output is not None and not getattr(self, "_tp8_ck_h8_logged", False):
+                        logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M128 C128", get_parallel().attn_tp_rank, layer_id)
+                        self._tp8_ck_h8_logged = True
+            if output is None:
+                output = runtime.decode(
+                    q=q,
+                    unified_kv=unified,
+                    kv_indices=kv_indices,
+                    kv_indptr=kv_indptr,
+                    attn_sink=attn_sink,
+                    softmax_scale=self.softmax_scale,
+                    inverse_rope_freqs=inverse_rope_freqs,
+                    inverse_rope_positions=inverse_rope_positions,
+                )
+            return output
 
         # prefill / extend
         state_slot = core_attn_metadata.unified.pf_state_slot

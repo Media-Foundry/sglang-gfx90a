@@ -173,3 +173,20 @@ Full-target overlap service restored as PID 4086117, log
 `/tmp/dsv4_tp8_dspark_overlap_restored2_20260909.service.log`.
 Next: guarded TP8 target-only H8 integration, actual-path-hit validation,
 real-code E2E and AR negative control, with no anchor-only approximation.
+
+## C3 service integration (in progress)
+
+Independent default-off `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE`
+is consumed in the HIP backend where the actual ForwardBatch is available.
+First service candidate covers C128 only, TP8, C32/M128, target verify width4,
+gfx90a, BF16 H8 and no fused inverse RoPE. Other shapes/modes fall through to
+the existing implementation; no AR-wide shape selector is changed. The H8
+FFI uses the exact oracle module. Metadata/indices and KV store are unchanged.
+Two CPU guard tests pass, including non-target and BS33 negatives; AST checks
+pass. A one-time log records actual H8 path hits.
+
+Stopped idle restored B2 service 4086117 after AMD PID ownership checks.
+C3 PID 4093679, log `/tmp/dsv4_tp8_dspark_ck_c3_20260909.service.log`.
+Gate script starts France then C32 warmup plus three formal rounds, output
+directory `/tmp/dsv4_tp8_dspark_ck_c3_20260909`. No C3 result yet. C4 attention
+integration and all-reduce/draft-prefetch transplantation remain unverified.
