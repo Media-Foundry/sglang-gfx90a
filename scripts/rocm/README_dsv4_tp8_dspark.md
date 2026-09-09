@@ -57,6 +57,16 @@ Set it to0 for the communication-only control. The C4 extension
 `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4` also stays off after one severe
 looping response; a passing single-layer replay does not resolve that failure.
 
+An independent, default-off refinement is available for experiments only:
+`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED=1`, together with the parent
+C4 switch. It uses a BF16 high/residual-low probability pair for PV, not a
+different checkpoint precision. The existing TP8/DSpark-target/M128/C4 guards
+still apply; C128 and native AR are unchanged. Real-fixture component tests
+passed100 Q/KV/index/sink mutations (including empty/ragged rows), but those
+tests do **not** establish whole-model quality or repair the earlier loop.
+Its E2E acceptance requires the separate C4 ABBA and long-output checks;
+do not enable it in the accepted profile based on component timing alone.
+
 TP4's M32 gate-prefetch setting depended on anchor-only M128->M32 compaction.
 Full-target C32 retains M128, so copying that switch is not a working port.
 The rejected `SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE` must not be used for
