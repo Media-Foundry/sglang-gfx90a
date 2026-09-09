@@ -657,3 +657,19 @@ A2 service93008 started under controller65738/session61450. No completed
 combination gain claim until A2 is measured. Precision waiter74884/session93041
 is confirmed alive waiting for that exact controller; it has not started GPU
 work. Current user-requested ABBA order has not been changed.
+
+### Completed C128 combination ABBA
+
+A2 warm907.415668 excluded; measured918.524488 tok/s. Final sequence:
+908.047355 /939.127274 /925.296544 /918.524488.
+A mean913.285921, B mean932.211909, observed+2.072296%. All128 measured
+outputs pass severe repetition (worst0.308911), all8 B ranks logged C128 CK
+hits, every arm logged AR grid12. Machine-readable metrics/raw hashes:
+`dsv4_tp8_dspark_ar_ckc128_abba_20260909.json`.
+
+Updated the explicit full-target profile to default C128 CK ON, C4 OFF.
+Native isolation had already been tested with both CK flags ON and no hits.
+These two ABBA improvements must not be summed as a measured cumulative gain.
+The combined profile default still needs a final packaging smoke. Controller
+61450 is restoring explicit CK-off control102287 before precision waiter93041
+can run; changing the profile default does not override its explicit CK=0.

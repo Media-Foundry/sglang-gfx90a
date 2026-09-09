@@ -2,8 +2,8 @@
 
 This opt-in profile preserves the checkpoint and evaluates all target rows.
 It is **not** the rejected TP8 anchor-only experiment and is not native AR.
-The measured optimization is the target M128/1-MiB all-reduce grid: 80 -> 12
-CTAs, using the existing AIter new two-stage algorithm through a guarded shim.
+The measured optimizations are the target M128/1-MiB all-reduce grid (80 -> 12
+CTAs, through a guarded AIter shim), plus H8 CK attention for C128 layers.
 
 ```bash
 SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE=1 \
@@ -27,10 +27,14 @@ native AR and other communication shapes use their existing implementations.
 
 - C32 real-code **single ABBA**: 893.92 /906.09 /900.27 /871.19 tok/s.
   Control mean882.55, tuned mean903.18: observed **+2.34%**.
+- Subsequent C128 CK combination ABBA, with grid12 fixed:
+  908.05 /939.13 /925.30 /918.52 tok/s. Control mean913.29, combined
+  mean932.21: observed **+2.07%**. These are separate comparisons; do not add
+  their percentages or claim a directly measured cumulative baseline gain.
 - Metric: aggregate output tokens in the common resident decode interval,
   excluding prefill and batch drain; natural EOS, maximum2048 tokens/request.
   One warm wave was excluded for each independent service process.
-- All128 measured outputs passed a severe tail-repetition screen. Same-control
+- Each ABBA's128 measured outputs passed a severe tail-repetition screen. Same-control
   outputs vary across rounds: this is **not whole-model bitwise parity** or a
   comprehensive code-correctness benchmark, nor a statistical confidence claim.
 - Component: all eight ranks passed100 exact mutations and independent integer
@@ -41,15 +45,15 @@ native AR and other communication shapes use their existing implementations.
   the DSpark attention switches enabled. This is not native performance ABBA.
 
 Raw metrics and SHA256 references:
-`.agents/memory/dsv4_tp8_dspark_ar_abba_20260909.json`.
+`.agents/memory/dsv4_tp8_dspark_ar_abba_20260909.json` and
+`.agents/memory/dsv4_tp8_dspark_ar_ckc128_abba_20260909.json`.
 Full chronology: `.agents/memory/dsv4_tp8_dspark_transplant_20260909.md`.
 
-## Separate candidates, not silently combined
+## Accepted combination and excluded candidates
 
-`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE=1` enables the separately
-ported H8 CK C128 attention path. Its prior standalone-service median was
-892.97 tok/s, but the combination with tuned communication has not had E2E
-ABBA, so this profile leaves it off. The C4 extension
+`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE=1` enables the ported
+H8 CK C128 attention path and is now the default inside this opt-in profile.
+Set it to0 for the communication-only control. The C4 extension
 `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4` also stays off after one severe
 looping response; a passing single-layer replay does not resolve that failure.
 

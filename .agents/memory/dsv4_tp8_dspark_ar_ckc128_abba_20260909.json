@@ -1,0 +1,25 @@
+{
+  "status": "measured_abba_complete",
+  "scope": "TP8 EP1 full-target DSpark C32; original weights; 1M token pool; AR grid12 fixed",
+  "source_directory": "/tmp/dsv4_tp8_dspark_ar_ckc128_abba_20260909",
+  "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+  "controlled_difference": "CK H8 C128 attention A=off B=on; C4 off throughout",
+  "protocol": "fresh process per arm; excluded warm wave then measured natural-EOS max2048 wave",
+  "metric": "aggregate output tok/s in common resident decode window, excluding prefill and drain",
+  "arms": [
+    {"name":"A1","tok_s":908.047354678412,"seconds":12.666740275977645,"tokens":11502,"median_request_acceptance":3.096359020068606,"max_tail8_duplicate_fraction":0.25544554455445545,"eos":18,"raw_sha256":"9be73bfaf9eeccc84e144084d9ef7092637df2d53d2cd3d8a1ef9e0a5703afc5"},
+    {"name":"B1","tok_s":939.1272735171368,"seconds":10.761054741975386,"tokens":10106,"median_request_acceptance":3.124145936981758,"max_tail8_duplicate_fraction":0.2851485148514852,"eos":19,"raw_sha256":"b7630410e0ed66dfdfd75812ed9dcd676a14a918b457bff1aa32c38ea29b471a"},
+    {"name":"B2","tok_s":925.2965442265137,"seconds":15.089216626947746,"tokens":13962,"median_request_acceptance":3.0676315621067003,"max_tail8_duplicate_fraction":0.30891089108910896,"eos":20,"raw_sha256":"352042501eb6d1bfacedae7f57d6f2eae0cee964fd4e210b3b02425d792be099"},
+    {"name":"A2","tok_s":918.5244883099817,"seconds":12.55491840094328,"tokens":11532,"median_request_acceptance":3.104401414134892,"max_tail8_duplicate_fraction":0.24752475247524752,"eos":20,"raw_sha256":"b8b21bbfdfbbd313fa96bce512a6cc34b509a4cfeb1740ac1c883ff639b5b6d2"}
+  ],
+  "mean_a": 913.2859214941968,
+  "mean_b": 932.2119088718252,
+  "observed_gain_pct": 2.072295973495808,
+  "limitations": [
+    "Single ABBA screen, not a statistical confidence claim.",
+    "Same-control output hashes can drift; not whole-model bitwise parity.",
+    "Repetition screen is not comprehensive semantic code correctness.",
+    "Request-level acceptance is not measured-window verification accounting.",
+    "Do not add this percentage to the earlier communication ABBA; no direct cumulative comparison."
+  ]
+}
