@@ -245,6 +245,33 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   # scheduler gain in real-code service ABBA.
   export SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION="${SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION:-0}"
 fi
+if [[ "${SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE:-0}" == "1" ]]; then
+  # Experimental TP8 transplant of the TP4 anchor-only quality/performance
+  # tradeoff. Original weights do not imply full-target verification here.
+  # Never enable this profile from an AR command or silently change TP layout.
+  if [[ "${DSPARK_MODE}" != "1" || "${TP_SIZE:-}" != "8" ||
+        "${EP_SIZE:-}" != "1" || "${MOE_A2A_BACKEND:-}" != "none" ]]; then
+    echo "TP8 DSpark profile requires *-dspark, TP_SIZE=8 EP_SIZE=1 MOE_A2A_BACKEND=none" >&2
+    exit 1
+  fi
+  SPECULATIVE_DSPARK_BLOCK_SIZE=3
+  SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER=1
+  DEFAULT_CUDA_GRAPH_MAX_BS_DECODE=33
+  CUDA_GRAPH_MAX_BS_DECODE=33
+  CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32} 33"
+  export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS=256
+  export SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK=68
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_ANCHOR_ONLY_ROUTED=1
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_PRE_ROUTER_COMPACT=1
+  export SGLANG_DSV4_GFX90A_DSPARK_EARLY_EXACT_MAX_POSITION=20
+  export SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP=0
+  export SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS=0
+  # TP4 CK attention assumes H16; TP8 H8 needs a separate kernel oracle.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE=0
+  export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM=0
+  export SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH=0
+  echo "EXPERIMENTAL: TP8 DSpark anchor-only after position 20; not exact target verification" >&2
+fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"
   PID_FILE="${PID_FILE:-/tmp/sglang_dsv4_flash_dspark.pid}"
