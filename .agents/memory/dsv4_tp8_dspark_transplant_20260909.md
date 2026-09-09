@@ -316,3 +316,24 @@ ten-minute timeout with worker process-group cleanup. Logs:
 the new PID, with log
 `/tmp/dsv4_tp8_dspark_ck_c4_restored_20260909.service.log`.
 Do not start competing GPU tests while either controller is live.
+
+## C4 warmup and remaining prefetch scope audit
+
+C4 warmup: 781.266062 tok/s, 15.298245 resident seconds, 32 responses.
+Tail repetition median 0.058416, none above 0.75; nine responses reached the
+length cap. Whole-request mean accepted length 3.003187 (C3b warmup 3.002659,
+B2 3.031898). These acceptance means cover the entire request, not just the
+resident timing window, and do not establish a cause for warmup differences.
+Three spot-read responses are structured/non-looping but rely on assumptions
+where their code excerpts are truncated. Formal first wave saved 10,617
+tokens over 11.531805 resident seconds (~920.67 tok/s), not a complete round.
+
+Prefetch scope audit: `deepseek_v2.py` constructs `routed_hidden_states` as
+`hidden_states[::4].contiguous()` only under M128 anchor-only pre-router
+compaction. This supplies M32 to the old TP4 gate-row-prefetch optimization.
+The strict TP8 full-target C32 path retains M128 routed rows instead. Existing
+TP8 M32 prefetch also requires `native_m32_active()`. Do not blindly enable
+M32 prefetch or call it a completed DSpark C32 transplant: its central target
+shape depends on a rejected approximation. Any new M128 prefetch needs its
+own shape-specific full-stage oracle; lower-concurrency/drain behavior is a
+separate question. No prefetch production selector changed in this audit.
