@@ -107,3 +107,27 @@ removed and was never connected to the service. Logs:
 
 - `/tmp/dsv4_tp8_m128_down_xq_reuse_balanced_20260910.log`
 - `/tmp/dsv4_tp8_m128_down_xq_reuse_skewed_20260910.log`
+
+### Current-code gamma-five compact-M128 revisit
+
+The frozen-KV draft graph now contains a metadata fix that rebuilds attention
+under the committed target-prefix view, so the old gamma-five graph quality
+collapse was worth retesting. A temporary context-only relaxation let compact
+gamma-five M128 hit the exact same TP8 row-prefetch/AR selectors; all actual
+operators retained their exact M128 shape guards. The candidate used compact
+ragged verification, a single 128-token target graph bucket, and a forced 60%
+draft budget (32 anchors plus 96 selected draft rows).
+
+On the same 32 heterogeneous code requests and 1024 output tokens/request:
+
+| Profile | warm resident tok/s | measured resident tok/s | severe repetition |
+|---|---:|---:|---:|
+| gamma 3, uniform M128 | 1089.7564 | 1087.8746 | none |
+| gamma 5, compact M128 | 1040.7708 | 1036.8334 | none |
+
+Both services logged 344 M128 row-prefetch hits, so this is not a selector
+fallback. Gamma five is `4.69%` slower despite stable outputs. The temporary
+context relaxation was removed. Artifacts:
+
+- `/tmp/dsv4_tp8_gamma5_m128_current_screen_20260910/`
+- `/tmp/dsv4_tp8_gamma5_m128_current_screen_retry_20260910/`
