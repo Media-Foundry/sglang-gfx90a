@@ -11,6 +11,7 @@ _active = ContextVar('dsv4_tp8_m32_legacy_ar', default=False)
 _native_active = ContextVar('dsv4_native_m32_experiment', default=False)
 _attention_active = ContextVar('dsv4_native_decode_attention', default=False)
 _dspark_m128_active = ContextVar('dsv4_dspark_tp8_m128_ar', default=False)
+_dspark_draft_m96_active = ContextVar('dsv4_dspark_tp8_draft_m96', default=False)
 _down_uniform_override = ContextVar('dsv4_down_uniform_capture', default=None)
 
 
@@ -47,6 +48,19 @@ def native_m32_active():
 
 def dspark_m128_active():
     return _dspark_m128_active.get()
+
+
+def dspark_draft_m96_active():
+    return _dspark_draft_m96_active.get()
+
+
+@contextmanager
+def dspark_draft_m96_scope():
+    token = _dspark_draft_m96_active.set(True)
+    try:
+        yield
+    finally:
+        _dspark_draft_m96_active.reset(token)
 
 
 def dspark_m128_moe_eligible(*, active, tp_size, ep_size, gfx90a,

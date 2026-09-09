@@ -695,6 +695,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         block_size=grouped_assignments,
                     )
                 use_tp8_dspark_geometry = False
+                use_tp8_dspark_draft_m96 = False
                 if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY.get():
                     from sglang.srt.distributed import (
                         get_tensor_model_parallel_world_size,
@@ -719,6 +720,32 @@ class AiterRunnerCore(MoeRunnerCore):
                     if use_tp8_dspark_geometry and not getattr(self, '_tp8_dspark_geometry_logged', False):
                         logger.info('TP8 DSpark M128 MoE geometry G832/D832 selected')
                         self._tp8_dspark_geometry_logged = True
+                if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH.get():
+                    from sglang.srt.distributed import (
+                        get_moe_expert_parallel_world_size,
+                        get_tensor_model_parallel_world_size,
+                    )
+                    from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                        dspark_draft_m96_active,
+                    )
+
+                    use_tp8_dspark_draft_m96 = (
+                        dspark_draft_m96_active()
+                        and get_tensor_model_parallel_world_size() == 8
+                        and get_moe_expert_parallel_world_size() == 1
+                        and _is_runtime_gfx90a()
+                        and runner_input.hidden_states.shape == (96, 4096)
+                        and runner_input.topk_ids.shape == (96, 6)
+                        and quant_info.w13_weight.shape == (256, 512, 2048)
+                        and quant_info.w2_weight.shape == (256, 4096, 128)
+                        and (grouped_assignments, grouped_gate_rows, grouped_down_rows)
+                        == (4, 2, 2)
+                    )
+                    if use_tp8_dspark_draft_m96 and not getattr(
+                        self, "_tp8_dspark_draft_m96_logged", False
+                    ):
+                        logger.info("TP8 DSpark draft-only M96 row-prefetch selected")
+                        self._tp8_dspark_draft_m96_logged = True
                 if use_tp8_dspark_geometry:
                     gate_blocks = 832
                 elif use_mfma64_prefill:
@@ -747,6 +774,8 @@ class AiterRunnerCore(MoeRunnerCore):
                     if not getattr(self, '_tp8_dspark_row_prefetch_logged', False):
                         logger.info('TP8 DSpark M128 gate/down row-prefetch selected')
                         self._tp8_dspark_row_prefetch_logged = True
+                if use_tp8_dspark_draft_m96:
+                    use_lds_unpack = True
                 use_dspark_m51_specialization = (
                     envs.SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION.get()
                     and _is_runtime_gfx90a()
@@ -839,6 +868,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     )
                     or use_dspark_m51_specialization
                     or use_tp8_dspark_row_prefetch
+                    or use_tp8_dspark_draft_m96
                 )
                 if envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get():
                     from sglang.srt.distributed import get_tensor_model_parallel_world_size
@@ -981,6 +1011,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     or use_m64_logical_down_scale
                     or use_dspark_m51_logical_down_scale
                     or use_tp8_dspark_row_prefetch
+                    or use_tp8_dspark_draft_m96
                 )
                 down_waves = (
                     4

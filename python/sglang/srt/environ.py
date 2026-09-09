@@ -1629,6 +1629,7 @@ class Envs:
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS = EnvInt(0)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH = EnvBool(False)
+    SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH = EnvBool(False)
     # Debug/correctness guard: make rank 0 authoritative for the DSpark accept
     # decision after target-verify graph replay.  This is deliberately separate
     # from SYNC_TOKEN_IDS_ACROSS_TP, whose sampler collective is not ordered

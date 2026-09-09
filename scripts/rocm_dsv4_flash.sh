@@ -321,6 +321,9 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # The runtime selector is additionally guarded to strict TP8/EP1 M128
   # DSpark target verification, so native AR and prefill cannot enter it.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH:-1}"
+  # Draft-only experiment: gamma remains three and target verification remains
+  # the exact M128 path.  Only the three-layer M96 draft model may select it.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH:-1}"
   # On top of G832/D832, refined C4 real-code ABBA: 945.47 -> 964.09
   # tok/s (+1.97%).  The refinement preserves full target verification.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED:-1}"

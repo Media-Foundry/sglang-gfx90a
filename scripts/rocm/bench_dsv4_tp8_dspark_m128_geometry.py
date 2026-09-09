@@ -75,11 +75,25 @@ def quant_into(x: torch.Tensor, q: torch.Tensor, scale: torch.Tensor) -> None:
     )
 
 
-def load_real_counts(path: Path, layer: int, tokens: int) -> torch.Tensor:
+def load_real_counts(
+    path: Path, layer: int, tokens: int, *, stat_pass: int, world_size: int
+) -> torch.Tensor:
     payload = torch.load(path, map_location="cpu", weights_only=False)
     records = payload.get("records")
+    if records is None and "logical_count" in payload:
+        counts = payload["logical_count"][:, layer].to(torch.int64)
+        expected = tokens * T * world_size
+        matches = counts[counts.sum(dim=-1) == expected]
+        if not matches.numel():
+            raise RuntimeError(
+                f"no TP-summed M{tokens}/top-{T} stat record in {path}"
+            )
+        selected = matches[stat_pass % matches.shape[0]]
+        if torch.any(selected % world_size):
+            raise RuntimeError("TP-summed expert counts are not world-size divisible")
+        return selected // world_size
     if not isinstance(records, list):
-        raise RuntimeError("expected a per-pass recorder with a records list")
+        raise RuntimeError("expected a per-pass or stat expert recorder")
     matches = [
         record["global_physical_count"][layer].to(torch.int64)
         for record in records
@@ -115,6 +129,8 @@ def main() -> None:
     parser.add_argument("--distribution", choices=("balanced","skewed"), default="balanced")
     parser.add_argument("--tokens", type=int, choices=(64, 96, 128), default=128)
     parser.add_argument("--layer", type=int, default=20)
+    parser.add_argument("--stat-pass", type=int, default=-1)
+    parser.add_argument("--world-size", type=int, default=8)
     parser.add_argument("--mutations", type=int, default=100)
     parser.add_argument("--graph-replays", type=int, default=1000)
     parser.add_argument("--rounds", type=int, default=1)
@@ -160,7 +176,13 @@ def main() -> None:
 
     tokens = args.tokens
     if args.recorder:
-        counts = load_real_counts(args.recorder, args.layer, tokens)
+        counts = load_real_counts(
+            args.recorder,
+            args.layer,
+            tokens,
+            stat_pass=args.stat_pass,
+            world_size=args.world_size,
+        )
         topk_ids = reconstruct_topk_from_counts(counts, m=tokens, topk=T).cuda()
     else:
         torch.manual_seed(20260909)

@@ -1,5 +1,5 @@
 import logging
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from dataclasses import replace
 from typing import Optional
 
@@ -383,10 +383,19 @@ class DSparkWorkerV2(BaseSpecWorker):
             raise AttributeError(name)
         return getattr(self.target_worker, name)
 
+    @contextmanager
     def _draft_context(self):
-        if self._draft_dp_context_enabled:
-            return draft_tp_context(get_parallel().attn_tp_group)
-        return nullcontext()
+        from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+            dspark_draft_m96_scope,
+        )
+
+        tp_context = (
+            draft_tp_context(get_parallel().attn_tp_group)
+            if self._draft_dp_context_enabled
+            else nullcontext()
+        )
+        with tp_context, dspark_draft_m96_scope():
+            yield
 
     def alloc_memory_pool(
         self,
