@@ -198,3 +198,60 @@ fell back. Stopped that benchmark; it is NOT a CK E2E result. Wrapper now
 slices the first eight sink entries without allocation or arithmetic changes.
 C3b restart uses `/tmp/dsv4_tp8_dspark_ck_c3b_20260909.service.log`; actual
 path hits must be checked before accepting its timing.
+
+C3b service PID 4102463 reached ready at 12:54:07. All ranks 0–7 logged
+`TP8 DSpark CK H8 hit ... layer=3 M128 C128` during capture; France returned
+Paris. Session 82315 is the active gate/benchmark controller, warmup PID
+4109072. Results under `/tmp/dsv4_tp8_dspark_ck_c3b_20260909/`.
+The gate now refuses CK benchmarking without the actual hit marker.
+Added a CPU mocked-FFI test executing the actual H8 wrapper to verify a
+64-element sink becomes a pointer-sharing eight-element view; all three
+guard/ABI tests pass. This supplements, not replaces, GPU correctness tests.
+
+Prepared `--lengths` in the H8 oracle for future 640/1024/8192-key tests before
+C4/general long-context expansion. Default tests retain their original
+shapes and seed. Larger tests use a pool of at least twice the row length;
+do not claim this expanded suite has run yet.
+
+C3b warmup completed at 756.3896 tok/s over 12.725 resident seconds, below
+B2 warmup 877.9341. Mean accepted length 3.0027 vs B2 3.0319; this whole-request
+mean alone cannot explain or locate the resident-window slowdown. Code-output
+tail repetition median 0.0317, 0/32 above 0.75, 11/32 length-capped (B2 also11).
+Manual review of one response tail showed coherent tests/explanation rather
+than B1 looping. Formal three-round measurement is still in progress.
+
+Session 29525 (`/tmp/dsv4_after_c3b_long_oracle.py`) waits for controller
+4104722 and a complete result, then stops only owned service 4102463 and runs
+the longer H8 oracle on GCD4 before restoring C3b. Long oracle output:
+`/tmp/dsv4_sparse_h8_long_oracle_20260909.json`; restore log:
+`/tmp/dsv4_tp8_dspark_ck_c3b_restored_20260909.service.log`.
+Do not launch another GPU experiment while either job is active.
+
+AMD SMI spot check during C3b measured startup: scheduler VRAM about
+63.05–63.84 GB (decimal), GTT about12.3 MB per process, cumulative evicted_time
+1805–1901 ms. These cumulative counters are not evidence of active decode
+paging; need time deltas before attributing the regression to memory pressure.
+
+Thirty-plus seconds later, all eight eviction counters were unchanged.
+No evidence of ongoing paging in that sampled decode interval. Formal C3b
+first-round waves subsequently measured about 897.22 / 897.28 / 873.89 tok/s,
+40.3551 resident seconds total. This supersedes interpreting the low warmup
+as a steady regression; final three-round result and matched control pending.
+
+## Long-oracle measurement protocol update
+
+Before queued long oracle starts, its benchmark now measures five paired
+ABBA blocks (A=Triton, B=CK), 100 graph replays per sample. JSON retains all
+sample times and the median paired speedup as well as the existing component
+medians. This supersedes the sequential CK-then-Triton timing protocol for
+future runs only; earlier 0/17/128/512 figures are unchanged historical data.
+The new `--lengths` option queues 640/1024/8192-key fixtures, not a production
+C4 selector expansion. AST parsing and the three TP8 guard/ABI unit tests
+pass; neither is a substitute for the pending long GPU oracle.
+
+Latest C3b check: first round 890.3451 tok/s over 40.3551 resident seconds;
+second round has three saved waves totaling 39.7865 seconds but is not yet
+finalized. Across these 192 saved real-code responses, tail 8-gram duplicate
+fraction median 0.0594 and none above 0.75. This is a degeneration screen,
+not an exhaustive semantic correctness claim. Controller 4104722 and queued
+long-oracle waiter 4110605 were confirmed live; no competing GPU test started.

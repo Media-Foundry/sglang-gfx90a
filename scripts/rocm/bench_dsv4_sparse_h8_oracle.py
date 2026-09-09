@@ -14,6 +14,7 @@ from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.paged_decode import (
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
+    parser.add_argument('--lengths', type=int, nargs='+', default=[0, 17, 128, 512])
     args = parser.parse_args()
     torch.manual_seed(909)
     module = load_jit(
@@ -27,9 +28,11 @@ def main():
             '/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/library/include'],
     )
     results = []
-    for length in (0, 17, 128, 512):
+    for length in args.lengths:
+        assert length >= 0
+        pool_slots = max(1024, length * 2)
         q = torch.randn((128, 8, 512), device='cuda', dtype=torch.bfloat16) * .25
-        kv = torch.randn((1024, 512), device='cuda', dtype=torch.bfloat16)
+        kv = torch.randn((pool_slots, 512), device='cuda', dtype=torch.bfloat16)
         sink = torch.randn((8,), device='cuda', dtype=torch.float32)
         lengths = [length if i % 4 else length // 2 for i in range(128)]
         ptr = [0]
@@ -38,7 +41,7 @@ def main():
         indptr = torch.tensor(ptr, device='cuda', dtype=torch.int32)
         # Empty rows still need a non-null index buffer for the launch ABI;
         # indptr remains all-zero, so the sentinel is never consumed.
-        indices = torch.randint(1024, (max(1, ptr[-1]),), device='cuda', dtype=torch.int32)
+        indices = torch.randint(pool_slots, (max(1, ptr[-1]),), device='cuda', dtype=torch.int32)
         out = torch.empty_like(q)
         scratch = torch.empty(128*2*8*514*4, device='cuda', dtype=torch.uint8)
         def run():
@@ -47,7 +50,7 @@ def main():
         for mutation in range(10):
             q.normal_(0, .25)
             sink.normal_()
-            indices.random_(0, 1024)
+            indices.random_(0, pool_slots)
             run()
             for row, n in enumerate(lengths):
                 if not n:
@@ -77,7 +80,7 @@ def main():
         for _ in range(10):
             q.normal_(0, .25)
             sink.normal_()
-            indices.random_(0, 1024)
+            indices.random_(0, pool_slots)
             run()
             eager = out.clone()
             graph.replay()
@@ -88,17 +91,6 @@ def main():
             graph.replay()
         torch.cuda.synchronize()
         assert torch.equal(out, expected), 'graph replay mismatch'
-        timings = []
-        for _ in range(5):
-            begin, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-            begin.record()
-            for _ in range(100):
-                graph.replay()
-            end.record()
-            end.synchronize()
-            timings.append(begin.elapsed_time(end)*10)
-        results.append(dict(length=length, median_us=statistics.median(timings),
-                            max_abs_error=max_error, replay_exact=True))
         def baseline():
             return _sparse_attn_v4_paged_decode_triton(
                 q, kv, indices, indptr, sink, 512**-.5)
@@ -110,16 +102,34 @@ def main():
             baseline_out = baseline()
         control.replay()
         torch.testing.assert_close(out.float(), baseline_out.float(), atol=.004, rtol=.02)
-        control_times = []
-        for _ in range(5):
+        def time_replays(captured):
             begin, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
             begin.record()
             for _ in range(100):
-                control.replay()
+                captured.replay()
             end.record()
             end.synchronize()
-            control_times.append(begin.elapsed_time(end)*10)
-        results[-1]['triton_median_us'] = statistics.median(control_times)
+            return begin.elapsed_time(end) * 10  # ms / 100 -> us
+
+        # A=Triton, B=CK. Keep both captured and inputs unchanged during all
+        # paired blocks; avoid measuring every CK sample before the control.
+        paired = []
+        for _ in range(5):
+            a0 = time_replays(control)
+            b0 = time_replays(graph)
+            b1 = time_replays(graph)
+            a1 = time_replays(control)
+            paired.append(dict(triton_us=[a0, a1], ck_us=[b0, b1],
+                               speedup=(a0 + a1) / (b0 + b1)))
+        timings = [v for block in paired for v in block['ck_us']]
+        control_times = [v for block in paired for v in block['triton_us']]
+        results.append(dict(length=length, median_us=statistics.median(timings),
+                            triton_median_us=statistics.median(control_times),
+                            max_abs_error=max_error, replay_exact=True,
+                            timing_protocol='5x ABBA, A=Triton B=CK, 100 replays/sample',
+                            paired_speedup_median=statistics.median(
+                                block['speedup'] for block in paired),
+                            timing_blocks=paired))
         print(results[-1], flush=True)
     with open(args.output, 'x') as f:
         json.dump(results, f, indent=2)
