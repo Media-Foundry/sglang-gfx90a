@@ -316,7 +316,10 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # Real-code C32 ABBA: 912.67 -> 938.64 tok/s (+2.85%).  This selector is
   # additionally guarded to TP8/EP1 M128 full-target verification only.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY:-1}"
-  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4:-0}"
+  # On top of G832/D832, refined C4 real-code ABBA: 945.47 -> 964.09
+  # tok/s (+1.97%).  The refinement preserves full target verification.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED:-1}"
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4:-1}"
 fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"
