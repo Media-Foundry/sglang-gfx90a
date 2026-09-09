@@ -559,6 +559,9 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ "${ENABLE_METRICS:-0}" == "1" ]]; then
+  server_args+=(--enable-metrics)
+fi
 if [[ -n "${RANDOM_SEED:-}" ]]; then
   server_args+=(--random-seed "${RANDOM_SEED}")
 fi
