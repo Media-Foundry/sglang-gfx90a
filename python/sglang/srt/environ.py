@@ -1624,6 +1624,9 @@ class Envs:
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE = EnvBool(False)
     # Separate C4 expansion after ragged H8 long-row oracle validation.
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4 = EnvBool(False)
+    # Diagnostic only: disable decode graphs; capture one selected H8 layer.
+    SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR = EnvStr("")
+    SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER = EnvInt(2)
     # Experimental C128 counterpart for the fixed TP4/M64 decode graph tier.
     # Kept separate because the same schedule regressed at M32.
     SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM = EnvBool(False)

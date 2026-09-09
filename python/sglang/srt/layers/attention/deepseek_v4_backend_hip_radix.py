@@ -1364,6 +1364,34 @@ class DeepseekV4HipRadixBackend(
                     inverse_rope_freqs=inverse_rope_freqs,
                     inverse_rope_positions=inverse_rope_positions,
                 )
+            fixture_root = envs.SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR.get()
+            if (fixture_root and self.is_dspark_target
+                    and forward_batch.forward_mode.is_target_verify()
+                    and get_parallel().attn_tp_size == 8 and T == 128
+                    and get_parallel().attn_tp_rank == 0
+                    and layer_id == envs.SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER.get()
+                    and not getattr(self, "_tp8_sparse_fixture_saved", False)):
+                from pathlib import Path
+                from sglang.kernels.ops.debug.dsv4_tp8_sparse_fixture import save_fixture
+
+                if torch.cuda.is_current_stream_capturing():
+                    raise RuntimeError("TP8 sparse fixture requires decode graphs disabled")
+                if inverse_rope_freqs is not None or inverse_rope_positions is not None:
+                    raise RuntimeError("TP8 sparse fixture cannot omit fused inverse RoPE")
+                save_fixture(
+                    Path(fixture_root) / f"layer_{layer_id}_rank_0_c{compress_ratio}.pt",
+                    q=q, kv=unified, indices=kv_indices, indptr=kv_indptr,
+                    sink=attn_sink, output=output, scale=self.softmax_scale,
+                    provenance={
+                        "kind": "eager_dspark_tp8_target",
+                        "layer": layer_id, "compress_ratio": compress_ratio,
+                        "positions": forward_batch.positions.detach().cpu().tolist(),
+                        "input_ids": forward_batch.input_ids.detach().cpu().tolist(),
+                        "ck_enabled": envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_SPARSE_DECODE.get(),
+                    },
+                )
+                self._tp8_sparse_fixture_saved = True
+                logger.info("Saved TP8 sparse attention fixture layer=%s", layer_id)
             return output
 
         # prefill / extend

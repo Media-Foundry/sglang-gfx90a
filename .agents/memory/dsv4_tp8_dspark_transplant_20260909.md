@@ -366,3 +366,19 @@ control with both TP8 CK flags0, retaining overlap and all other settings;
 same real-code manifest, full-target verification, original weights and1Mpool.
 Log `/tmp/dsv4_tp8_dspark_control_a2_20260909.service.log`, output root without
 `.service.log`. This control is needed before attributing the failure to CK.
+
+A2 control service PID4142190, gate session82939. Startup progressed into
+real-code warmup without CK enabled. No completed A2 result at this update.
+
+Prepared an independent eager-only real tensor capture path:
+`SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR=<new directory>` and optional
+`SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER` (default2). It requires DSpark target,
+TP8/M128, rank0 and graphs disabled; one selected layer is captured. Preserves
+Q/output, local sink, positions/input IDs, ragged offsets and repeated index
+order, while storing only referenced KV slots plus the physical remapping.
+This does not change the older untracked TP4 replay utility.
+
+CPU tests validate remapping, empty rows, duplicate slots, shape/address
+rejection, exclusive-file creation and graph-capture rejection. GPU capture
+and replay comparison are still pending. Do not interpret this diagnostic
+as a numerical fix or throughput gain. It is OFF in the running A2 benchmark.
