@@ -507,3 +507,22 @@ Prepared `--chain-mixed-tiers` in the existing communication oracle: alternates
 tuned M128 with installed M64 new two-stage fallback, sharing a registered base
 pointer and checking per-step outputs. Python compile passes; GPU execution
 pending AFTER service ABBA. No competing GPU job has been started.
+
+### B measured arms and queued post-ABBA checks
+
+B1 measured906.092019 tok/s; B2 warm916.323404 and measured900.265310 tok/s.
+Both measured32-output waves pass the severe-repetition gate. B mean903.178664;
+do not compare only to A1 and call ABBA complete. A2 PID25999 is now running.
+
+Post-check controller `/tmp/dsv4_tp8_post_abba_checks.py`, session52194, waits
+for the exact live ABBA controller4181186 to exit and requires complete.json.
+It then resolves the restored-control PID from active.json, verifies ownership
+with amd-smi, stops only that service, runs the mixed-tier oracle, then starts
+a native AR smoke with DSpark H8/overlap flags ON but AR grid override OFF.
+Checks: no speculative command arguments; France chat says Paris; C32 real
+code requests have no spec_accept_length; no actual DSpark H8/AR hit logs.
+The native256-token smoke is NOT a native performance ABBA/full numeric oracle.
+Finally restores full-target DSpark control. Result directory (created only
+after ABBA exit): `/tmp/dsv4_tp8_dspark_post_abba_checks_20260909`.
+Earlier waiter30215/session67820 was cancelled before doing GPU work to fix
+its exact H8 hit-log assertion; session52194 is the sole active waiter.
