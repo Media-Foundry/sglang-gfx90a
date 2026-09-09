@@ -302,7 +302,7 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # Single real-code C32 service ABBA: 882.55 -> 903.18 tok/s (+2.34%).
   # Subsequent CK H8 C128 combination ABBA: 913.29 -> 932.21 (+2.07%).
   # These are separate controlled comparisons, not an additive total claim.
-  SPECULATIVE_DSPARK_BLOCK_SIZE=3
+  SPECULATIVE_DSPARK_BLOCK_SIZE="${SPECULATIVE_DSPARK_BLOCK_SIZE:-3}"
   SPECULATIVE_DSPARK_ALIGN_VERIFY_TOKENS_TO_GRAPH_TIER=1
   CUDA_GRAPH_MAX_BS_DECODE=32
   CUDA_GRAPH_BS_DECODE="${CUDA_GRAPH_BS_DECODE:-1 2 4 8 16 24 32}"
@@ -316,6 +316,11 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # Real-code C32 ABBA: 912.67 -> 938.64 tok/s (+2.85%).  This selector is
   # additionally guarded to TP8/EP1 M128 full-target verification only.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY:-1}"
+  # Existing subgroup-8 row-prefetch kernels reduce the full M128 routed
+  # stage by 38--41%; real-code C32 service ABBA: 963.48 -> 1083.85 tok/s.
+  # The runtime selector is additionally guarded to strict TP8/EP1 M128
+  # DSpark target verification, so native AR and prefill cannot enter it.
+  export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH:-1}"
   # On top of G832/D832, refined C4 real-code ABBA: 945.47 -> 964.09
   # tok/s (+1.97%).  The refinement preserves full target verification.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED:-1}"

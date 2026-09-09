@@ -735,6 +735,18 @@ class AiterRunnerCore(MoeRunnerCore):
                     gate_blocks = get_int_env_var(
                         "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS", 208
                     )
+                use_tp8_dspark_row_prefetch = (
+                    use_tp8_dspark_geometry
+                    and envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ROW_PREFETCH.get()
+                )
+                if use_tp8_dspark_row_prefetch:
+                    # The subgroup-8 row-prefetch kernels decode packed FP4
+                    # through their LDS LUT.  This is an exact M128-only tactic;
+                    # the strict DSpark scope above prevents native AR/prefill use.
+                    use_lds_unpack = True
+                    if not getattr(self, '_tp8_dspark_row_prefetch_logged', False):
+                        logger.info('TP8 DSpark M128 gate/down row-prefetch selected')
+                        self._tp8_dspark_row_prefetch_logged = True
                 use_dspark_m51_specialization = (
                     envs.SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION.get()
                     and _is_runtime_gfx90a()
@@ -826,6 +838,7 @@ class AiterRunnerCore(MoeRunnerCore):
                         and envs.SGLANG_DSV4_GFX90A_M64_GATE_ROW_PREFETCH.get()
                     )
                     or use_dspark_m51_specialization
+                    or use_tp8_dspark_row_prefetch
                 )
                 if envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get():
                     from sglang.srt.distributed import get_tensor_model_parallel_world_size
@@ -967,6 +980,7 @@ class AiterRunnerCore(MoeRunnerCore):
                     use_m32_dpp_down_prefetch
                     or use_m64_logical_down_scale
                     or use_dspark_m51_logical_down_scale
+                    or use_tp8_dspark_row_prefetch
                 )
                 down_waves = (
                     4

@@ -22,14 +22,40 @@ from scripts.rocm.bench_dsv4_gfx90a_occupancy_bucket_oracle import (
 from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
     _jit_down_grouped,
     _jit_gate_up_grouped,
+    _jit_gate_up_grouped_row_prefetch,
 )
 from sglang.kernels.ops.quantization.int8_kernel import (
     _per_token_group_quant_int8,
 )
+from sglang.kernels.jit.utils import load_jit, make_cpp_args
 
 
 E, T, H, I, N = 256, 6, 4096, 256, 4096
 ASSIGNMENTS, ROWS, WAVES, LDS_LUT = 4, 2, 8, 2
+
+
+def tp8_down_row_prefetch(
+    tokens: int, assignments: int, waves: int, blocks: int
+):
+    """Load the subgroup-8 oracle; the public helper is TP4/subgroup-16 only."""
+    shape = (E, tokens, T, N, I, assignments, waves, blocks, 2)
+    cpp = make_cpp_args(*shape)
+    return load_jit(
+        "gfx90a_fp4_tp8_down_prefetch_oracle",
+        *shape,
+        cuda_files=["deepseek_v4/gfx90a_fp4_tp8_down_prefetch_oracle.cuh"],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{cpp}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
 
 
 def quant_into(x: torch.Tensor, q: torch.Tensor, scale: torch.Tensor) -> None:
@@ -108,6 +134,14 @@ def main() -> None:
         action="store_true",
         help="scan independent A4 gate/down grids around the production geometry",
     )
+    parser.add_argument(
+        "--screen-row-prefetch",
+        action="store_true",
+        help=(
+            "compare the existing LDS row-prefetch gate/down oracle with the "
+            "current G832/D832 path; component-only and never a service selector"
+        ),
+    )
     args = parser.parse_args()
     if args.mutations < 100 or args.graph_replays < 1000 or args.rounds != 1:
         raise ValueError("formal oracle requires 100 mutations, 1000 replays, one ABBA")
@@ -172,6 +206,8 @@ def main() -> None:
                 "a8_g2080_d1248": (8, 1, 4, 2080, 1248),
             }
         )
+    if args.screen_row_prefetch:
+        geometries["row_prefetch"] = (4, 2, 8, 832, 832)
     states: dict[str, dict[str, torch.Tensor]] = {}
     runs = {}
     for name, (
@@ -182,12 +218,21 @@ def main() -> None:
         down_blocks,
     ) in geometries.items():
         metadata = metadata_a4 if assignments == 4 else metadata_a8
-        gate = _jit_gate_up_grouped(
-            E, tokens, T, I, H, assignments, rows, waves, gate_blocks, lds_lut
-        )
-        down = _jit_down_grouped(
-            E, tokens, T, N, I, assignments, rows, waves, down_blocks, lds_lut
-        )
+        if name == "row_prefetch":
+            # The existing row-prefetch kernels stage decoded FP4 through LDS.
+            # Keep this an explicit oracle rather than silently conflating it
+            # with the production non-LDS lookup mode.
+            gate = _jit_gate_up_grouped_row_prefetch(
+                E, tokens, T, I, H, assignments, rows, waves, gate_blocks, 2
+            )
+            down = tp8_down_row_prefetch(tokens, assignments, waves, down_blocks)
+        else:
+            gate = _jit_gate_up_grouped(
+                E, tokens, T, I, H, assignments, rows, waves, gate_blocks, lds_lut
+            )
+            down = _jit_down_grouped(
+                E, tokens, T, N, I, assignments, rows, waves, down_blocks, lds_lut
+            )
         state = {
             "intermediate": torch.zeros(
                 (tokens, T, I), dtype=torch.bfloat16, device="cuda"
@@ -319,6 +364,15 @@ def main() -> None:
                 f"gain_pct={(decode_us / candidate_us - 1.0) * 100.0:.3f}",
                 flush=True,
             )
+    if args.screen_row_prefetch:
+        candidate_us = trimmed(values["row_prefetch"])
+        print(
+            f"PREFETCH_RESULT tokens={tokens} current_us={decode_us:.3f} "
+            f"candidate_us={candidate_us:.3f} "
+            f"saving_us={decode_us - candidate_us:.3f} "
+            f"gain_pct={(decode_us / candidate_us - 1.0) * 100.0:.3f}",
+            flush=True,
+        )
 
 
 if __name__ == "__main__":

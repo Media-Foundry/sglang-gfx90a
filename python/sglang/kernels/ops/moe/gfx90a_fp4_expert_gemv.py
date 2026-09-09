@@ -337,6 +337,40 @@ def _jit_down_grouped_row_prefetch(
 
 
 @cache_once
+def _jit_down_grouped_row_prefetch_tp8(
+    e: int,
+    m: int,
+    t: int,
+    n: int,
+    k: int,
+    assignments: int,
+    waves: int,
+    blocks: int,
+    prepacked: int,
+) -> Module:
+    """Subgroup-8 row-prefetch specialization for TP8 I256 experts."""
+    args = make_cpp_args(
+        e, m, t, n, k, assignments, waves, blocks, prepacked
+    )
+    return load_jit(
+        "gfx90a_fp4_tp8_down_row_prefetch",
+        *args,
+        cuda_files=["deepseek_v4/gfx90a_fp4_tp8_down_prefetch_oracle.cuh"],
+        cuda_wrappers=[
+            (
+                "run_partial",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::run_partial",
+            ),
+            (
+                "reduce",
+                f"sglang::Gfx90aFp4ExpertDownRowPrefetchOracle<{args}>::reduce",
+            ),
+        ],
+        extra_cuda_cflags=["-O3"],
+    )
+
+
+@cache_once
 def _jit_down_grouped_row_prefetch_logical_scale(
     e: int, m: int, t: int, n: int, k: int, assignments: int,
     waves: int, blocks: int, prepacked: int,
@@ -682,12 +716,13 @@ def gfx90a_fp4_expert_gate_up_grouped(
     assert not (prepacked_weight is not None and use_lds_lut)
     weight_mode = 1 if prepacked_weight is not None else (2 if use_lds_lut else 0)
     if use_row_prefetch:
-        assert e == 256 and m in (32, 51, 64)
+        assert e == 256 and m in (32, 51, 64, 128)
         tp8_m32 = (m, topk, i, k, blocks) == (32, 6, 256, 4096, 832)
-        assert tp8_m32 or (topk, i, k) == (6, 512, 4096)
+        tp8_m128 = (m, topk, i, k, blocks) == (128, 6, 256, 4096, 832)
+        assert tp8_m32 or tp8_m128 or (topk, i, k) == (6, 512, 4096)
         assert (assignments, rows, waves, weight_mode) == (4, 2, 8, 2)
         assert (
-            tp8_m32 or (m == 51 and blocks == 1664)
+            tp8_m32 or tp8_m128 or (m == 51 and blocks == 1664)
             or (m in (32, 64) and blocks == 2080)
         )
     elif use_dpp_reduction:
@@ -843,16 +878,20 @@ def gfx90a_fp4_expert_down_grouped(
     if runtime_m:
         assert 0 < m < 1024 and not use_row_prefetch and not use_logical_scale
     if use_row_prefetch:
-        assert e == 256 and m in (32, 51, 64)
-        assert (topk, n, k) == (6, 4096, 512)
+        assert e == 256 and m in (32, 51, 64, 128)
+        tp8_m128 = (m, topk, n, k) == (128, 6, 4096, 256)
+        assert tp8_m128 or (topk, n, k) == (6, 4096, 512)
         assert (assignments, rows, blocks, weight_mode) == (4, 2, 832, 2)
-        assert waves == 8 or (m in (51, 64) and waves == 4)
+        assert waves == 8 or (not tp8_m128 and m in (51, 64) and waves == 4)
         assert prepacked_weight is None and use_lds_lut
+        assert not (tp8_m128 and use_logical_scale)
         if use_logical_scale:
             assert weight_scale.shape == (256, 4096, 16)
             assert weight_scale.dtype == torch.uint8 and weight_scale.is_contiguous()
         module_loader = (
-            _jit_down_grouped_row_prefetch_logical_scale
+            _jit_down_grouped_row_prefetch_tp8
+            if tp8_m128
+            else _jit_down_grouped_row_prefetch_logical_scale
             if use_logical_scale
             else _jit_down_grouped_row_prefetch
         )
