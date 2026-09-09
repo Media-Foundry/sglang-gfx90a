@@ -483,6 +483,9 @@ def dispatch_custom_allreduce(
             from sglang.srt.distributed.device_communicators.dsv4_ar_geometry import adapt_geometry
 
             AiterCustomAllreduce = adapt_geometry(AiterCustomAllreduce)
+            from sglang.srt.distributed.device_communicators.dsv4_dspark_ar import adapt_dspark_ar
+
+            AiterCustomAllreduce = adapt_dspark_ar(AiterCustomAllreduce)
             logger.info("[AR] Using AiterCustomAllreduce (AMD default)")
             tms_cudagraph = envs.SGLANG_MEMORY_SAVER_CUDA_GRAPH.get()
             if "enable_register_for_capturing" not in inspect.signature(

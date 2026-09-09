@@ -435,3 +435,46 @@ without empty trimmed-mean arrays. Existing mutation/independent-integer and
 optional mutating graph-chain checks remain mandatory. Python AST passes;
 HIP compile, ABI runtime validation and GPU timings have NOT run. This is an
 oracle entry point, not yet a production communication selector.
+
+## TP8 new two-stage AR validation and actual service integration
+
+The above oracle has now compiled and passed runtime Signal ABI validation on
+all eight ranks. Raw logs: `/tmp/dsv4_tp8_dspark_ar_grid80_20260909.log` and
+`/tmp/dsv4_tp8_dspark_ar_grid12_20260909.log`.
+
+- M128/H4096 BF16, 1 MiB, installed new two-stage grid80 baseline.
+- Equivalent grid80 shim: rank-max median 67.925622 vs 67.888873 us.
+- One ABBA grid12 screen: 68.524549 -> 47.906809 us (~30.1% faster).
+- Both configurations: 100/100 exact mutations on all eight ranks, including
+  bounded-integer independent sum checks; repeated identical inputs stable.
+- Grid12: 32 distinct sequential collectives, 1000 graph replays, all outputs
+  checked after the final replay, all ranks exact. This does not check every
+  intermediate replay. Chain buffers cost 32 MiB/rank.
+
+Added default-off `SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS` (0/12/80),
+explicitly gated to TP8/EP1 DSpark target-verify BS32, width4, registered graph
+M128/H4096 BF16. Native AR, eager/unregistered buffers, other shapes fall back.
+Nonzero switch rejects incompatible server configurations. Installed AIter is
+unchanged. Four guard/attention tests passed; service actual hits and E2E gain
+remain to be established, not inferred from component speed.
+
+ABBA controller `/tmp/dsv4_tp8_ar_abba.py`, results directory
+`/tmp/dsv4_tp8_dspark_ar_abba_20260909`, session62234, initial A1 PID4181337.
+Order80/12/12/80, independently restarted arms, identical 32 diverse code
+requests from the existing manifest, natural EOS/max2048, one warm wave then
+one measured wave per arm. Both CK attention switches OFF to isolate AR.
+Each arm must log all eight actual target graph hits; severe tail repetition
+aborts acceptance. Finally restores default-off control. Do not run competing
+GPU experiments. This is a screen, not three rounds or final acceptance.
+
+## Real H8 C4 fixture replay completed
+
+`/tmp/dsv4_tp8_real_sparse_20260909/replay.json`: layer2/rank0, actual M128/H8,
+ragged348-392 keys, absolute positions881-1055. Triton matches captured output
+bitwise. CK-vs-FP32 maxabs0.01538277/relativeL2 0.00271214; Triton-vs-FP32
+maxabs0.00923443/relativeL2 0.00171559. Both pass atol0.004+rtol0.02 (NOT
+maxabs<=0.004). CK-vs-Triton maxabs0.015625/relativeL2 0.00339034.
+1000 graph replays exact; five-ABBA component medians308.839483->118.726325us.
+Fixture writer used diagnostic fixed continuation inputs, not performance
+requests. This one layer does not establish whole-model parity or explain the
+previous C4 looping response; C4 production acceptance remains paused.
