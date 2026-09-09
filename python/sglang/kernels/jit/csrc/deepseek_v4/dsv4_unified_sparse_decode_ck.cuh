@@ -587,7 +587,8 @@ partition_mfma_split_workspace(void* workspace,
 // Four waves share a token/split CTA. Each wave owns D128 of the output, which
 // cuts accumulator pressure by 4x. QK is deliberately recomputed per wave in
 // this first split implementation so all four gfx90a SIMDs stay occupied.
-template <bool StageQ, bool PreloadQ, bool PipelineKV, int Heads = 16>
+template <bool StageQ, bool PreloadQ, bool PipelineKV, int Heads = 16,
+          bool PairH8 = false>
 __global__ __launch_bounds__(kWaveSize * 4) void
 unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
                                                    UnifiedSparseDecodeWorkspace workspace,
@@ -614,15 +615,18 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
     __shared__ bf16_t probabilities[kLocalHeads * kTile];
     __shared__ float alpha_shared[kLocalHeads];
 
-    const int token = static_cast<int>(blockIdx.x);
+    static_assert(!PairH8 || Heads == 8);
+    const int work_item = static_cast<int>(blockIdx.x);
+    const int token = PairH8 ? work_item * 2 : work_item;
     const int split = static_cast<int>(blockIdx.y);
     const int tid = static_cast<int>(threadIdx.x);
     const int wave = tid / kWaveSize;
     const int lane = tid % kWaveSize;
     const int matrix_lane = lane % kTile;
     const int k_group = lane / kTile;
-    const int begin = args.kv_indptr[token];
-    const int end = args.kv_indptr[token + 1];
+    const int gather_token = PairH8 ? token + 1 : token;
+    const int begin = args.kv_indptr[gather_token];
+    const int end = args.kv_indptr[gather_token + 1];
     const int total_tiles = (end - begin + kTile - 1) / kTile;
     const int tiles_per_split = (total_tiles + splits - 1) / splits;
     const int first_tile = split * tiles_per_split;
@@ -653,9 +657,11 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             for(int k = 0; k < kValuesPerLane; ++k)
             {
                 const int d = k_begin + k_group * kValuesPerLane + k;
+                const int q_token = PairH8 ? token + matrix_lane / Heads : token;
+                const int q_head = PairH8 ? matrix_lane % Heads : matrix_lane;
                 const long q_offset =
-                    (static_cast<long>(token) * args.heads + matrix_lane) * kHeadDim + d;
-                q_fragments[fragment][k] = matrix_lane < Heads
+                    (static_cast<long>(q_token) * args.heads + q_head) * kHeadDim + d;
+                q_fragments[fragment][k] = (PairH8 || matrix_lane < Heads)
                     ? bit_cast<bf16_t>(args.q[q_offset]) : type_convert<bf16_t>(0.0f);
             }
         }
@@ -798,7 +804,13 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
 #pragma unroll
         for(int qk_wave = 0; qk_wave < kWaves; ++qk_wave)
             score += score_partial[qk_wave][softmax_head * kTile + softmax_key];
-        score = softmax_key < valid_keys ? score * args.softmax_scale : -__builtin_inff();
+        const int score_token = PairH8 ? token + softmax_head / Heads : token;
+        const int score_length = PairH8
+            ? args.kv_indptr[score_token + 1] - args.kv_indptr[score_token]
+            : end - begin;
+        const int score_valid_keys =
+            max(0, min(kTile, score_length - tile_index * kTile));
+        score = softmax_key < score_valid_keys ? score * args.softmax_scale : -__builtin_inff();
 
         float block_max = score;
 #pragma unroll
@@ -806,17 +818,23 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             block_max = fmaxf(block_max, __shfl_down(block_max, offset, kTile));
         block_max = __shfl(block_max, 0, kTile);
 
-        const float next_max = fmaxf(softmax_max, block_max);
-        const float alpha = expf(softmax_max - next_max);
-        const float weight = softmax_key < valid_keys ? expf(score - next_max) : 0.0f;
+        const bool score_row_active = score_valid_keys > 0;
+        const float next_max = score_row_active ? fmaxf(softmax_max, block_max)
+                                                : softmax_max;
+        const float alpha = score_row_active ? expf(softmax_max - next_max) : 1.0f;
+        const float weight = score_row_active && softmax_key < score_valid_keys
+            ? expf(score - next_max) : 0.0f;
         float block_sum = weight;
 #pragma unroll
         for(int offset = kTile / 2; offset > 0; offset >>= 1)
             block_sum += __shfl_down(block_sum, offset, kTile);
         block_sum = __shfl(block_sum, 0, kTile);
 
-        softmax_norm = softmax_norm * alpha + block_sum;
-        softmax_max = next_max;
+        if(score_row_active)
+        {
+            softmax_norm = softmax_norm * alpha + block_sum;
+            softmax_max = next_max;
+        }
         probabilities[softmax_head * kTile + softmax_key] = type_convert<bf16_t>(weight);
         if(softmax_key == 0) alpha_shared[softmax_head] = alpha;
         __syncthreads();
@@ -882,12 +900,14 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
         }
     }
 
-    const std::size_t partial_row =
-        (static_cast<std::size_t>(token) * splits + split) * args.heads;
-    if(softmax_key == 0 && softmax_head < Heads)
+    const int output_token = PairH8 ? token + softmax_head / Heads : token;
+    const int output_head = PairH8 ? softmax_head % Heads : softmax_head;
+    const std::size_t stat_partial_row =
+        (static_cast<std::size_t>(output_token) * splits + split) * args.heads;
+    if(softmax_key == 0 && (PairH8 || softmax_head < Heads))
     {
-        workspace.max_partial[partial_row + softmax_head] = softmax_max;
-        workspace.norm_partial[partial_row + softmax_head] = softmax_norm;
+        workspace.max_partial[stat_partial_row + output_head] = softmax_max;
+        workspace.norm_partial[stat_partial_row + output_head] = softmax_norm;
     }
 
 #pragma unroll
@@ -898,9 +918,15 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
 #pragma unroll
         for(int i = 0; i < kValuesPerLane; ++i)
         {
-            const int head = k_group * kValuesPerLane + i;
-            if(head < Heads)
-                workspace.output_partial[(partial_row + head) * kHeadDim + d] = accumulator[n][i];
+            const int combined_head = k_group * kValuesPerLane + i;
+            const int value_token = PairH8 ? token + combined_head / Heads : token;
+            const int value_head = PairH8 ? combined_head % Heads : combined_head;
+            if(PairH8 || combined_head < Heads)
+            {
+                const std::size_t value_partial_row =
+                    (static_cast<std::size_t>(value_token) * splits + split) * args.heads;
+                workspace.output_partial[(value_partial_row + value_head) * kHeadDim + d] = accumulator[n][i];
+            }
         }
     }
 }
