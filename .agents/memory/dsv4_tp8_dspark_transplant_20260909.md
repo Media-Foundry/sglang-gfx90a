@@ -396,3 +396,21 @@ CPU fixture/metric tests2/2 pass; actual capture and GPU replay have NOT run.
 This work does not establish the cause of the C4 looping response. The next
 diagnostic needs a separate eager service after A2 finishes, not a capture
 hook inserted into the current timed graph.
+
+Session61566 runs `/tmp/dsv4_after_a2_capture.py`, waiting for exact controller
+4144473 and complete A2 JSON. It then checks AMD GPU ownership, stops only
+A2 service4142190, and starts an eager DSpark diagnostic with both target and
+draft graphs disabled and the new rank0/layer2 fixture hook enabled.
+It constructs32 varied inputs with512 fixed continuation tokens from A2
+warmup (index7 uses the preserved failed C4 continuation), generates up to64
+tokens per request, and requires the actual M128/C4 tensor file. These are
+diagnostic requests, NOT a performance result or a teacher-forced full-model
+logits comparison. The captured common inputs allow a narrower kernel oracle.
+After capture, it stops that service and runs the real tensor replay on idle
+GCD4, then restores the original A2 control environment in finally.
+
+Artifacts: `/tmp/dsv4_tp8_real_sparse_20260909/` (created after A2 completes).
+Restore log: `/tmp/dsv4_tp8_dspark_control_a2_restored_20260909.service.log`.
+Inspect session61566 for success/failure and restored PID; do not launch a
+competing GPU experiment while it or the A2 controller is live. The previously
+cancelled collective queue remains cancelled and must not be assumed pending.
