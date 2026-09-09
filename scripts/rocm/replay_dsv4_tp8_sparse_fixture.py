@@ -23,7 +23,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('fixture')
     parser.add_argument('--output', required=True)
+    parser.add_argument('--refined-probabilities', action='store_true',
+                        help='isolated BF16 probability hi+lo PV oracle; no production changes')
+    parser.add_argument('--rounds', type=int, default=1)
     args = parser.parse_args()
+    assert args.rounds > 0
+    selected_ck = run_if_supported
+    if args.refined_probabilities:
+        from sglang.kernels.ops.debug.gfx90a_sparse_h8_refined_probability import run_if_supported as refined
+        selected_ck = refined
     data = torch.load(args.fixture, map_location='cpu', weights_only=True)
     assert data['format'] == 'dsv4_tp8_sparse_fixture_v1'
     names = ('q', 'unified_kv', 'kv_indices', 'kv_indptr', 'attn_sink')
@@ -36,7 +44,7 @@ def main():
         kv = torch.zeros((1, 512), dtype=torch.bfloat16, device=q.device)
 
     def ck():
-        out = run_if_supported(q, kv, indices, ptr, sink, scale)
+        out = selected_ck(q, kv, indices, ptr, sink, scale)
         assert out is not None, 'fixture did not satisfy actual H8 wrapper'
         return out
 
@@ -53,11 +61,16 @@ def main():
         probs = torch.softmax(torch.cat((scores, sink[:, None]), dim=1), dim=1)
         reference[row] = probs[:, :-1] @ keys
     report = dict(provenance=data['provenance'],
+                  refined_probabilities=args.refined_probabilities,
                   q_abs_max=float(q.abs().max()), kv_abs_max=float(kv.abs().max()),
                   ck_vs_fp32=error_metrics(b, reference),
                   triton_vs_fp32=error_metrics(a, reference),
                   ck_vs_triton=error_metrics(b, a),
                   triton_vs_capture=error_metrics(a, data['baseline_output'].cuda()))
+    if args.refined_probabilities:
+        original = run_if_supported(q, kv, indices, ptr, sink, scale)
+        report['original_ck_vs_fp32'] = error_metrics(original, reference)
+        report['refined_vs_original_ck'] = error_metrics(b, original)
     # Preserve diagnostics even on a numerical failure; no timings are accepted.
     report['numerical_pass'] = all(torch.allclose(x.float(), reference, atol=.004, rtol=.02)
                                    for x in (a, b))
@@ -96,7 +109,7 @@ def main():
         return start.elapsed_time(end) * 10
 
     blocks = []
-    for _ in range(5):
+    for _ in range(args.rounds):
         blocks.append([timing(graphs[arm]) for arm in (0, 1, 1, 0)])
     report['abba_us'] = blocks
     report['triton_median_us'] = statistics.median(v for b in blocks for v in (b[0], b[3]))

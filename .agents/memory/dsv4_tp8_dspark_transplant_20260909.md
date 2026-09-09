@@ -601,3 +601,33 @@ warm wave followed by measured natural-EOS/max2048 wave. Checks all8 AR hits
 in every arm, all8 C128 CK hits in B and no CK hits in A. Finally restores the
 validated grid12/CK-off profile. This is the sole active GPU controller; no
 other benchmark is queued. Combination gains are not yet known.
+
+## Isolated C4 numerical candidate prepared during combination ABBA
+
+Current H8 wrapper allocates private output/workspace in the current graph;
+static reading did not establish a workspace-sharing race. The MFMA core
+does explicitly round softmax probabilities to BF16 before PV while retaining
+an FP32 denominator. This is a possible contributor to the measured CK-vs-FP32
+gap, NOT a demonstrated explanation for the one looping C4 response.
+
+Added diagnostic-only `gfx90a_dsv4_sparse_h8_refined_probability_oracle.cuh`
+and Python debug wrapper. It copies the existing core into an isolated symbol,
+keeps QK, BF16 KV, score/denominator and split reduction unchanged, represents
+probability as BF16 hi+lo, and adds a second PV MFMA into the SAME accumulator.
+No FP16 KV conversion, checkpoint change, new production selector or changes to
+the running service's core. Additional LDS/compute may offset its benefit;
+no speed or quality claim yet. Separate JIT key avoids contaminating ABBA.
+
+Real-fixture replay adds `--refined-probabilities` and `--rounds` (default one
+ABBA), reporting original CK and refined errors against FP32. Python compile
+and the two existing CPU fixture tests pass; HIP compilation and GPU tests
+have not run. First gate: actually reduce real-fixture error and remain faster
+than Triton before considering wider mutations or an E2E C4 re-test.
+
+Waiter `/tmp/dsv4_tp8_refined_after_combo.py`, session93041, waits for exact
+live combination controller65738, requires complete.json, then safely stops
+its restored profile after amd-smi ownership checks. It runs only on GCD4 and
+restores the grid12/CK-off TP8 service in finally. Output directory (created
+after combination completes): `/tmp/dsv4_tp8_refined_probability_20260909`.
+No concurrent GPU experiment has started. Session61450 remains the active
+combination benchmark; its A1 warm result905.071056 is excluded from timing.
