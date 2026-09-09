@@ -468,6 +468,10 @@ class DeepseekV4HipRadixBackend(
             getattr(model_runner, "is_draft_worker", False)
             and model_runner.spec_algorithm.is_dspark()
         )
+        self.is_dspark_target = (
+            not getattr(model_runner, "is_draft_worker", False)
+            and model_runner.spec_algorithm.is_dspark()
+        )
         self.target_verify_num_draft_tokens = self.speculative_num_draft_tokens
         if self.is_dspark_draft:
             assert self.speculative_num_draft_tokens is not None
@@ -1334,6 +1338,8 @@ class DeepseekV4HipRadixBackend(
 
                 if m128_ck_eligible(
                     enabled=True, gfx90a=is_gfx90a_supported(),
+                    dspark=self.is_dspark_target,
+                    allow_c4=envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4.get(),
                     tp_size=get_parallel().attn_tp_size, compress_ratio=compress_ratio,
                     rows=T, batch_size=forward_batch.batch_size,
                     target_verify=forward_batch.forward_mode.is_target_verify(),
@@ -1343,9 +1349,10 @@ class DeepseekV4HipRadixBackend(
                     from sglang.kernels.ops.attention.dsv4.gfx90a_sparse_h8 import run_if_supported
 
                     output = run_if_supported(q, unified, kv_indices, kv_indptr, attn_sink, self.softmax_scale)
-                    if output is not None and not getattr(self, "_tp8_ck_h8_logged", False):
-                        logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M128 C128", get_parallel().attn_tp_rank, layer_id)
-                        self._tp8_ck_h8_logged = True
+                    logged_attr = f"_tp8_ck_h8_c{compress_ratio}_logged"
+                    if output is not None and not getattr(self, logged_attr, False):
+                        logger.info("DSV4 TP8 DSpark CK H8 hit rank=%s layer=%s M128 C%s", get_parallel().attn_tp_rank, layer_id, compress_ratio)
+                        setattr(self, logged_attr, True)
             if output is None:
                 output = runtime.decode(
                     q=q,

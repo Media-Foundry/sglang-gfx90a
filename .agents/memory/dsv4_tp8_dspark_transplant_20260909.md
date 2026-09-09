@@ -270,3 +270,33 @@ This supplements old-vs-new equality, which alone could hide a common IPC
 addressing failure. AST and CPU bounds checks pass. GPU validation and timings
 remain pending; no AIter library or production path modified. Run this only
 after the C3b and queued H8 oracle finish, with exclusive GPU ownership.
+
+## C3b completed; long H8 oracle passed
+
+Three C3b rates: 890.345068 / 892.965558 / 893.758103 tok/s;
+resident windows 40.355140 / 39.786529 / 36.701206 seconds. Median 892.965558:
++1.54% vs original full-target baseline, +1.71% vs overlap-only B2. These
+are separate-service comparisons, NOT matched E2E ABBA. Across all 288
+responses, tail 8-gram duplicate fraction median 0.061386, zero above 0.75.
+Spot-read answers are structured and non-looping, but some extrapolate beyond
+the short source excerpt; do not label them an exhaustive correctness oracle.
+
+Queued long oracle exited zero and wrote
+`/tmp/dsv4_sparse_h8_long_oracle_20260909.json`. Same FP32 tolerance, H16/H8
+equality, mutation checks and 1000 graph replays passed for all three cases:
+
+| max row keys | H8 CK median us | Triton median us | paired speedup | max abs vs FP32 |
+|---:|---:|---:|---:|---:|
+|640|164.545|480.409|2.920x|0.001896|
+|1024|247.578|763.591|3.084x|0.001220|
+|8192|1792.369|6041.056|3.370x|0.000540|
+
+Restored C3b PID 4123245 was subsequently stopped after AMD GPU ownership
+checks to start the independent C4 expansion. New default-off
+`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4` requires the existing parent CK
+flag. The guard now explicitly requires a DSpark target worker, in addition
+to M128/C32/TP8/width4 and no inverse-RoPE fusion. This excludes AR, draft
+workers and other speculative algorithms. Per-ratio hit markers distinguish
+C4 from C128. Three guard/ABI tests pass. E2E C4 results remain pending.
+Output root `/tmp/dsv4_tp8_dspark_ck_c4_20260909`; startup log adds
+`.service.log`. Gate requires C4 hits on all eight ranks before benchmarking.

@@ -26,12 +26,18 @@ def test_tp8_ck_target_only_guard():
     spec.loader.exec_module(module)
     args = dict(enabled=True, gfx90a=True, tp_size=8, compress_ratio=128,
                 rows=128, batch_size=32, target_verify=True, width=4,
-                inverse_rope=False)
+                inverse_rope=False, dspark=True)
     assert module.m128_ck_eligible(**args)
     for name, value in [('enabled',False), ('gfx90a',False), ('tp_size',4),
                         ('compress_ratio',4), ('rows',132), ('batch_size',33),
-                        ('target_verify',False), ('width',6), ('inverse_rope',True)]:
+                        ('target_verify',False), ('width',6), ('inverse_rope',True),
+                        ('dspark',False)]:
         assert not module.m128_ck_eligible(**(args | {name:value})), name
+    c4 = args | dict(compress_ratio=4, allow_c4=True)
+    assert module.m128_ck_eligible(**c4)
+    for name, value in [('allow_c4',False), ('dspark',False), ('target_verify',False),
+                        ('rows',32), ('tp_size',4), ('compress_ratio',1)]:
+        assert not module.m128_ck_eligible(**(c4 | {name:value})), name
 
 
 def test_h8_wrapper_accepts_padded_local_sink_without_copy(monkeypatch):
