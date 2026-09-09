@@ -581,7 +581,7 @@ Session96271 finished exit0. Retained service57286 uses the new full-target
 profile, all8 physical GCDs, TP8/EP1, 1M pool, AR grid12 and CK attention OFF.
 All8 target graph hit logs verified. France answered Paris. C32x512 real-code
 smoke returned32 valid speculative responses with no severe repetition; sample
-outputs0/7/26 remain structured explanations, not blank/repeated text.
+outputs2/7/26 remain structured explanations, not blank/repeated text.
 Artifacts and complete.json are in the profile directory above. This is a
 wiring/quality smoke, not an extra ABBA performance estimate.
 
@@ -589,3 +589,15 @@ Communication migration now has component exactness, E2E ABBA, mixed-tier
 coverage, native negative-path smoke and reusable-profile evidence. Further
 combination with the separately ported CK H8 C128 path still needs E2E ABBA;
 C4 quality investigation remains distinct and must not be silently enabled.
+
+### Combined C128 attention screen started
+
+Controller `/tmp/dsv4_tp8_ar_ckc128_abba.py`, session61450, replaces the owned
+profile service57286. Results directory:
+`/tmp/dsv4_tp8_dspark_ar_ckc128_abba_20260909`.
+AR grid12 is fixed for all arms; A has CK H8 OFF, B has C128-only CK H8 ON;
+C4 remains OFF. Same independent-process ABBA and real-code manifest, excluded
+warm wave followed by measured natural-EOS/max2048 wave. Checks all8 AR hits
+in every arm, all8 C128 CK hits in B and no CK hits in A. Finally restores the
+validated grid12/CK-off profile. This is the sole active GPU controller; no
+other benchmark is queued. Combination gains are not yet known.
