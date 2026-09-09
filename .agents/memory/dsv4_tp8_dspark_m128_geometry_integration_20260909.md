@@ -15,7 +15,19 @@ matched non-LDS component ABBA then measured balanced +5.270% and skewed
 The guard therefore permits both already-validated lookup modes while keeping
 the exact A4/R2, shape, topology and DSpark-target constraints.
 
-Next: one real-code C32 E2E ABBA, same manifest in all arms, excluded warmup
-per process, full target verification and 1M pool. Results pending.
+Real-code C32 E2E single ABBA, same manifest in all arms, excluded warmup per
+process, full target verification and 1M pool:
+
+- A1 control: 911.6256 tok/s
+- B1 G832/D832: 937.8567 tok/s
+- B2 G832/D832: 939.4148 tok/s
+- A2 control: 913.7100 tok/s
+- arm means: 912.6678 -> 938.6357 tok/s, +2.8453%
+- all measured and warm waves passed the severe repetition gate
+
+The full-target TP8 profile now enables the selector by default; users can
+still force it off with the dedicated environment variable. This remains far
+below the 2k tok/s goal and is only one accepted increment.
+
 Controller: `/tmp/dsv4_tp8_geometry_abba.py`.
-Artifacts: `/tmp/dsv4_tp8_dspark_2k_geometry_abba_20260909`.
+Artifacts: `/tmp/dsv4_tp8_dspark_2k_geometry_abba_retry_20260909`.
