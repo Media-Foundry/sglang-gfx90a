@@ -587,7 +587,7 @@ partition_mfma_split_workspace(void* workspace,
 // Four waves share a token/split CTA. Each wave owns D128 of the output, which
 // cuts accumulator pressure by 4x. QK is deliberately recomputed per wave in
 // this first split implementation so all four gfx90a SIMDs stay occupied.
-template <bool StageQ, bool PreloadQ, bool PipelineKV>
+template <bool StageQ, bool PreloadQ, bool PipelineKV, int Heads = 16>
 __global__ __launch_bounds__(kWaveSize * 4) void
 unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
                                                    UnifiedSparseDecodeWorkspace workspace,
@@ -636,7 +636,8 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             const int d = linear % kHeadDim;
             const long q_offset =
                 (static_cast<long>(token) * args.heads + head) * kHeadDim + d;
-            q_tile[head * kQLdsStride + d] = bit_cast<bf16_t>(args.q[q_offset]);
+            q_tile[head * kQLdsStride + d] = head < Heads
+                ? bit_cast<bf16_t>(args.q[q_offset]) : type_convert<bf16_t>(0.0f);
         }
         __syncthreads();
     }
@@ -654,7 +655,8 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
                 const int d = k_begin + k_group * kValuesPerLane + k;
                 const long q_offset =
                     (static_cast<long>(token) * args.heads + matrix_lane) * kHeadDim + d;
-                q_fragments[fragment][k] = bit_cast<bf16_t>(args.q[q_offset]);
+                q_fragments[fragment][k] = matrix_lane < Heads
+                    ? bit_cast<bf16_t>(args.q[q_offset]) : type_convert<bf16_t>(0.0f);
             }
         }
     }
@@ -770,7 +772,8 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
                 {
                     const long q_offset =
                         (static_cast<long>(token) * args.heads + matrix_lane) * kHeadDim + d;
-                    q_vec[k] = bit_cast<bf16_t>(args.q[q_offset]);
+                    q_vec[k] = matrix_lane < Heads
+                        ? bit_cast<bf16_t>(args.q[q_offset]) : type_convert<bf16_t>(0.0f);
                 }
                 k_vec[k] = kv_tile[matrix_lane * kKvLdsStride + d];
             }
@@ -881,7 +884,7 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
 
     const std::size_t partial_row =
         (static_cast<std::size_t>(token) * splits + split) * args.heads;
-    if(softmax_key == 0)
+    if(softmax_key == 0 && softmax_head < Heads)
     {
         workspace.max_partial[partial_row + softmax_head] = softmax_max;
         workspace.norm_partial[partial_row + softmax_head] = softmax_norm;
@@ -896,7 +899,8 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
         for(int i = 0; i < kValuesPerLane; ++i)
         {
             const int head = k_group * kValuesPerLane + i;
-            workspace.output_partial[(partial_row + head) * kHeadDim + d] = accumulator[n][i];
+            if(head < Heads)
+                workspace.output_partial[(partial_row + head) * kHeadDim + d] = accumulator[n][i];
         }
     }
 }
@@ -1029,14 +1033,17 @@ inline hipError_t launch_unified_sparse_decode_d512_mfma_m16(
     return hipGetLastError();
 }
 
-template <bool StageQ, bool PreloadQ, bool PipelineKV>
+template <bool StageQ, bool PreloadQ, bool PipelineKV, int Heads = 16>
 inline hipError_t launch_unified_sparse_decode_d512_mfma_split2_impl(
     const UnifiedSparseDecodeArgs& args,
     void* workspace_ptr,
     int splits,
     hipStream_t stream = nullptr)
 {
-    if(!is_supported(args) || workspace_ptr == nullptr)
+    static_assert(Heads == 8 || Heads == 16);
+    auto validation_args = args;
+    validation_args.heads = 16;
+    if(!is_supported(validation_args) || args.heads != Heads || workspace_ptr == nullptr)
     {
         return hipErrorInvalidValue;
     }
@@ -1047,7 +1054,7 @@ inline hipError_t launch_unified_sparse_decode_d512_mfma_split2_impl(
     const dim3 core_grid(args.tokens, splits, 1);
     const dim3 core_block(kWaveSize * 4, 1, 1);
     hipLaunchKernelGGL(
-        (unified_sparse_decode_d512_mfma_split_core_kernel<StageQ, PreloadQ, PipelineKV>),
+        (unified_sparse_decode_d512_mfma_split_core_kernel<StageQ, PreloadQ, PipelineKV, Heads>),
                        core_grid,
                        core_block,
                        0,

@@ -89,3 +89,87 @@ last 512 output IDs, compute the duplicate fraction among sliding 8-grams.
 Full-target C32 warmup median 0.065, 0/32 above 0.75, 10/32 hit length cap.
 B1 median 0.949, 29/32 above 0.75, all 32 hit the cap. This supports the
 manual finding of widespread collapse, not just a different greedy hash.
+
+## H8 oracle preparation (unvalidated)
+
+Prepared `scripts/rocm/bench_dsv4_sparse_h8_oracle.py` and a separate FFI
+wrapper `gfx90a_dsv4_sparse_h8_oracle.cuh`. The existing MFMA split core now
+has a default-16 template head count, with H8 specializing masked Q loads and
+partial writes. No production Python attention selector has been widened.
+The original H16 wrapper continues to instantiate the default-16 core.
+
+The planned oracle checks lengths 0/17/128/512, ragged rows, ten Q/sink/index
+mutations against FP32 torch attention, graph/eager mutation equality and
+1000 identical graph replays, plus GPU-event timing. Python syntax passes;
+HIP compilation and GPU validation have NOT run. Do not enable it in service
+until those pass and complete stage timing beats the current H8 Triton path.
+Wait for B2 E2E to finish before using any GPU for the oracle. B2 controller
+session 46284 and warmup process 4064463 were verified live.
+
+B2 warmup subsequently completed at 877.9341 tok/s (12.7333 resident seconds).
+Repetition diagnostic: median 0.0733, 0/32 above 0.75; reviewed outputs no
+longer show B1's looping collapse. Formal benchmark PID 4066124 is live;
+first wave 886.9 tok/s over 9.7046 seconds, not a complete 30-second round.
+
+Session 79768 runs `/tmp/dsv4_after_overlap_h8_oracle.py`: waits for that exact
+benchmark PID/birth and a complete result, rechecks GPU PID ownership, then
+stops only B2 service 4057043, runs the isolated H8 oracle on physical GCD4,
+and restores the full-target overlap service in a finally block. This avoids
+GPU test interference. Inspect the session output for oracle failures and the
+new restored PID. Restore log:
+`/tmp/dsv4_tp8_dspark_overlap_restored_20260909.service.log`.
+Oracle output (only written after all checks):
+`/tmp/dsv4_sparse_h8_oracle_20260909.json`.
+
+Further port audit: the installed AIter `custom_all_reduce.cuh` guards both
+`AITER_GFX90A_AR_512K_BLOCKS` and `AITER_GFX90A_AR_1M_BLOCKS` by
+`world_size_ == 4`; setting those on TP8 has no effect. Likewise TP4 gate-row
+prefetch is nested under TP4-specific shape predicates; the TP8 M32 prefetch
+alternative requires native_m32_active and does not automatically cover the
+DSpark draft. These need bounded TP8 oracles, not copied env exports.
+
+The H8 oracle now compiles H16 and H8 exports in the same new JIT module and
+requires H8 output to exactly match the first eight heads of an H16 input
+with matching Q/sink. It also compares timing/error against the current H8
+Triton entry. This remains queued, not a completed validation.
+
+## B2 complete
+
+Three round rates: 877.951849 / 876.887980 / 880.195032 output tok/s;
+resident windows 35.5953 / 40.8228 / 35.4603 seconds. Median 877.951849,
+versus full-target baseline 879.423277 (about -0.17%). No demonstrated speed
+gain; keep overlap opt-in, not recommended by default. Across 288 responses,
+tail 8-gram duplicate fraction median 0.0584, none above 0.75. France passed.
+This is a looping-collapse screen, not a semantic correctness proof.
+
+Initial H8 oracle compiled but rejected its length-zero case: a zero-element
+index tensor supplied a null pointer to the existing ABI validator. Fixed the
+fixture to allocate a one-element unused sentinel while leaving indptr zero.
+Added hipGetErrorString diagnostics. No numeric failure was established.
+Stopped the auto-restored service 4081881 after ownership checks, rerunning
+the oracle in session 77815 on GCD4 only. Finally restores the full-target
+overlap service to `...overlap_restored2_20260909.service.log`; inspect session
+output for the new PID and actual oracle result.
+
+## H8 oracle passed; E2E integration still pending
+
+Retry session 77815 exited zero. All fixtures passed FP32 torch tolerance
+atol=0.004, rtol=0.02 (not absolute error <=0.004), H8 vs H16-first-eight
+bitwise comparison, ten graph/eager mutations and 1000 graph replays.
+
+| max row keys | H8 CK median us | Triton median us | max abs vs FP32 |
+|---:|---:|---:|---:|
+|0|26.616|13.705|0|
+|17|36.915|32.735|0.0081234|
+|128|57.609|103.995|0.00350094|
+|512|137.297|386.442|0.00190940|
+
+M128/H8/D512, one quarter of rows have half the specified key length.
+Five GPU-event timing batches each, CK then Triton (not ABBA); treat these
+as a promising component screen, not a final speedup checkpoint. Short rows
+regress; no production selector changed yet. Original H16 math is retained.
+Raw JSON: `/tmp/dsv4_sparse_h8_oracle_20260909.json`.
+Full-target overlap service restored as PID 4086117, log
+`/tmp/dsv4_tp8_dspark_overlap_restored2_20260909.service.log`.
+Next: guarded TP8 target-only H8 integration, actual-path-hit validation,
+real-code E2E and AR negative control, with no anchor-only approximation.
