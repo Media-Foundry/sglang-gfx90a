@@ -19,6 +19,10 @@ def _module():
 
 
 def run_if_supported(q, kv, indices, indptr, sink, scale):
+    # MQALayer retains a legacy padded 64-head local sink. The first eight
+    # entries are this TP8 rank's real heads; slicing is allocation-free.
+    if sink.ndim == 1 and sink.shape[0] >= 8:
+        sink = sink[:8]
     if not (q.shape == (128, 8, 512) and q.dtype == torch.bfloat16
             and kv.ndim == 2 and kv.shape[1] == 512 and kv.dtype == q.dtype
             and indices.dtype == torch.int32 and indptr.dtype == torch.int32

@@ -190,3 +190,11 @@ C3 PID 4093679, log `/tmp/dsv4_tp8_dspark_ck_c3_20260909.service.log`.
 Gate script starts France then C32 warmup plus three formal rounds, output
 directory `/tmp/dsv4_tp8_dspark_ck_c3_20260909`. No C3 result yet. C4 attention
 integration and all-reduce/draft-prefetch transplantation remain unverified.
+
+C3 startup and France passed, but there were no CK hit logs. Source audit
+found `_local_attn_sink()` returns a legacy padded 64-element vector with
+the real local eight heads first. H8 wrapper's exact (8,) sink check silently
+fell back. Stopped that benchmark; it is NOT a CK E2E result. Wrapper now
+slices the first eight sink entries without allocation or arithmetic changes.
+C3b restart uses `/tmp/dsv4_tp8_dspark_ck_c3b_20260909.service.log`; actual
+path hits must be checked before accepting its timing.
