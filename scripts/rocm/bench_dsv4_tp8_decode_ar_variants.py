@@ -29,6 +29,8 @@ def main():
                    help='independent M64/M128 new AIter two-stage grid oracle')
     p.add_argument('--chain-length', type=int, default=0, choices=(0,32))
     p.add_argument('--chain-replays', type=int, default=1000)
+    p.add_argument('--chain-mixed-tiers', action='store_true',
+                   help='alternate target M128 tuned grid and installed M64 fallback in the graph chain')
     p.add_argument('--shim-baseline', action='store_true',
                    help='compare both geometries through the validated shim, isolating grid effects')
     args = p.parse_args()
@@ -36,6 +38,7 @@ def main():
     assert not args.shim_baseline or args.candidate_blocks is not None
     assert not args.chain_length or args.candidate_blocks is not None
     assert not args.dspark_two_stage or (args.candidate_blocks is not None and args.rows in (64,128))
+    assert not args.chain_mixed_tiers or (args.chain_length and args.dspark_two_stage and args.rows == 128)
     assert 1 <= args.chain_replays <= 10000
     rank = int(os.environ['LOCAL_RANK'])
     torch.cuda.set_device(rank)
@@ -109,7 +112,9 @@ def main():
                and r['integer_failures'] == 0 for r in reports), reports
     chain_report = None
     if args.chain_length:
-        chain_outputs = [torch.empty_like(x) for _ in range(args.chain_length)]
+        chain_rows = [64 if args.chain_mixed_tiers and step % 2 else args.rows
+                      for step in range(args.chain_length)]
+        chain_outputs = [torch.empty_like(x[:rows]) for rows in chain_rows]
         chain = torch.cuda.CUDAGraph()
         torch.cuda.synchronize()
         dist.barrier()
@@ -118,7 +123,14 @@ def main():
                 # Distinct rank-local inputs at every collective: missing exit
                 # handshakes can no longer hide behind an unchanged input.
                 x.fill_(rank + step)
-                geometry(ar, x, out, args.candidate_blocks)
+                if args.chain_mixed_tiers and step % 2:
+                    # A draining/changed verify tier returns to installed AR.
+                    # This shares the registered base pointer, with a shorter
+                    # contiguous view, and exercises cross-grid handshakes.
+                    ar.all_reduce(x[:chain_rows[step]], out=out,
+                                  registered=True, use_new=True)
+                else:
+                    geometry(ar, x, out, args.candidate_blocks)
         ar.register_graph_buffers()
         for _ in range(args.chain_replays):
             chain.replay()
@@ -129,6 +141,7 @@ def main():
         dist.all_gather_object(witnesses, dict(rank=rank, exact=chain_exact))
         assert all(r['exact'] for r in witnesses), witnesses
         chain_report = dict(length=args.chain_length, replays=args.chain_replays,
+                            rows=chain_rows, mixed_tiers=args.chain_mixed_tiers,
                             output_bytes=sum(out.numel()*out.element_size() for out in chain_outputs),
                             witnesses=witnesses,
                             limitation='all per-step outputs checked after final replay, not every intermediate replay')

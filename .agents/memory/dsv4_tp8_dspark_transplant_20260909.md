@@ -495,3 +495,15 @@ effects and preexisting DSpark behavior remain possible contributors; no root
 cause is established. Fixed real inputs reduce workload variation, but do not
 eliminate acceptance/output variation. Component exactness, E2E quality, and
 ABBA performance must continue to be reported separately.
+
+B1 grid12 also hit all eight ranks during target capture; ready14:16:59.
+Warm wave816.871922 tok/s (16.595013-second resident interval) versus A1 warm
+888.838659 (12.354323-second interval). Median acceptance3.09268 is similar to
+A1 warm3.09063, but these are whole-request acceptance statistics, not exact
+common-window verification-step counts. Do not infer a definitive cause or
+warm-vs-warm E2E win. Formal B1 and remaining B2/A2 are still pending.
+
+Prepared `--chain-mixed-tiers` in the existing communication oracle: alternates
+tuned M128 with installed M64 new two-stage fallback, sharing a registered base
+pointer and checking per-step outputs. Python compile passes; GPU execution
+pending AFTER service ABBA. No competing GPU job has been started.
