@@ -1619,6 +1619,8 @@ class Envs:
     # decode, TARGET_VERIFY must return the normalized BF16 KV block so the
     # backend can perform its causally indexed store before sparse attention.
     SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM = EnvBool(False)
+    # Independent TP8/H8 target-only transplant; never enables native AR.
+    SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM = EnvBool(False)
     # Experimental C128 counterpart for the fixed TP4/M64 decode graph tier.
     # Kept separate because the same schedule regressed at M32.
     SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM = EnvBool(False)

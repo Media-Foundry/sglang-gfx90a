@@ -1,5 +1,9 @@
 # TP8 DSpark transplant — in progress
 
+**B1 anchor-only transplant REJECTED:** natural-code warmup collapsed into
+repetition despite a correct France answer. Do not use the opt-in approximate
+profile as a recommended TP8 setting. See rejection details below.
+
 ## Baseline
 
 TP8/EP1/no-A2A, original checkpoint, gamma three, 1M logical token pool,
@@ -41,3 +45,47 @@ before accepting any speed gain. No candidate performance available yet.
   complete graph/E2E before adopting its 1-MiB CTA count.
 - Final acceptance needs matched-workload multi-round E2E and AR negative
   controls, and must separately label approximate vs full-target results.
+
+## Follow-up while B1 runs
+
+B1 reached ready, France returned Paris, and C32 warmup subprocess 4054542
+was verified live under service 4046629. Session 84644 remains the owned
+gate/benchmark handle; do not restart it based on an observation timeout.
+
+Prepared a separate default-off TP8 M128 target attention overlap selector
+(`SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM`). Stream allocation
+and forward selection both recognize it. Its pure guard requires HIP, TP8,
+C4, M128, C32, TARGET_VERIFY, width four and unified KV. Unit negatives
+cover AR/non-target, TP4, C33/M132 safety graph, wrong width/backend, and
+disabled state. One parameterized-loop test passes; Python AST parses.
+This code is not enabled in B1 and has not passed GPU/E2E validation yet.
+Do not stage unrelated pre-existing edits in deepseek_v4.py when committing.
+
+CK audit additionally confirms the C++ wrapper hardcodes H16, and the core
+uses M16 MFMA with Q accesses for all 16 heads. Merely accepting H8 at the
+wrapper would read out of bounds. A masked/padded head implementation needs
+its own measured oracle; no CK selector has been broadened.
+
+## B1 result and B2
+
+B1 warmup completed at 562.9517 output tok/s over 113.6758 resident seconds
+(63,994 resident tokens). The first four reviewed requests show repeated
+`arg_utils` imports, repeated scheduling phrases, fabricated repeated import
+lists, and repeated allocator paragraphs. All reached the 2048-token cap;
+acceptance around 3.82–3.92 is NOT correctness evidence. This is material
+semantic collapse, not tolerable low-bit drift. Formal B1 rounds were stopped
+after discovering the warmup failure; do not report a three-round B1 median.
+
+Stopped exact owned controller 4048927 and service 4046629. B2 service PID
+4057043 enables only the new TP8 target attention overlap while disabling
+anchor-only and pre-router compaction, restoring graph max32 and all full
+routed target rows. Output root `/tmp/dsv4_tp8_dspark_overlap_b2_20260909`.
+Service log has the same prefix plus `.service.log`. The generalized gate
+script is now called with PID and output root as arguments. B2 is unmeasured
+at this update. Keep the full migration goal active.
+
+Quantified repetition diagnostic (not a general correctness oracle): in the
+last 512 output IDs, compute the duplicate fraction among sliding 8-grams.
+Full-target C32 warmup median 0.065, 0/32 above 0.75, 10/32 hit length cap.
+B1 median 0.949, 29/32 above 0.75, all 32 hit the cap. This supports the
+manual finding of widespread collapse, not just a different greedy hash.

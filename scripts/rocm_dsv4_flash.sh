@@ -246,6 +246,8 @@ if [[ "${DSPARK_MODE}" == "1" && "${GFX90A_TP4_BS32_PROFILE}" == "1" ]]; then
   export SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION="${SGLANG_DSV4_GFX90A_DSPARK_M51_ROUTED_SPECIALIZATION:-0}"
 fi
 if [[ "${SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE:-0}" == "1" ]]; then
+  # REJECTED 2026-09-09: B1 produced severe repetition in 29/32 code answers.
+  # Retained only to reproduce the negative experiment, not for serving.
   # Experimental TP8 transplant of the TP4 anchor-only quality/performance
   # tradeoff. Original weights do not imply full-target verification here.
   # Never enable this profile from an AR command or silently change TP layout.
@@ -270,7 +272,7 @@ if [[ "${SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE:-0}" == "1" ]]; then
   export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_CK_SPARSE_DECODE=0
   export SGLANG_DSV4_GFX90A_DSPARK_TP4_M128_ATTN_MULTISTREAM=0
   export SGLANG_DSV4_DSA_DENSE_ONLY_GRAPH=0
-  echo "EXPERIMENTAL: TP8 DSpark anchor-only after position 20; not exact target verification" >&2
+  echo "REJECTED EXPERIMENT: TP8 anchor-only caused code repetition; not for serving or exact verification" >&2
 fi
 if [[ "${DSPARK_MODE}" == "1" ]]; then
   LOG_FILE="${LOG_FILE:-/tmp/sglang_dsv4_flash_dspark.log}"

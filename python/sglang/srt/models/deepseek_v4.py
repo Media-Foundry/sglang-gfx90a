@@ -973,6 +973,12 @@ class MQALayer(MqaAttentionBase):
             )
             or (
                 _is_hip
+                and envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM.get()
+                and self.attn_tp_size == 8
+                and self.compress_ratio == 4
+            )
+            or (
+                _is_hip
                 and envs.SGLANG_DSV4_GFX90A_TP4_M64_C128_ATTN_MULTISTREAM.get()
                 and self.attn_tp_size == 4
                 and self.compress_ratio == 128
@@ -1947,6 +1953,22 @@ class MQALayer(MqaAttentionBase):
             and forward_batch.forward_mode.is_decode()
             and unified_kv
         )
+        from sglang.srt.layers.attention.dsv4_dspark_tp8 import m128_overlap_eligible
+
+        enable_dspark_tp8_m128_hip_streams = (
+            envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_ATTN_MULTISTREAM.get()
+            and m128_overlap_eligible(
+                enabled=True,
+                hip=_is_hip,
+                tp_size=self.attn_tp_size,
+                compress_ratio=self.compress_ratio,
+                rows=x.shape[0],
+                batch_size=forward_batch.batch_size,
+                target_verify=forward_batch.forward_mode.is_target_verify(),
+                width=getattr(forward_batch.spec_info, "num_tokens_per_req", None),
+                unified_kv=unified_kv,
+            )
+        )
         enable_multi_stream = (
             (
                 (
@@ -1961,6 +1983,7 @@ class MQALayer(MqaAttentionBase):
                 or enable_tp4_m32_hip_streams
                 or enable_tp4_m64_c128_hip_streams
                 or enable_dspark_tp4_m128_hip_streams
+                or enable_dspark_tp8_m128_hip_streams
             )
             and self.alt_streams is not None
             and get_is_capture_mode()
@@ -1968,6 +1991,7 @@ class MQALayer(MqaAttentionBase):
                 is_in_breakable_cuda_graph()
                 or x.shape[0] <= self._multi_stream_bs_limit
                 or enable_dspark_tp4_m128_hip_streams
+                or enable_dspark_tp8_m128_hip_streams
             )
             and not (self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch))
             and not (_is_hip and self.compressor is None)
