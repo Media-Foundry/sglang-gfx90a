@@ -478,3 +478,20 @@ maxabs<=0.004). CK-vs-Triton maxabs0.015625/relativeL2 0.00339034.
 Fixture writer used diagnostic fixed continuation inputs, not performance
 requests. This one layer does not establish whole-model parity or explain the
 previous C4 looping response; C4 production acceptance remains paused.
+
+### First service ABBA arm (partial, not a gain claim)
+
+A1 grid80 actual graph hits confirmed on ranks0-7; ready14:09:26. Warm
+888.838659 tok/s; measured893.917358 tok/s. Both32-output waves passed the
+tail8 repetition threshold. B1 grid12 service4192240 started14:14; ABBA is
+still running under session62234, not complete.
+
+Important quality limitation: A1 warm vs A1 measured has0/32 full-output hash
+matches, with first differences at0-191 generated tokens, even though both use
+the SAME grid80 control. Median acceptance3.09063 vs3.05614. This is not evidence
+that grid12 introduced drift (it has not run requests yet), and cannot be
+presented as deterministic service validation. Large-M prefill/dynamic batch
+effects and preexisting DSpark behavior remain possible contributors; no root
+cause is established. Fixed real inputs reduce workload variation, but do not
+eliminate acceptance/output variation. Component exactness, E2E quality, and
+ABBA performance must continue to be reported separately.
