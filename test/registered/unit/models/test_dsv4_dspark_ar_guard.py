@@ -5,6 +5,27 @@ from pathlib import Path
 from types import SimpleNamespace
 
 
+def test_dspark_moe_geometry_narrow_guard():
+    root = Path(__file__).resolve().parents[4]
+    path = root/'python/sglang/srt/distributed/device_communicators/dsv4_ar_experiment.py'
+    tree = ast.parse(path.read_text())
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+              and n.name == 'dspark_m128_moe_eligible')
+    scope = {}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), str(path), 'exec'), scope)
+    good = dict(active=True, tp_size=8, ep_size=1, gfx90a=True,
+                hidden_shape=(128,4096), topk_shape=(128,6),
+                w13_shape=(256,512,2048), w2_shape=(256,4096,128),
+                geometry=(4,2,2,True))
+    assert scope[fn.name](**good)
+    for key, value in [('active',False), ('tp_size',4), ('ep_size',2),
+                       ('gfx90a',False), ('hidden_shape',(32,4096)),
+                       ('topk_shape',(128,8)), ('w13_shape',(256,1024,2048)),
+                       ('w2_shape',(256,4096,256)), ('geometry',(8,2,2,True)),
+                       ('geometry',(4,2,2,False))]:
+        assert not scope[fn.name](**(good | {key:value})), (key,value)
+
+
 def test_dspark_ar_narrow_graph_guard():
     root = Path(__file__).resolve().parents[4]
     path = root/'python/sglang/srt/distributed/device_communicators/dsv4_dspark_ar.py'

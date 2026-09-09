@@ -1627,6 +1627,7 @@ class Envs:
     # Experimental probability hi+lo PV; only used after the C4 parent guard.
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED = EnvBool(False)
     SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS = EnvInt(0)
+    SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY = EnvBool(False)
     # Diagnostic only: disable decode graphs; capture one selected H8 layer.
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_DIR = EnvStr("")
     SGLANG_DSV4_TP8_SPARSE_FIXTURE_LAYER = EnvInt(2)

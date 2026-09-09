@@ -694,7 +694,34 @@ class AiterRunnerCore(MoeRunnerCore):
                         runner_input.hidden_states.dtype,
                         block_size=grouped_assignments,
                     )
-                if use_mfma64_prefill:
+                use_tp8_dspark_geometry = False
+                if envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY.get():
+                    from sglang.srt.distributed import (
+                        get_tensor_model_parallel_world_size,
+                        get_moe_expert_parallel_world_size,
+                    )
+                    from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                        dspark_m128_active, dspark_m128_moe_eligible,
+                    )
+
+                    use_tp8_dspark_geometry = dspark_m128_moe_eligible(
+                        active=dspark_m128_active(),
+                        tp_size=get_tensor_model_parallel_world_size(),
+                        ep_size=get_moe_expert_parallel_world_size(),
+                        gfx90a=_is_runtime_gfx90a(),
+                        hidden_shape=runner_input.hidden_states.shape,
+                        topk_shape=runner_input.topk_ids.shape,
+                        w13_shape=quant_info.w13_weight.shape,
+                        w2_shape=quant_info.w2_weight.shape,
+                        geometry=(grouped_assignments, grouped_gate_rows,
+                                  grouped_down_rows, use_lds_unpack),
+                    )
+                    if use_tp8_dspark_geometry and not getattr(self, '_tp8_dspark_geometry_logged', False):
+                        logger.info('TP8 DSpark M128 MoE geometry G832/D832 selected')
+                        self._tp8_dspark_geometry_logged = True
+                if use_tp8_dspark_geometry:
+                    gate_blocks = 832
+                elif use_mfma64_prefill:
                     gate_blocks = 416
                 elif num_prefill_tokens >= 2048:
                     gate_blocks = 1040
@@ -906,7 +933,9 @@ class AiterRunnerCore(MoeRunnerCore):
                 else None
             )
             if use_grouped_prefill:
-                if (
+                if use_tp8_dspark_geometry:
+                    down_blocks = 832
+                elif (
                     runner_input.hidden_states.shape[0] >= 128
                     and not use_m128_decode_geometry
                 ):

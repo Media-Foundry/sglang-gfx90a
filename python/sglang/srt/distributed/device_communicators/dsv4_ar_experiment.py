@@ -45,6 +45,21 @@ def native_m32_active():
     return _native_active.get()
 
 
+def dspark_m128_active():
+    return _dspark_m128_active.get()
+
+
+def dspark_m128_moe_eligible(*, active, tp_size, ep_size, gfx90a,
+                             hidden_shape, topk_shape, w13_shape, w2_shape,
+                             geometry):
+    return bool(active and tp_size == 8 and ep_size == 1 and gfx90a
+                and tuple(hidden_shape) == (128, 4096)
+                and tuple(topk_shape) == (128, 6)
+                and tuple(w13_shape) == (256, 512, 2048)
+                and tuple(w2_shape) == (256, 4096, 128)
+                and tuple(geometry) == (4, 2, 2, True))
+
+
 def down_uniform_eligible(*, native_scope, tp_size, ep_size, gfx90a,
                           hidden_shape, topk_shape, weight_shape, geometry,
                           incompatible):
@@ -75,7 +90,10 @@ def dsv4_ar_scope(batch, device):
     down_enabled = down_uniform_requested()
     attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get()
     c1_attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2.get()
-    dspark_enabled = envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS.get() != 0
+    dspark_enabled = (
+        envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS.get() != 0
+        or envs.SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_MOE_GEOMETRY.get()
+    )
     if not (enabled or gate_enabled or down_enabled or attention_enabled or c1_attention_enabled or dspark_enabled):
         yield
         return
