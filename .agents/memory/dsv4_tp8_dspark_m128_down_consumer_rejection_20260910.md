@@ -40,4 +40,11 @@ Do not enable this path.  Exact intermediate/partial component output does not
 prove full speculative-chain correctness; the failure likely involves stream,
 buffer ownership, or interaction with the mixed prompt/acceptance schedule.
 Any revisit must first capture first-divergence hidden/logit state before timing.
+# Follow-up: persistent workspace attempt
 
+The graph-stable runner-owned workspace variant was tested on a fresh TP8 service
+with 32 heterogeneous code requests (two rounds, 256 output tokens). It reached
+1056.71 and 1053.26 resident tok/s; the France oracle passed semantically and by
+the first nine tokens, but `cross_round_all_exact` remained false. Therefore the
+candidate is rejected for production despite avoiding the earlier per-call
+allocation. The production selector and environment flag were removed again.
