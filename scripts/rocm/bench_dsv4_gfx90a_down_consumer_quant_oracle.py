@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone M32 down-consumer group32-quant fusion oracle.
+"""Standalone down-consumer group32-quant fusion oracle.
 
 The production A4 gate and fixed-slot FP32 reduction stay unchanged.  The
 candidate down CTA loads the gate's BF16 bounded-SwiGLU output, produces the
@@ -24,20 +24,20 @@ from sglang.kernels.ops.moe.gfx90a_fp4_expert_gemv import (
 from sglang.kernels.ops.quantization.int8_kernel import per_token_group_quant_int8
 
 
-E, M, T, H, N = 256, 32, 6, 4096, 4096
+E, T, H, N = 256, 6, 4096, 4096
 ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS = 4, 2, 8, 832, 2
 
 
-def reconstruct_topk(counts: torch.Tensor) -> torch.Tensor:
+def reconstruct_topk(counts: torch.Tensor, m: int) -> torch.Tensor:
     counts = counts.to(torch.int64).cpu()
-    if tuple(counts.shape) != (E,) or counts.sum().item() != M * T:
-        raise ValueError("invalid M32 recorder counts")
-    rows: list[list[int]] = [[] for _ in range(M)]
+    if tuple(counts.shape) != (E,) or counts.sum().item() != m * T:
+        raise ValueError(f"invalid M{m} recorder counts")
+    rows: list[list[int]] = [[] for _ in range(m)]
     for expert in torch.argsort(counts, descending=True).tolist():
         for _ in range(int(counts[expert])):
             choices = [
                 token
-                for token in range(M)
+                for token in range(m)
                 if len(rows[token]) < T and expert not in rows[token]
             ]
             if not choices:
@@ -51,6 +51,7 @@ def reconstruct_topk(counts: torch.Tensor) -> torch.Tensor:
 
 
 def make_metadata(topk_ids: torch.Tensor):
+    m = topk_ids.shape[0]
     buckets: list[list[int]] = [[] for _ in range(E)]
     for token, experts in enumerate(topk_ids.cpu().tolist()):
         for slot, expert in enumerate(experts):
@@ -60,7 +61,7 @@ def make_metadata(topk_ids: torch.Tensor):
     for expert, bucket in enumerate(buckets):
         for offset in range(0, len(bucket), ASSIGNMENTS):
             block = bucket[offset : offset + ASSIGNMENTS]
-            ids.extend(block + [M] * (ASSIGNMENTS - len(block)))
+            ids.extend(block + [m] * (ASSIGNMENTS - len(block)))
             experts.append(expert)
     device = topk_ids.device
     return (
@@ -99,6 +100,9 @@ def main() -> None:
     parser.add_argument("--recorder", required=True)
     parser.add_argument("--pass-index", type=int, default=37)
     parser.add_argument("--layer", type=int, default=34)
+    parser.add_argument(
+        "--batch-size", type=int, choices=(32, 64, 96, 128), default=32
+    )
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--iterations", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=7)
@@ -124,13 +128,14 @@ def main() -> None:
     torch.manual_seed(7)
     device = torch.device("cuda")
     intermediate_size = args.intermediate_size
+    m = args.batch_size
 
     payload = torch.load(args.recorder, map_location="cpu", weights_only=False)
     raw = payload["logical_count"][args.pass_index, args.layer]
     if torch.any(raw.remainder(8) != 0):
         raise RuntimeError("TP8 recorder count is not divisible by eight")
     counts = raw // 8
-    topk_ids = reconstruct_topk(counts).to(device)
+    topk_ids = reconstruct_topk(counts, m).to(device)
     sorted_ids, sorted_experts, valid = make_metadata(topk_ids)
     print(
         f"routing pass={args.pass_index} layer={args.layer} "
@@ -139,9 +144,9 @@ def main() -> None:
         flush=True,
     )
 
-    x = torch.randn((M, H), dtype=torch.bfloat16, device=device)
+    x = torch.randn((m, H), dtype=torch.bfloat16, device=device)
     xq, xs = per_token_group_quant_int8(x, 32)
-    topk_weights = torch.rand((M, T), dtype=torch.float32, device=device)
+    topk_weights = torch.rand((m, T), dtype=torch.float32, device=device)
     w13 = torch.randint(
         0, 256, (E, 2 * intermediate_size, H // 2), dtype=torch.uint8, device=device
     )
@@ -155,19 +160,19 @@ def main() -> None:
         (E, N, intermediate_size // 32), 127, dtype=torch.uint8, device=device
     )
     intermediate_a = torch.empty(
-        (M, T, intermediate_size), dtype=torch.bfloat16, device=device
+        (m, T, intermediate_size), dtype=torch.bfloat16, device=device
     )
     intermediate_b = torch.empty_like(intermediate_a)
-    partial_a = torch.empty((M, T, N), dtype=torch.float32, device=device)
+    partial_a = torch.empty((m, T, N), dtype=torch.float32, device=device)
     partial_b = torch.empty_like(partial_a)
-    out_a = torch.empty((M, N), dtype=torch.bfloat16, device=device)
+    out_a = torch.empty((m, N), dtype=torch.bfloat16, device=device)
     out_b = torch.empty_like(out_a)
 
     gate_module = _jit_gate_up_grouped(
-        E, M, T, intermediate_size, H, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
+        E, m, T, intermediate_size, H, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
     )
     down_module = _jit_down_grouped(
-        E, M, T, N, intermediate_size, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
+        E, m, T, N, intermediate_size, ASSIGNMENTS, ROWS, WAVES, BLOCKS, LDS
     )
 
     def gate(out: torch.Tensor) -> None:

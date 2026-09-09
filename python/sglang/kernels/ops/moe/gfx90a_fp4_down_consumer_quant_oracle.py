@@ -48,7 +48,7 @@ def gfx90a_fp4_down_consumer_quant_oracle(
         raise ValueError(f"unsupported ctas_per_expert={ctas_per_expert}")
     intermediate_size = intermediate.shape[-1]
     m = intermediate.shape[0]
-    if m not in (32, 64):
+    if m not in (32, 64, 96, 128):
         raise ValueError(f"unsupported token count={m}")
     if intermediate_size not in (256, 512):
         raise ValueError(f"unsupported intermediate_size={intermediate_size}")
