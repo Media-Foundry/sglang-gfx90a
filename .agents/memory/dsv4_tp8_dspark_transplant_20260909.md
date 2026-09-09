@@ -704,3 +704,24 @@ code requests, natural EOS/max2048. Order A1/B1/B2/A2, no extra screening
 rounds. All ranks must log the intended backend; full-output repetition gate
 is mandatory. Finally restores the validated profile with C4/refinement OFF.
 Artifacts: `/tmp/dsv4_tp8_dspark_refined_c4_abba_20260909`.
+
+### Completed refined C4 ABBA; restore in progress
+
+Formal A1/B1/B2/A2: 925.205146 /937.045861 /938.754992 /920.400629 tok/s.
+Control mean922.802887; refined mean937.900427, observed+1.636052%.
+Every arm used the same manifest, AR grid12, C128 CK and original weights.
+All128 measured outputs passed the severe-tail-repetition screen. Both B
+processes logged refined C4 hits on all8 ranks; A logged none. Excluded
+warm waves also passed. B1/B2 request7 ended normally, unlike the older
+unrefined C4 failure. This does not prove its root cause was probability
+rounding. A1/A2 first-token match26/32, B1/B2 match31/32; both have0/32
+full-output hash matches, so neither profile is whole-model bitwise exact.
+
+Decision: retain the small observed benefit as an explicit opt-in candidate,
+not a default promotion. The conservative full-target profile keeps C4 OFF.
+Formal metrics, output hashes and limitations are recorded in
+`dsv4_tp8_dspark_refined_c4_abba_20260909.json`; component measurements in
+`dsv4_tp8_refined_c4_mutations_20260909.json`.
+Controller126525/session61938 finished all four measurements and started
+restored_control service165825, with C4/refinement OFF. Wait for its final
+ready/assertions before declaring service restoration complete.

@@ -1,0 +1,75 @@
+{
+  "status": "measured_abba_complete",
+  "scope": "TP8 EP1 full-target DSpark C32; original weights; 1M token pool",
+  "source_directory": "/tmp/dsv4_tp8_dspark_refined_c4_abba_20260909",
+  "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+  "controlled_difference": "AR grid12 and C128 CK fixed; A=C4 Triton, B=refined C4 CK",
+  "protocol": "Fresh process per arm, one excluded warm and one measured natural-EOS max2048 wave",
+  "metric": "Common resident decode interval, excluding prefill and batch drain; not whole-wave wall time",
+  "arms": [
+    {
+      "name": "A1",
+      "tok_s": 925.2051458284466,
+      "seconds": 12.093534120998811,
+      "tokens": 11189,
+      "mean_request_acceptance": 3.0335125016844375,
+      "max_tail8_duplicate_fraction": 0.36237623762376237,
+      "eos": 24,
+      "raw_sha256": "42d0974329bacb2323447c2cb5a3581850b1b62a926231daf82a8c7d3fc00d80"
+    },
+    {
+      "name": "B1",
+      "tok_s": 937.0458612922272,
+      "seconds": 11.745422987965867,
+      "tokens": 11006,
+      "mean_request_acceptance": 3.03868593442663,
+      "max_tail8_duplicate_fraction": 0.21386138613861383,
+      "eos": 19,
+      "raw_sha256": "b2465b6ea98d486445133572cb301719e9f463a0d3599740147ab10fb77622d9"
+    },
+    {
+      "name": "B2",
+      "tok_s": 938.7549917159075,
+      "seconds": 13.752257100015413,
+      "tokens": 12910,
+      "mean_request_acceptance": 3.0391784942714937,
+      "max_tail8_duplicate_fraction": 0.1742574257425743,
+      "eos": 23,
+      "raw_sha256": "07710aec4fb11a57422bf3a5da1360311fdd54d6eb90b09082bd64f9c01ebe52"
+    },
+    {
+      "name": "A2",
+      "tok_s": 920.4006288130939,
+      "seconds": 13.836366035975516,
+      "tokens": 12735,
+      "mean_request_acceptance": 3.0123135539980144,
+      "max_tail8_duplicate_fraction": 0.21980198019801978,
+      "eos": 22,
+      "raw_sha256": "3a80e5b92fe3299c15b5c2536e5a02788cb144923fa748566a60022711dbfdd9"
+    }
+  ],
+  "mean_a": 922.8028873207702,
+  "mean_b": 937.9004265040674,
+  "observed_gain_pct": 1.6360524431312529,
+  "cross_round_parity": {
+    "A1_A2": {
+      "full_hash_equal": 0,
+      "first_token_equal": 26,
+      "count": 32
+    },
+    "B1_B2": {
+      "full_hash_equal": 0,
+      "first_token_equal": 31,
+      "count": 32
+    }
+  },
+  "limitations": [
+    "Single ABBA screen, not statistical confidence.",
+    "Repetition screen is not executable-code correctness.",
+    "Neither control nor candidate is assumed whole-model bitwise deterministic.",
+    "Request acceptance is not resident-window acceptance accounting.",
+    "No proof that probability rounding caused the historical loop.",
+    "Do not add percentages from separate communication/C128/C4 comparisons."
+  ],
+  "decision": "Retain refined C4 as an explicit opt-in screened candidate; conservative full-target profile remains C4 off. No whole-model determinism or historical-loop root-cause claim."
+}

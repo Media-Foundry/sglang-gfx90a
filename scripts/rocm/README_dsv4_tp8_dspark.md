@@ -64,8 +64,24 @@ different checkpoint precision. The existing TP8/DSpark-target/M128/C4 guards
 still apply; C128 and native AR are unchanged. Real-fixture component tests
 passed100 Q/KV/index/sink mutations (including empty/ragged rows), but those
 tests do **not** establish whole-model quality or repair the earlier loop.
-Its E2E acceptance requires the separate C4 ABBA and long-output checks;
-do not enable it in the accepted profile based on component timing alone.
+Its separate C4 ABBA completed: 925.21 /937.05 /938.75 /920.40 tok/s,
+control mean922.80 versus refined937.90 (**+1.64% observed**). All128
+measured outputs passed the severe-repetition screen, but neither control
+nor candidate had cross-round full-output hash parity. Retained as an
+explicit opt-in, not a default promotion or a proven historical-loop fix.
+To reproduce the screened candidate:
+
+```bash
+SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4=1 \
+SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED=1 \
+SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE=1 \
+SGLANG_DSV4_GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE=1 \
+HOST=127.0.0.1 PORT=30011 \
+bash scripts/rocm_dsv4_flash.sh serve-dspark
+```
+
+Formal metrics and limitations:
+`.agents/memory/dsv4_tp8_dspark_refined_c4_abba_20260909.json`.
 
 TP4's M32 gate-prefetch setting depended on anchor-only M128->M32 compaction.
 Full-target C32 retains M128, so copying that switch is not a working port.
