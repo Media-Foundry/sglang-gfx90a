@@ -526,3 +526,20 @@ Finally restores full-target DSpark control. Result directory (created only
 after ABBA exit): `/tmp/dsv4_tp8_dspark_post_abba_checks_20260909`.
 Earlier waiter30215/session67820 was cancelled before doing GPU work to fix
 its exact H8 hit-log assertion; session52194 is the sole active waiter.
+
+### Completed communication E2E ABBA
+
+A2 measured871.192409 tok/s. Measured A1/B1/B2/A2:
+893.917358 /906.092019 /900.265310 /871.192409 tok/s.
+A mean882.554884, B mean903.178664: observed+2.336827% in this single screen.
+All128 measured responses passed tail8 duplicate<=0.75; worst0.39802.
+All four graph captures logged actual hits on all8 ranks, matching80/12/12/80.
+Warmups excluded. Machine-readable summary and raw result SHA256 references:
+`dsv4_tp8_dspark_ar_abba_20260909.json` beside this file.
+
+This supports keeping the narrowly guarded communication candidate for further
+integration, not a claim of30% E2E or deterministic complete outputs. A1/A2
+differ by~2.54%, so retain the single-ABBA/variable-output caveat. No speed
+claim for combining it with CK H8 attention yet. Mixed-tier and native negative
+checks are pending; controller62234 is restoring grid0 control35919 before
+waiter52194 may take ownership. Do not launch another GPU experiment.

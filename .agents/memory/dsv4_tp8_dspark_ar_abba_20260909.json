@@ -1,0 +1,26 @@
+{
+  "status": "measured_abba_complete_post_checks_pending",
+  "scope": "TP8 EP1 full-target DSpark, C32, original weights, 1M token pool",
+  "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+  "source_directory": "/tmp/dsv4_tp8_dspark_ar_abba_20260909",
+  "metric": "aggregate completion tokens in common resident decode window; excludes prefill and batch drain",
+  "protocol": "fresh process per arm; one excluded warm wave and one measured wave; natural EOS, max2048",
+  "controlled_difference": "SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_AR_BLOCKS: A=80 B=12",
+  "ck_attention": "both H8 C4 and C128 disabled",
+  "arms": [
+    {"name":"A1","tok_s":893.9173580147868,"seconds":12.161079435958527,"tokens":10871,"median_request_acceptance":3.0561359867330014,"max_tail8_duplicate_fraction":0.31881188118811876,"eos":21,"raw_sha256":"11cda693d623ecd09c9936a9c4b83d4c3ed4d3a49a7859f354ce89528b1e312f"},
+    {"name":"B1","tok_s":906.0920190064154,"seconds":11.90276459098095,"tokens":10785,"median_request_acceptance":3.0693656422379827,"max_tail8_duplicate_fraction":0.39801980198019804,"eos":22,"raw_sha256":"1b58d6d82fcd92185abbc84331f0042af63f8d8fea70a12ea7dedae28ddb3854"},
+    {"name":"B2","tok_s":900.2653095077459,"seconds":13.201663858955726,"tokens":11885,"median_request_acceptance":3.1053846507564264,"max_tail8_duplicate_fraction":0.3584158415841584,"eos":18,"raw_sha256":"4e7cd513e081cef460cfaba7ffc732aa35a6f33a7369123ba93fc14320cdf163"},
+    {"name":"A2","tok_s":871.1924090891004,"seconds":12.804289710999,"tokens":11155,"median_request_acceptance":3.074955559944697,"max_tail8_duplicate_fraction":0.23366336633663365,"eos":18,"raw_sha256":"51c946b66bbf034de84f358bceaeb683f72292003c8f0da30924b4a30d4b1a21"}
+  ],
+  "mean_a": 882.5548835519436,
+  "mean_b": 903.1786642570806,
+  "observed_gain_pct": 2.3368269882700465,
+  "limitations": [
+    "Single ABBA screen, no statistical confidence claim.",
+    "Same-control cross-wave token hashes drift; not full-model bitwise parity.",
+    "Tail repetition gate is not comprehensive semantic correctness.",
+    "Request-level acceptance is not measured-window verify-step accounting.",
+    "No claim for native AR, C16/M64, or combined CK-attention configuration."
+  ]
+}
