@@ -337,6 +337,19 @@ if [[ "${GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE}" == "1" ]]; then
   # Draft-only experiment: gamma remains three and target verification remains
   # the exact M128 path.  Only the three-layer M96 draft model may select it.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH="${SGLANG_DSV4_GFX90A_DSPARK_TP8_DRAFT_M96_ROW_PREFETCH:-1}"
+  # Admit the fused MHC tails and split-K pre-mix on the C32 target-verify
+  # boundary, which passes global_batch_size 32 and so misses their
+  # single-request gates.  Real-code six-arm ABBA on resident decode windows:
+  # 1073.16 -> 1127.48 tok/s (+5.06%), accept 2.687 -> 2.732.  Neither path is
+  # bitwise equal to the split path, and the C32 control diverges from itself on
+  # 95% of requests, so no drift attribution is available; the throughput result
+  # stands on its own.  Pinned to fp32 mixing weights: the fp16 variant measured
+  # 1142.26 tok/s (+6.44%) but is not separable from fp32 at four waves each,
+  # carries a 140x larger numerical perturbation, and produced the trial's only
+  # semantic degeneration.  Scoped to dspark_m128_active(), so native AR,
+  # prefill and the draft graph cannot reach it.
+  export SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION="${SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION:-1}"
+  export SGLANG_DSV4_GFX90A_FP16_MHC_DOT="${SGLANG_DSV4_GFX90A_FP16_MHC_DOT:-0}"
   # On top of G832/D832, refined C4 real-code ABBA: 945.47 -> 964.09
   # tok/s (+1.97%).  The refinement preserves full target verification.
   export SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED="${SGLANG_DSV4_GFX90A_DSPARK_TP8_M128_CK_C4_REFINED:-1}"
