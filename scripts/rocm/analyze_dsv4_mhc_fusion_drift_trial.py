@@ -105,10 +105,14 @@ def main() -> None:
     print("\n=== throughput ===")
     tps, accepts = {}, {}
     for family, label in FAMILIES.items():
-        values = [t for n in arms if family_of(n) == family
-                  for t in arms[n]["aggregate_tok_s"]]
+        # Resident window only: whole-wave rates include the admission ramp,
+        # whose 0 -> 32 batch growth dwarfs the effect under test.
+        values = [w["resident"]["tok_s"] for n in arms if family_of(n) == family
+                  for w in arms[n]["waves"]
+                  if w.get("resident", {}).get("tok_s") is not None]
         acc = [a for n in arms if family_of(n) == family
                for w in arms[n]["waves"] for a in w.get("accept_lengths", [])]
+        acc = [statistics.fmean(acc)] if acc else []
         if not values:
             continue
         tps[family] = values

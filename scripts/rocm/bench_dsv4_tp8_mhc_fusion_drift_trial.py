@@ -4,8 +4,14 @@
 Both candidate paths are faster and neither is bitwise equal to the split path,
 so a hash comparison alone cannot judge them: the strict C32 control is itself
 recorded as `cross_round_all_exact=false`. This harness therefore measures
-candidate divergence against a control-vs-control noise floor, in ABBA arm
-order (A1 B1 B2 A2) so drift and throughput are read from the same runs.
+candidate divergence against a control-vs-control noise floor, over A (control),
+B (candidate) and C (candidate with fp32 mixing weights) arms, so drift and
+throughput are read from the same runs.
+
+Throughput is reported over the resident window -- the interval where all 32
+requests are decoding -- because whole-wave wall time includes an admission ramp
+during which the running batch grows 0 -> 32, changing the batch shape that every
+already-decoding request sees.
 
 It does not start or stop services -- the caller points it at one already-warm
 service per arm, so an arm's env is fixed at service launch.
@@ -57,17 +63,60 @@ def get(url: str, timeout: float = 30.0) -> dict:
         return json.loads(response.read())
 
 
-def accept_lengths(base_url: str) -> list[float]:
-    """Per-DP `avg_spec_accept_length` from /server_info's live scheduler state."""
-    try:
-        states = get(base_url + "/server_info").get("internal_states") or []
-    except Exception:
-        return []
-    return [
-        state["avg_spec_accept_length"]
-        for state in states
-        if state.get("avg_spec_accept_length") is not None
-    ]
+def stream_generate(base_url: str, body: dict, timeout: float
+                    ) -> tuple[dict, list[tuple[float, int]]]:
+    """POST with stream=True, returning the final payload and token timestamps.
+
+    The timestamps are what make a resident window computable: whole-wave wall
+    time includes the admission ramp, during which the running batch grows
+    0 -> 32 and every already-decoding request sees a different batch shape.
+    """
+    body = {**body, "stream": True}
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    request = urllib.request.Request(
+        base_url + "/generate", data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"}, method="POST",
+    )
+    samples: list[tuple[float, int]] = []
+    final: dict = {}
+    with opener.open(request, timeout=timeout) as response:
+        for raw in response:
+            line = raw.decode().strip()
+            if not line.startswith("data:"):
+                continue
+            chunk = line[5:].strip()
+            if not chunk or chunk == "[DONE]":
+                continue
+            payload = json.loads(chunk)
+            ids = payload.get("output_ids") or []
+            samples.append((time.perf_counter(), len(ids)))
+            final = payload
+    return final, samples
+
+
+def resident_window(token_samples: list[list[tuple[float, int]]]) -> dict:
+    """Tokens and wall time over the interval where every request is decoding."""
+    usable = [s for s in token_samples if s]
+    if len(usable) != len(token_samples) or not usable:
+        return {"wall_s": 0.0, "tokens": 0, "tok_s": None, "source": "incomplete"}
+    start = max(s[0][0] for s in usable)
+    end = min(s[-1][0] for s in usable)
+
+    def count_at(samples: list[tuple[float, int]], when: float) -> int:
+        count = 0
+        for sample_time, sample_count in samples:
+            if sample_time > when:
+                break
+            count = sample_count
+        return count
+
+    tokens = sum(count_at(s, end) - count_at(s, start) for s in usable)
+    wall = end - start
+    if wall <= 0 or tokens <= 0:
+        return {"wall_s": wall, "tokens": tokens, "tok_s": None,
+                "source": "no_common_window"}
+    return {"wall_s": wall, "tokens": tokens, "tok_s": tokens / wall,
+            "source": "common_window"}
 
 
 def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
@@ -91,12 +140,11 @@ def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
             "return_logprob": False,
         }
         barrier.wait()
-        out = post(base_url + "/generate", body, timeout)
+        out, samples = stream_generate(base_url, body, timeout)
         meta = out.get("meta_info", {})
-        # A non-stream finished response carries output_ids at the top level.
         # Refuse an empty list: `compare` would read it as perfect agreement
         # and report a false no-drift result for the whole trial.
-        ids = meta.get("output_ids") or out.get("output_ids") or []
+        ids = out.get("output_ids") or meta.get("output_ids") or []
         if not ids:
             raise RuntimeError(
                 f"request {item['index']} returned no output_ids; "
@@ -106,6 +154,10 @@ def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
             "output_ids": ids,
             "text": out.get("text", ""),
             "completion_tokens": meta.get("completion_tokens"),
+            # Per-request accept length; needs no --enable-metrics.
+            "spec_accept_length": meta.get("spec_accept_length"),
+            "spec_accept_rate": meta.get("spec_accept_rate"),
+            "samples": samples,
             "hash": completion_hash(ids),
         }
 
@@ -118,12 +170,23 @@ def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
         wall = time.perf_counter() - begin
 
     produced = sum(len(r["output_ids"]) for r in results.values())
+    ordered = [results[k]["samples"] for k in sorted(results)]
+    resident = resident_window(ordered)
+    accepts = [r["spec_accept_length"] for r in results.values()
+               if r["spec_accept_length"] is not None]
+    # Drop the per-token sample arrays; the window is derived, and keeping 32
+    # x 512 timestamps per wave would bloat every artifact.
+    for record in results.values():
+        record.pop("samples", None)
     return {
         "wall_s": wall,
         "produced_tokens": produced,
+        # Whole-wave rate; includes admission ramp and drain, so it is not
+        # comparable across arms. The resident window is.
         "aggregate_tok_s": produced / wall if wall else 0.0,
+        "resident": resident,
         # A candidate must not buy step time by accepting fewer draft tokens.
-        "accept_lengths": accept_lengths(base_url),
+        "accept_lengths": accepts,
         "per_request": {str(k): v for k, v in sorted(results.items())},
     }
 
@@ -220,9 +283,13 @@ def main() -> None:
                    if repetition_flag(v["text"])]
         wave["severe_repetition"] = repeats
         waves.append(wave)
-        print(f"  wave{index}: {wave['aggregate_tok_s']:.2f} tok/s "
-              f"({wave['produced_tokens']} tok in {wave['wall_s']:.1f}s) "
-              f"repetition={len(repeats)}", flush=True)
+        res = wave["resident"]
+        rate = "n/a" if res["tok_s"] is None else f"{res['tok_s']:.2f}"
+        accepts = wave["accept_lengths"]
+        mean_accept = (f"{statistics.fmean(accepts):.3f}" if accepts else "n/a")
+        print(f"  wave{index}: resident {rate} tok/s [{res['source']}] "
+              f"whole-wave {wave['aggregate_tok_s']:.2f} tok/s "
+              f"accept={mean_accept} repetition={len(repeats)}", flush=True)
 
     in_arm = [compare(waves[i], waves[i + 1]) for i in range(len(waves) - 1)]
     for index, cmp in enumerate(in_arm):
