@@ -57,6 +57,19 @@ def get(url: str, timeout: float = 30.0) -> dict:
         return json.loads(response.read())
 
 
+def accept_lengths(base_url: str) -> list[float]:
+    """Per-DP `avg_spec_accept_length` from /server_info's live scheduler state."""
+    try:
+        states = get(base_url + "/server_info").get("internal_states") or []
+    except Exception:
+        return []
+    return [
+        state["avg_spec_accept_length"]
+        for state in states
+        if state.get("avg_spec_accept_length") is not None
+    ]
+
+
 def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
              stable_salt: bool, timeout: float) -> dict:
     """One synchronized C32 wave. Greedy, fixed length, ignore_eos."""
@@ -80,7 +93,15 @@ def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
         barrier.wait()
         out = post(base_url + "/generate", body, timeout)
         meta = out.get("meta_info", {})
+        # A non-stream finished response carries output_ids at the top level.
+        # Refuse an empty list: `compare` would read it as perfect agreement
+        # and report a false no-drift result for the whole trial.
         ids = meta.get("output_ids") or out.get("output_ids") or []
+        if not ids:
+            raise RuntimeError(
+                f"request {item['index']} returned no output_ids; "
+                f"keys={sorted(out)} meta_keys={sorted(meta)}"
+            )
         results[item["index"]] = {
             "output_ids": ids,
             "text": out.get("text", ""),
@@ -101,6 +122,8 @@ def run_wave(base_url: str, requests: list[dict], tokens: int, wave: str,
         "wall_s": wall,
         "produced_tokens": produced,
         "aggregate_tok_s": produced / wall if wall else 0.0,
+        # A candidate must not buy step time by accepting fewer draft tokens.
+        "accept_lengths": accept_lengths(base_url),
         "per_request": {str(k): v for k, v in sorted(results.items())},
     }
 
@@ -165,14 +188,22 @@ def main() -> None:
     args = parser.parse_args()
 
     items = load_manifest(args.manifest, args.requests)
-    health = get(args.base_url + "/get_server_info")
-    server_args = health.get("server_args", {})
+    # /server_info spreads the resolved server args at the top level rather
+    # than nesting them, and /get_server_info is a deprecated alias for it.
+    info = get(args.base_url + "/server_info")
     observed = {
-        "tp_size": server_args.get("tp_size"),
-        "speculative_algorithm": server_args.get("speculative_algorithm"),
-        "max_total_tokens": server_args.get("max_total_tokens"),
-        "cuda_graph_max_bs": server_args.get("cuda_graph_max_bs"),
+        "tp_size": info.get("tp_size"),
+        "speculative_algorithm": info.get("speculative_algorithm"),
+        "speculative_num_steps": info.get("speculative_num_steps"),
+        "max_total_tokens": info.get("max_total_tokens"),
+        "cuda_graph_max_bs": info.get("cuda_graph_max_bs"),
     }
+    if observed["tp_size"] != 8:
+        raise SystemExit(f"expected TP8, got tp_size={observed['tp_size']}")
+    if not (observed["speculative_algorithm"] or "").lower().count("dspark"):
+        raise SystemExit(
+            f"expected a DSpark service, got {observed['speculative_algorithm']!r}"
+        )
     print(f"ARM {args.arm} service={observed}", flush=True)
 
     # Excluded warm wave: first-touch JIT and page placement must not land in a
