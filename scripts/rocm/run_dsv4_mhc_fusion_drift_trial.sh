@@ -15,6 +15,19 @@ BASE="http://127.0.0.1:${PORT}"
 PYTHON_BIN="${PYTHON_BIN:-/home/pc/anaconda3/envs/DS/bin/python}"
 TOKENS="${TOKENS:-512}"
 WAVES="${WAVES:-2}"
+# A1 measured a 32/32 in-arm divergence with no candidate change, which leaves a
+# 1.0 noise floor and no room to attribute anything. These three make the arms
+# comparable at all:
+#  - RANDOM_SEED: unset lets each fresh service pick its own, so arms differed by
+#    seed as well as by candidate (A1 172686631 vs B1 881416104).
+#  - ENABLE_METRICS: avg_spec_accept_length is only populated with metrics on, so
+#    A1 recorded none and a candidate could have bought speed by accepting less.
+#  - DETERMINISTIC: batch-invariant ops. Costs throughput, so it is a measurement
+#    config, not production; it is what makes drift attributable. Compatible here
+#    because the strict profile has speculative_use_rejection_sampling=False.
+RANDOM_SEED="${RANDOM_SEED:-20260911}"
+ENABLE_METRICS="${ENABLE_METRICS:-1}"
+DETERMINISTIC="${DETERMINISTIC:-1}"
 mkdir -p "${OUT}"
 
 # Per-arm log/pid paths so one arm cannot adopt another's service, and so
@@ -35,10 +48,14 @@ require_free_gpus() {
 }
 
 start_arm() {
-  local arm="$1" fusion="$2"
-  echo "=== arm ${arm}: SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION=${fusion} ==="
+  local arm="$1" fusion="$2" fp16="$3"
+  echo "=== arm ${arm}: MHC_FUSION=${fusion} FP16_MHC_DOT=${fp16} ==="
   SGLANG_DSV4_GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE=1 \
   SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION="${fusion}" \
+  SGLANG_DSV4_GFX90A_FP16_MHC_DOT="${fp16}" \
+  RANDOM_SEED="${RANDOM_SEED}" \
+  ENABLE_METRICS="${ENABLE_METRICS}" \
+  ENABLE_DETERMINISTIC_INFERENCE="${DETERMINISTIC}" \
   PORT="${PORT}" \
   LOG_FILE="$(arm_log "${arm}")" \
   PID_FILE="$(arm_pid "${arm}")" \
@@ -63,11 +80,16 @@ stop_arm() {
 }
 
 require_free_gpus
-for spec in "A1 0" "B1 1" "B2 1" "A2 0"; do
-  set -- ${spec}
-  arm="$1"; fusion="$2"
+# ABBA over control/candidate, plus C arms that keep the fusion but restore fp32
+# mixing weights. The fp16 weight rounding is 140x larger than the reduction-order
+# effect the candidate is meant to test (mixes max_abs 3.75e-03 vs 2.67e-05), so
+# without C a B-arm result cannot say which cause moved the tokens.
+# FP16_MHC_DOT defaults to 1 in the launcher, so control keeps it at 1.
+ARMS="${ARMS:-A1:0:1 B1:1:1 C1:1:0 C2:1:0 B2:1:1 A2:0:1}"
+for spec in ${ARMS}; do
+  IFS=: read -r arm fusion fp16 <<<"${spec}"
   trap 'stop_arm "${arm}"' EXIT
-  start_arm "${arm}" "${fusion}"
+  start_arm "${arm}" "${fusion}" "${fp16}"
   "${PYTHON_BIN}" "${ROOT}/scripts/rocm/bench_dsv4_tp8_mhc_fusion_drift_trial.py" \
     --base-url "${BASE}" --arm "${arm}" --tokens "${TOKENS}" --waves "${WAVES}" \
     --output "${OUT}/arm_${arm}.json" 2>&1 | tee -a "${OUT}/trial.log"

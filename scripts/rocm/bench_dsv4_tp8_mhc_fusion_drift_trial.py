@@ -174,8 +174,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True,
                         help="already-warm service for this arm")
-    parser.add_argument("--arm", required=True, choices=["A1", "B1", "B2", "A2"],
-                        help="ABBA position; A=control, B=candidate")
+    parser.add_argument("--arm", required=True,
+                        choices=["A1", "A2", "B1", "B2", "C1", "C2"],
+                        help="A=control, B=candidate, C=candidate with fp32 weights")
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
     parser.add_argument("--requests", type=int, default=32)
     parser.add_argument("--tokens", type=int, default=512)

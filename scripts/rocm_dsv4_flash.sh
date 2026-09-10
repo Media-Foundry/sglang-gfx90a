@@ -565,6 +565,12 @@ fi
 if [[ -n "${RANDOM_SEED:-}" ]]; then
   server_args+=(--random-seed "${RANDOM_SEED}")
 fi
+# Batch-invariant ops. This is a measurement aid for drift attribution, not a
+# throughput profile: without it a strict C32 DSpark wave diverges from itself on
+# every request, leaving no baseline to compare a candidate against.
+if [[ "${ENABLE_DETERMINISTIC_INFERENCE:-0}" == "1" ]]; then
+  server_args+=(--enable-deterministic-inference)
+fi
 if [[ -n "${BATCH_NOTIFY_SIZE:-}" ]]; then
   server_args+=(--batch-notify-size "${BATCH_NOTIFY_SIZE}")
 fi
