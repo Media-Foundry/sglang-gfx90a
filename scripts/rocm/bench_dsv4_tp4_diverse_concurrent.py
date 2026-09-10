@@ -65,6 +65,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--stable-cache-salt",
+        action="store_true",
+        help=(
+            "reuse the same cache-salt namespace across rounds; diagnostic only, "
+            "to separate cache/page placement effects from numerical drift"
+        ),
+    )
+    parser.add_argument(
         "--workload-output",
         type=Path,
         help="write the selected request set as a reusable input manifest",
@@ -281,7 +289,7 @@ def main() -> None:
             optional=True,
         )
         barrier = threading.Barrier(len(requests) + 1)
-        nonce = time.time_ns()
+        nonce = 0 if args.stable_cache_salt else time.time_ns()
 
         def generate(index: int, item: dict) -> tuple[float, dict, list[tuple[float, int]]]:
             payload = {
@@ -292,7 +300,11 @@ def main() -> None:
                     "ignore_eos": True,
                     "stream_interval": stream_interval,
                 },
-                "cache_salt": f"tp4-diverse-{rep}-{index}-{nonce}",
+                "cache_salt": (
+                    f"tp4-diverse-stable-{index}"
+                    if args.stable_cache_salt
+                    else f"tp4-diverse-{rep}-{index}-{nonce}"
+                ),
                 "stream": True,
             }
             barrier.wait()
