@@ -527,6 +527,24 @@ def gfx90a_mhc_pre_mix_from_partials_triton(
     return mixes
 
 
+def _mhc_fusion_admitted(global_batch_size: int | None) -> bool:
+    """Do the single-request fused MHC paths apply to this boundary?
+
+    Normally they need `global_batch_size == 1`. The strict C32 DSpark
+    target-verify boundary is M128 rows at batch 32, so it misses them; the
+    trial env admits it, scoped to that boundary alone.
+    """
+    if global_batch_size == 1:
+        return True
+    if not envs.SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION.get():
+        return False
+    from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+        dspark_m128_active,
+    )
+
+    return dspark_m128_active()
+
+
 def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
     residual: torch.Tensor,
     fn: torch.Tensor,
@@ -555,8 +573,10 @@ def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
         return None
 
     # TP-only decode has no Mori progress kernel to protect, so it may use the
-    # 192-CTA scalar-row geometry that wins in isolation on a 104-CU GCD.
-    if global_batch_size != 1:
+    # 192-CTA scalar-row geometry that wins in isolation on a 104-CU GCD. The
+    # strict C32 DSpark boundary is also no-A2A, so the same reasoning admits it
+    # under the trial env.
+    if not _mhc_fusion_admitted(global_batch_size):
         return None
     num_tokens = residual.shape[0]
     splits = 8
@@ -612,7 +632,7 @@ def gfx90a_mhc_splitk_fused_tail_triton(
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
     num_tokens = residual.shape[0]
     if (
-        global_batch_size != 1
+        not _mhc_fusion_admitted(global_batch_size)
         or residual.shape != (num_tokens, 4, 4096)
         or residual.dtype != torch.bfloat16
         or fn.shape != (24, 16384)
@@ -2844,7 +2864,7 @@ def mhc_fused_post_pre(
             and rms_partials is not None
             and norm_weight is not None
             and norm_eps is not None
-            and global_batch_size == 1
+            and _mhc_fusion_admitted(global_batch_size)
         ):
             norm_weight_bf = (
                 norm_weight.bfloat16()
@@ -2962,7 +2982,7 @@ def mhc_fused_post_pre(
             layer_input = None
             if (
                 envs.SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS.get()
-                and global_batch_size == 1
+                and _mhc_fusion_admitted(global_batch_size)
                 and norm_weight is not None
             ):
                 assert norm_eps is not None

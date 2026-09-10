@@ -1513,6 +1513,15 @@ class Envs:
     SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS = EnvInt(20)
     SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS = EnvBool(False)
     SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL = EnvBool(False)
+    # Admit the two fused-MHC tails above, plus the split-K pre-mix, on the
+    # strict C32 DSpark target-verify boundary, which passes global_batch_size
+    # 32 and therefore misses their single-request gates. Both are faster and
+    # neither is bitwise equal to the split path (tail: one bf16 ULP from the
+    # 4096-wide tile's FMA contraction; pre-mix: fp32 reduction order), so this
+    # is an E2E drift trial. Scoped to dspark_m128_active(), which requires
+    # target-verify mode at batch 32 with verify width 4, keeping native AR,
+    # prefill and the draft graph out.
+    SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION = EnvBool(False)
     # Fuse the launch-bound MHC tail (Sinkhorn + weighted sum + RMSNorm) after
     # the bandwidth-heavy multi-CTA pre-mix. This is the production candidate.
     SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE = EnvBool(False)
