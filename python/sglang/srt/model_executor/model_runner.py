@@ -1173,9 +1173,17 @@ class ModelRunner:
             device=self.device,
             rank=self.ps.tp_rank,
             logger=logger,
+            phase="before_empty_cache",
         )
 
         after_avail_memory = get_available_gpu_memory(self.device, self.gpu_id)
+        maybe_log_model_storage_audit(
+            self.model,
+            device=self.device,
+            rank=self.ps.tp_rank,
+            logger=logger,
+            phase="after_empty_cache",
+        )
         self.weight_load_mem_usage = before_avail_memory - after_avail_memory
         self.weight_load_time = time.perf_counter() - tic_total
         # Get quantization config from ModelConfig

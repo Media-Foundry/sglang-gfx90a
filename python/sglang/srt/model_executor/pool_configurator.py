@@ -36,6 +36,7 @@ from sglang.srt.mem_cache.allocation_sizing import get_alloc_len_per_decode
 from sglang.srt.mem_cache.deepseek_v4_memory_pool import (
     get_compress_state_ring_size,
     get_compress_state_write_pad,
+    get_dsv4_indexer_bytes_per_token,
 )
 from sglang.srt.mem_cache.memory_pool import DSATokenToKVPool
 from sglang.srt.runtime_context import (
@@ -800,10 +801,40 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
         self.qk_rope_head_dim = cfg.qk_rope_head_dim
         self.indexer_head_dim = cfg.index_head_dim
         self.context_len = kvc.model_config.context_len
+        # DSV4 uses a paged SWA pool for the hybrid attention layers.  Keep the
+        # scheduler's logical sliding-window size here so an explicitly
+        # constrained pool can be validated before the allocator is created.
+        # Without this check a page-aligned budget can silently round SWA to
+        # zero (or to less than one request), leaving PrefillAdder's admission
+        # gate permanently returning NO_TOKEN while the request sits in the
+        # waiting queue.
+        self._sliding_window_size = kvc.sliding_window_size
         # PP-local slice; matches DeepSeekV4TokenToKVPool's stage_ratios.
         self.compression_ratios = cfg.compress_ratios[
             kvc.layer_info.start_layer : kvc.layer_info.end_layer
         ]
+        # V4.1 keeps the KV/indexer payload for a small set of source layers in
+        # ratio-1/2 pools addressed in the full-token coordinate space.  Those
+        # pools are created by DeepSeekV4TokenToKVPool, but older sizing code
+        # only priced the ordinary SWA/C4/C128 pools.  Keep absolute source
+        # layer IDs here and count only the sources owned by this PP stage so
+        # the coefficient remains correct for both PP and non-PP launches.
+        hf_cfg = getattr(cfg, "hf_text_config", cfg)
+        source_layer_ids = tuple(
+            getattr(hf_cfg, "kv_source_layer_ids", ()) or ()
+        )
+        stage_start = kvc.layer_info.start_layer
+        stage_end = kvc.layer_info.end_layer
+        full_compression_ratios = cfg.compress_ratios
+        self.low_ratio_source_counts = {
+            ratio: sum(
+                stage_start <= layer_id < stage_end
+                and full_compression_ratios[layer_id] == ratio
+                for layer_id in source_layer_ids
+                if 0 <= layer_id < len(full_compression_ratios)
+            )
+            for ratio in (1, 2)
+        }
         if kvc.ps.pp_size > 1:
             logger.info(
                 f"DSV4 pool PP slice: rank={kvc.pp_group.rank_in_group} "
@@ -939,7 +970,7 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
         c128_state_ratio = 0
 
         c4_frac = 1 / (4 * self.c4_shrink_factor)
-        return (
+        ordinary_bytes = (
             self.swa_ratio * kv_bytes * self.num_layers_total
             + c4_frac * kv_bytes * self.num_layers_ca4
             + 1 / 128 * kv_bytes * self.num_layers_ca128
@@ -951,10 +982,37 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             * c4_indexer_state_bytes
             * self.num_layers_ca4
         )
+        # V4.1 ratio-1/2 source pools are allocated at full_size//ratio and
+        # their index pools always use the packed FP4 indexer layout.  Charge
+        # both payloads per full-token coordinate.  Page alignment is applied
+        # later by _compute_dsv4_sizes; this coefficient intentionally mirrors
+        # the existing approximate per-token accounting for the other pools.
+        low_ratio_bytes = sum(
+            source_count
+            * (
+                kv_bytes
+                + get_dsv4_indexer_bytes_per_token(
+                    self.indexer_head_dim, use_fp4_indexer=True
+                )
+            )
+            / ratio
+            for ratio, source_count in self.low_ratio_source_counts.items()
+        )
+        return ordinary_bytes + low_ratio_bytes
 
     def _compute_dsv4_sizes(self, full_token: int, page_size: int) -> _DSV4PoolSizes:
         full_token = full_token // page_size * page_size
         swa_tokens = int(full_token * self.swa_ratio) // page_size * page_size
+        if (
+            self._sliding_window_size is not None
+            and self._sliding_window_size + page_size >= swa_tokens
+        ):
+            raise ValueError(
+                f"DSV4 SWA pool ({swa_tokens} tokens) cannot hold even one request: "
+                f"the prefill admission floor is sliding_window_size "
+                f"({self._sliding_window_size}) + page_size ({page_size}). "
+                "Increase --swa-full-tokens-ratio or the total KV budget."
+            )
         return _DSV4PoolSizes(
             full_max_total_num_tokens=full_token,
             swa_max_total_num_tokens=swa_tokens,

@@ -42,6 +42,7 @@ def maybe_log_model_storage_audit(
     device: str,
     rank: int,
     logger: logging.Logger,
+    phase: str = "post_load",
 ) -> None:
     """Log a zero-copy live-storage census when explicitly requested.
 
@@ -81,6 +82,8 @@ def maybe_log_model_storage_audit(
     unique_count = defaultdict(int)
     dtype_bytes = defaultdict(int)
     alias_storages = 0
+    aliased_storage_bytes = 0
+    unaliased_storage_bytes = 0
     routed_weight_bytes = 0
     routed_scale_bytes = 0
     direct_scale_clone_bytes = 0
@@ -93,7 +96,11 @@ def maybe_log_model_storage_audit(
         unique_bytes[dev] += nbytes
         unique_count[dev] += 1
         dtype_bytes[(dev, str(entry["dtype"]))] += nbytes
-        alias_storages += len(names) > 1
+        if len(names) > 1:
+            alias_storages += 1
+            aliased_storage_bytes += nbytes
+        else:
+            unaliased_storage_bytes += nbytes
 
         if any(name.endswith(("w13_weight", "w2_weight")) for name in names):
             routed_weight_bytes += nbytes
@@ -129,21 +136,38 @@ def maybe_log_model_storage_audit(
         for dev in sorted(set(logical_bytes) | set(unique_bytes))
     )
 
-    allocated = reserved = peak = 0
+    allocated = reserved = peak = device_used = device_total = 0
     if device != "cpu" and torch.cuda.is_available():
         allocated = torch.cuda.memory_allocated()
         reserved = torch.cuda.memory_reserved()
         peak = torch.cuda.max_memory_allocated()
+        free, device_total = torch.cuda.mem_get_info()
+        device_used = device_total - free
+
+    registered_gpu_bytes = sum(
+        nbytes
+        for dev, nbytes in unique_bytes.items()
+        if dev.startswith(("cuda", "hip"))
+    )
+    unregistered_live = max(allocated - registered_gpu_bytes, 0)
+    inactive_reserved = max(reserved - allocated, 0)
+    outside_allocator = max(device_used - reserved, 0)
 
     logger.info(
-        "model storage audit rank=%d: %s; aliases=%d; dtypes=[%s]; "
+        "model storage audit rank=%d phase=%s: %s; aliases=%d "
+        "aliased_storage=%.3fGiB unaliased_storage=%.3fGiB; dtypes=[%s]; "
         "routed_weights=%.3fGiB routed_scales=%.3fGiB "
         "direct_scale_clones=%.3fGiB gpu_engram=%.3fGiB "
         "host_mmaps=%.3fGiB/%d allocator=allocated:%.3fGiB,"
-        "reserved:%.3fGiB,peak:%.3fGiB",
+        "reserved:%.3fGiB,peak:%.3fGiB device=used:%.3fGiB,total:%.3fGiB "
+        "gaps=unregistered_live:%.3fGiB,inactive_reserved:%.3fGiB,"
+        "outside_allocator:%.3fGiB",
         rank,
+        phase,
         device_summary,
         alias_storages,
+        _gib(aliased_storage_bytes),
+        _gib(unaliased_storage_bytes),
         dtype_summary,
         _gib(routed_weight_bytes),
         _gib(routed_scale_bytes),
@@ -154,4 +178,9 @@ def maybe_log_model_storage_audit(
         _gib(allocated),
         _gib(reserved),
         _gib(peak),
+        _gib(device_used),
+        _gib(device_total),
+        _gib(unregistered_live),
+        _gib(inactive_reserved),
+        _gib(outside_allocator),
     )

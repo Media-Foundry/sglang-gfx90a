@@ -907,6 +907,67 @@ class TestFactory(CustomTestCase):
         self.assertNotIsInstance(_cfg(None), SWAChunkCapPoolConfigurator)
 
 
+class TestDSV4PoolAdmissionFloor(unittest.TestCase):
+    """DSV4 must reject a constrained pool that can never admit an SWA request."""
+
+    @staticmethod
+    def _configurator():
+        from sglang.srt.model_executor.pool_configurator import DSV4PoolConfigurator
+
+        configurator = object.__new__(DSV4PoolConfigurator)
+        configurator._sliding_window_size = 128
+        configurator.swa_ratio = 0.1
+        configurator.c4_shrink_factor = 1
+        configurator.swa_page_size = 128
+        configurator.c4_ring_size = 1
+        return configurator
+
+    def test_rejects_zero_swa_capacity(self):
+        with self.assertRaisesRegex(ValueError, "cannot hold even one request"):
+            self._configurator()._compute_dsv4_sizes(1024, page_size=256)
+
+    def test_accepts_page_aligned_swa_capacity(self):
+        sizes = self._configurator()._compute_dsv4_sizes(8192, page_size=256)
+        self.assertEqual(sizes.full_max_total_num_tokens, 8192)
+        self.assertEqual(sizes.swa_max_total_num_tokens, 768)
+
+    @staticmethod
+    def _bytes_configurator(source_counts=(0, 0)):
+        from sglang.srt.model_executor.pool_configurator import DSV4PoolConfigurator
+
+        configurator = object.__new__(DSV4PoolConfigurator)
+        configurator.qk_nope_head_dim = 448
+        configurator.qk_rope_head_dim = 64
+        configurator.indexer_head_dim = 128
+        configurator.swa_ratio = 0.1
+        configurator.num_layers_total = 40
+        configurator.num_layers_ca4 = 0
+        configurator.num_layers_ca128 = 0
+        configurator.c4_ring_size = 8
+        configurator.swa_page_size = 256
+        configurator.c4_shrink_factor = 1
+        configurator.low_ratio_source_counts = {
+            1: source_counts[0],
+            2: source_counts[1],
+        }
+        return configurator
+
+    def test_prices_v41_ratio_one_and_two_source_pools(self):
+        configurator = self._bytes_configurator(source_counts=(1, 3))
+        # KV=584 and packed FP4 indexer=68 bytes per source token.  V4.1 has
+        # one ratio-1 and three ratio-2 source layers in the full coordinate
+        # space: 2336 ordinary + 652 + 3*326 = 3966 bytes/full token.
+        self.assertAlmostEqual(
+            configurator._get_bytes_per_full_token(), 3966.0, places=6
+        )
+
+    def test_legacy_dsv4_without_ratio_sources_is_unchanged(self):
+        configurator = self._bytes_configurator()
+        self.assertAlmostEqual(
+            configurator._get_bytes_per_full_token(), 2336.0, places=6
+        )
+
+
 class TestDflashDraftKvBudget(CustomTestCase):
     """DFLASH draft KV pool as a flat bytes/token term on the target's budget."""
 

@@ -95,14 +95,12 @@ created under the direct-debug scale-cache flags and is not enabled by the
 V4.1 AIter launch.  For the V4.1 padded shape it would be roughly 0.88
 GiB/GCD over 40 layers, so it must stay off unless a direct kernel needs it.
 
-The allocator can retain released replacement blocks in `reserved` memory,
-but SGLang's `get_available_gpu_memory()` calls the device `empty_cache()`
-before reporting the post-load delta.  The failed HBM-Engram constructor also
-reported only 73.71 MiB reserved-but-unallocated versus 62.71 GiB allocated,
-which argues against a multi-GiB fragmentation-only explanation for that OOM.
+The allocator can retain released replacement blocks in `reserved` memory.
 The definitive live/reserved breakdown is supplied below by a successful
 post-load census (`memory_allocated`, `memory_reserved`, and unique
-`untyped_storage().data_ptr` bytes).
+`untyped_storage().data_ptr` bytes).  A small-memory failed constructor is not
+enough to rule out fragmentation; the clean AIter replay below in fact shows
+several GiB of non-active reserved segments after `empty_cache()`.
 
 ## Startup note
 
@@ -138,12 +136,81 @@ space.  The model-storage walk runs before KV-pool allocation, so these values
 must not be conflated with the later static pool reservation (~60.6 GiB seen
 by `amd-smi`).
 
+## AIter versus fallback scale census
+
+The same audit was repeated in a fresh TP8 process with
+`SGLANG_USE_AITER=1`, private host tables, and `--max-total-tokens 8192`.
+The two audit phases (before and after SGLang's `empty_cache()`) agree on live
+tensor storage:
+
+```text
+AIter named GPU storage:      logical=68.208 GiB, unique=53.958 GiB
+AIter routed weights/scales:  42.188 / 2.930 GiB
+AIter allocator before:       allocated=54.156, reserved=62.211 GiB
+AIter allocator after:        allocated=54.156, reserved=59.414 GiB
+AIter gaps after:             unregistered_live=0.197,
+                              inactive_reserved=5.259,
+                              outside_allocator=0.902--0.965 GiB
+```
+
+The drop from 62.211 to 59.414 GiB proves that part of the load-time
+replacement workspace was released and returned to the allocator, while the
+remaining 5.259 GiB is retained/non-active allocator space rather than a live
+parameter copy.  `unique=53.958` versus `allocated=54.156` leaves only about
+0.197 GiB of named-storage-unaccounted live allocation.  This is the useful
+P3 split: live model storage, allocator reserve, and driver-side allocations
+must be reported separately.
+
+A separate fresh process intentionally omitted `SGLANG_USE_AITER` (the code
+default is false) and therefore exercised the non-AIter FP4 fallback:
+
+```text
+fallback named GPU storage:       logical=62.642 GiB, unique=48.392 GiB
+fallback routed weights/scales:   31.641 / 7.910 GiB
+fallback allocator:               allocated=48.641, reserved=48.686 GiB
+fallback gaps:                    unregistered_live=0.249,
+                                   inactive_reserved=0.045,
+                                   outside_allocator=0.902--0.965 GiB
+```
+
+Here the 7.910 GiB scales are `torch.float32`: the un-padded local-288 E8M0
+scale payload is about 1.9775 GiB/GCD, so changing one-byte scales to four-byte
+scales adds approximately `(4-1)*1.9775 = 5.933 GiB/GCD`.  This is a real P2
+failure mode if a V4.1 service is launched without the production launcher's
+`SGLANG_USE_AITER=1`; it is not present in the AIter run, whose scale storage
+is `torch.float8_e8m0fnu`.
+
+The fallback also omits AIter's 288-to-384 padding, which is why its weight
+storage is smaller.  Smaller VRAM usage does not imply an equivalent or faster
+kernel path: it trades roughly 11.2 GiB/GCD of AIter padding for FP32 scales and
+the fallback implementation.  Future comparisons must record the active
+backend and dtype, not compare total VRAM alone.
+
+## P3 accounting rule
+
+Do not add the following as if they were independent allocations:
+
+* logical tensor bytes (views count repeatedly),
+* unique `untyped_storage()` bytes (the live-storage estimate),
+* `memory_allocated()` (all live allocator allocations),
+* `memory_reserved()` (live plus inactive allocator segments), and
+* `amd-smi`/driver-used bytes (includes allocations outside the PyTorch
+  allocator).
+
+The audit now records both `before_empty_cache` and `after_empty_cache` phases,
+plus the three gaps above.  It still intentionally does not claim that two
+separate storage pointers contain different data; a content-level duplicate
+would require an expensive hash.  Within the current load path there is no
+evidence for a multi-GiB old tensor reference: direct logical W2 scale clones
+are zero, GPU Engram is zero, and the unregistered live gap is sub-GiB.
+
 ## Separate pool-sizing coverage gap (not a duplicate-weight finding)
 
-The current `DSV4PoolConfigurator._get_bytes_per_full_token()` accounts for
-SWA/C4/C128 pools, but its current on-disk implementation does not add the
-V4.1 ratio-1/2 source pools.  `DeepSeekV4TokenToKVPool` does allocate those
-additional pools, using `full_size`, and also allocates their FP4 index pools.
+The audit found that the pre-patch
+`DSV4PoolConfigurator._get_bytes_per_full_token()` accounted for SWA/C4/C128
+pools, but did not add the V4.1 ratio-1/2 source pools.
+`DeepSeekV4TokenToKVPool` does allocate those additional pools, using
+`full_size`, and also allocates their FP4 index pools.
 For this checkpoint the four source layers are `[2, 8, 14, 20]` with ratios
 `[2, 2, 2, 1]`; their omitted estimate is `(584+68)/2 * 3 + (584+68) =
 1630 bytes/full-token` before page padding.  The current log reports only
@@ -152,8 +219,15 @@ pool can overestimate capacity by roughly 70%.  At `full_size=498688`, the
 omitted low-ratio KV+index buffers are about `0.759 GiB/GCD` after page
 rounding.  The successful audit used an explicit `--max-total-tokens 8192`,
 where this is only about `0.013 GiB/GCD`, so it did not exercise the dangerous
-large-capacity case.  This is a sizing/accounting issue to fix and test
-separately; it is not evidence that model weights are duplicated.
+large-capacity case.
+
+The working tree now charges these pools in the coefficient: for this
+checkpoint the expected value is `2336 + 1630 = 3966 bytes/full-token`
+(before page-alignment rounding), and focused formula smoke tests pass.  A
+clean full configurator test remains desirable when the optional `datasets`
+test dependency is available; registered pytest collection was blocked here
+by `ModuleNotFoundError: datasets`.  This is a sizing/accounting issue, not
+evidence that model weights are duplicated.
 
 ## Decision
 
@@ -165,3 +239,6 @@ separately; it is not evidence that model weights are duplicated.
 4. The successful 8192-token startup already recorded a gated
    unique-storage/allocated/reserved audit; use it as the baseline for any
    future padding or offload change.
+5. Require `SGLANG_USE_AITER=1` (or fail loudly in a V4.1 storage audit) when
+   the production FP4 path is intended; otherwise the fallback can silently
+   incur the measured ~5.93 GiB/GCD FP32-scale expansion.
