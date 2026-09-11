@@ -313,7 +313,18 @@ class SchedulerPoolStatsObserver:
             full_token_usage = 0.0
         else:
             full_token_usage = full_num_used / self.full_tokens_per_layer
-        swa_token_usage = swa_num_used / self.swa_tokens_per_layer
+        # Some hybrid-SWA models intentionally disable the SWA pool (for
+        # example, when all available memory is assigned to the full/C4/C128
+        # pools).  The model runner still advertises the hybrid interface, so
+        # the observer must treat a zero-capacity SWA pool as an empty pool
+        # instead of dividing by zero while the scheduler is idle.
+        if not self.swa_tokens_per_layer:
+            swa_num_used = 0
+            swa_available_size = 0
+            swa_evictable_size = 0
+            swa_token_usage = 0.0
+        else:
+            swa_token_usage = swa_num_used / self.swa_tokens_per_layer
 
         return PoolStats(
             is_hybrid_swa=True,

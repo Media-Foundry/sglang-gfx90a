@@ -209,6 +209,41 @@ def test_hybrid_pool_stats_exclude_reserved_slots():
     assert stats.full_token_usage == 0
 
 
+def test_hybrid_pool_stats_allow_zero_swa_capacity():
+    """A hybrid model may reserve no SWA slots; idle metrics must remain valid."""
+    allocator = SimpleNamespace(
+        full_available_size=lambda: 32,
+        swa_available_size=lambda: 0,
+    )
+    tree_cache = SimpleNamespace(
+        full_evictable_size=lambda: 0,
+        swa_evictable_size=lambda: 0,
+    )
+    observer = SchedulerPoolStatsObserver(
+        tree_cache=tree_cache,
+        token_to_kv_pool_allocator=allocator,
+        req_to_token_pool=SimpleNamespace(),
+        session_controller=None,
+        hisparse_coordinator=None,
+        is_hybrid_swa=True,
+        is_hybrid_ssm=False,
+        enable_hisparse=False,
+        full_tokens_per_layer=64,
+        swa_tokens_per_layer=0,
+        max_total_num_tokens=64,
+        get_last_batch=lambda: None,
+        get_running_batch=lambda: None,
+    )
+
+    stats = observer.get_pool_stats()
+
+    assert stats.full_num_used == 32
+    assert stats.full_token_usage == 0.5
+    assert stats.swa_num_used == 0
+    assert stats.swa_token_usage == 0.0
+    assert stats.get_max_pool_usage() == 0.5
+
+
 def test_streaming_session_release_frees_compressed_slots():
     pool, _, req_pool_idx, allocator = make_pool_and_req()
     alloc_extend(pool, req_pool_idx, seq_len=16)
