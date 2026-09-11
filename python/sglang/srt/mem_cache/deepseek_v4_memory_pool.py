@@ -335,6 +335,18 @@ class DeepSeekV4IndexerPool(KVCache):
     def get_key_buffer(self, layer_id: int) -> torch.Tensor:
         raise NotImplementedError()
 
+    def get_v_head_dim(self) -> int:
+        """Return the logical V head width used by attention backend setup.
+
+        V4 stores its compressed/index KV in a packed byte buffer and therefore
+        intentionally does not expose the generic ``get_value_buffer`` API.
+        The generic AIter backend only needs the logical width during
+        construction; the V4 attention implementation accesses the packed
+        buffers through its own accessors.  The value width is the complete
+        head width (nope plus rotary component).
+        """
+        return self.qk_nope_head_dim + self.qk_rope_head_dim
+
     def get_value_buffer(self, layer_id: int) -> torch.Tensor:
         raise NotImplementedError()
 
