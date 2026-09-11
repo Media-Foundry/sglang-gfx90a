@@ -308,8 +308,9 @@ class EngramHasher(nn.Module):
             row = torch.repeat_interleave(torch.arange(bs, device=device), lens)
             num_real = row.shape[0]
             kmode = MODE_EXTEND
-            if forward_batch.ngram_history is not None:
-                history, hist_via_slots = forward_batch.ngram_history, False
+            ngram_history = getattr(forward_batch, "ngram_history", None)
+            if ngram_history is not None:
+                history, hist_via_slots = ngram_history, False
             commit_rows = torch.where(lens > 0, req_slots, self.pad_row)
             commit_last = (starts + lens - 1).clamp(0, num_tokens - 1)
 
