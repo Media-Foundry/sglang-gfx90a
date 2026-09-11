@@ -3660,6 +3660,16 @@ class ServerArgs:
         "Enable returning indexer topk indices of layers with indexer with responses.",
         NS("exec.features"),
     ] = False
+    enable_encoder_swa_bounded_replay: A[
+        bool,
+        "DeepSeek-V4.1 encoder SWA bounded replay (experimental).",
+        NS("exec.features"),
+    ] = False
+    enable_decoder_swa_bounded_replay: A[
+        bool,
+        "DeepSeek-V4.1 decoder SWA bounded replay (experimental).",
+        NS("exec.features"),
+    ] = False
     disable_outlines_disk_cache: A[
         bool,
         "Disable disk cache of outlines to avoid possible crashes related to file system or high concurrency.",
