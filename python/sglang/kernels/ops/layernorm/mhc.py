@@ -1582,6 +1582,55 @@ def hc_split_sinkhorn(
     return pre, post, comb
 
 
+def hc_mix_stats(
+    x_flat: torch.Tensor, hc_fn: torch.Tensor, rms_eps: float
+) -> torch.Tensor:
+    """Compute normalized mHC mixing logits for the V4.1 path.
+
+    V4.1 imports this small public helper directly.  Keep the fallback in this
+    module (rather than importing model-specific code) so it is available on
+    HIP and during model-registry discovery.  Accumulation is intentionally in
+    fp32, matching the reference V4 implementation.
+    """
+    if x_flat.ndim != 2 or hc_fn.ndim != 2 or x_flat.shape[1] != hc_fn.shape[1]:
+        raise ValueError(
+            f"invalid mHC stats shapes: x={tuple(x_flat.shape)}, "
+            f"fn={tuple(hc_fn.shape)}"
+        )
+    x_fp32 = x_flat.float()
+    fn_fp32 = hc_fn.float()
+    rsqrt = torch.rsqrt(x_fp32.square().mean(dim=-1, keepdim=True) + rms_eps)
+    return torch.matmul(x_fp32, fn_fp32.t()) * rsqrt
+
+
+def hc_mix_stats_sinkhorn(
+    x_flat: torch.Tensor,
+    hc_fn: torch.Tensor,
+    hc_scale: torch.Tensor,
+    hc_base: torch.Tensor,
+    hc_mult: int,
+    sinkhorn_iters: int,
+    rms_eps: float,
+    sinkhorn_eps: float,
+):
+    """Return ``(pre, post, comb)`` mHC coefficients for V4.1.
+
+    This is the graph-safe reference wrapper used when the architecture-specific
+    fused MHC kernel is unavailable (notably on gfx90a).  The sinkhorn operator
+    below retains the existing deterministic implementation and therefore keeps
+    the same coefficient semantics as DeepSeek V4.
+    """
+    mixes = hc_mix_stats(x_flat, hc_fn, rms_eps).unsqueeze(1)
+    return hc_split_sinkhorn(
+        mixes,
+        hc_scale,
+        hc_base,
+        hc_mult,
+        sinkhorn_iters,
+        sinkhorn_eps,
+    )
+
+
 @tilelang.jit(
     pass_configs={
         tilelang.PassConfigKey.TL_DISABLE_WARP_SPECIALIZED: True,
