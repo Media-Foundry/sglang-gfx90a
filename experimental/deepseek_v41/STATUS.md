@@ -5,11 +5,13 @@ separate from the production DeepSeek-V4 path.
 
 ## Snapshot
 
-The ModelScope download at `/media/PM983/deepseek-v4.1-flash` is still active.
-The index describes 48 safetensors shards, 96,085 tensors and a reported
-payload size of 510,286,023,000 bytes.  At the latest read-only audit there
-were no missing shard names, but three shards were still `.incomplete`; counts
-are expected to change while the downloader runs.
+The checkpoint at `/media/PM983/deepseek-v4.1-flash` is complete.
+The index describes 48 safetensors shards and 96,085 tensors with a reported
+payload size of 510,286,023,000 bytes.  The latest strict audit found no
+missing shard names, no `.incomplete` shards, and all 12 Engram tensors
+present.  This status file is intentionally updated independently of the
+production model integration so a failed integration cannot be mistaken for
+an incomplete download.
 
 The manifest already establishes:
 
@@ -51,12 +53,12 @@ about 126 MiB, so pinning the full tables is neither possible nor intended.
 
 ## Pending gates
 
-* Do not build a real V4.1 model or convert weights until shards 47 and 48 are
-  complete and their headers pass the audit.
-* Once complete, compare all six Engram tensor dtypes/shapes and raw row bytes
-  against the index/converter; then construct row stores for both layers.
-* Only after that integrate an explicit V4.1 model class and run teacher-forced
-  CPU/reference checks.  Before any GPU run, record `amd-smi process --json`.
+* The complete-shard and Engram-header gates have passed.  The next gate is to
+  import an explicit V4.1 model class and run teacher-forced CPU/reference
+  checks without touching the production V4 path.
+* Compare all six Engram tensor dtypes/shapes and raw row bytes against the
+  index/converter while constructing row stores for both layers.
+* Before any GPU run, record `amd-smi process --json`.
 * Keep the host read, staging lease, HIP stream and device lifetime outside CUDA
   graph capture until a bounded, graph-safe protocol is demonstrated.
 
@@ -69,4 +71,5 @@ python scripts/rocm/audit_deepseek_v41_checkpoint.py \
   --json-out /tmp/dsv41-complete-audit.json
 ```
 
-A non-zero result is expected until every indexed shard is present and valid.
+The audit should now exit zero with `--require-complete`; retain that flag as
+the CI/loader gate for future refreshes.
