@@ -1912,6 +1912,29 @@ class AiterAttnBackend(AttentionBackend):
             and layer.qk_head_dim == layer.v_head_dim
         )
 
+    def get_swa_out_cache_loc(self, forward_batch: ForwardBatch) -> torch.Tensor:
+        """Resolve the full-pool locations used to write the SWA KV cache.
+
+        Hybrid-SWA model implementations call this hook independently of the
+        selected attention backend.  AIter keeps the translated locations in
+        ``ForwardMetadata`` during graph preparation; eager paths (and graph
+        paths whose batch was repadded) must fall back to translating the live
+        full-pool locations.  Keep the same shape/type contract as the native
+        DeepSeek V4 backends.
+        """
+        out_cache_loc = forward_batch.out_cache_loc
+        metadata = self.forward_metadata
+        cached = getattr(metadata, "swa_out_cache_loc", None)
+        if (
+            cached is not None
+            and not forward_batch.forward_mode.is_idle()
+            and cached.shape[0] == out_cache_loc.shape[0]
+        ):
+            return cached
+        return self.token_to_kv_pool.translate_loc_from_full_to_swa(out_cache_loc).to(
+            torch.int32
+        )
+
     def forward_extend(
         self,
         q: torch.Tensor,
