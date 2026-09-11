@@ -5821,6 +5821,7 @@ class ServerArgs:
 
         if model_arch in [
             "DeepseekV4ForCausalLM",
+            "DeepseekV41ForCausalLM",
         ]:
             from sglang.srt.arg_groups.deepseek_v4_hook import (
                 apply_deepseek_v4_defaults,
@@ -6003,6 +6004,7 @@ class ServerArgs:
 
         elif model_arch in [
             "DeepseekV4ForCausalLM",
+            "DeepseekV41ForCausalLM",
         ]:
             from sglang.srt.arg_groups.deepseek_v4_hook import (
                 validate_deepseek_v4_cp,

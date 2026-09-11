@@ -1355,7 +1355,7 @@ def _lfm2_overrides(server_args: Any, hf_config: Any) -> dict:
     return {}
 
 
-@_register_for("DeepseekV4ForCausalLM")
+@_register_for("DeepseekV4ForCausalLM", "DeepseekV41ForCausalLM")
 def _deepseek_v4_overrides(server_args: Any, hf_config: Any) -> dict:
     """DeepSeek V4 attention/page/window/MoE-runner defaults (from
     arg_groups/deepseek_v4_hook.py). The kv-cache dtype and NPU split-backend
@@ -2233,7 +2233,7 @@ def _deepseek_v4_kv_cache_dtype(view: Any) -> dict:
     result. The NPU split-backend writes stay in the hook."""
     hf_config = view.get_model_config().hf_config
     model_arch = hf_config.architectures[0]
-    if model_arch != "DeepseekV4ForCausalLM":
+    if model_arch not in ("DeepseekV4ForCausalLM", "DeepseekV41ForCausalLM"):
         return {}
 
     kv_cache_dtype = view.kv_cache_dtype
