@@ -1384,6 +1384,15 @@ class DeepSeekV4TokenToKVPool(BaseSWAKVPool):
     def get_key_buffer(self, layer_id: int) -> torch.Tensor:
         raise NotImplementedError()
 
+    def get_v_head_dim(self) -> int:
+        """Return logical V width for generic backend construction.
+
+        The V4 pool stores compressed/index data in packed byte buffers and
+        intentionally does not implement the generic value-buffer accessor.
+        Attention backend setup only needs this logical width at construction.
+        """
+        return self.qk_nope_head_dim + self.qk_rope_head_dim
+
     def get_value_buffer(self, layer_id: int) -> torch.Tensor:
         raise NotImplementedError()
 
