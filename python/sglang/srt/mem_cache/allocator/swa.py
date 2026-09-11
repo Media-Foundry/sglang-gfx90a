@@ -617,3 +617,8 @@ class PureSWATokenToKVPoolAllocator(SWATokenToKVPoolAllocator):
         self.swa_attn_allocator.clear()
         self.is_not_in_free_group = True
         self.free_group = []
+
+
+
+def is_swa_req_ring(allocator) -> bool:
+    return isinstance(allocator, SWATokenToKVPoolAllocator) and getattr(allocator, "swa_req_ring", False)
