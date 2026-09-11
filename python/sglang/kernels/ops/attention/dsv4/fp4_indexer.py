@@ -38,6 +38,35 @@ def _fp4_e2m1_code(x):
 
 
 @triton.jit
+def _fp4_e2m1_code_rne(x):
+    """Round-to-nearest-even E2M1 code used by the V4.1 rope packer.
+
+    Keep the existing C4 truncation helper unchanged.  V4.1's ratio-1/2 path
+    needs the tie rule explicitly, so it is exposed as a separate helper.
+    """
+    ax = tl.minimum(tl.abs(x), 6.0)
+    idx = (ax >= 0.25).to(tl.uint8)
+    idx += (ax >= 0.75).to(tl.uint8)
+    idx += (ax >= 1.25).to(tl.uint8)
+    idx += (ax >= 1.75).to(tl.uint8)
+    idx += (ax >= 2.5).to(tl.uint8)
+    idx += (ax >= 3.5).to(tl.uint8)
+    idx += (ax >= 5.0).to(tl.uint8)
+    is_boundary = (
+        (ax == 0.25)
+        | (ax == 0.75)
+        | (ax == 1.25)
+        | (ax == 1.75)
+        | (ax == 2.5)
+        | (ax == 3.5)
+        | (ax == 5.0)
+    )
+    idx = tl.where(is_boundary & ((idx & 1) == 1), idx - 1, idx)
+    sign = ((x < 0) & (idx != 0)).to(tl.uint8)
+    return idx | (sign << 3)
+
+
+@triton.jit
 def _quantize_fp4_indexer_kernel(
     x,
     x_fp4,
