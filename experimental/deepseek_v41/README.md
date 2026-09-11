@@ -22,9 +22,12 @@ and does not change the existing DeepSeek-V4 implementation.
   and a single-worker asynchronous prefetcher.  The full table remains in
   host RAM/page cache; only explicitly requested rows can be copied to HBM.
 
-The host table deliberately preserves on-disk bytes.  FP8/scale decoding and
-integration into a V4.1 attention block are deferred until shards 47 and 48
-are complete and their real headers/payloads have been checked.
+The host table deliberately preserves on-disk bytes.  Only `embed.weight` and
+`embed.scale` are row-addressed by the hash id; `q_weight`, `k_weight`, and
+`wkv.*` are static operator tensors and are fetched through a separate explicit
+API.  FP8/scale decoding and integration into a V4.1 attention block are
+deferred until shards 47 and 48 are complete and their real headers/payloads
+have been checked.
 
 ## Smoke commands
 

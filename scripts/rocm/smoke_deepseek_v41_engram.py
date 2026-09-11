@@ -62,9 +62,33 @@ def main(argv: list[str] | None = None) -> int:
                 f"range=[{layer.mapping.global_start},{layer.mapping.global_end})"
             )
             for name, store in layer.stores.items():
+                shape = getattr(store, "shape", None)
                 print(
                     f"  {name}: dtype={store.dtype} rows={store.rows} "
-                    f"row_bytes={store.row_bytes}"
+                    f"row_bytes={store.row_bytes} shape={shape}"
+                )
+            # q/k/wkv are static operator tensors, not table rows.  Probe only
+            # the small q/k/scale payloads here; leave the 157 MiB wkv weight
+            # lazy and never materialize it merely for a smoke test.
+            static_probe = tuple(
+                name
+                for name in ("q_weight", "k_weight", "wkv.scale")
+                if name in layer.static_tensor_names
+            )
+            if static_probe:
+                static = layer.read_static_bytes(static_probe)
+                print(
+                    "  static_probe="
+                    + json.dumps(
+                        {
+                            name: {
+                                "bytes": len(payload),
+                                "sha256": hashlib.sha256(payload).hexdigest(),
+                            }
+                            for name, payload in static.items()
+                        },
+                        sort_keys=True,
+                    )
                 )
             if "embed.weight" not in layer.stores:
                 continue

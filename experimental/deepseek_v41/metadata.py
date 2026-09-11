@@ -849,7 +849,13 @@ def audit_checkpoint(
         "wkv.weight",
         "wkv.scale",
     }
-    engram_complete = bool(meta and set(groups["engram"]) == set(meta.engram_layer_ids)) and all(
+    # JSON-facing group keys are strings, whereas config layer ids are ints.
+    # Normalize before comparing so complete checkpoints are not falsely
+    # reported as missing their Engram manifest.
+    engram_layers_from_index = {int(layer) for layer in groups["engram"]}
+    engram_complete = bool(
+        meta and engram_layers_from_index == set(meta.engram_layer_ids)
+    ) and all(
         set(names) == required_engram_names for names in groups["engram"].values()
     )
     engram_expected_keys = {
@@ -863,7 +869,7 @@ def audit_checkpoint(
         result["engram_missing_tensors"] = engram_missing_keys
     if meta:
         expected_engram_layers = set(meta.engram_layer_ids)
-        actual_engram_layers = {int(layer) for layer in groups["engram"]}
+        actual_engram_layers = engram_layers_from_index
         if expected_engram_layers != actual_engram_layers:
             errors.append(
                 "Engram layer manifest mismatch: "
