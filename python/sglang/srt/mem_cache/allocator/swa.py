@@ -30,6 +30,7 @@ class SWATokenToKVPoolAllocator(BaseTokenToKVPoolAllocator):
         device: str,
         kvcache: BaseSWAKVPool,
         need_sort: bool,
+        req_to_token_pool=None,
     ):
         assert isinstance(kvcache, BaseSWAKVPool)
         self._size_full = size
