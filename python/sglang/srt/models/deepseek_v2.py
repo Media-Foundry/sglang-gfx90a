@@ -705,6 +705,7 @@ class DeepseekV2MoE(nn.Module):
         quant_config: Optional[QuantizationConfig] = None,
         prefix: str = "",
         alt_stream: Optional[torch.cuda.Stream] = None,
+        routed_quant_stream: Optional[torch.cuda.Stream] = None,
         is_nextn: bool = False,
         is_deepseek_v4: bool = False,
         dsa_enable_prefill_cp: bool = False,
@@ -754,6 +755,7 @@ class DeepseekV2MoE(nn.Module):
         self.config = config
         self.layer_id = layer_id
         self.alt_stream = alt_stream
+        self.routed_quant_stream = routed_quant_stream
         self.is_nextn = is_nextn
 
         n_hash_layers = getattr(config, "num_hash_layers", 0)
