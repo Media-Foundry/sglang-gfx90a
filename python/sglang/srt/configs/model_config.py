@@ -162,6 +162,7 @@ def is_deepseek_v4(config) -> bool:
         "DeepseekV4ForCausalLM",
         "DeepseekV4ForCausalLMNextN",
         "DeepseekV4ForCausalLMDSpark",
+        "DeepseekV41ForCausalLM",
     )
 
 
@@ -271,6 +272,8 @@ def get_num_indexer_layers(config) -> int:
     """
     if is_deepseek_dsa(config):
         return config.num_hidden_layers
+    if getattr(config, "model_type", None) == "deepseek_v41":
+        return len(getattr(config, "index_source_layer_ids", ()) or ())
     if is_deepseek_v4(config):
         compress_ratios = getattr(config, "compress_ratios", None) or []
         return sum(1 for r in compress_ratios if r == 4)
@@ -820,6 +823,7 @@ class ModelConfig:
                     "DeepseekV4ForCausalLM",
                     "DeepseekV4ForCausalLMNextN",
                     "DeepseekV4ForCausalLMDSpark",
+                    "DeepseekV41ForCausalLM",
                 ]
                 for arch in self.hf_config.architectures
             )
@@ -984,6 +988,7 @@ class ModelConfig:
             "DeepseekV4ForCausalLM" in self.hf_config.architectures
             or "DeepseekV4ForCausalLMNextN" in self.hf_config.architectures
             or "DeepseekV4ForCausalLMDSpark" in self.hf_config.architectures
+            or "DeepseekV41ForCausalLM" in self.hf_config.architectures
         ):
             self.qk_rope_head_dim = self.hf_config.qk_rope_head_dim
             self.qk_nope_head_dim = self.hf_config.head_dim - self.qk_rope_head_dim
@@ -1979,6 +1984,7 @@ piecewise_cuda_graph_disabled_model_archs = [
     "DeepseekV4ForCausalLM",
     "DeepseekV4ForCausalLMNextN",
     "DeepseekV4ForCausalLMDSpark",
+    "DeepseekV41ForCausalLM",
     "Qwen3NextForCausalLM",
     "BailingMoeV2_5ForCausalLM",
     "LLaDAModelLM",
@@ -2142,6 +2148,7 @@ def is_hybrid_swa_model(
         "DeepseekV4ForCausalLM",
         "DeepseekV4ForCausalLMNextN",
         "DeepseekV4ForCausalLMDSpark",
+        "DeepseekV41ForCausalLM",
         *SWA_SINK_ARCHS,
         *MIMO_V2_MODEL_ARCHS,
         "MiMoV2MTP",

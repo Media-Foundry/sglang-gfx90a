@@ -35,8 +35,10 @@ def normalize_deepseek_v41_config(values):
                 values.setdefault(target, vision[source])
     if "model_type" in values:
         values["model_type"] = "deepseek_v41"
-    if values.get("architectures") == ["DeepseekV41ForCausalLM"]:
-        values["architectures"] = ["DeepseekV4ForCausalLM"]
+    # Keep the V4.1 architecture name so the native registry can select the
+    # isolated V4.1 implementation.  The upstream shared V4 model aliases this
+    # to DeepseekV4ForCausalLM, but doing so here would silently route the new
+    # checkpoint into the local V4/gfx90a path with incompatible layer shapes.
     return values
 
 
