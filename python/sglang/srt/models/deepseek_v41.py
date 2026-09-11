@@ -2455,7 +2455,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             self.hc_sinkhorn_iters,
             self.hc_eps,
         )
-        from sglang.kernels.ops.layernorm.mhc import hc_combine
+        from sglang.kernels.ops.elementwise.hc_combine import hc_combine
 
         # y is the post-norm activation fed into the MoE. Allocate it in the
         # symmetric memory pool so the downstream all-reduce uses the low-latency
@@ -2743,11 +2743,8 @@ class DeepseekV4DecoderLayer(nn.Module):
         """Mixing coefficients come from x; the sublayer input is x collapsed with
         apply_pre (None selects copy 0), then RMS-normalized.
         Returns (y, pre, post, comb)."""
-        from sglang.kernels.ops.layernorm.mhc import (
-            hc_combine,
-            hc_mix_stats,
-            hc_mix_stats_sinkhorn,
-        )
+        from sglang.kernels.ops.elementwise.hc_combine import hc_combine
+        from sglang.kernels.ops.layernorm.mhc import hc_mix_stats, hc_mix_stats_sinkhorn
 
         dtype = x.dtype
         x_flat = x.flatten(1)
