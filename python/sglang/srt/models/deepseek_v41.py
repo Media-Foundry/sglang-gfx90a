@@ -3633,6 +3633,18 @@ class DeepseekV4Model(nn.Module):
             is_cp_v2_active(forward_batch) and forward_batch.forward_mode.is_extend()
         )
         if self.engram_hasher is not None:
+            # The V4.1 Engram hasher keeps per-request n-gram history.  The
+            # upstream model integration assumes the scheduler initializes it,
+            # but gfx90a's scheduler path does not currently expose that hook.
+            # Lazily allocate a generously sized slot table on the first real
+            # forward (before graph capture/warmup); this is tiny compared with
+            # the model and avoids silently running with an uninitialized hash
+            # state.
+            if self.engram_hasher.history is None:
+                self.engram_hasher.init_history(
+                    max(1024, int(forward_batch.req_pool_indices.numel())),
+                    input_ids.device,
+                )
             if cp_extend:
                 # n-gram hashing needs each token's predecessors: hash the whole prompt
                 total = int(forward_batch.attn_cp_metadata.total_seq_lens)
@@ -5192,4 +5204,3 @@ def _fuse_deepseek_v4_wqkv_a_pair(
             )
         return q
     return torch.cat([q, kv], dim=0)
-
