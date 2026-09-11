@@ -1412,6 +1412,13 @@ class Envs:
     # DeepSeek V4
     # ===================================================================
 
+    # DeepSeek-V4.1 Engram host-resident table and prefetch controls.
+    SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE = EnvBool(False)
+    SGLANG_ENABLE_DSV41_ENGRAM_KV_PREFETCH = EnvBool(False)
+    SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN = EnvBool(True)
+    SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT = EnvStr("auto")
+    SGLANG_ENABLE_DSV41_ENGRAM_DROP_PAGE_CACHE = EnvBool(True)
+
     # Model and Quantization
     # Set False when using FP4-to-FP8 converted DeepSeek V4 checkpoint.
     SGLANG_DSV4_FP4_EXPERTS = EnvBool(True)
