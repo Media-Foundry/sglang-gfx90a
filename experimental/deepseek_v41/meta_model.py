@@ -120,6 +120,10 @@ class DeepSeekV41MetaModel(nn.Module):
             else None,
             "tp_size": self.tp_size,
             "backbone_layers": self.meta_config.num_hidden_layers,
+            "ced_split_candidate": list(self.meta_config.ced_split_candidate)
+            if self.meta_config.ced_split_candidate is not None
+            else None,
+            "ced_split_is_inferred": True,
             "total_layers_including_mtp": self.meta_config.total_transformer_layers,
             "layer_count": len(self.layers),
             "vocab_size": self.meta_config.vocab_size,

@@ -113,6 +113,9 @@ def test_prefetch_deduplicates_without_gpu_table():
         def read_rows_bytes(self, row_ids):
             return [bytes([int(row_id), 7, 9]) for row_id in row_ids]
 
+        def read_all_bytes(self):
+            return b"static"
+
         def close(self):
             pass
 
@@ -130,6 +133,47 @@ def test_prefetch_deduplicates_without_gpu_table():
         assert result.host_tensor.tolist() == [[2, 7, 9], [1, 7, 9]]
         result.release()
     table.close()
+
+
+def test_engram_static_tensors_are_not_indexed_as_rows():
+    class FakeStore:
+        def __init__(self, rows, width, payload):
+            self.rows = rows
+            self.row_bytes = width
+            self.dtype = "U8"
+            self.payload = payload
+
+        def read_rows_bytes(self, row_ids):
+            return [bytes([int(row_id) & 255]) * self.row_bytes for row_id in row_ids]
+
+        def read_all_bytes(self):
+            return self.payload
+
+        def close(self):
+            pass
+
+    layer = EngramLayerHostTable(
+        layer_id=14,
+        stores={
+            "embed.weight": FakeStore(10, 4, b"weights"),
+            "embed.scale": FakeStore(10, 1, b"scales"),
+            "q_weight": FakeStore(4, 8, b"q"),
+            "wkv.weight": FakeStore(2, 16, b"wkv"),
+        },
+        mapping=EngramRowMapping(global_rows=10),
+    )
+    assert layer.row_tensor_names == ("embed.weight", "embed.scale")
+    assert layer.static_tensor_names == ("q_weight", "wkv.weight")
+    rows = layer.read_rows_bytes([2])
+    assert set(rows) == {"embed.weight", "embed.scale"}
+    assert layer.read_static_bytes() == {"q_weight": b"q", "wkv.weight": b"wkv"}
+    try:
+        layer.read_rows_bytes([2], tensor_names=("q_weight",))
+    except ValueError as exc:
+        assert "static" in str(exc)
+    else:
+        raise AssertionError("static tensor was accepted as row-addressed")
+    layer.close()
 
 
 def test_incomplete_checkpoint_is_not_called_ready(tmp_path):

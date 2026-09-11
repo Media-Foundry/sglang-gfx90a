@@ -210,7 +210,16 @@ class DeepSeekV41MetaConfig:
     engram_head_dim: int
     engram_compressed_vocab_size: int
     hc_sinkhorn_iters: int
-    raw: Mapping[str, Any] = field(repr=False, compare=False)
+    # These fields are metadata-only; they are intentionally not used to
+    # select a production SGLang model until V4.1 semantics are implemented.
+    engram_pad_token_id: int = 0
+    candidate_source_layer_id: int = -1
+    candidate_topk_blocks: int = 0
+    candidate_block_size: int = 0
+    hc_eps: float = 0.0
+    activation_dtype: str = ""
+    expert_dtype: str = ""
+    raw: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
     def from_dict(cls, config: Mapping[str, Any]) -> "DeepSeekV41MetaConfig":
@@ -272,6 +281,17 @@ class DeepSeekV41MetaConfig:
                 "engram_compressed_vocab_size", default=0
             ),
             hc_sinkhorn_iters=integer("hc_sinkhorn_iters", "sinkhorn_iters", default=0),
+            engram_pad_token_id=integer(
+                "engram_pad_token_id", "engram_pad_id", default=0
+            ),
+            candidate_source_layer_id=integer(
+                "candidate_source_layer_id", default=-1
+            ),
+            candidate_topk_blocks=integer("candidate_topk_blocks", default=0),
+            candidate_block_size=integer("candidate_block_size", default=0),
+            hc_eps=float(_pick(top, text, "hc_eps", default=0.0)),
+            activation_dtype=str(_pick(top, text, "dtype", default="")),
+            expert_dtype=str(_pick(top, text, "expert_dtype", default="")),
             raw=config,
         )
 
@@ -286,6 +306,19 @@ class DeepSeekV41MetaConfig:
     @property
     def total_transformer_layers(self) -> int:
         return self.num_hidden_layers + self.num_nextn_predict_layers
+
+    @property
+    def ced_split_candidate(self) -> tuple[int, int] | None:
+        """Return an even encoder/decoder split candidate, if structurally possible.
+
+        V4.1 documents a 20/20 CED split, but the JSON checkpoint does not
+        expose a dedicated split field.  This property is descriptive only and
+        is never used to dispatch a production model.
+        """
+        if self.num_hidden_layers <= 0 or self.num_hidden_layers % 2:
+            return None
+        half = self.num_hidden_layers // 2
+        return half, self.num_hidden_layers - half
 
     @property
     def backbone_compress_ratios(self) -> tuple[int, ...]:
@@ -362,6 +395,16 @@ class DeepSeekV41MetaConfig:
                 )
         if self.index_topk <= 0:
             errors.append("index_topk must be positive")
+        if self.engram_pad_token_id < 0 or self.engram_pad_token_id >= self.vocab_size:
+            errors.append(
+                "engram_pad_token_id must be inside the tokenizer vocabulary: "
+                f"{self.engram_pad_token_id} not in [0, {self.vocab_size})"
+            )
+        if self.candidate_source_layer_id >= self.num_hidden_layers:
+            errors.append(
+                "candidate_source_layer_id is outside the backbone: "
+                f"{self.candidate_source_layer_id}"
+            )
         return errors
 
     def layer_specs(self) -> tuple[dict[str, Any], ...]:
@@ -518,6 +561,49 @@ def tp_shard_plan(
     }
 
 
+def _engram_header_summary(
+    headers: Mapping[str, SafetensorsTensorHeader],
+    meta: DeepSeekV41MetaConfig | None,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Summarize real Engram headers and validate only known row contracts.
+
+    ``embed.weight`` and ``embed.scale`` are row-addressed.  q/k/wkv are
+    operator tensors with unrelated leading dimensions, so this helper records
+    them without applying the table-row check.
+    """
+    summary: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    expected_rows = {}
+    if meta:
+        expected_rows = dict(zip(meta.engram_layer_ids, meta.engram_num_embeddings))
+    for key, header in sorted(headers.items()):
+        match = _ENGRAM_RE.search(key)
+        if not match:
+            continue
+        layer_id = int(match.group(1))
+        tensor_name = match.group(2)
+        row_addressed = tensor_name in ("embed.weight", "embed.scale")
+        summary[key] = {
+            "layer_id": layer_id,
+            "tensor": tensor_name,
+            "dtype": header.dtype,
+            "shape": list(header.shape),
+            "nbytes": header.nbytes,
+            "row_bytes": header.row_bytes,
+            "row_addressed": row_addressed,
+            "shard": str(header.path.name),
+        }
+        if row_addressed and meta:
+            expected = expected_rows.get(layer_id)
+            if expected is not None:
+                if len(header.shape) < 1 or header.shape[0] != expected:
+                    errors.append(
+                        f"Engram layer {layer_id} {tensor_name} rows "
+                        f"{header.shape[0] if header.shape else None} != config {expected}"
+                    )
+    return summary, errors
+
+
 def _expected_shard_names(weight_map: Mapping[str, Any]) -> tuple[str, ...]:
     names = {str(value) for value in weight_map.values() if isinstance(value, str)}
     return tuple(sorted(names))
@@ -546,6 +632,47 @@ def _key_groups(keys: Iterable[str]) -> dict[str, Any]:
         "mtp": {str(layer): count for layer, count in sorted(mtp.items())},
         "vision_count": vision,
     }
+
+
+def _infer_attention_layout(keys: Iterable[str]) -> dict[str, dict[str, Any]]:
+    """Classify observed CSA2 parameter layouts without claiming runtime modes.
+
+    The released JSON does not encode a per-layer Full/Reindex/Reuse enum.
+    These labels are therefore *observations* from checkpoint key presence and
+    are useful for the empty-model audit only; a production runner must still
+    consume an explicit verified mode table.
+    """
+    signals: dict[int, set[str]] = defaultdict(set)
+    for key in keys:
+        match = re.search(r"(?:^|\.)layers\.(\d+)\.attn\.(.+)$", str(key))
+        if not match:
+            continue
+        layer_id = int(match.group(1))
+        suffix = match.group(2)
+        for signal in (
+            "indexer.weights_proj.weight",
+            "compressor.wgate.weight",
+            "compressor.wkv.weight",
+            "compressor.norm.weight",
+        ):
+            if suffix == signal:
+                signals[layer_id].add(signal)
+    result: dict[str, dict[str, Any]] = {}
+    for layer_id in sorted(signals):
+        present = signals[layer_id]
+        if "indexer.weights_proj.weight" not in present:
+            mode = "no_indexer_parameters"
+        elif "compressor.wgate.weight" in present:
+            mode = "full_candidate"
+        elif "compressor.wkv.weight" in present:
+            mode = "reindex_candidate"
+        else:
+            mode = "reuse_candidate"
+        result[str(layer_id)] = {
+            "observed_mode": mode,
+            "signals": sorted(present),
+        }
+    return result
 
 
 def audit_checkpoint(
@@ -670,6 +797,11 @@ def audit_checkpoint(
                 incomplete_shards.append(shard_name)
         result["files"][shard_name] = file_info
 
+    engram_headers, engram_header_errors = _engram_header_summary(
+        tensor_headers, meta
+    )
+    result["engram_tensor_headers"] = engram_headers
+    errors.extend(engram_header_errors)
     result["tp_shard_plan"] = tp_shard_plan(
         tensor_headers, weight_map, tp_size
     )
@@ -703,6 +835,7 @@ def audit_checkpoint(
 
     groups = _key_groups(expected_keys)
     result["groups"] = groups
+    result["attention_layout_observed"] = _infer_attention_layout(expected_keys)
     result["counts"]["engram_tensors"] = sum(
         len(names) for names in groups["engram"].values()
     )

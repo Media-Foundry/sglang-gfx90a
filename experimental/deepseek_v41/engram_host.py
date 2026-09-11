@@ -50,6 +50,8 @@ class RowStore(Protocol):
 
     def read_rows_bytes(self, row_ids: Sequence[int]) -> list[bytes]: ...
 
+    def read_all_bytes(self) -> bytes: ...
+
     def close(self) -> None: ...
 
 
@@ -223,6 +225,16 @@ class _MMapRowStore:
                 result.append(bytes(mm[begin:end]))
         return result
 
+    def read_all_bytes(self) -> bytes:
+        """Return a non-row-addressed tensor payload as raw bytes.
+
+        This method is intentionally explicit: callers must not use it for the
+        huge ``embed.weight``/``embed.scale`` tables.
+        """
+        mm = self._ensure_mmap()
+        with self._lock:
+            return bytes(mm[self._data_start : self._data_end])
+
     def close(self) -> None:
         with self._lock:
             if self._mmap is not None:
@@ -323,10 +335,17 @@ class EngramLayerHostTable:
     mapping: EngramRowMapping
     source_is_local_shard: bool = False
 
+    # Only these tensors are indexed by the 384M-row hash id.  The q/k/wkv
+    # tensors have small operator dimensions and must never be indexed with a
+    # hash row id.
+    ROW_TENSORS = frozenset(("embed.weight", "embed.scale"))
+
     def __post_init__(self) -> None:
         if not self.stores:
             raise ValueError("an Engram layer needs at least one tensor store")
         for name, store in self.stores.items():
+            if name not in self.ROW_TENSORS:
+                continue
             if (
                 store.rows < self.mapping.local_rows_with_padding
                 and self.source_is_local_shard
@@ -335,10 +354,25 @@ class EngramLayerHostTable:
                     f"{name} has {store.rows} rows, below padded shard size "
                     f"{self.mapping.local_rows_with_padding}"
                 )
+        weight = self.stores.get("embed.weight")
+        scale = self.stores.get("embed.scale")
+        if weight is not None and scale is not None and weight.rows != scale.rows:
+            raise ValueError(
+                "embed.weight/embed.scale row counts differ: "
+                f"{weight.rows} != {scale.rows}"
+            )
 
     @property
     def tensor_names(self) -> tuple[str, ...]:
         return tuple(self.stores.keys())
+
+    @property
+    def row_tensor_names(self) -> tuple[str, ...]:
+        return tuple(name for name in self.stores if name in self.ROW_TENSORS)
+
+    @property
+    def static_tensor_names(self) -> tuple[str, ...]:
+        return tuple(name for name in self.stores if name not in self.ROW_TENSORS)
 
     def _source_ids(self, global_row_ids: Sequence[int]) -> tuple[int, ...]:
         if self.source_is_local_shard:
@@ -358,12 +392,30 @@ class EngramLayerHostTable:
         tensor_names: Sequence[str] | None = None,
     ) -> dict[str, list[bytes]]:
         source_ids = self._source_ids(global_row_ids)
-        names = tuple(tensor_names or self.stores.keys())
+        names = self.row_tensor_names if tensor_names is None else tuple(tensor_names)
         result: dict[str, list[bytes]] = {}
         for name in names:
             if name not in self.stores:
                 raise KeyError(f"Engram layer {self.layer_id} has no tensor {name!r}")
+            if name not in self.ROW_TENSORS:
+                raise ValueError(
+                    f"{name} is a static Engram tensor; use read_static_bytes()"
+                )
             result[name] = self.stores[name].read_rows_bytes(source_ids)
+        return result
+
+    def read_static_bytes(
+        self, tensor_names: Sequence[str] | None = None
+    ) -> dict[str, bytes]:
+        """Read explicitly requested non-row-addressed tensors."""
+        names = self.static_tensor_names if tensor_names is None else tuple(tensor_names)
+        result: dict[str, bytes] = {}
+        for name in names:
+            if name not in self.stores:
+                raise KeyError(f"Engram layer {self.layer_id} has no tensor {name!r}")
+            if name in self.ROW_TENSORS:
+                raise ValueError(f"{name} is row-addressed; use read_rows_bytes()")
+            result[name] = self.stores[name].read_all_bytes()
         return result
 
     def close(self) -> None:
@@ -409,6 +461,13 @@ class EngramHostTable:
                     "tp_size": table.mapping.tp_size,
                     "global_start": table.mapping.global_start,
                     "global_end": table.mapping.global_end,
+                }
+                for layer_id, table in sorted(self.layers.items())
+            },
+            "tensor_kinds": {
+                str(layer_id): {
+                    "row": list(table.row_tensor_names),
+                    "static": list(table.static_tensor_names),
                 }
                 for layer_id, table in sorted(self.layers.items())
             },
@@ -512,6 +571,15 @@ class EngramHostTable:
         except KeyError as exc:
             raise KeyError(f"Engram layer {layer_id} is not available") from exc
         return layer.read_rows_bytes(row_ids, tensor_names=tensor_names)
+
+    def read_static_bytes(
+        self, layer_id: int, *, tensor_names: Sequence[str] | None = None
+    ) -> dict[str, bytes]:
+        try:
+            layer = self.layers[int(layer_id)]
+        except KeyError as exc:
+            raise KeyError(f"Engram layer {layer_id} is not available") from exc
+        return layer.read_static_bytes(tensor_names=tensor_names)
 
     def close(self) -> None:
         for layer in self.layers.values():

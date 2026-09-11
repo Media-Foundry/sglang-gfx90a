@@ -10,7 +10,10 @@ and does not change the existing DeepSeek-V4 implementation.
   safetensors headers.  It validates the 40-layer backbone + 3 MTP layers,
   384 routed experts, compression schedule, indexer/Engram manifests, and
   TP divisibility.  Missing or `.incomplete` shards are reported as
-  `incomplete`, never treated as zero tensors.
+  `incomplete`, never treated as zero tensors.  The audit also reports the
+  observed CSA2 parameter layouts and an explicitly marked, metadata-only CED
+  split candidate (the released V4.1 README describes 20 encoder + 20 decoder
+  layers; the JSON does not expose a dispatch enum).
 * `meta_model.py` builds a representative `torch.device("meta")` graph.  It
   allocates no model payload and exposes packed FP4 routed-weight shapes, layer
   ownership, and a shape-checking `forward` smoke path.
@@ -62,7 +65,8 @@ The first production integration should therefore be:
 
 1. Keep all Engram rows in NUMA-aware host RAM (or the OS page cache).
 2. Prefetch the union of rows needed by the next prefill/decode microbatch.
-3. Copy only that bounded batch to a runner-owned GPU staging buffer.
+3. Copy only that bounded batch to a runner-owned GPU staging buffer; load
+   static q/k/wkv tensors separately and never index them with hash row ids.
 4. Retain a small optional hot-row cache only after hit-rate measurements.
 5. Compare raw row bytes and reference outputs before enabling any approximate
    eviction or lookahead policy.

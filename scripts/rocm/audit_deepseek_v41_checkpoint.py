@@ -89,6 +89,13 @@ def _print_summary(report: dict) -> None:
             f"nextn={config.get('num_nextn_predict_layers')} "
             f"experts={config.get('n_routed_experts')}"
         )
+    layout = report.get("attention_layout_observed", {})
+    if layout:
+        modes = {}
+        for info in layout.values():
+            mode = info.get("observed_mode")
+            modes[mode] = modes.get(mode, 0) + 1
+        print(f"attention_layout_observed: {modes}")
     if "engram_payload_complete" in report:
         print(f"engram_payload_complete: {report['engram_payload_complete']}")
     if report.get("engram_shards"):
