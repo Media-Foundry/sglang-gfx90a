@@ -22,9 +22,6 @@ from sglang.srt.managers.scheduler_components.pool_stats_observer import (
 )
 from sglang.srt.mem_cache.allocator import BaseTokenToKVPoolAllocator
 from sglang.srt.mem_cache.allocator.swa import is_swa_req_ring
-from sglang.srt.mem_cache.allocator.unified_hybrid_swa import (
-    UnifiedMambaSWATokenToKVPoolAllocator,
-)
 from sglang.srt.mem_cache.base_prefix_cache import BasePrefixCache
 from sglang.srt.mem_cache.memory_pool import ReqToTokenPool
 from sglang.srt.runtime_context import get_parallel
@@ -149,7 +146,7 @@ class SchedulerInvariantChecker:
                 f"total={self.swa_tokens_per_layer}"
             )
         swa_available = ps.swa_available_size
-        if isinstance(allocator, UnifiedMambaSWATokenToKVPoolAllocator):
+        if hasattr(allocator, "conserve_swa_available_size"):
             # Tri-pool: same floating-boundary phantom as the full pool -- use the
             # slot-conservation view, not the byte-coordinated min (see _check_full_pool).
             swa_available = allocator.conserve_swa_available_size()
