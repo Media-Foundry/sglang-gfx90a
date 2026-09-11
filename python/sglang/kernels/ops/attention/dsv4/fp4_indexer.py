@@ -73,6 +73,7 @@ def _quantize_fp4_indexer_kernel(
     x_sf,
     BLOCK_N: tl.constexpr,
     GROUP_N: tl.constexpr,
+    RNE: tl.constexpr,
 ):
     token_id = tl.program_id(0)
     offs = tl.arange(0, BLOCK_N)
@@ -115,8 +116,8 @@ def _quantize_fp4_indexer_kernel(
 
     v0 = tl.load(x + token_id * BLOCK_N + offs0).to(tl.float32) / scale0
     v1 = tl.load(x + token_id * BLOCK_N + offs1).to(tl.float32) / scale1
-    code0 = _fp4_e2m1_code(v0)
-    code1 = _fp4_e2m1_code(v1)
+    code0 = _fp4_e2m1_code_rne(v0) if RNE else _fp4_e2m1_code(v0)
+    code1 = _fp4_e2m1_code_rne(v1) if RNE else _fp4_e2m1_code(v1)
     packed = (code0 & 0x0F) | ((code1 & 0x0F) << 4)
     tl.store(x_fp4 + token_id * (BLOCK_N // 2) + pair_offsets, packed)
 
@@ -149,7 +150,9 @@ def _store_fp4_index_k_cache_kernel(
     )
 
 
-def quantize_fp4_indexer_tensor(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def quantize_fp4_indexer_tensor(
+    x: torch.Tensor, *, rne: bool = False
+) -> tuple[torch.Tensor, torch.Tensor]:
     assert x.shape[-1] == 128
     x = x.contiguous().view(-1, x.shape[-1])
     x_fp4 = torch.empty((x.shape[0], 64), device=x.device, dtype=torch.int8)
@@ -159,8 +162,9 @@ def quantize_fp4_indexer_tensor(x: torch.Tensor) -> tuple[torch.Tensor, torch.Te
             x,
             x_fp4,
             x_sf,
-            BLOCK_N=128,
-            GROUP_N=32,
+        BLOCK_N=128,
+        GROUP_N=32,
+        RNE=rne,
         )
     return x_fp4, x_sf
 
@@ -171,9 +175,10 @@ def store_fp4_index_k_cache(
     loc: torch.Tensor,
     *,
     page_size: int,
+    rne: bool = False,
 ) -> None:
     assert input.shape[-1] == 128
-    k_fp4, k_sf = quantize_fp4_indexer_tensor(input.contiguous())
+    k_fp4, k_sf = quantize_fp4_indexer_tensor(input.contiguous(), rne=rne)
     n_tokens = input.numel() // input.shape[-1]
     assert k_fp4.shape == (n_tokens, 64)
     assert k_sf.shape == (n_tokens,)

@@ -990,6 +990,7 @@ class KVCacheConfigurator:
                 c4_state_dtype=sizes.c4_state_dtype,
                 c128_state_dtype=sizes.c128_state_dtype,
                 req_to_token_pool=req_to_token_pool,
+                full_max_total_num_tokens=sizes.full_max_total_num_tokens,
             )
         elif current_platform.is_out_of_tree() and not self.mambaish_config:
             if self.use_mla_backend and is_dsa_model:
@@ -1092,6 +1093,7 @@ class KVCacheConfigurator:
         c4_state_dtype: Optional[torch.dtype],
         c128_state_dtype: Optional[torch.dtype],
         req_to_token_pool: ReqToTokenPool,
+        full_max_total_num_tokens: Optional[int] = None,
     ) -> KVCache:
         swa_page_size = get_schedule().page_size
         if not _is_npu:
@@ -1107,6 +1109,18 @@ class KVCacheConfigurator:
             ] * self.layer_info.num_effective_layers
         else:
             compression_ratios = self.model_config.compress_ratios
+
+        # V4.1 ratio-1/2 pools are addressed in the full-token coordinate
+        # space and are owned only by configured KV source layers. Keep this
+        # information local to the V4 pool constructor so legacy V4 (ratios
+        # 4/128) remains on its existing path.
+        hf_config = self.model_config.hf_text_config
+        kv_source_layers = (
+            list(getattr(hf_config, "kv_source_layer_ids", ()) or ())
+            if getattr(hf_config, "model_type", "")
+            in ("deepseek_v41", "deepseek_v41_text")
+            else []
+        )
 
         # NPU keeps its PA_ND KV-pool subclass, while Compressor state sizing
         # follows the same fixed ring ownership as GPU. Do not replace the
@@ -1148,6 +1162,8 @@ class KVCacheConfigurator:
             end_layer=self.layer_info.end_layer,
             enable_hisparse=get_memory().enable_hisparse,
             online_mtp_max_draft_tokens=(max_speculative_num_draft_tokens() or 0),
+            kv_source_layers=kv_source_layers,
+            full_size=full_max_total_num_tokens,
         )
         return token_to_kv_pool
 
