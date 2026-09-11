@@ -71,7 +71,7 @@ Across 40 layers this is approximately:
 ```text
 current padded AIter expert storage: 44.824218 GiB/GCD
 un-padded FP8-scale equivalent:      33.618164 GiB/GCD
-padding overhead:                    11.206055 GiB/GCD
+geometric padding overhead:          11.206055 GiB/GCD
 ```
 
 The table and totals above are the nominal 384-wide layout.  The installed
@@ -81,6 +81,12 @@ the *active* post-shuffle scale total is 2.929688 GiB/GCD (rather than the
 nominal 2.636719 GiB/GCD), and active routed expert storage is about 45.117188
 GiB/GCD.  This extra 0.292969 GiB/GCD is a concrete scale-layout overhead, not
 an FP32 expansion.
+
+Because the installed legacy scale shuffler additionally pads the W2 group
+axis from 12 to 16, the measured active total is 45.117188 GiB/GCD.  Relative
+to the un-padded 33.618164 GiB/GCD baseline, the complete current-vs-baseline
+gap is therefore about 11.499023 GiB/GCD: 11.206055 GiB of 288-to-384
+geometry padding plus 0.292969 GiB of legacy scale-axis padding.
 
 That overhead is a real live-parameter cost required by the current AIter
 kernel geometry.  It is distinct from the ~5.93 GiB fallback FP32-scale
