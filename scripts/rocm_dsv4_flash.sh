@@ -393,6 +393,14 @@ if [[ "${MORI_ENABLE_SDMA}" == "1" ]]; then
 fi
 export HIP_VISIBLE_DEVICES="${HIP_VISIBLE_DEVICES:-${DEFAULT_GPUS}}"
 export SGLANG_USE_AITER="${SGLANG_USE_AITER:-1}"
+# DeepSeek-V4.1 carries two very large Engram tables.  Keep them in the
+# private host mmap by default when this launcher is used; models without an
+# EngramEmbedding ignore these variables.  An explicit caller value (for a
+# deliberate GPU-table experiment) still wins, so this is a safety default,
+# not a global environ.py policy.
+export SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE="${SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE:-1}"
+export SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT="${SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT:-private}"
+export SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN="${SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN:-1}"
 export SGLANG_HACK_FLASHMLA_BACKEND="${SGLANG_HACK_FLASHMLA_BACKEND:-unified_kv_triton}"
 export SGLANG_OPT_USE_AITER_MHC_PRE="${SGLANG_OPT_USE_AITER_MHC_PRE:-0}"
 export SGLANG_OPT_USE_AITER_MHC_POST="${SGLANG_OPT_USE_AITER_MHC_POST:-0}"
