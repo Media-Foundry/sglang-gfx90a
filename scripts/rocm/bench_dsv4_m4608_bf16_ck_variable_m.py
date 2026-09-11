@@ -49,6 +49,10 @@ def main():
     parser.add_argument("--breakdown",action="store_true")
     parser.add_argument("--profile-core",action="store_true")
     parser.add_argument("--compare-block64-v1",action="store_true")
+    parser.add_argument("--fp16-ck", action="store_true")
+    parser.add_argument("--fp16-compare-reference", action="store_true")
+    parser.add_argument("--fp16-block-m", type=int, default=64)
+    parser.add_argument("--scale-byte-max", type=int, default=0)
     args=parser.parse_args();m=args.m
     d=torch.device("cuda");torch.manual_seed(20260902)
     x=torch.randn((m,H),device=d,dtype=torch.bfloat16)
@@ -73,6 +77,130 @@ def main():
     if args.small_scales:
         s13.fill_(112)
         s2.fill_(112)
+    elif args.scale_byte_max:
+        s13.clamp_(max=args.scale_byte_max)
+        s2.clamp_(max=args.scale_byte_max)
+    if args.fp16_ck:
+        import importlib
+        import aiter
+        import aiter.fused_moe as aiter_fused_moe
+        from aiter import ActivationType
+
+        aiter_fused_moe.fused_moe_1stage_dict.setdefault("gfx90a", set())
+        fp16_module=importlib.import_module(
+            "aiter.jit.module_moe_ck2stages_f16_f16_preshuffle_off_f16_dsv4silu_no_mulWeightStage2_"
+        )
+        bm=args.fp16_block_m
+        stage1_name=(
+            f"moe_ck2stages_gemm1_256x{bm}x64x128_1x4_TypeCast_v1_"
+            "Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_F16_F16_F16"
+        )
+        stage2_name=(
+            f"moe_ck2stages_gemm2_256x{bm}x64x128_1x4_TypeCastExpertWeight_v1_"
+            "Nswizzle0_Quant0_MulRoutedWeight1_F16_F16_F16"
+        )
+        original_stage1=aiter.ck_moe_stage1_fwd
+        original_stage2=aiter.ck_moe_stage2_fwd
+        def fp16_stage1(a,w1,w2,sorted_ids,sorted_experts,num_valid,out,topk,
+                         kernelName="",w1_scale=None,a1_scale=None,block_m=32,
+                         sorted_weights=None,quant_type=aiter.QuantType.No,
+                         activation=ActivationType.Dsv4Silu,splitk=1,
+                         use_non_temporal_load=False,dtype=None):
+            fp16_module.ck_moe_stage1(
+                a,w1,w2,sorted_ids,sorted_experts,num_valid,out,topk,stage1_name,
+                w1_scale,a1_scale,block_m,sorted_weights,quant_type.value,
+                activation.value,splitk,use_non_temporal_load,None,
+            )
+            return out
+        def fp16_stage2(a,w1,w2,sorted_ids,sorted_experts,num_valid,out,topk,
+                         kernelName="",w2_scale=None,a2_scale=None,block_m=32,
+                         sorted_weights=None,quant_type=aiter.QuantType.No,
+                         activation=ActivationType.Dsv4Silu,
+                         use_non_temporal_load=False):
+            fp16_module.ck_moe_stage2(
+                a,w1,w2,sorted_ids,sorted_experts,num_valid,out,topk,stage2_name,
+                w2_scale,a2_scale,block_m,sorted_weights,quant_type.value,
+                activation.value,use_non_temporal_load,
+            )
+            return out
+        aiter.ck_moe_stage1_fwd=fp16_stage1
+        aiter.ck_moe_stage2_fwd=fp16_stage2
+
+        # Decode FP4 directly to F16.  The timed full-stage path below includes
+        # both weight expansion and the BF16 boundary casts.
+        weight13_fp16=torch.empty((E,2*I,H),dtype=torch.float16,device=d)
+        weight2_fp16=torch.empty((E,H,I),dtype=torch.float16,device=d)
+        dequant13=_jit_dequant(E,2*I,H,args.blocks[0])
+        dequant2=_jit_dequant(E,H,I,args.blocks[0])
+        dequant13.run_fp16(
+            w13,s13.reshape(E,2*I,H//32),weight13_fp16
+        )
+        dequant2.run_fp16(
+            w2,s2.reshape(E,H,I//32),weight2_fp16
+        )
+        for kind in ("balanced","skewed"):
+            ids,tw=routes(kind,d,m)
+            x_fp16=torch.empty_like(x,dtype=torch.float16)
+            out_fp16=torch.empty((m,H),device=d,dtype=torch.float16)
+            out_bf16=torch.empty((m,H),device=d,dtype=torch.bfloat16)
+            def core():
+                result=aiter_fused_moe.fused_moe(
+                    hidden_states=x_fp16,w1=weight13_fp16,w2=weight2_fp16,
+                    topk_weight=tw,topk_ids=ids,activation=ActivationType.Dsv4Silu,
+                    quant_type=aiter_fused_moe.QuantType.No,dtype=torch.float16,
+                    moe_out=out_fp16,block_size_M=args.fp16_block_m,
+                )
+                if result.data_ptr() != out_fp16.data_ptr():
+                    out_fp16.copy_(result)
+                return out_fp16
+            def full_stage():
+                dequant13.run_fp16(w13,s13.reshape(E,2*I,H//32),weight13_fp16)
+                dequant2.run_fp16(w2,s2.reshape(E,H,I//32),weight2_fp16)
+                x_fp16.copy_(x)
+                core()
+                out_bf16.copy_(out_fp16)
+                return out_bf16
+            fn=full_stage
+            fn();torch.cuda.synchronize();witness=out_fp16.clone();fn();torch.cuda.synchronize()
+            delta=(witness.float()-out_fp16.float()).abs()
+            samples=[time_ms(fn) for _ in range(5)]
+            core_samples=[time_ms(core) for _ in range(5)]
+            accuracy=""
+            if args.fp16_compare_reference:
+                old_fp32=os.environ.get("SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32")
+                old_b64=os.environ.get("SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1")
+                os.environ["SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32"]="1"
+                os.environ["SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1"]="1"
+                reference=torch.empty((m,H),device=d,dtype=torch.bfloat16)
+                gfx90a_bf16_ck_moe(
+                    x,ids,tw,w13,s13,w2,s2,out=reference,blocks=args.blocks[0]
+                )
+                torch.cuda.synchronize()
+                err=reference.float()-out_bf16.float()
+                ref_norm=torch.linalg.vector_norm(reference.float())
+                rel_l2=torch.linalg.vector_norm(err)/ref_norm
+                cosine=torch.nn.functional.cosine_similarity(
+                    reference.float().reshape(1,-1),out_bf16.float().reshape(1,-1)
+                ).item()
+                accuracy=(
+                    f" reference_finite={bool(torch.isfinite(reference).all())}"
+                    f" fp16_absmax={out_bf16.float().abs().max().item():.7g}"
+                    f" reference_absmax={reference.float().abs().max().item():.7g}"
+                    f" max_abs_vs_fp32={err.abs().max().item():.7g}"
+                    f" rel_l2={rel_l2.item():.7g} cosine={cosine:.9f}"
+                )
+                if old_fp32 is None: os.environ.pop("SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32",None)
+                else: os.environ["SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32"]=old_fp32
+                if old_b64 is None: os.environ.pop("SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1",None)
+                else: os.environ["SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1"]=old_b64
+            print(
+                f"m={m} kind={kind} fp16_ck_full_ms={statistics.median(samples):.3f} "
+                f"core_ms={statistics.median(core_samples):.3f} "
+                f"finite={bool(torch.isfinite(out_fp16).all())} "
+                f"replay_exact={torch.equal(witness,out_fp16)} "
+                f"replay_max_abs={delta.max().item():.7g}{accuracy} samples={samples}"
+            )
+        return
     if args.layout_probe:
         weight13=torch.zeros((E,2*I,H),dtype=torch.bfloat16,device=d)
         weight2=torch.zeros((E,H,I),dtype=torch.bfloat16,device=d)

@@ -198,7 +198,6 @@ struct HcCombineKernel {
   }
 };
 
-
 struct HcCombineSplitParams {
   const void* block_output;
   const void* residual;
@@ -347,6 +346,7 @@ __global__ __launch_bounds__(hc_combine_split_detail::kApplyThreads)
 
   PDLTriggerSecondary<kUsePDL>();
 }
+
 
 template <int64_t kHcCount, int64_t kHiddenSize, bool kUsePDL, typename DType>
 struct HcCombineSplitKernel {

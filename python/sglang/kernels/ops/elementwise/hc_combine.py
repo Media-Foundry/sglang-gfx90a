@@ -96,7 +96,6 @@ def hc_combine(
     module.hc_combine(y, r, n, inject_weight, out)
     return out.reshape(residual.shape)
 
-
 _SPLIT = 8
 _MAX_ROWS = 32
 _partials_cache = {}

@@ -1432,6 +1432,18 @@ class MQALayer(MqaAttentionBase):
                 q_lora = self.q_norm(q_lora)
                 mark(11)
                 q, _ = self.wq_b(q_lora)
+                if os.getenv("SGLANG_DSV4_CK_REPLAY_DUMP_DIR"):
+                    from sglang.kernels.ops.debug.dsv4_ck_replay import (
+                        maybe_dump_wq_b,
+                    )
+
+                    maybe_dump_wq_b(
+                        layer_id=self.layer_id,
+                        tp_rank=self.attn_tp_rank,
+                        q_lora=q_lora,
+                        weight=self.wq_b.weight,
+                        output=q,
+                    )
                 mark(12)
 
             kv = (
@@ -1637,6 +1649,18 @@ class MQALayer(MqaAttentionBase):
                 q_lora = self.q_norm(q_lora)
                 mark(11)
                 q, _ = self.wq_b(q_lora)
+                if os.getenv("SGLANG_DSV4_CK_REPLAY_DUMP_DIR"):
+                    from sglang.kernels.ops.debug.dsv4_ck_replay import (
+                        maybe_dump_wq_b,
+                    )
+
+                    maybe_dump_wq_b(
+                        layer_id=self.layer_id,
+                        tp_rank=self.attn_tp_rank,
+                        q_lora=q_lora,
+                        weight=self.wq_b.weight,
+                        output=q,
+                    )
             mark(12)
 
             kv = (

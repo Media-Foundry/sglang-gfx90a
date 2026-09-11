@@ -17,6 +17,7 @@ def _jit_dequant(e: int, n: int, k: int, blocks: int):
         cuda_files=["deepseek_v4/gfx90a_fp4_bf16_dequant_oracle.cuh"],
         cuda_wrappers=[
             ("run", f"sglang::Gfx90aFp4ToBf16Oracle<{args}>::run"),
+            ("run_fp16", f"sglang::Gfx90aFp4ToBf16Oracle<{args}>::run_fp16"),
             ("run_shuffled", f"sglang::Gfx90aFp4ToBf16Oracle<{args}>::run_shuffled"),
         ],
         extra_cuda_cflags=["-O3"],
@@ -185,10 +186,10 @@ def gfx90a_bf16_ck_moe(
         raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 36864")
     if hidden.shape != (m, h) or topk_ids.shape != (m, t):
         raise ValueError("BF16 CK MoE oracle requires H4096/Top-6")
-    device_index = hidden.device.index
     if scales_shuffled:
         s13 = _logical_a16w4_scales(s13, e, 2 * i, h // 32, gate_up=True)
         s2 = _logical_a16w4_scales(s2, e, h, i // 32, gate_up=False)
+    device_index = hidden.device.index
     key = device_index if device_index is not None else torch.cuda.current_device()
     workspace = _ck_weight_workspaces.get(key)
     if workspace is None or (
@@ -203,16 +204,20 @@ def gfx90a_bf16_ck_moe(
     weight13, weight2 = workspace
     keep_bf16 = os.getenv("AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS", "0") == "1"
     shuffle_bf16 = os.getenv("AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS", "0") == "1"
+    raw_logical_b_stage1 = (
+        os.getenv("AITER_DSV4_DEBUG_RAW_LOGICAL_B_STAGE1", "0") == "1"
+    )
     if not keep_bf16:
         dequant13 = _jit_dequant(e, 2 * i, h, blocks)
         dequant2 = _jit_dequant(e, h, i, blocks)
         dequant13_fn = dequant13.run_shuffled if shuffle_bf16 else dequant13.run
         dequant2_fn = dequant2.run_shuffled if shuffle_bf16 else dequant2.run
-        dequant13_fn(
-            w13.view(torch.uint8),
-            s13.view(torch.uint8).reshape(e, 2 * i, h // 32),
-            weight13,
-        )
+        if not raw_logical_b_stage1:
+            dequant13_fn(
+                w13.view(torch.uint8),
+                s13.view(torch.uint8).reshape(e, 2 * i, h // 32),
+                weight13,
+            )
         dequant2_fn(
             w2.view(torch.uint8),
             s2.view(torch.uint8).reshape(e, h, i // 32),
@@ -275,9 +280,16 @@ def gfx90a_bf16_ck_moe(
             use_non_temporal_load=False, dtype=None,
         ):
             module_stage1.ck_moe_stage1(
-                hidden_states, stage_w1, stage_w2, sorted_token_ids,
+                hidden_states,
+                w13 if raw_logical_b_stage1 else stage_w1,
+                stage_w2,
+                sorted_token_ids,
                 sorted_expert_ids, num_valid_ids, stage_out, topk,
-                stage1_kernel, w1_scale, a1_scale, block_m, sorted_weights,
+                stage1_kernel,
+                s13 if raw_logical_b_stage1 else w1_scale,
+                a1_scale,
+                block_m,
+                sorted_weights,
                 quant_type.value, activation.value, splitk,
                 use_non_temporal_load, None,
             )
@@ -291,6 +303,9 @@ def gfx90a_bf16_ck_moe(
             "aiter.jit.module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_"
         )
         original_stage2 = aiter.ck_moe_stage2_fwd
+        stage2_kernel = os.getenv(
+            "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_KERNEL", ""
+        )
 
         def stage2_dsv4_fp32(
             inter_states, stage_w1, stage_w2, sorted_token_ids,
@@ -302,7 +317,7 @@ def gfx90a_bf16_ck_moe(
             accum = torch.zeros_like(stage_out, dtype=torch.float32)
             module.ck_moe_stage2(
                 inter_states, stage_w1, stage_w2, sorted_token_ids,
-                sorted_expert_ids, num_valid_ids, accum, topk, "",
+                sorted_expert_ids, num_valid_ids, accum, topk, stage2_kernel,
                 w2_scale, a2_scale, block_m, sorted_weights,
                 quant_type.value, ActivationType.Gelu.value,
                 use_non_temporal_load,

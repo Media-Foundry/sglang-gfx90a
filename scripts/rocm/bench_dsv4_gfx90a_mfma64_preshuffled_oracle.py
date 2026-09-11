@@ -39,7 +39,11 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=5)
     parser.add_argument("--gate-blocks", type=int, default=416)
     parser.add_argument("--down-blocks", type=int, default=312)
-    parser.add_argument("--arm", choices=("raw", "preshuffled", "both"), default="both")
+    parser.add_argument(
+        "--arm",
+        choices=("raw", "preshuffled", "both"),
+        default="both",
+    )
     args = parser.parse_args()
     if torch.cuda.get_device_properties(0).gcnArchName.split(":", 1)[0] != "gfx90a":
         raise RuntimeError("gfx90a required")
@@ -69,7 +73,8 @@ def main() -> None:
         topk_ids, topk_weights, e, h, torch.bfloat16, block_size=64
     )
 
-    def run(preshuffled: bool):
+    def run(mode: str):
+        preshuffled = mode == "preshuffled"
         xq, xs = gfx90a_int8_group32_quant(x)
         mid = gfx90a_fp4_expert_gate_up_mfma32(
             xq, xs, shuffled_w13 if preshuffled else raw_w13, shuffled_s13,
@@ -89,16 +94,17 @@ def main() -> None:
         for mutation in range(args.mutations):
             x.normal_()
             topk_weights.uniform_()
-            a = run(False)
+            a = run("raw")
             torch.cuda.synchronize()
-            b = run(True)
-            torch.cuda.synchronize()
-            for name, lhs, rhs in zip(("mid", "iq", "scale", "out"), a, b):
-                if not torch.equal(lhs, rhs):
-                    raise RuntimeError(
-                        f"mutation={mutation} tensor={name} max_abs="
-                        f"{(lhs.float() - rhs.float()).abs().max().item()}"
-                    )
+            for candidate in ("preshuffled",):
+                b = run(candidate)
+                torch.cuda.synchronize()
+                for name, lhs, rhs in zip(("mid", "iq", "scale", "out"), a, b):
+                    if not torch.equal(lhs, rhs):
+                        raise RuntimeError(
+                            f"mutation={mutation} arm={candidate} tensor={name} "
+                            f"max_abs={(lhs.float() - rhs.float()).abs().max().item()}"
+                        )
         print(f"CORRECTNESS mutations={args.mutations} all_exact=True")
 
     arms = ("raw", "preshuffled") if args.arm == "both" else (args.arm,)
@@ -106,7 +112,7 @@ def main() -> None:
     for _ in range(args.rounds):
         order = arms + tuple(reversed(arms))
         for arm in order:
-            values[arm].append(timed_us(lambda a=arm: run(a == "preshuffled"),
+            values[arm].append(timed_us(lambda a=arm: run(a),
                                         args.iterations))
     for arm, samples in values.items():
         trimmed = sorted(samples)[1:-1] if len(samples) > 2 else samples

@@ -14,7 +14,10 @@ PYTHON_DIR = os.path.join(ROOT, "python")
 if PYTHON_DIR not in sys.path:
     sys.path.insert(0, PYTHON_DIR)
 
-from sglang.kernels.ops.quantization.fp8_kernel import _w8a8_block_fp8_matmul
+from sglang.kernels.ops.quantization.fp8_kernel import (
+    _w8a8_block_fp8_matmul,
+    fp8_dtype,
+)
 
 
 DEFAULT_SHAPES = [
@@ -27,8 +30,11 @@ DEFAULT_SHAPES = [
 
 def make_tensors(m, n, k, block_n, block_k):
     # Random FP8 payloads are enough here: this script compares kernel time, not accuracy.
-    a = torch.randn((m, k), device="cuda", dtype=torch.bfloat16).to(torch.float8_e4m3fn)
-    b = torch.randn((n, k), device="cuda", dtype=torch.bfloat16).to(torch.float8_e4m3fn)
+    # gfx90a consumes FNUZ FP8. Using the CUDA FN dtype here can benchmark a
+    # different lowering and made MI250 config scans disagree with production
+    # by an order of magnitude.
+    a = torch.randn((m, k), device="cuda", dtype=torch.bfloat16).to(fp8_dtype)
+    b = torch.randn((n, k), device="cuda", dtype=torch.bfloat16).to(fp8_dtype)
     a_s = torch.rand((m, triton.cdiv(k, block_k)), device="cuda", dtype=torch.float32)
     b_s = torch.rand(
         (triton.cdiv(n, block_n), triton.cdiv(k, block_k)),
@@ -96,6 +102,16 @@ def bench_one(shape, m, config, warmup, iters):
 
 
 def candidate_configs(mode):
+    # Always include the production fallback as an explicit baseline.
+    yield {
+        "BLOCK_SIZE_M": 64,
+        "BLOCK_SIZE_N": 128,
+        "BLOCK_SIZE_K": 128,
+        "GROUP_SIZE_M": 32,
+        "num_warps": 4,
+        "num_stages": 3,
+        "waves_per_eu": 0,
+    }
     if mode == "wide":
         choices = ((8, 16, 32), (16, 32, 64, 128), (4, 8), (2, 3), (0, 1, 2))
     else:
