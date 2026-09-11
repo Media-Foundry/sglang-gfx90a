@@ -155,6 +155,9 @@ from sglang.srt.model_executor.model_runner_components.spec_aux_hidden_state imp
     SpecAuxHiddenStateConfig,
     resolve_spec_aux_hidden_state_config,
 )
+from sglang.srt.model_executor.model_runner_components.storage_audit import (
+    maybe_log_model_storage_audit,
+)
 from sglang.srt.model_executor.model_runner_components.weight_exporter import (
     WeightExporter,
 )
@@ -1164,6 +1167,13 @@ class ModelRunner:
         )
 
         self.dtype = self.model_config.dtype
+
+        maybe_log_model_storage_audit(
+            self.model,
+            device=self.device,
+            rank=self.ps.tp_rank,
+            logger=logger,
+        )
 
         after_avail_memory = get_available_gpu_memory(self.device, self.gpu_id)
         self.weight_load_mem_usage = before_avail_memory - after_avail_memory
