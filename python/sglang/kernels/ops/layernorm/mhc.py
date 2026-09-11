@@ -1598,7 +1598,9 @@ def hc_mix_stats(
             f"fn={tuple(hc_fn.shape)}"
         )
     x_fp32 = x_flat.float()
-    fn_fp32 = hc_fn.float()
+    # Replicated mHC weights can remain on host memory on the V4.1 HIP path;
+    # materialize only this tiny matrix on the activation device for matmul.
+    fn_fp32 = hc_fn.float().to(device=x_flat.device)
     rsqrt = torch.rsqrt(x_fp32.square().mean(dim=-1, keepdim=True) + rms_eps)
     return torch.matmul(x_fp32, fn_fp32.t()) * rsqrt
 

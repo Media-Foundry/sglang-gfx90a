@@ -2823,11 +2823,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             # change order with num_tokens. Kernel upcasts let x_flat remain a bf16 view.
             mixes = hc_mix_stats(x_flat, hc_fn, self.rms_norm_eps).unsqueeze(1)
         else:
-            x_flat = x_flat.float()
-            rsqrt = torch.rsqrt(
-                x_flat.square().mean(-1, keepdim=True) + self.rms_norm_eps
-            )
-            mixes = (F.linear(x_flat, hc_fn) * rsqrt).unsqueeze(1)
+            mixes = hc_mix_stats(x_flat, hc_fn, self.rms_norm_eps).unsqueeze(1)
         pre, post, comb = _get_mhc_ops().hc_split_sinkhorn(
             mixes,
             hc_scale,
