@@ -14,7 +14,11 @@
 #include <tvm/ffi/container/tensor.h>
 
 #include <cstdint>
+#ifndef USE_ROCM
 #include <cuda_fp8.h>
+#else
+#include <hip/hip_fp8.h>
+#endif
 #include <type_traits>
 
 namespace sglang {
@@ -322,14 +326,33 @@ __global__ void per_token_group_quant_8bit_v2_kernel(
 
         int4 output_buf;
         if constexpr (std::is_same_v<DST_DTYPE, fp8_e4m3_t>) {
+#ifndef USE_ROCM
           const auto output_buf_ptr = reinterpret_cast<__nv_fp8x2_storage_t*>(&output_buf);
+#else
+          // ROCm exposes FP8 as a byte storage type on gfx90a.  Use HIP's
+          // explicit interpretation rather than the default type (and rather
+          // than a hand-rolled converter), so RNE/saturation semantics match
+          // the torch dtype selected for the target architecture.  gfx942 is
+          // the only currently supported FNUZ target; gfx90a/OCP uses E4M3FN.
+          const auto output_buf_ptr = reinterpret_cast<fp8x2_e4m3_t*>(&output_buf);
+#endif
 #pragma unroll
           for (uint32_t j = 0; j < INPUT_PRIMARY_VEC_SIZE; j += 2) {
             float2 inputx2 = {static_cast<float>(input_primary_vec[j]), static_cast<float>(input_primary_vec[j + 1])};
             float2 outputx2 = fmul2_rn(inputx2, y_scale_repeated);
             outputx2.x = fminf(fmaxf(outputx2.x, dst_dtype_info::MIN), dst_dtype_info::MAX);
             outputx2.y = fminf(fmaxf(outputx2.y, dst_dtype_info::MIN), dst_dtype_info::MAX);
+#ifndef USE_ROCM
             output_buf_ptr[j / 2] = __nv_cvt_float2_to_fp8x2(outputx2, __NV_SATFINITE, __NV_E4M3);
+#else
+#if defined(__gfx942__)
+            constexpr auto kHipFp8Interpretation = __HIP_E4M3_FNUZ;
+#else
+            constexpr auto kHipFp8Interpretation = __HIP_E4M3;
+#endif
+            output_buf_ptr[j / 2] = __hip_cvt_float2_to_fp8x2(
+                outputx2, __HIP_SATFINITE, kHipFp8Interpretation);
+#endif
           }
         } else {
           const auto output_buf_ptr = reinterpret_cast<DST_DTYPE*>(&output_buf);
@@ -468,9 +491,22 @@ struct PerTokenGroupQuant8bitV2Kernel {
       }
     } else {
       if (scale_ue8m0) {
-        launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::true_type{}, std::false_type{});
+        if (fuse_silu_and_mul) {
+          // Row-major scales are uncommon in the production DeepSeek path,
+          // but the wrapper accepts them and the AOT contract supports fused
+          // SiLU+mul.  Keep the runtime bool wired through here; silently
+          // selecting the non-fused template quantizes the first half of a
+          // fused input and produces a plausible, but incorrect, result.
+          launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::true_type{}, std::true_type{});
+        } else {
+          launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::true_type{}, std::false_type{});
+        }
       } else {
-        launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::false_type{}, std::false_type{});
+        if (fuse_silu_and_mul) {
+          launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::false_type{}, std::true_type{});
+        } else {
+          launch_with_config(TypeTag<NaiveScheduler>{}, std::false_type{}, std::false_type{}, std::false_type{});
+        }
       }
     }
   }
