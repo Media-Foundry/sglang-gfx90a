@@ -126,3 +126,8 @@ predicate is now `positions < 0`, which is the only unambiguous invalid-row
 marker.  Python syntax and a focused sentinel regression check pass.  This
 patch is not yet a correctness sign-off: the service still needs a clean A/B
 against the official V4.1 reference path.
+
+After this predicate change, the reloaded service still returned non-semantic
+tokens for the official France prompt (8-token greedy request, no HSA fault).
+The fix is therefore recorded as a real metadata defect, but not as the root
+cause of the remaining output corruption.
