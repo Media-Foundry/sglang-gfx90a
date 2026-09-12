@@ -72,6 +72,20 @@ runtime `fuse_silu_and_mul` flag; previously it silently instantiated the
 unfused template.  This fix is separate from the P2/P3 accounting and does
 not claim V4.1 end-to-end correctness.
 
+## Registered host-pointer kernel smoke (2026-09-13)
+
+A real HIP launch of `engram_gather` was run against an anonymous mmap whose
+full byte range was registered with `cudaHostRegister`. The kernel completed,
+returned the expected device BF16 shape, and `cudaHostUnregister` succeeded.
+This isolates the pointer contract: registered host memory is usable by the
+gather kernel on this machine, while the earlier unregistered run faulted.
+
+The subsequent full pinned TP8 startup once exited with rank 7 `SIGBUS` during
+weight loading, before any request. Host RAM was plentiful and a standalone
+12-GiB mmap registration also succeeded, so the cause is not yet attributed
+to a hardware fault or to P2/P3 duplicate storage. The event needs a separate
+startup reproduction with page-cache dropping/prefaulting disabled or traced.
+
 ## Follow-up startup validation (2026-09-13)
 
 With an intentionally unregistered private host mmap (`PIN=0`), the service
