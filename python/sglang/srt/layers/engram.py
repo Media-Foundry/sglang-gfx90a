@@ -49,6 +49,7 @@ from sglang.srt.managers.schedule_batch import MM_PAD_SHIFT_VALUE
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch
 from sglang.srt.runtime_context import get_model, get_parallel, get_serving
 from sglang.srt.utils import add_prefix
+from sglang.srt.utils import is_hip
 from sglang.srt.utils.hf_transformers.tokenizer import get_tokenizer
 
 logger = logging.getLogger(__name__)
@@ -687,6 +688,7 @@ class EngramEmbedding(nn.Module):
         row_end = num_embeddings * (tp_rank + 1) // self.tp_size
         self.rows = row_end - self.row_start
         self.host_table: Optional[_HostTable] = None
+        self._warned_unregistered_gpu_lookup = False
         if envs.SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE.get():
             self._init_host_table(num_embeddings, dim, layer_id)
         else:
@@ -702,6 +704,32 @@ class EngramEmbedding(nn.Module):
             )
         self.weight.weight_loader = self._load_rows
         self.scale.weight_loader = self._load_rows
+
+    def _apply(self, fn, recurse: bool = True):
+        """Keep host-backed table storage on the CPU across ``Module.to``.
+
+        SGLang constructs the model and subsequently applies its target device to
+        the full module tree.  A tensor made with ``torch.frombuffer`` is still a
+        regular tensor as far as ``nn.Module._apply`` is concerned, so without
+        this guard the two mmap-backed parameters are silently copied to the GPU.
+        Besides defeating the offload, that leaves the mmap resident as a second
+        unused copy and makes the lookup kernel consume the GPU allocation rather
+        than the registered host table.
+
+        Temporarily remove only the two host-backed parameters while the normal
+        machinery visits any future children or buffers, then restore their exact
+        Parameter objects and weight-loader hooks.
+        """
+        if self.host_table is None:
+            return super()._apply(fn, recurse=recurse)
+
+        weight = self._parameters.pop("weight")
+        scale = self._parameters.pop("scale")
+        try:
+            return super()._apply(fn, recurse=recurse)
+        finally:
+            self._parameters["weight"] = weight
+            self._parameters["scale"] = scale
 
     def _init_host_table(self, num_embeddings: int, dim: int, layer_id: int):
         layout = _HostTable.choose_layout(
@@ -727,6 +755,30 @@ class EngramEmbedding(nn.Module):
     def _shared(self) -> bool:
         return self.host_table is not None and self.host_table.layout == "shared"
 
+    def _can_gpu_dereference_host_table(self) -> bool:
+        """Return whether the gather kernel may safely use the host pointer.
+
+        CUDA ATS systems can sometimes dereference an ordinary host mapping,
+        but gfx90a/ROCm cannot reliably do so unless the allocation has been
+        registered with the driver.  Passing an unregistered mmap address to
+        Triton on MI250 produces an asynchronous HSA memory fault (the failure
+        is reported later by NCCL, which obscures the actual source).  Keep the
+        table in host RAM and use the exact CPU lookup as a correctness-first
+        fallback until a pinned/staging path is explicitly available.
+        """
+        table = self.host_table
+        if table is None or table.registered or not is_hip():
+            return True
+        if not self._warned_unregistered_gpu_lookup:
+            logger.warning(
+                "Engram host table is not driver-registered on HIP; using the "
+                "CPU row lookup instead of passing an ATS mmap pointer to the "
+                "GPU gather kernel. Set SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN=1 "
+                "only after cudaHostRegister succeeds."
+            )
+            self._warned_unregistered_gpu_lookup = True
+        return False
+
     def _load_rows(self, param: nn.Parameter, loaded_weight: torch.Tensor):
         rows = slice(self.row_start, self.row_start + self.rows)
         if self._shared:
@@ -740,6 +792,11 @@ class EngramEmbedding(nn.Module):
         """Barrier (shared layout) once every rank has written its rows; log how
         the table ended up backed."""
         if self.host_table is not None:
+            if self.weight.device.type != "cpu" or self.scale.device.type != "cpu":
+                raise RuntimeError(
+                    "engram host table parameters escaped to "
+                    f"weight={self.weight.device}, scale={self.scale.device}"
+                )
             self.host_table.finish_load(label)
 
     def forward(
@@ -752,6 +809,11 @@ class EngramEmbedding(nn.Module):
         if self._shared:
             if indices.shape[0] == 0:
                 return self._empty(indices)
+            if (
+                envs.SGLANG_DSV41_ENGRAM_HOST_CPU_REFERENCE.get()
+                or not self._can_gpu_dereference_host_table()
+            ):
+                return self._host_reference_rows(indices, 0, self.weight.shape[0])
             out = self._empty(indices)
             engram_gather(
                 self.weight.data_ptr(),
@@ -792,10 +854,34 @@ class EngramEmbedding(nn.Module):
             *indices.shape, self.dim, dtype=torch.bfloat16, device=indices.device
         )
 
+    def _host_reference_rows(
+        self, indices: torch.Tensor, row_start: int, rows: int
+    ) -> torch.Tensor:
+        """Slow, exact Torch oracle for a host-backed table lookup."""
+        assert self.weight.device.type == "cpu" and self.scale.device.type == "cpu"
+        device = indices.device
+        host_indices = indices.detach().to(device="cpu", dtype=torch.int64)
+        local = host_indices - row_start
+        owned = (local >= 0) & (local < rows)
+        local = local.masked_fill(~owned, 0)
+        values = self.weight[local].float().unflatten(
+            -1, (-1, FP8_BLOCK_SIZE)
+        )
+        values = (
+            values * self.scale[local].float().unsqueeze(-1)
+        ).flatten(-2)
+        values = values.to(torch.bfloat16).masked_fill(~owned.unsqueeze(-1), 0)
+        return values.to(device=device)
+
     def _owned_rows(self, indices: torch.Tensor) -> torch.Tensor:
         """Rows of `indices` this rank's shard holds, zero for the rest."""
         if self.rows == 0:
             return self._empty(indices).zero_()
+        if self.host_table is not None and (
+            envs.SGLANG_DSV41_ENGRAM_HOST_CPU_REFERENCE.get()
+            or not self._can_gpu_dereference_host_table()
+        ):
+            return self._host_reference_rows(indices, self.row_start, self.rows)
         if self.host_table is None and (
             not indices.is_cuda or torch.version.cuda is None
         ):
