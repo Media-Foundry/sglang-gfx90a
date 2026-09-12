@@ -401,7 +401,19 @@ export SGLANG_USE_AITER="${SGLANG_USE_AITER:-1}"
 export SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE="${SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE:-1}"
 export SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT="${SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT:-private}"
 export SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN="${SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN:-1}"
-export SGLANG_HACK_FLASHMLA_BACKEND="${SGLANG_HACK_FLASHMLA_BACKEND:-unified_kv_triton}"
+# The unified-KV layout is valid for the original V4 path but not for V4.1,
+# whose checkpoint has ratio-1/2 source pools.  Detect V4.1 locally so the
+# launcher does not silently force an incompatible backend.  An explicit
+# caller value still wins; the Python validator then reports a clear error if
+# it is unsupported.
+if [[ -z "${SGLANG_HACK_FLASHMLA_BACKEND+x}" ]]; then
+  if [[ -f "${MODEL_PATH}/config.json" ]] && \
+     grep -Eq '"model_type"[[:space:]]*:[[:space:]]*"deepseek_v41"' "${MODEL_PATH}/config.json"; then
+    export SGLANG_HACK_FLASHMLA_BACKEND="triton"
+  else
+    export SGLANG_HACK_FLASHMLA_BACKEND="unified_kv_triton"
+  fi
+fi
 export SGLANG_OPT_USE_AITER_MHC_PRE="${SGLANG_OPT_USE_AITER_MHC_PRE:-0}"
 export SGLANG_OPT_USE_AITER_MHC_POST="${SGLANG_OPT_USE_AITER_MHC_POST:-0}"
 export SGLANG_OPT_FUSE_MHC_POST_PRE="${SGLANG_OPT_FUSE_MHC_POST_PRE:-1}"
@@ -467,10 +479,16 @@ export SGLANG_MORI_INTRANODE_COMBINE_WARP_NUM_PER_BLOCK="${SGLANG_MORI_INTRANODE
 export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-64}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT="${SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT:-0}"
 export SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD="${SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD:-0}"
-# The direct FP4 decode kernel is beneficial only for TP4/EP1's K=512 down
-# shard. EP2/EP4 keep CKTile: their wider K already fills wave64 and the
-# subgroup protocol adds overhead.
-if [[ "${EP_SIZE:-4}" == "1" ]]; then
+# The direct FP4 decode kernel is beneficial only for the validated V4
+# TP4/EP1 K=512 down shard.  V4.1 has a different 384-expert/5120-hidden
+# geometry and is not yet covered by the direct-kernel contract; selecting it
+# by the generic EP1 rule leaves raw (unshuffled) weights on a path that then
+# aborts at the first request.  Keep V4.1 on the normal CKTile/AIter path until
+# a shape-specific direct oracle is available.  An explicit caller override
+# still wins and is intentionally checked by the runtime contract.
+if [[ "${EP_SIZE:-4}" == "1" ]] && \
+   ! { [[ -f "${MODEL_PATH}/config.json" ]] && \
+       grep -Eq '"model_type"[[:space:]]*:[[:space:]]*"deepseek_v41"' "${MODEL_PATH}/config.json"; }; then
   DEFAULT_GFX90A_FP4_DIRECT_MOE=1
 else
   DEFAULT_GFX90A_FP4_DIRECT_MOE=0
@@ -714,6 +732,14 @@ if [[ "${ENABLE_PROFILE_CUDA_GRAPH:-0}" == "1" ]]; then
   server_args+=(--enable-profile-cuda-graph)
 fi
 if [[ "${DISABLE_DECODE_CUDA_GRAPH:-0}" == "1" ]]; then
+  server_args+=(--disable-decode-cuda-graph)
+fi
+# The HIP Engram CPU fallback copies dynamic indices to host memory and cannot
+# be captured by a CUDA graph.  Keep this diagnostic/offload mode safe when the
+# mmap was deliberately left unregistered; the normal pinned path retains the
+# graph-enabled production default.
+if [[ "${SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE:-0}" == "1" && \
+      "${SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN:-1}" != "1" ]]; then
   server_args+=(--disable-decode-cuda-graph)
 fi
 speculative_env_vars=(
