@@ -734,12 +734,12 @@ fi
 if [[ "${DISABLE_DECODE_CUDA_GRAPH:-0}" == "1" ]]; then
   server_args+=(--disable-decode-cuda-graph)
 fi
-# The HIP Engram CPU fallback copies dynamic indices to host memory and cannot
-# be captured by a CUDA graph.  Keep this diagnostic/offload mode safe when the
-# mmap was deliberately left unregistered; the normal pinned path retains the
-# graph-enabled production default.
-if [[ "${SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE:-0}" == "1" && \
-      "${SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN:-1}" != "1" ]]; then
+# HIP Engram host-table lookup is not currently graph-capturable: the CPU
+# fallback copies dynamic indices through host memory, and even a registered
+# mmap makes the gather kernel return ``operation not permitted`` during HIP
+# stream capture. Keep all host-table modes on the eager path until a
+# graph-safe staging kernel is available.
+if [[ "${SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE:-0}" == "1" ]]; then
   server_args+=(--disable-decode-cuda-graph)
 fi
 speculative_env_vars=(
