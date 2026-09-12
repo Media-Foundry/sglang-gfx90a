@@ -71,3 +71,20 @@ FP8 bytes and scales on gfx90a.  The row-major dispatch also now forwards the
 runtime `fuse_silu_and_mul` flag; previously it silently instantiated the
 unfused template.  This fix is separate from the P2/P3 accounting and does
 not claim V4.1 end-to-end correctness.
+
+## Follow-up startup validation (2026-09-13)
+
+With an intentionally unregistered private host mmap (`PIN=0`), the service
+loaded all 48 shards and initialized the V4.1 pools after raising
+`mem_fraction_static` to 0.96. The first attempt at 0.80 was rejected because
+the loaded model left no KV-cache headroom; this is a capacity setting error.
+The launcher now disables decode CUDA-graph capture for this fallback because
+dynamic GPU-index to CPU copies cannot be captured from pageable memory.
+
+The long-lived foreground retry reached model initialization without the
+previous graph-capture exception or an HSA memory fault, but then remained in
+CPU scheduler initialization and never opened its HTTP port. It was terminated
+after the process was confirmed to be a startup busy-wait. The next correctness
+step is to use the normal registered/pinned host path and separately diagnose
+that scheduler initialization wait; no claim of end-to-end V4.1 correctness is
+made from this run.
