@@ -102,3 +102,27 @@ after the process was confirmed to be a startup busy-wait. The next correctness
 step is to use the normal registered/pinned host path and separately diagnose
 that scheduler initialization wait; no claim of end-to-end V4.1 correctness is
 made from this run.
+
+## Post-reboot service reload and low-ratio audit (2026-09-13)
+
+After the scheduled reboot, a TP8 service on all eight GCDs reached
+`0.0.0.0:30101` with the registered/pinned private Engram tables.  The launcher
+correctly forced `--disable-decode-cuda-graph` for HIP host-table mode; no HSA
+memory fault was observed after startup.  `/v1/models` returned the V4.1 model
+and short `/generate` requests completed, so process/HTTP health was restored.
+
+The generated text was nevertheless visibly corrupted for plain English,
+officially formatted chat input, and direct `input_ids`.  Engram CPU-reference
+lookup produced the same class of corruption, so the host-table kernel is not
+the sole correctness cause.  A BF16 KV-cache trial was rejected once with the
+wrong spelling (`bf16`, while the V4.1 validator accepts `bfloat16`) and a
+follow-up process exited during startup before serving; the production reload
+therefore remains FP8 KV.
+
+Static audit found a concrete ratio-2 compressor bug in
+`deepseek_v4_backend_hip_radix.py`: `raw_out_loc == 0` was used as a padding
+sentinel even though physical slot zero is valid for the first token.  The
+predicate is now `positions < 0`, which is the only unambiguous invalid-row
+marker.  Python syntax and a focused sentinel regression check pass.  This
+patch is not yet a correctness sign-off: the service still needs a clean A/B
+against the official V4.1 reference path.
