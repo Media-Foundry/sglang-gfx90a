@@ -99,3 +99,57 @@ C1 uses key1/executed_rows1/input_rows1, not a padded C32 graph. Initial
 request includes cold module/JIT work and is not a speed result.
 The existing CK scale-layout CPU oracle also passed all40 mutations across
 TP4/TP8 gate/down layouts. Native short pilot and full P/D remain pending.
+
+## Native pilot completed; formal matrix running
+
+Two measured natural-EOS waves (max512 output tokens), excluding warmup:
+C1 median81.1169, C8 median335.3845, C32 median1040.9756 resident output tok/s.
+C32 individual rates1041.1312/1040.8200. No visible resident regression versus
+historical AR. France and all completion-only ID/count checks passed; leading
+and trailing text of all32 first-wave code answers was inspected. No obvious
+loop/corruption was seen, but truncated512-token source excerpts lead to some
+unsupported code-review hypotheses/refusals: this is NOT a factual code-quality
+certification or proof of bitwise parity.
+
+C32 whole-request HTTP rates803.75/370.13 differed strongly despite stable
+resident rates. TTFTmax4.17/27.54seconds explains the difference; its cause
+was not captured and is not assumed to be JIT. Added a read-only CPU compiler
+subprocess witness for subsequent work; lack of such subprocesses does not
+exclude in-process compilation. Do not mix these HTTP rates with resident D.
+
+Startup repair commitc224e9c1ce; C64 harness/audit commitd111ffa4f7. Both pushed
+to gfx90a/sync/media-foundry-gfx90a, plus backup/pre-v4-tp8-regression-20260913.
+Full matrix controller started with `--phases prefill decode`, native AR,
+seven concurrencies, three measured rounds plus excluded warmup per group,
+8K input for P and512input/naturalEOS/max2048output for D. D accumulates30s
+of common resident windows per round. PID519441 remains owned service;
+artifacts under `.agents/experiments/dsv4_tp8_revalidation_20260913/ar-matrix`.
+
+Completed P medians so far: C14676.39, C24989.25, C45265.43, C85099.23,
+C165171.36 input tok/s. C32/C64 and formal D pending. Peak-VRAM samples are
+collected at5s cadence (observed samples, not exact allocator peak). Auditor
+recomputes throughput from counts/timestamps and rejects count corruption,
+cache-hit P, non-native D; benchmark/auditor CPU tests5passed.
+
+### Follow-up evidence for pilot HTTP latency outlier
+
+Retrospective on-disk `.ninja_log` and object timestamps establish four builds
+inside the slow second C32 wave (23:44:48--23:45:07HKT): TP8 FP4->BF16 gate
+and down dequantizers, plus exactM8190 MFMA gate and down. Build+link times
+5.715+5.637+5.863+5.881=23.096seconds, matching the~23.4second TTFT increase.
+M8191 variants were compiled one wave earlier. The input manifest contains
+511/512-token rows, so dynamic request grouping can expose8190/8191 as new
+shapes below the8192 CK threshold even after an8192 warmup. This is supported
+evidence of a cold-shape/JIT contribution, not a GPU decode slowdown; no
+claim that the later compiler watcher observed those already-finished builds.
+Persistent artifacts use build/dependency hashes distinct from old cached
+versions. The formal matrix's existing warmup protocol is unchanged; no
+measured outlier is silently removed or retimed.
+
+Corpus note: the pilot uses the exact historical32-case decode manifest.
+The formal matrix uses the new64-case manifest (first32 cases byte-identical);
+P takes the requested leading C rows, while repeated D waves rotate through
+the full64 cases. Thus formal C32 D may cover both32-case halves, unlike the
+old32-case corpus. Preserve per-case counts and do not interpret that final
+table as a strict old/new throughput ABBA; the matched pilot is the regression
+screen. All new cases also contain committed public source, not random tokens.

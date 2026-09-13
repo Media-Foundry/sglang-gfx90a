@@ -16,6 +16,9 @@ sys.path.insert(0, str(SCRIPTS))
 spec = importlib.util.spec_from_file_location('open_code_bench_test', SCRIPTS / 'bench_dsv4_open_code_decode.py')
 bench = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bench)
+audit_spec = importlib.util.spec_from_file_location('open_code_audit_test', SCRIPTS / 'summarize_dsv4_open_code_matrix.py')
+audit = importlib.util.module_from_spec(audit_spec)
+audit_spec.loader.exec_module(audit)
 
 
 class TestOpenCodeMatrix(unittest.TestCase):
@@ -54,6 +57,22 @@ class TestOpenCodeMatrix(unittest.TestCase):
     def test_empty_output_cannot_pass(self):
         with self.assertRaises(AssertionError):
             self.run_fake(empty=True)
+
+    def test_auditor_recomputes_and_rejects_counter_corruption(self):
+        data = self.run_fake(count=1)
+        self.assertEqual(audit.decode_summary(data)['median'], 1.)
+        data['rounds'][0]['waves'][0]['resident_tokens'] += 1
+        with self.assertRaises(AssertionError):
+            audit.decode_summary(data)
+
+    def test_auditor_rejects_false_prefill_and_cache_hits(self):
+        data = dict(rounds=[dict(completion_lengths=[1], request_count=1,
+            cached_tokens=[0], total_prompt_tokens=8, prefill_wall_s=2.,
+            aggregate_input_tok_s=4.)], median_input_tok_s=4., input_manifest_sha256='fixture')
+        self.assertEqual(audit.prefill_summary(data)['median'], 4.)
+        data['rounds'][0]['cached_tokens'] = [1]
+        with self.assertRaises(AssertionError):
+            audit.prefill_summary(data)
 
 
 if __name__ == '__main__':
