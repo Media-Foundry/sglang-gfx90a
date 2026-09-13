@@ -153,3 +153,46 @@ the full64 cases. Thus formal C32 D may cover both32-case halves, unlike the
 old32-case corpus. Preserve per-case counts and do not interpret that final
 table as a strict old/new throughput ABBA; the matched pilot is the regression
 screen. All new cases also contain committed public source, not random tokens.
+
+## Formal P completed; long native D in progress (Sep14)
+
+P three-round medians C1/2/4/8/16/32/64:
+4676.39/4989.25/5265.43/5099.23/5171.36/5254.98/5250.05 input tok/s.
+C64 wave0 took99.86s for524k input tokens; this is a full wave, not a single
+M64 prefill kernel. All P cached-token counts are zero.
+
+Formal C1 D median75.7006tok/s. Its longer answers cross the raw2048/C4512
+dual-graph boundary. First warmup completed1690tokens naturally; timestamp
+segments give81.289tok/s at generated1--512,81.207 at512--1400,81.146 at
+1400--1536,54.614 at1536--1690. Launcher log explicitly confirms dense/sparse
+graphs dispatch at raw2048. Do not mistake this context-mix effect for the
+matched short pilot regressing from81 to75. No output cap/EOS policy changed.
+Formal C2 first two waves are96.145/96.119tok/s, with1984/2048 output tokens;
+readable conclusions/tests, no evident loop. Remaining groups pending.
+
+VRAM collector correction: AMD CLI watch with `--file` overwrites its JSON
+snapshot in this version. The old file preserves only the final observation,
+NOT the whole prefill peak history. Stopped only that monitor (PID534376),
+replaced it with `watch-vram.py` appending each5s observation as JSONL during
+decode. No prefill peak is claimed from the overwritten samples. Serving
+PID519441 was not interrupted. Last prefill snapshot was roughly54.1k of
+65.52k tool-reported MB/GCD (~82.6%); this is a snapshot, not exact peak.
+
+Formal D completed through C8: C1/2/4/8 medians
+75.7006/96.1189/188.1458/333.3611 resident output tok/s. C16 is running;
+its runtime audit confirms key16, raw_bs16, executed_rows16, input_rows16.
+The JSONL memory observer returns a `gpu_data` wrapper (not a bare list).
+Across211 observations so far, maximum used VRAM is54117/65520 tool-MB
+(82.596%, GPU3). This is an observed decode sample, not allocator peak or
+a reconstructed prefill maximum. Saved130 pilot/early-matrix completion-ID
+sequences independently decode to the returned text in130/130 cases.
+
+An explicit post-hoc first-wave context slice (generated32 through at most1400,
+input<=512) gives C1/2/4/8 =81.170/109.031/188.862/334.703 tok/s. The C2
+same-wave full window was96.145. This supports the context-boundary diagnosis;
+the diagnostic does NOT replace the predeclared formal medians or constitute
+an independent ABBA. `audit-window-context.py` persists/reproduces that slice.
+Tail16-gram repetition screening of88 completed formal C1--C8 answers gave
+maximum0.199; the five highest cases were inspected and contain repeated test
+scaffolding rather than obvious loops. Their source-based factual assertions
+remain unverified. This is not a substitute for a numerical reference oracle.
