@@ -875,6 +875,20 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
         self.num_layers_ca4 = sum(1 for r in self.compression_ratios if r == 4)
         self.num_layers_ca128 = sum(1 for r in self.compression_ratios if r == 128)
 
+        from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.env_gate import (
+            is_unified_kv_triton,
+        )
+
+        self._unified = is_unified_kv_triton()
+        self.attn_head_dim = self.qk_nope_head_dim + self.qk_rope_head_dim
+        # Match the current DeepSeekV4TokenToKVPool unified ring allocation.
+        self._swa_ring_size = self.swa_page_size + (
+            max((get_spec().speculative_num_draft_tokens or 1) - 1, 0)
+            if self.is_speculative
+            else 0
+        )
+        self._spec_infl = 1.0
+
         if self.is_speculative:
             # Ring is sized once here, so it must serve the largest adaptive tier.
             self._assert_ring_serves_draft_tokens(
@@ -889,7 +903,8 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             # bytes_per_full_token: tokens = avail / (bpft * (T+D)/T).
             draft_layers = 1
             target_layers = self.num_layers_total
-            self.bytes_per_full_token *= (target_layers + draft_layers) / target_layers
+            self._spec_infl = (target_layers + draft_layers) / target_layers
+            self.bytes_per_full_token *= self._spec_infl
 
         # Online c128 keeps a single in-progress (max, sum, kv) state per index
         # and assumes a strict forward-only schedule. Speculative decode (MTP)
@@ -949,6 +964,17 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             self.indexer_head_dim + self.indexer_head_dim // quant_block_size * 4
         )
 
+        if getattr(self, "_unified", False):
+            # BF16 compressed latents scale with capacity; SWA and C4 state
+            # rings scale only with request slots and are charged as fixed bias.
+            assert not any(self.low_ratio_source_counts.values())
+            kv_bytes = (self.qk_nope_head_dim + self.qk_rope_head_dim) * 2
+            return (
+                kv_bytes * self.num_layers_ca4 / (4 * self.c4_shrink_factor)
+                + kv_bytes * self.num_layers_ca128 / 128
+                + indexer_bytes * self.num_layers_ca4 / 4
+            )
+
         attn_head_dim = self.qk_nope_head_dim + self.qk_rope_head_dim
         c4_state_dtype_size, c128_state_dtype_size = (
             _get_dsv4_compress_state_dtype_sizes()
@@ -1004,7 +1030,8 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
         full_token = full_token // page_size * page_size
         swa_tokens = int(full_token * self.swa_ratio) // page_size * page_size
         if (
-            self._sliding_window_size is not None
+            not getattr(self, "_unified", False)
+            and self._sliding_window_size is not None
             and self._sliding_window_size + page_size >= swa_tokens
         ):
             raise ValueError(
@@ -1018,7 +1045,11 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             swa_max_total_num_tokens=swa_tokens,
             c4_max_total_num_tokens=full_token // (4 * self.c4_shrink_factor),
             c128_max_total_num_tokens=full_token // 128,
-            c4_state_pool_size=swa_tokens // self.swa_page_size * self.c4_ring_size,
+            c4_state_pool_size=(
+                0
+                if getattr(self, "_unified", False)
+                else swa_tokens // self.swa_page_size * self.c4_ring_size
+            ),
             c128_state_pool_size=0,
         )
 
@@ -1026,6 +1057,28 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
         if self.disaggregation_mode == "decode":
             return max_running_requests + self.disaggregation_decode_extra_slots + 1
         return max_running_requests + 1
+
+    def _unified_c4_state_pool_size(self, max_running_requests: int) -> int:
+        return self._get_num_req_slots(max_running_requests) * self.c4_ring_size
+
+    def _fixed_c4_state_bytes(self, max_running_requests: int) -> int:
+        if not getattr(self, "_unified", False) or self.num_layers_ca4 == 0:
+            return 0
+        dtype_size, _ = _get_dsv4_compress_state_dtype_sizes()
+        rows = self._unified_c4_state_pool_size(max_running_requests)
+        rows = ceil_div(rows + self.c4_ring_size + 1, 4) * 4
+        return (
+            rows * 4 * (self.attn_head_dim + self.indexer_head_dim)
+            * dtype_size * self.num_layers_ca4
+        )
+
+    def _fixed_swa_bytes(self, max_running_requests: int) -> int:
+        if not getattr(self, "_unified", False):
+            return 0
+        return int(
+            self._get_num_req_slots(max_running_requests) * self._swa_ring_size
+            * self.attn_head_dim * 2 * self.num_layers_total * self._spec_infl
+        )
 
     def _get_c128_state_fixed_bytes(self, max_running_requests: int) -> int:
         if self.num_layers_ca128 == 0:
@@ -1091,6 +1144,10 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             config.c128_state_pool_size = num_req_slots
         else:
             config.c128_state_pool_size = num_req_slots * self.c128_ring_size
+        if getattr(self, "_unified", False) and self.num_layers_ca4:
+            config.c4_state_pool_size = self._unified_c4_state_pool_size(
+                config.max_running_requests
+            )
         return config
 
     def calculate_pool_sizes(
@@ -1110,7 +1167,19 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
                 self._get_c128_state_fixed_bytes_for_token_capacity(full_token)
             )
 
-        available_bytes_for_tokens = max(available_bytes - c128_state_fixed_bytes, 0)
+        fixed_ring_bytes = 0
+        if getattr(self, "_unified", False):
+            requests = self.requested_max_running_requests_per_worker
+            if requests is None:
+                estimate = int(available_bytes / self.bytes_per_full_token)
+                requests = min(
+                    max(min(int(estimate / self.context_len * 512), 4096), 2048),
+                    estimate // 2,
+                )
+            fixed_ring_bytes = self._fixed_swa_bytes(requests) + self._fixed_c4_state_bytes(requests)
+        available_bytes_for_tokens = max(
+            available_bytes - c128_state_fixed_bytes - fixed_ring_bytes, 0
+        )
         full_token = int(available_bytes_for_tokens / self.bytes_per_full_token)
 
         sizes = self._compute_dsv4_sizes(full_token, page_size)
@@ -1119,6 +1188,7 @@ class DSV4PoolConfigurator(MemoryPoolConfigurator):
             f"bytes_per_full_token={self.bytes_per_full_token:.2f}, "
             f"available_bytes={available_bytes / (1 << 30):.2f} GB, "
             f"c128_state_fixed={c128_state_fixed_bytes / (1 << 30):.2f} GB, "
+            f"unified_ring_fixed={fixed_ring_bytes / (1 << 30):.2f} GB, "
             f"full_token={sizes.full_max_total_num_tokens}"
         )
         return self._to_config(sizes)

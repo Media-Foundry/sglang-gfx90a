@@ -19,6 +19,11 @@ register_cpu_ci(est_time=5, suite="base-a-test-cpu")
 
 def _request(req_pool_idx=None, *, reused=False):
     return SimpleNamespace(
+        # This fork's Req exposes the allocation fields directly. Keep the
+        # lifecycle fixture aligned with the allocator's actual public API.
+        req_pool_idx=req_pool_idx,
+        kv_committed_len=1 if reused else 0,
+        kv_allocated_len=1 if reused else 0,
         kv=SimpleNamespace(
             req_pool_idx=req_pool_idx,
             kv_committed_len=1 if reused else 0,
@@ -30,6 +35,8 @@ def _request(req_pool_idx=None, *, reused=False):
 
 
 def _mark_reused(req):
+    req.kv_committed_len = 1
+    req.kv_allocated_len = 1
     req.kv.kv_committed_len = 1
     req.kv.kv_allocated_len = 1
     req.kv.holds_kv = True
@@ -63,6 +70,49 @@ def _token_pool(unified: bool, ring_size: int = 8):
 
 
 class TestUnifiedC4StateLifecycle(unittest.TestCase):
+    def test_unified_prices_compressed_latents_not_linear_swa(self):
+        configurator = object.__new__(DSV4PoolConfigurator)
+        configurator._unified = True
+        configurator.qk_nope_head_dim = 448
+        configurator.qk_rope_head_dim = 64
+        configurator.indexer_head_dim = 128
+        configurator.num_layers_ca4 = 21
+        configurator.num_layers_ca128 = 20
+        configurator.c4_shrink_factor = 1
+        configurator.low_ratio_source_counts = {1: 0, 2: 0}
+        self.assertEqual(configurator._get_bytes_per_full_token(), 6229.)
+
+    def test_unified_budget_subtracts_fixed_state_and_keeps_one_million(self):
+        configurator = object.__new__(DSV4PoolConfigurator)
+        configurator._unified = True
+        configurator.requested_max_running_requests_per_worker = 256
+        configurator.bytes_per_full_token = 6229.
+        configurator.swa_ratio = 0.65
+        configurator.c4_shrink_factor = 1
+        configurator._get_c128_state_fixed_bytes = MagicMock(return_value=5 * 1024**3)
+        configurator._fixed_swa_bytes = MagicMock(return_value=2 * 1024**3)
+        configurator._fixed_c4_state_bytes = MagicMock(return_value=1024**3)
+        budget = 16 * 1024**3
+        result = configurator.calculate_pool_sizes(budget, page_size=256)
+        self.assertEqual(result.max_total_num_tokens, int(8 * 1024**3 / 6229) // 256 * 256)
+        self.assertGreaterEqual(result.max_total_num_tokens, 1048576)
+        self.assertEqual(result.c4_state_pool_size, 0)
+
+    def test_non_unified_v41_ratio_source_coefficient_unchanged(self):
+        configurator = object.__new__(DSV4PoolConfigurator)
+        configurator._unified = False
+        configurator.qk_nope_head_dim = 448
+        configurator.qk_rope_head_dim = 64
+        configurator.indexer_head_dim = 128
+        configurator.swa_ratio = 0.1
+        configurator.num_layers_total = 40
+        configurator.num_layers_ca4 = configurator.num_layers_ca128 = 0
+        configurator.c4_ring_size = 8
+        configurator.swa_page_size = 256
+        configurator.c4_shrink_factor = 1
+        configurator.low_ratio_source_counts = {1: 1, 2: 3}
+        self.assertAlmostEqual(configurator._get_bytes_per_full_token(), 3966.)
+
     def test_pool_size_is_exact_request_ring_product(self):
         configurator = object.__new__(DSV4PoolConfigurator)
         configurator.disaggregation_mode = "decode"

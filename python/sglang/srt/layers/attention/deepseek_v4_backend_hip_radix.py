@@ -720,12 +720,16 @@ class DeepseekV4HipRadixBackend(
         self.token_to_kv_pool: DeepSeekV4TokenToKVPool = model_runner.token_to_kv_pool
         self.hisparse_coordinator = model_runner.hisparse_coordinator
         self.req_to_token = model_runner.req_to_token_pool.req_to_token
-        # The V4.1 memory pool already exposes the ratios that are actually
-        # allocated (1/2 for the current Flash checkpoint).  Keep this separate
-        # from the per-layer ratio list so metadata creation never asks for a
-        # legacy c4/c128 buffer that does not exist.
+        # Paged V4.1 exposes actual allocations through kv_pools. Unified V4
+        # stores C4/C128 inside unified_kv_pool and deliberately leaves that
+        # dictionary empty; its source map supplies the logical ratios instead.
+        # An empty paged dictionary must not disable original V4 compression.
         self.present_ratios: Tuple[int, ...] = tuple(
-            sorted(self.token_to_kv_pool.kv_pools)
+            sorted(
+                self.token_to_kv_pool.sources_by_ratio
+                if self.token_to_kv_pool._unified_kv
+                else self.token_to_kv_pool.kv_pools
+            )
         )
         self.low_ratios: Tuple[int, ...] = tuple(
             ratio for ratio in (1, 2) if ratio in self.present_ratios
@@ -1827,25 +1831,34 @@ class DeepseekV4HipRadixBackend(
                 win=pool.unified_swa_window,
                 ring_stride=pool.unified_swa_ring_size,
             )
-        (
-            _,
-            _,
-            core.unified.hca_indices,
-            core.unified.hca_indptr,
-            core.unified.csa_indices,
-            core.unified.csa_indptr,
-        ) = runtime.build_decode_streams(
-            state_slot=state_slot,
-            positions=core.positions_casual,
-            swa_len=core.swa_topk_lengths,
-            hca_len=core.c128_topk_lengths_raw,
-            csa_len=core.c4_sparse_topk_lengths_raw,
-            hca_page_indices=core.c128_page_indices,
-            csa_width=core.c4_sparse_page_indices.shape[1],
-            win=pool.unified_swa_window,
-            ring_stride=pool.unified_swa_ring_size,
-            swa_pages=pool.unified_swa_pages,
-        )
+        csa_pages = core.c4_sparse_page_indices
+        hca_pages = core.c128_page_indices
+        if csa_pages is None and hca_pages is None:
+            # DSpark draft is SWA-only. Ratio-aware metadata correctly leaves
+            # compressed fields None; do not manufacture/read a C4/C128 table.
+            core.unified.hca_indices = core.unified.hca_indptr = None
+            core.unified.csa_indices = core.unified.csa_indptr = None
+        else:
+            zero_lengths = (
+                torch.zeros_like(core.swa_topk_lengths)
+                if csa_pages is None or hca_pages is None else None
+            )
+            (
+                _, _, core.unified.hca_indices, core.unified.hca_indptr,
+                core.unified.csa_indices, core.unified.csa_indptr,
+            ) = runtime.build_decode_streams(
+                state_slot=state_slot,
+                positions=core.positions_casual,
+                swa_len=core.swa_topk_lengths,
+                hca_len=core.c128_topk_lengths_raw if hca_pages is not None else zero_lengths,
+                csa_len=core.c4_sparse_topk_lengths_raw if csa_pages is not None else zero_lengths,
+                hca_page_indices=(hca_pages if hca_pages is not None else
+                                  state_slot.new_empty((N, 0), dtype=torch.int32)),
+                csa_width=csa_pages.shape[1] if csa_pages is not None else 0,
+                win=pool.unified_swa_window,
+                ring_stride=pool.unified_swa_ring_size,
+                swa_pages=pool.unified_swa_pages,
+            )
         # SWA ring write target, same value for every layer this forward.
         req_slot = state_slot.to(torch.int64)
         core.unified.swa_loc = (

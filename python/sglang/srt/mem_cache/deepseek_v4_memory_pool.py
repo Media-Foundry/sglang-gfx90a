@@ -664,6 +664,11 @@ class DeepSeekV4TokenToKVPool(BaseSWAKVPool):
         self._unified_kv = is_unified_kv_triton()
         if self._unified_kv and any(r in (1, 2) for r in self.sources_by_ratio):
             raise AssertionError("unified_kv does not support V4.1 ratio-1/2 pools")
+        if self._unified_kv:
+            # Unified C4 addresses state by request slot, not SWA page. The
+            # upstream lifecycle callback survived the merge, but its state
+            # sizing/reset implementation did not. Preserve paged V4.1 below.
+            self.c4_state_pool_size = self.num_req_slots * self.get_ring_size(4)
 
         if self._unified_kv:
             self.swa_kv_pool = None
@@ -1226,6 +1231,30 @@ class DeepSeekV4TokenToKVPool(BaseSWAKVPool):
     def get_online_c128_mtp_pending_seq_lens(self) -> torch.Tensor:
         assert self.online_c128_mtp_pending_seq_lens is not None
         return self.online_c128_mtp_pending_seq_lens
+
+    def clear_c4_req_states(self, req_pool_indices: Sequence[int]) -> None:
+        """Reset newly allocated unified C4 rings, including indexer state."""
+        if not self._unified_kv or not req_pool_indices:
+            return
+        pools = [
+            pool
+            for pool in self.compress_state_pools + self.indexer_compress_state_pools
+            if pool is not None and pool.ratio == 4
+        ]
+        if not pools:
+            return
+        ring_size = self.get_ring_size(4)
+        device = pools[0].kv_score_buffer.kv_score.device
+        req_indices = torch.as_tensor(req_pool_indices, dtype=torch.long, device=device)
+        state_locs = (
+            req_indices[:, None] * ring_size
+            + torch.arange(ring_size, dtype=torch.long, device=device)
+        ).flatten()
+        for pool in pools:
+            state = pool.kv_score_buffer.kv_score
+            half = state.shape[-1] // 2
+            state[state_locs, :half] = 0
+            state[state_locs, half:] = float("-inf")
 
     def clear_c128_req_state(self, req_pool_idx: int) -> None:
         """Reset request-scoped C128 state for one req slot."""
