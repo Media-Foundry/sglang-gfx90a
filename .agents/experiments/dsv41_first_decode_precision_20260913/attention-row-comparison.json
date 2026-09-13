@@ -1,0 +1,1470 @@
+{
+  "alignment": {
+    "trace_dir": "/tmp/dsv41-attention-precision-20260913",
+    "cached_call": 1,
+    "full_call": 3,
+    "cached_rows": 1,
+    "full_rows": 204,
+    "cached_row": 0,
+    "full_row": 203,
+    "output": "/tmp/dsv41-attention-row-comparison-20260913.json"
+  },
+  "modules": [
+    {
+      "rank": 0,
+      "number": 0,
+      "prefix": "VocabParallelEmbedding",
+      "class": "VocabParallelEmbedding",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [],
+          "dtype": "torch.int64",
+          "exact": true,
+          "different": 0,
+          "elements": 1
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.04545589602662041,
+          "recompute_rms": 0.04545589602662041
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 1,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999998,
+          "cached_rms": 0.14086004262779078,
+          "recompute_rms": 0.14086004262779078
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.021541310573474994,
+          "recompute_rms": 0.021541310573474994
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 2,
+      "prefix": "ReplicatedLinear",
+      "class": "ReplicatedLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.021541310573474994,
+          "recompute_rms": 0.021541310573474994
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            1792
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1792,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.06019588122831253,
+          "recompute_rms": 0.06019588122831253
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 3,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.0525822861849012,
+          "recompute_rms": 0.0525822861849012
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999999,
+          "cached_rms": 1.0939667612429875,
+          "recompute_rms": 1.0939667612429875
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 4,
+      "prefix": "ColumnParallelLinear",
+      "class": "ColumnParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999999,
+          "cached_rms": 1.0939667612429875,
+          "recompute_rms": 1.0939667612429875
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            4096
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 4096,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 1.8773590527331707,
+          "recompute_rms": 1.8773590527331707
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 5,
+      "prefix": "RowParallelLinear",
+      "class": "RowParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1024
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 1,
+          "elements": 1024,
+          "finite": true,
+          "max_abs": 0.000244140625,
+          "relative_l2": 6.663589904041941e-05,
+          "cosine": 0.9999999977800027,
+          "cached_rms": 0.11449369061598737,
+          "recompute_rms": 0.11449375848628124
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 1,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "relative_l2": 1.671995684282826e-05,
+          "cosine": 0.9999999998602214,
+          "cached_rms": 0.40813131303330014,
+          "recompute_rms": 0.4081313118067687
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 6,
+      "prefix": "MQALayer",
+      "class": "MQALayer",
+      "rows": [
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 1,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00048828125,
+          "relative_l2": 1.671995684282826e-05,
+          "cosine": 0.9999999998602214,
+          "cached_rms": 0.40813131303330014,
+          "recompute_rms": 0.4081313118067687
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 7,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999998,
+          "cached_rms": 0.15154080617310994,
+          "recompute_rms": 0.15154080617310994
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 8,
+      "prefix": "model.layers.4.mlp.shared_experts.gate_up_proj",
+      "class": "MergedColumnParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            576
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 576,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.34499535288578337,
+          "recompute_rms": 0.34499535288578337
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 9,
+      "prefix": "RowParallelLinear",
+      "class": "RowParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            288
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 288,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.0422304158451113,
+          "recompute_rms": 0.0422304158451113
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.012816179405420184,
+          "recompute_rms": 0.012816179405420184
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 10,
+      "prefix": "DeepseekV2MLP",
+      "class": "DeepseekV2MLP",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.012816179405420184,
+          "recompute_rms": 0.012816179405420184
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 11,
+      "prefix": "MoEGate",
+      "class": "MoEGate",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 3.776592954534659,
+          "recompute_rms": 3.776592954534659
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 12,
+      "prefix": "TopK",
+      "class": "TopK",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "args.1",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 3.776592954534659,
+          "recompute_rms": 3.776592954534659
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.float32",
+          "exact": true,
+          "different": 0,
+          "elements": 6,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.2579010981377516,
+          "recompute_rms": 0.2579010981377516
+        },
+        {
+          "path": "output.1",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.int32",
+          "exact": true,
+          "different": 0,
+          "elements": 6
+        },
+        {
+          "path": "output.2",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 3.776592954534659,
+          "recompute_rms": 3.776592954534659
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 13,
+      "prefix": "FusedMoE",
+      "class": "FusedMoE",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "args.1.0",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.float32",
+          "exact": true,
+          "different": 0,
+          "elements": 6,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.2579010981377516,
+          "recompute_rms": 0.2579010981377516
+        },
+        {
+          "path": "args.1.1",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.int32",
+          "exact": true,
+          "different": 0,
+          "elements": 6
+        },
+        {
+          "path": "args.1.2",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 3.776592954534659,
+          "recompute_rms": 3.776592954534659
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999999,
+          "cached_rms": 0.021043973597289555,
+          "recompute_rms": 0.021043973597289555
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 14,
+      "prefix": "DeepseekV2MoE",
+      "class": "DeepseekV2MoE",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.17330459996670478,
+          "recompute_rms": 0.17330459996670478
+        },
+        {
+          "path": "args.1.extend_prefix_lens",
+          "skipped": "missing tensor on one side"
+        },
+        {
+          "path": "args.1.extend_seq_lens",
+          "skipped": "missing tensor on one side"
+        },
+        {
+          "path": "args.1.input_ids",
+          "compatible": true,
+          "shape": [],
+          "dtype": "torch.int64",
+          "exact": true,
+          "different": 0,
+          "elements": 1
+        },
+        {
+          "path": "args.1.positions",
+          "compatible": true,
+          "shape": [],
+          "dtype": "torch.int64",
+          "exact": true,
+          "different": 0,
+          "elements": 1
+        },
+        {
+          "path": "args.1.req_pool_indices",
+          "skipped": "not a token-row tensor",
+          "shapes": [
+            [
+              1
+            ],
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "path": "args.1.seq_lens",
+          "skipped": "not a token-row tensor",
+          "shapes": [
+            [
+              1
+            ],
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999999,
+          "cached_rms": 0.08905968922309832,
+          "recompute_rms": 0.08905968922309832
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 15,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.1717890498073259,
+          "recompute_rms": 0.1717890498073259
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.02281612451376779,
+          "recompute_rms": 0.02281612451376779
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 16,
+      "prefix": "ReplicatedLinear",
+      "class": "ReplicatedLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 0.02281612451376779,
+          "recompute_rms": 0.02281612451376779
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            1792
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1792,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 0.9999999999999999,
+          "cached_rms": 0.058809901276369286,
+          "recompute_rms": 0.058809901276369286
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 17,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.055088265585981025,
+          "recompute_rms": 0.055088265585981025
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 1.0454103073453538,
+          "recompute_rms": 1.0454103073453538
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 18,
+      "prefix": "ColumnParallelLinear",
+      "class": "ColumnParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1280
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1280,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0000000000000002,
+          "cached_rms": 1.0454103073453538,
+          "recompute_rms": 1.0454103073453538
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            4096
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 4096,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 1.6849955964605112,
+          "recompute_rms": 1.6849955964605112
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 19,
+      "prefix": "RowParallelLinear",
+      "class": "RowParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            1024
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": true,
+          "different": 0,
+          "elements": 1024,
+          "finite": true,
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "cosine": 1.0,
+          "cached_rms": 0.08942875564592231,
+          "recompute_rms": 0.08942875564592231
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 549,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "relative_l2": 0.0010767113979329264,
+          "cosine": 0.9999994207911715,
+          "cached_rms": 0.47897648892870137,
+          "recompute_rms": 0.4789624766209145
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 20,
+      "prefix": "MQALayer",
+      "class": "MQALayer",
+      "rows": [
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 549,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0078125,
+          "relative_l2": 0.0010767113979329264,
+          "cosine": 0.9999994207911715,
+          "cached_rms": 0.47897648892870137,
+          "recompute_rms": 0.4789624766209145
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 21,
+      "prefix": "RMSNorm",
+      "class": "RMSNorm",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 231,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0009299642341859161,
+          "cosine": 0.9999995689487666,
+          "cached_rms": 0.19207925355583233,
+          "recompute_rms": 0.19206929864351732
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 22,
+      "prefix": "model.layers.6.mlp.shared_experts.gate_up_proj",
+      "class": "MergedColumnParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            576
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 255,
+          "elements": 576,
+          "finite": true,
+          "max_abs": 0.015625,
+          "relative_l2": 0.002530361794044894,
+          "cosine": 0.99999688743011,
+          "cached_rms": 0.46989516816252624,
+          "recompute_rms": 0.47009474198225687
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 23,
+      "prefix": "RowParallelLinear",
+      "class": "RowParallelLinear",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            288
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 165,
+          "elements": 288,
+          "finite": true,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.00407804708086534,
+          "cosine": 0.9999917695655022,
+          "cached_rms": 0.055391658033126755,
+          "recompute_rms": 0.05536930678444162
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 4037,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.000499725341796875,
+          "relative_l2": 0.008087345780734315,
+          "cosine": 0.9999672974601482,
+          "cached_rms": 0.015164398820850997,
+          "recompute_rms": 0.015164380143571536
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 24,
+      "prefix": "DeepseekV2MLP",
+      "class": "DeepseekV2MLP",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 4037,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.000499725341796875,
+          "relative_l2": 0.008087345780734315,
+          "cosine": 0.9999672974601482,
+          "cached_rms": 0.015164398820850997,
+          "recompute_rms": 0.015164380143571536
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 25,
+      "prefix": "MoEGate",
+      "class": "MoEGate",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 7,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.03125,
+          "relative_l2": 0.0007317267986970909,
+          "cosine": 0.9999997328992655,
+          "cached_rms": 4.095287340094903,
+          "recompute_rms": 4.095431640048586
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 26,
+      "prefix": "TopK",
+      "class": "TopK",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "args.1",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 7,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.03125,
+          "relative_l2": 0.0007317267986970909,
+          "cosine": 0.9999997328992655,
+          "cached_rms": 4.095287340094903,
+          "recompute_rms": 4.095431640048586
+        },
+        {
+          "path": "output.0",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.float32",
+          "exact": false,
+          "different": 6,
+          "elements": 6,
+          "finite": true,
+          "max_abs": 0.00048047304153442383,
+          "relative_l2": 0.0009784847919104731,
+          "cosine": 0.9999995435454376,
+          "cached_rms": 0.26770555049787315,
+          "recompute_rms": 0.26764919705576856
+        },
+        {
+          "path": "output.1",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.int32",
+          "exact": true,
+          "different": 0,
+          "elements": 6
+        },
+        {
+          "path": "output.2",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 7,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.03125,
+          "relative_l2": 0.0007317267986970909,
+          "cosine": 0.9999997328992655,
+          "cached_rms": 4.095287340094903,
+          "recompute_rms": 4.095431640048586
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 27,
+      "prefix": "FusedMoE",
+      "class": "FusedMoE",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "args.1.0",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.float32",
+          "exact": false,
+          "different": 6,
+          "elements": 6,
+          "finite": true,
+          "max_abs": 0.00048047304153442383,
+          "relative_l2": 0.0009784847919104731,
+          "cosine": 0.9999995435454376,
+          "cached_rms": 0.26770555049787315,
+          "recompute_rms": 0.26764919705576856
+        },
+        {
+          "path": "args.1.1",
+          "compatible": true,
+          "shape": [
+            6
+          ],
+          "dtype": "torch.int32",
+          "exact": true,
+          "different": 0,
+          "elements": 6
+        },
+        {
+          "path": "args.1.2",
+          "compatible": true,
+          "shape": [
+            384
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 7,
+          "elements": 384,
+          "finite": true,
+          "max_abs": 0.03125,
+          "relative_l2": 0.0007317267986970909,
+          "cosine": 0.9999997328992655,
+          "cached_rms": 4.095287340094903,
+          "recompute_rms": 4.095431640048586
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 2948,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.004094639234695762,
+          "cosine": 0.9999916224599212,
+          "cached_rms": 0.0330587010133644,
+          "recompute_rms": 0.03305550152797463
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "number": 28,
+      "prefix": "DeepseekV2MoE",
+      "class": "DeepseekV2MoE",
+      "rows": [
+        {
+          "path": "args.0",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 256,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.0010153071467547316,
+          "cosine": 0.9999994847281819,
+          "cached_rms": 0.2035874418867297,
+          "recompute_rms": 0.20358398999655436
+        },
+        {
+          "path": "args.1.extend_prefix_lens",
+          "skipped": "missing tensor on one side"
+        },
+        {
+          "path": "args.1.extend_seq_lens",
+          "skipped": "missing tensor on one side"
+        },
+        {
+          "path": "args.1.input_ids",
+          "compatible": true,
+          "shape": [],
+          "dtype": "torch.int64",
+          "exact": true,
+          "different": 0,
+          "elements": 1
+        },
+        {
+          "path": "args.1.positions",
+          "compatible": true,
+          "shape": [],
+          "dtype": "torch.int64",
+          "exact": true,
+          "different": 0,
+          "elements": 1
+        },
+        {
+          "path": "args.1.req_pool_indices",
+          "skipped": "not a token-row tensor",
+          "shapes": [
+            [
+              1
+            ],
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "path": "args.1.seq_lens",
+          "skipped": "not a token-row tensor",
+          "shapes": [
+            [
+              1
+            ],
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "path": "output",
+          "compatible": true,
+          "shape": [
+            5120
+          ],
+          "dtype": "torch.bfloat16",
+          "exact": false,
+          "different": 3619,
+          "elements": 5120,
+          "finite": true,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.005847779471526155,
+          "cosine": 0.999983254698114,
+          "cached_rms": 0.1275312373947843,
+          "recompute_rms": 0.12742628750054955
+        }
+      ]
+    }
+  ]
+}

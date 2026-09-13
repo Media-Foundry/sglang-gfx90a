@@ -11,6 +11,21 @@ from pathlib import Path
 import torch
 
 
+def gather_packed_kv_rows(cache, ids, page_size):
+    """Canonical [data576, scale8] records from page-planar FP8 KV storage.
+
+    A page stores ALL 576-byte payloads before ALL 8-byte scales. A simple
+    reshape(-1, 584) would silently capture the wrong bytes for most tokens.
+    """
+    raw = cache.view(torch.uint8).reshape(cache.shape[0], -1)
+    ids = ids.long()
+    assert bool(((ids >= 0) & (ids < raw.shape[0] * page_size)).all())
+    page, offset = ids // page_size, ids % page_size
+    data = raw[page[:, None], offset[:, None] * 576 + torch.arange(576, device=raw.device)]
+    scales = raw[page[:, None], page_size * 576 + offset[:, None] * 8 + torch.arange(8, device=raw.device)]
+    return torch.cat((data, scales), dim=-1)
+
+
 def make_hook(config):
     folder = Path(config["folder"])
     label = config["label"]
@@ -20,6 +35,7 @@ def make_hook(config):
     capture_parameters = bool(config.get("capture_parameters", True))
     min_rows = int(config.get("min_rows", 0))
     ranks = config.get("ranks")
+    attention_contract_layers = set(config.get("attention_contract_layers", []))
     calls = {}
     module_numbers = {}
 
@@ -100,6 +116,49 @@ def make_hook(config):
             "args": copy_tree(args), "output": copy_tree(output),
             "parameters": parameters,
         }
+        if type(module).__name__ == "MQALayer" and getattr(module, "layer_id", None) in attention_contract_layers:
+            # Snapshot the final valid query's *selected* packed cache rows,
+            # not the whole allocated pool. Called before the next layer may
+            # overwrite the metadata-owned Q pad. Diagnostic synchronization
+            # only; never substitutes model outputs or changes KV state.
+            from sglang.srt.model_executor.forward_context import get_attn_backend
+
+            backend = get_attn_backend()
+            meta = backend.forward_metadata
+            core = meta.core_attn_metadata
+            pool = backend.token_to_kv_pool
+            q_pad = meta.q_pad_buffer
+            swa = pool.get_swa_key_buffer_radix(module.layer_id)
+            ids = core.swa_page_indices[-1].flatten().long()
+            swa_count = int(core.swa_topk_lengths[-1])
+            ids = ids[:swa_count]
+            contract = {
+                "q": q_pad[-1:].clone(), "q_batch_shape": list(q_pad.shape),
+                "swa_ids": ids, "swa_kv": gather_packed_kv_rows(swa, ids, pool.swa_window_size),
+                "swa_topk_capacity": core.swa_page_indices.shape[-1],
+                "sink": module._local_attn_sink(), "softmax_scale": backend.softmax_scale,
+                "position": core.positions_casual[-1:], "ratio": module.compress_ratio,
+                "freqs_cis": module.freqs_cis[core.positions_casual[-1:].long()],
+                "n_local_heads": module.n_local_heads, "n_local_groups": module.n_local_groups,
+            }
+            if count == 0:
+                contract["wo_a_weight"] = module.wo_a.weight.view(module.n_local_groups, module.o_lora_rank, -1)
+            from sglang.kernels.ops.attention.nsa_triton_decode import triton_mla_kernels_decode_fused as kernels
+            contract["last_autotune_configs"] = {
+                name: str(getattr(getattr(kernels, name), "best_config", None))
+                for name in ("_fused_gather_attn_dsv4_kernel", "_fused_gather_attn_dsv4_dual_scope_kernel")
+            }
+            if module.compress_ratio in (1, 2):
+                extra = pool.get_extra_key_buffer(module.layer_id)
+                page_size = pool.page_size // module.compress_ratio
+                ids = core.sparse_page_indices(module.compress_ratio)[-1].flatten().long()
+                extra_count = int(core.sparse_topk_lengths(module.compress_ratio)[-1])
+                ids = ids[:extra_count]
+                valid = ids >= 0
+                contract.update(extra_ids=ids, extra_valid=valid,
+                                extra_topk_capacity=core.sparse_page_indices(module.compress_ratio).shape[-1],
+                                extra_kv=gather_packed_kv_rows(extra, ids.clamp_min(0), page_size))
+            record["attention_contract"] = copy_tree(contract)
         if summary_only and getattr(module, "compress_ratio", 0) in (1, 2):
             from sglang.srt.model_executor.forward_context import get_attn_backend
 

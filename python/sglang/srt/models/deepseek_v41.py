@@ -561,6 +561,12 @@ def _apply_wo_a_bf16_matmul(
     other cases use torch.einsum.
     """
     global _wo_a_aiter_batched_gemm_disabled
+    if _is_hip and envs.SGLANG_DSV41_WO_A_INVARIANT.get():
+        from sglang.kernels.ops.attention.dsv4.wo_a_bf16_invariant import (
+            wo_a_bf16_invariant,
+        )
+
+        return wo_a_bf16_invariant(o, wo_a)
     if (
         _is_cuda
         and (
