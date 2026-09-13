@@ -253,3 +253,62 @@ has happened. Finish the unchanged baseline C64 matrix before GPU experiments.
 Compiler witness also observed new exact-M7679 MFMA gate/down builds at
 01:18:47--01:18:56 during C64 admission. Those are separate cold-prefill/JIT
 events; they cannot explain the much later >2048-token sparse decode slowdown.
+
+## Completed baseline matrix and exact empty-tile candidate
+
+All seven native AR P/D groups completed, three measured rounds each:
+
+| C | P input tok/s (8K) | D resident tok/s (512 input, natural EOS, max2048 output) |
+|--:|--:|--:|
+|1|4676.39|75.70|
+|2|4989.25|96.12|
+|4|5265.43|188.15|
+|8|5099.23|333.36|
+|16|5171.36|609.18|
+|32|5254.98|1040.99|
+|64|5250.05|1330.46|
+
+All1859 saved warmup/measured responses pass independent ID->text decoding;
+this includes P's one-token outputs. Post-matrix France twice answered Paris.
+Three8K code prompts,128output cap, repeated twice: readable and on topic,
+no visible collapse, but different texts across repeats and no factual/bitwise
+whole-model claim. Original1M capacity and seven actual runtime graph tiers
+were confirmed. Baseline observed VRAM maximum82.596%/GCD; the observer now
+excludes timestamps after the completion-state mtime so later GPU oracles do
+not contaminate that peak. `measurement-times.json` records this boundary.
+
+Isolated then integrated empty-tile oracles passed7shapes (short-live/capacity,
+ragged577, dense8192, full262144C4keys and trivial-row mode),100mutations each.
+The integrated run compares score bits and logical/physical IDs after EVERY
+one of1000graph replays/case, with independent output storage. For live640 and
+capacity262144, integrated full logits+TopK component medians:
+M1 230.88->40.06us; M32 6934.30->837.17us; M64 13903.65->1691.02us.
+Fully populated8192/262144 controls were effectively flat. These are single
+GPU0 components, not service speedups.
+
+Production opt-in added in ab7739fc06:
+`SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP`, defaultFalse. It is gated to
+HIP/gfx90a unified original-V4 DECODE with known non-draft/non-DSpark/non-MTP
+roles. Prefill, paged V4.1 and speculative paths stay unchanged. The new Triton
+wrapper invokes original arithmetic for each nonempty tile; empty tiles still
+write full-width zeros. No KV truncation, weight change or Top-K change.
+Six CPU selector/wrapper contract tests passed.
+
+Service ABBA started separately using the SAME32 public8K source prompts,
+natural EOS, max256output: control A1 resident169.6567tok/s. This directly
+exposes the long-context cost, unlike the short-context resident matrix.
+After A1 completed, original service519441 and owned children were stopped
+cleanly. Candidate B PID576055 (tmux dsv4-empty-tiles-B-20260914) is loading;
+same full launcher with only the new flag enabled. No candidate E2E result yet.
+
+B completed: native long8K C32 resident B1=611.1026 and B2=610.8532tok/s,
+versus A1=169.6567. A1/B1 each produced8192tokens (all32x256), same8097
+resident tokens; resident47.726->13.250s. Whole request wave98.486->63.580s,
+HTTP83.179->128.846output tok/s. This is not the short-context1041 profile;
+do not multiply the short-context rate by3.60. France passed in B. Sampled
+code texts remain coherent but do not have verified factual diagnoses.
+
+B PID576055 was stopped cleanly. Return control A2 PID583304 is ready with
+flag0 and no empty-tile hit log; pool1M retained. Its warmup/formal wave are
+running, so ABBA acceptance is still pending. No default launcher promotion
+has happened yet. The baseline table remains separately preserved.

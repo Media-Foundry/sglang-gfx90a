@@ -20,6 +20,14 @@ def main():
         if isinstance(gpus, dict):
             gpus = gpus['gpu_data']
         observations.extend(('jsonl', row['time'], gpu) for gpu in gpus)
+    boundary_file = root / 'measurement-times.json'
+    boundary = json.loads(boundary_file.read_text()) if boundary_file.exists() else None
+    excluded = 0
+    if boundary is not None:
+        # Later standalone GPU oracles must not inflate the matrix's peak.
+        selected = [item for item in observations if item[1] <= boundary['matrix_end_epoch']]
+        excluded = len(observations)-len(selected)
+        observations = selected
     groups = []
     for source in ('cli_history', 'jsonl', 'combined'):
         for gpu in range(8):
@@ -35,6 +43,7 @@ def main():
                                used=peak['used_vram'], total=peak['total_vram'],
                                percent=100*peak['used_vram']['value']/peak['total_vram']['value']))
     result = dict(caveat='Observed ~5s samples, not exact allocator peak. CLI history begins during P16; earlier P groups are not covered.',
+                  boundary=boundary, excluded_post_matrix_observations=excluded,
                   groups=groups)
     (root / 'vram-summary.json').write_text(json.dumps(result, indent=2)+'\n')
     for row in groups:
