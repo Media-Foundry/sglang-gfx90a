@@ -1,0 +1,83 @@
+{
+  "url": "http://127.0.0.1:30101",
+  "model_dir": "/media/PM983/deepseek-v4.1-flash",
+  "passed": true,
+  "models": {
+    "object": "list",
+    "data": [
+      {
+        "id": "/media/PM983/deepseek-v4.1-flash",
+        "object": "model",
+        "created": 1789274289,
+        "owned_by": "sglang",
+        "root": "/media/PM983/deepseek-v4.1-flash",
+        "parent": null,
+        "max_model_len": 32768
+      }
+    ]
+  },
+  "prompt": "<｜begin▁of▁sentence｜><｜User｜>What is the capital of France? Answer in one short sentence.<｜Assistant｜></think>",
+  "input_ids": [
+    0,
+    128803,
+    3085,
+    344,
+    270,
+    6102,
+    294,
+    8760,
+    33,
+    9361,
+    295,
+    834,
+    3107,
+    10175,
+    16,
+    128804,
+    128822
+  ],
+  "bos_count": 1,
+  "elapsed_s": 9.348583130000407,
+  "response": {
+    "text": "The capital of France is Paris.",
+    "output_ids": [
+      671,
+      6102,
+      294,
+      8760,
+      344,
+      11111,
+      16,
+      1
+    ],
+    "meta_info": {
+      "id": "dc546cd60d544184b9551650a552b54c",
+      "finish_reason": {
+        "type": "stop",
+        "matched": 1
+      },
+      "prompt_tokens": 17,
+      "weight_version": "default",
+      "num_retractions": 0,
+      "reasoning_tokens": 0,
+      "completion_tokens": 8,
+      "cached_tokens": 0,
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 8
+        }
+      ],
+      "cached_tokens_details": null,
+      "dp_rank": null,
+      "e2e_latency": 9.345171873001163,
+      "response_sent_to_client_ts": 1789274303.5450177
+    }
+  },
+  "completion_sha256": "ca5a08a13ccbe69da69496f9b8649118da1cf3b5a0c6840121f7ad16856ded75",
+  "decoded_completion": "The capital of France is Paris.",
+  "text_matches_ids": true,
+  "expected_substring": "Paris",
+  "expected_substring_pass": true
+}

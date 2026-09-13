@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "reference": "unbounded stable GPU argsort",
+  "shapes": [
+    {
+      "rows": 2304,
+      "width": 32768,
+      "before": {
+        "median_ms": 12.245674133300781,
+        "times_ms": [
+          12.519756317138672,
+          12.245674133300781,
+          12.228713989257812
+        ],
+        "peak_increment_bytes": 2415938048
+      },
+      "after": {
+        "median_ms": 61.11588668823242,
+        "times_ms": [
+          61.55412673950195,
+          61.11588668823242,
+          61.09540939331055
+        ],
+        "peak_increment_bytes": 55579136
+      },
+      "selected_ids_exact": true,
+      "graph_errors": 0,
+      "graph_replays": 100,
+      "mutated_score_and_position_replays": 10
+    },
+    {
+      "rows": 2304,
+      "width": 65536,
+      "before": {
+        "median_ms": 23.27630043029785,
+        "times_ms": [
+          23.386062622070312,
+          23.27630043029785,
+          23.207019805908203
+        ],
+        "peak_increment_bytes": 4831857152
+      },
+      "after": {
+        "median_ms": 122.64842224121094,
+        "times_ms": [
+          122.64842224121094,
+          125.39579772949219,
+          121.54377746582031
+        ],
+        "peak_increment_bytes": 55579136
+      },
+      "selected_ids_exact": true,
+      "graph_errors": 0,
+      "graph_replays": 100,
+      "mutated_score_and_position_replays": 10
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-"
+}

@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "gpu": "gfx90a:sramecc+:xnack-",
+  "torch": "2.12.0a0+git78258b9",
+  "shapes": [
+    {
+      "m": 256,
+      "n": 1280,
+      "eager_replays": 30,
+      "old_mismatching_replays": 30,
+      "old_max_changed_rows": 37,
+      "stable_matches_cpu_reference": true,
+      "valid_counts_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "mutated_score_graph_replays": 10,
+      "mutated_score_matches_cpu": true
+    },
+    {
+      "m": 2304,
+      "n": 1152,
+      "eager_replays": 30,
+      "old_mismatching_replays": 0,
+      "old_max_changed_rows": 0,
+      "stable_matches_cpu_reference": true,
+      "valid_counts_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "mutated_score_graph_replays": 10,
+      "mutated_score_matches_cpu": true
+    },
+    {
+      "m": 72,
+      "n": 1188,
+      "eager_replays": 30,
+      "old_mismatching_replays": 30,
+      "old_max_changed_rows": 13,
+      "stable_matches_cpu_reference": true,
+      "valid_counts_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "mutated_score_graph_replays": 10,
+      "mutated_score_matches_cpu": true
+    }
+  ]
+}

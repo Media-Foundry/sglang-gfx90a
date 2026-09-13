@@ -1,0 +1,66 @@
+{
+  "prompt_tokens": 22316,
+  "comparisons": [
+    {
+      "prefix_length": 22316,
+      "generated_offset": 0,
+      "repeat": 0,
+      "cached_committed_id": 9854,
+      "recompute_committed_id": 9854,
+      "cached_top1": 9854,
+      "recompute_top1": 9854,
+      "top1_equal": true,
+      "cached_top1_margin": 0.9999999701976776,
+      "recompute_top1_margin": 0.9999999701976776,
+      "top_overlap": 1,
+      "max_abs_common_logprob_delta": 0
+    },
+    {
+      "prefix_length": 22399,
+      "generated_offset": 83,
+      "repeat": 0,
+      "cached_committed_id": 30578,
+      "recompute_committed_id": 30578,
+      "cached_top1": 30578,
+      "recompute_top1": 30578,
+      "top1_equal": true,
+      "cached_top1_margin": 12.75000023847133,
+      "recompute_top1_margin": 12.625000357688805,
+      "top_overlap": 0.95,
+      "max_abs_common_logprob_delta": 0.6875009536743164
+    },
+    {
+      "prefix_length": 22400,
+      "generated_offset": 84,
+      "repeat": 0,
+      "cached_committed_id": 595,
+      "recompute_committed_id": 595,
+      "cached_top1": 595,
+      "recompute_top1": 595,
+      "top1_equal": true,
+      "cached_top1_margin": 14.56250023841875,
+      "recompute_top1_margin": 14.187500000000398,
+      "top_overlap": 0.85,
+      "max_abs_common_logprob_delta": 0.625
+    },
+    {
+      "prefix_length": 22401,
+      "generated_offset": 85,
+      "repeat": 0,
+      "cached_committed_id": 5165,
+      "recompute_committed_id": 5165,
+      "cached_top1": 5165,
+      "recompute_top1": 5165,
+      "top1_equal": true,
+      "cached_top1_margin": 13.749999523163865,
+      "recompute_top1_margin": 13.625000357629006,
+      "top_overlap": 0.95,
+      "max_abs_common_logprob_delta": 0.375
+    }
+  ],
+  "coverage_complete": true,
+  "reused_baseline": "/tmp/dsv41-longcode-bounded-result-20260913.json",
+  "baseline_completion_tokens": 90,
+  "baseline_completion_sha256": "bda2c429dd4865dad7147bd8ef86a8f0d095ecf40b75e47b43634d7e5aa0a226",
+  "all_top1_equal": true
+}

@@ -1,0 +1,29 @@
+{
+  "passed": false,
+  "completed": false,
+  "url": "http://127.0.0.1:30101",
+  "prepared_artifact": "/tmp/dsv41-31k-prepared-20260913.json",
+  "request": {
+    "sampling_params": {
+      "temperature": 0,
+      "max_new_tokens": 512,
+      "ignore_eos": false
+    },
+    "cache_salt": "dsv41-long-code-1789274896581844037",
+    "return_logprob": true,
+    "logprob_start_len": -1,
+    "top_logprobs_num": 20
+  },
+  "input_tokens": 31343,
+  "expected": {
+    "candidate_source_layer": 20,
+    "candidate_block_size": 8,
+    "candidate_budget_blocks": 2048,
+    "indexer_topk_positions": 512,
+    "score_slab_mib": 128,
+    "engram_tables_resident_on_gpu": false,
+    "tie_break": "lower_logical_id"
+  },
+  "elapsed_s": 103.82350502500049,
+  "error": "RemoteDisconnected: Remote end closed connection without response"
+}

@@ -25,6 +25,7 @@ from sglang.srt.utils import add_prefix
 
 logger = logging.getLogger(__name__)
 INDEXER_SCORE_SLAB_BYTES = 128 * 1024 * 1024
+INDEXER_SORT_SLAB_ELEMENTS = 4 * 1024 * 1024
 
 
 def bounded_indexer_scores(
@@ -85,8 +86,21 @@ def stable_index_topk(scores: torch.Tensor, k: int) -> torch.Tensor:
     """
     if scores.ndim != 2 or not 0 < k <= scores.shape[1]:
         raise ValueError(f"Invalid indexer Top-K: shape={tuple(scores.shape)}, k={k}")
-    selected = torch.argsort(scores, dim=-1, descending=True, stable=True)[:, :k]
-    return selected.sort(dim=-1).values
+    # Stable argsort also has an O(M*L) int64 result and backend scratch. A
+    # bounded QK slab alone does not bound this next stage (31K serving OOM).
+    # Query rows are independent, so splitting only M preserves both ordering
+    # rules. Keep only the final M*k indices, not the complete M*L permutation.
+    rows = max(1, INDEXER_SORT_SLAB_ELEMENTS // scores.shape[1])
+    if scores.shape[0] <= rows:
+        selected = torch.argsort(scores, dim=-1, descending=True, stable=True)[:, :k]
+        return selected.sort(dim=-1).values
+    out = torch.empty((scores.shape[0], k), dtype=torch.int64, device=scores.device)
+    for begin in range(0, scores.shape[0], rows):
+        end = min(begin + rows, scores.shape[0])
+        order = torch.argsort(scores[begin:end], dim=-1, descending=True, stable=True)
+        out[begin:end].copy_(order[:, :k].sort(dim=-1).values)
+        del order
+    return out
 
 
 def select_candidate_blocks(

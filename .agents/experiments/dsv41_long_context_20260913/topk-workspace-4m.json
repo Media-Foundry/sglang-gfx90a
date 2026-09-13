@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "reference": "unbounded stable GPU argsort",
+  "sort_slab_elements": 4194304,
+  "shapes": [
+    {
+      "rows": 2304,
+      "width": 32768,
+      "before": {
+        "median_ms": 12.219438552856445,
+        "times_ms": [
+          12.516080856323242,
+          12.219438552856445,
+          12.214638710021973
+        ],
+        "peak_increment_bytes": 2415938048
+      },
+      "after": {
+        "median_ms": 17.63355255126953,
+        "times_ms": [
+          17.641714096069336,
+          17.62235450744629,
+          17.63355255126953
+        ],
+        "peak_increment_bytes": 143656448
+      },
+      "selected_ids_exact": true,
+      "graph_errors": 0,
+      "graph_replays": 100,
+      "mutated_score_and_position_replays": 10
+    },
+    {
+      "rows": 2304,
+      "width": 65536,
+      "before": {
+        "median_ms": 23.1734561920166,
+        "times_ms": [
+          23.294227600097656,
+          23.143667221069336,
+          23.1734561920166
+        ],
+        "peak_increment_bytes": 4831857152
+      },
+      "after": {
+        "median_ms": 29.881792068481445,
+        "times_ms": [
+          29.894912719726562,
+          29.881792068481445,
+          29.875551223754883
+        ],
+        "peak_increment_bytes": 194521088
+      },
+      "selected_ids_exact": true,
+      "graph_errors": 0,
+      "graph_replays": 100,
+      "mutated_score_and_position_replays": 10
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-"
+}

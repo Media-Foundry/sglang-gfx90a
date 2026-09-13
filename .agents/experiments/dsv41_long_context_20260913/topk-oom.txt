@@ -1,0 +1,69 @@
+[2026-09-13 12:49:55 TP4] Scheduler hit an exception: Traceback (most recent call last):
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/scheduler.py", line 5513, in run_scheduler_process
+    scheduler.run_event_loop()
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/scheduler.py", line 1781, in run_event_loop
+    dispatch_event_loop(self)
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/scheduler.py", line 5359, in dispatch_event_loop
+    scheduler.event_loop_overlap()
+  File "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/scheduler.py", line 1879, in event_loop_overlap
+    batch_result = self.run_batch(batch)
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/utils/nvtx_utils.py", line 109, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/scheduler.py", line 4017, in run_batch
+    batch_result = self.model_worker.forward_batch_generation(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/managers/tp_worker.py", line 627, in forward_batch_generation
+    out = self.model_runner.forward(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/model_executor/model_runner.py", line 1587, in forward
+    output = self._forward_raw(
+             ^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/model_executor/model_runner.py", line 1774, in _forward_raw
+    ret = self.eager_runner.execute(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/model_executor/runner/eager_runner.py", line 216, in execute
+    return self._execute_extend(forward_batch, pp_proxy_tensors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/model_executor/runner/eager_runner.py", line 360, in _execute_extend
+    ret = model_runner.model.forward(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 4558, in forward
+    hidden_states = self.model.forward(
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 4213, in forward
+    hidden_states, last_pre, tail = self._forward_layers_hc_pre_from_prev(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 3896, in _forward_layers_hc_pre_from_prev
+    hidden_states, prev_pre = self.layers[i].forward_hc_pre_from_prev(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 3030, in forward_hc_pre_from_prev
+    x = self.self_attn(
+        ^^^^^^^^^^^^^^^
+  File "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 2117, in forward
+    q, kv = self._forward_prepare(
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/models/deepseek_v41.py", line 1981, in _forward_prepare
+    attn_backend.forward_low_ratio_sources(
+  File "/home/pc/Code/sglang/python/sglang/srt/layers/attention/deepseek_v4_backend_hip_radix.py", line 1541, in forward_low_ratio_sources
+    self._low_ratio_index_topk_torch(
+  File "/home/pc/Code/sglang/python/sglang/srt/layers/attention/deepseek_v4_backend_hip_radix.py", line 1753, in _low_ratio_index_topk_torch
+    selected = stable_index_topk(scores, k)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc/Code/sglang/python/sglang/srt/layers/attention/dsv4/dsv41_sparse.py", line 88, in stable_index_topk
+    selected = torch.argsort(scores, dim=-1, descending=True, stable=True)[:, :k]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 790.00 MiB. GPU 4 has a total capacity of 63.98 GiB of which 292.00 MiB is free. Of the allocated memory 56.93 GiB is allocated by PyTorch, and 5.35 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

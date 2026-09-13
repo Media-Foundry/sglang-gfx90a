@@ -3,6 +3,7 @@
 import pytest
 import torch
 
+from sglang.srt.layers.attention.dsv4 import dsv41_sparse
 from sglang.srt.layers.attention.dsv4.dsv41_sparse import bounded_indexer_scores
 
 
@@ -31,3 +32,16 @@ def test_bounded_scores_rejects_mixed_weight_dtype_and_invalid_budget():
         bounded_indexer_scores(q, k, torch.ones(2, 4, dtype=torch.float32))
     with pytest.raises(ValueError, match="budget"):
         bounded_indexer_scores(q, k, torch.ones(2, 4, dtype=q.dtype), max_slab_bytes=0)
+
+
+@pytest.mark.parametrize("k", [1, 16, 97])
+def test_stable_topk_query_slabs_match_full_stable_sort(monkeypatch, k):
+    monkeypatch.setattr(dsv41_sparse, "INDEXER_SORT_SLAB_ELEMENTS", 256)
+    gen = torch.Generator().manual_seed(22)
+    scores = torch.randint(0, 5, (17, 97), generator=gen).float()
+    scores[0] = -torch.inf
+    scores[1, 3:] = -torch.inf
+    before = scores.clone()
+    expected = scores.argsort(dim=-1, descending=True, stable=True)[:, :k].sort(-1).values
+    assert torch.equal(dsv41_sparse.stable_index_topk(scores, k), expected)
+    assert torch.equal(scores, before)
