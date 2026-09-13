@@ -99,3 +99,40 @@ From the repo root:
 
 Full launch/progress/regression history is in
 `../../memory/dsv4_tp8_revalidation_20260913.md`.
+
+## Closing C1 configuration gap
+
+The main seven-tier matrix inadvertently omitted the historically accepted
+`SGLANG_DSV4_GFX90A_TP8_BS1_WOA_GEMV` opt-in. It remains globally default-off.
+The current-source component reproduces30.75->6.88us,100finite/stable mutation
+checks, but only70/100 bit-equal to einsum. This is a floating-reduction change,
+not checkpoint re-quantization or speculative decoding.
+
+Fresh C1 service ABBA:79.5580/87.5832/87.5043/79.1513resident tok/s;
+candidate/control mean ratio+10.32%, return-control difference-0.51%.
+B1/B2 complete output IDs are identical; France passes all arms. Candidate
+three-round same-protocol C1 median87.5990 is the C1 value in `RESULTS.md`.
+Files:`woa-C1*.json`, `c1-woa-acceptance.json`, `ar-c1-gemv/`.
+Eight fresh-cache France/8K source smokes and a C32 two-wave64-output transition
+smoke passed completion gates. Source answers are readable, not verified code
+diagnoses. The C32 smoke is NOT a replacement throughput measurement.
+
+The separate C1 supplement is explicitly represented in `final-report.json`.
+C2--C64 resident windows cannot select the BS1-only kernel. Their reported
+whole-wave HTTP rates still describe the measured GEMV-off drain; do not
+pretend those full requests were rerun with GEMV-on.
+
+Reproduce the accepted original-V4 AR profile on otherwise free GCD0--7:
+
+```bash
+bash .agents/experiments/dsv4_tp8_revalidation_20260913/start-best-ar.sh MyRun
+```
+
+This starts a tmux-owned, localhost:30021 service with1M pool and seven tiers,
+and records its PID/birth/command/log. Choose a new label for each invocation.
+It is not a DSpark or V4.1 launcher. Stop only that owned service with:
+
+```bash
+/home/pc/anaconda3/envs/DS/bin/python \
+  .agents/experiments/dsv4_tp8_revalidation_20260913/stop-empty-tiles-arm.py MyRun
+```

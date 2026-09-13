@@ -1,0 +1,1397 @@
+{
+  "archive": "measurement-evidence.tar.gz",
+  "bytes": 63352862,
+  "sha256": "1aa91ce692da1cad81fe208bcba054d0a40d9ac650fa07467e7a9516f7d9fd5d",
+  "files": [
+    {
+      "path": "ar-c1-gemv/decode_c1_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "0ce0b351d31dd5b5360eeac6067d4f914948255e3f90dcf15fab27aa5eee7a17"
+    },
+    {
+      "path": "ar-c1-gemv/decode_c1_measured.json",
+      "bytes": 1216020,
+      "sha256": "ec4660dc332b5ebf4db5da9c4471304c658608dc4f212f2ca331d7ecdf8c420d"
+    },
+    {
+      "path": "ar-c1-gemv/decode_c1_measured.log",
+      "bytes": 228,
+      "sha256": "a906efc8a874c29b9501846fb7ad21a1fc24689c46b8b58e790ef98973e1411f"
+    },
+    {
+      "path": "ar-c1-gemv/decode_c1_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "0ce0b351d31dd5b5360eeac6067d4f914948255e3f90dcf15fab27aa5eee7a17"
+    },
+    {
+      "path": "ar-c1-gemv/decode_c1_warmup.json",
+      "bytes": 176498,
+      "sha256": "299cb0a41c0b94967e23342cbdbdd30875e4d38e8933414aafbbdc551232be30"
+    },
+    {
+      "path": "ar-c1-gemv/decode_c1_warmup.log",
+      "bytes": 61,
+      "sha256": "dfcfa219cc77e3d67ba8fb19e74fb884ea00d6038c11e4ebdbe7ad1e44f42990"
+    },
+    {
+      "path": "ar-c1-gemv/state.json",
+      "bytes": 2132,
+      "sha256": "6ee05a5765db89522d73b5b495fe585c081d08f90823f73a3d949e15513037cd"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "03dccc34c6c3e6b229a21448b8027f6d63fc38805d13cd4e7f590b8afc1da990"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_measured.json",
+      "bytes": 262836,
+      "sha256": "9ccf1e577646dd99bbad15b316c3039f8ccbcd24a3c9b6c221a4e4fb54d601f8"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_measured.log",
+      "bytes": 63,
+      "sha256": "750eee99919c9da0eeabde9d4d363793276951437c7d6486ef524803a7e2e032"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "8ce54dd3d7baf221040a20298418b29a11c32dfc05b5b68db93656e77f57f5ba"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_warmup.json",
+      "bytes": 262863,
+      "sha256": "8cc6709dbce65c56ea141383ce935c78016d0471519e875feba1e1905693c4e6"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/decode_c32_warmup.log",
+      "bytes": 63,
+      "sha256": "bc10d1178c53805119905a6788e93be2852c5b36ba883bb49eb48c148ae9205d"
+    },
+    {
+      "path": "ar-c1-gemv-scope32/state.json",
+      "bytes": 2154,
+      "sha256": "0a3f608b5777ce53e7b1c372c98d138c0922750ba09d6a820980a83f8dd3ccf2"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "26f59955362e6060cec9d1a8859fa80c3f0795bd35f8b9ab623815c5a1633ee3"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_measured.json",
+      "bytes": 36639693,
+      "sha256": "52d23ca23784b33d8d258a6f36330f84b50cbd63df4fe7aa8d225d8c4cf6f89f"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_measured.log",
+      "bytes": 434,
+      "sha256": "2d54b1f8c35b04d1a43d2b0da4ee15f7f57c07f1f158373e3bdb8e9b7780020a"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "66964e5637c18ee64f61742936ab18ec66ba60115d0fb0936639da39538454a5"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_warmup.json",
+      "bytes": 3039559,
+      "sha256": "1ac760f66295a0c7fffe6688193b7eeb0a775f5810564a3742da4aee13f9f358"
+    },
+    {
+      "path": "ar-final-decode/decode_c16_warmup.log",
+      "bytes": 61,
+      "sha256": "4da95b421f78657889e5eb54290f04211e50bc72ec98e859149451e13e7f0bbb"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "8b47f92182dc0916884915aa80ba319b4610f6d50bc36d3b07f0ffa5bc7b8a74"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_measured.json",
+      "bytes": 1314070,
+      "sha256": "9222acfe030c2997c2f16be247e3af3adbd692ab915b28a1e47f723db4372c6e"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_measured.log",
+      "bytes": 231,
+      "sha256": "f4b7d8df034aa5c4af1da15486821d6506f53b07867c8213c21ae4e7fc662089"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "97f4442514b818ecd6624272c19b9e60ab754fb3fd40851ce9654f07723712d4"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_warmup.json",
+      "bytes": 205520,
+      "sha256": "ce68a43659c61c590d35b6a5c3f6fd5e3a8a81d99952d7b9d027feabbaf0a765"
+    },
+    {
+      "path": "ar-final-decode/decode_c1_warmup.log",
+      "bytes": 61,
+      "sha256": "7b057e1853df6c29d8f953095828e5d8c247e7821b5f6f781156d216d04e7b6e"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "fdc2de3c2ea219fc7118f657b097aa7650e536c92a01e4b1a7923ac5c2a72ce9"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_measured.json",
+      "bytes": 2174694,
+      "sha256": "3b20bcd294e7dd63cb1547d13fdfde32c2fe78f9abf6f4793f2693e06e9057fd"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_measured.log",
+      "bytes": 201,
+      "sha256": "b7603d998b633ca3e4470a393e2d770f35fd43931f386bf2134c235317c5fce6"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "3f4340bfb98a450ce2d50304b1b5177f82c9886bcfdb1ed9e6e4ccc6d20d6258"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_warmup.json",
+      "bytes": 433593,
+      "sha256": "7786b16ed7b37b748925106c4c132fe60c8b7022e74f40cd417fb72ac179edf1"
+    },
+    {
+      "path": "ar-final-decode/decode_c2_warmup.log",
+      "bytes": 63,
+      "sha256": "802d34f9a566887d83f7a4af95cea9c99e8c744de9c00f9b70756b31f6da7cf9"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "ec99a3566d251a31a6a152b3becf07a240c9cc9b64417670a5aad791c9de4746"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_measured.json",
+      "bytes": 72927027,
+      "sha256": "f9b733b81425f6c3a69a4adb3255230ec2babc879024c62333ca48e5c9cd8357"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_measured.log",
+      "bytes": 449,
+      "sha256": "33499de80d63852393309d5a39934ddd4fa0e25f2979bdeb1dfbfe97d7254b0b"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "a5076333df6af5948128461ca2790f9245f5280f400d0646e7e5ebac8e74c672"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_warmup.json",
+      "bytes": 6064711,
+      "sha256": "4bd1be3dd78452d1112ff3f08dfc8279233632b98497aaf4c6bca5bb4aed6ec3"
+    },
+    {
+      "path": "ar-final-decode/decode_c32_warmup.log",
+      "bytes": 63,
+      "sha256": "f732d3564dafdf51e3449472c6734f90cd1a11cc39d6108f61b1e67f3718f113"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "e4d6721592abb2a2844bc0add439408f200e937092c03aaa5c704fe256029347"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_measured.json",
+      "bytes": 4526106,
+      "sha256": "cbe76c6c08de1be8a80b0458550e5ee527d58e1ffaffbedd5d283b27c1df0985"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_measured.log",
+      "bytes": 232,
+      "sha256": "f89f42d6683d12d4121d2fe1f472ee2761b1dc4977de90f1f6b6998decfcc25c"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "fdc2de3c2ea219fc7118f657b097aa7650e536c92a01e4b1a7923ac5c2a72ce9"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_warmup.json",
+      "bytes": 905483,
+      "sha256": "9900ca31d8b90d8b91f2bdce6b4c22a18139510b65dc80f40ba25d916b926c81"
+    },
+    {
+      "path": "ar-final-decode/decode_c4_warmup.log",
+      "bytes": 62,
+      "sha256": "780b07888c12e34846a0286a0ff264ccf3cad6e1014a53da65eced30901ba00b"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "fe837c92d5dbfe2740079b6dd54290ea75e125ffcc7c81d24156aa28a789d23d"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_measured.json",
+      "bytes": 109803126,
+      "sha256": "710c2fd873a8580f9c93758cc72a2d10dc7d5ef2d0d7ae9f551882b1bb1dd68b"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_measured.log",
+      "bytes": 352,
+      "sha256": "5a2826cd72761a100adc1fc89b4309fdc8328a869589674aec953105c05b42cf"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "65a3c4826059dfa546a3137dcd69f6a6f9d6fac68ad1e75dd2d035b8853410a8"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_warmup.json",
+      "bytes": 11775118,
+      "sha256": "fc8dbde0b4163dcf08663f742c526cf6cbcdad49a59286b69db8c5767d83b823"
+    },
+    {
+      "path": "ar-final-decode/decode_c64_warmup.log",
+      "bytes": 63,
+      "sha256": "ac1f407d555ef44d03f36a493c8a3531bb62ee7d42f5dbc83efa6657ca388c50"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_measured.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "4ee033adb41396e6789fdb931e6cbb1238f3c8efa05145564b77cd3d0fed7753"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_measured.json",
+      "bytes": 9403030,
+      "sha256": "248b96f1d4be6c3135c6fcd03677b618e4f9d208dd8bab33bb49f3fe9667222f"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_measured.log",
+      "bytes": 236,
+      "sha256": "0f4a25388e2522cb89c063777edd9b96a00c0f2284b351e745d75416d2c5fd77"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_warmup.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "e4d6721592abb2a2844bc0add439408f200e937092c03aaa5c704fe256029347"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_warmup.json",
+      "bytes": 1501275,
+      "sha256": "8f0aa63ecaec19a9c039ff39566738dee2c929691cda5b45a8ace391af82fdcf"
+    },
+    {
+      "path": "ar-final-decode/decode_c8_warmup.log",
+      "bytes": 61,
+      "sha256": "8bdf576a34696d25054e0ca678984877e39d4c5ba47edb1ea4f6125dfb602c75"
+    },
+    {
+      "path": "ar-final-decode/state.json",
+      "bytes": 4941,
+      "sha256": "8002fa925367496e455c3cff4debf3c6355f52318cc7c0e9fa9c1d62d16c9d69"
+    },
+    {
+      "path": "ar-final-summary.json",
+      "bytes": 6120,
+      "sha256": "031dd2611df72d0985bb4d5e2ed3da7611cd77dc136f4074ade51d48e8895d74"
+    },
+    {
+      "path": "ar-france.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "1e362e5f25a4f94c06d5d8d097a7cb641421de35a52bd7e866f31a86e9993b9d"
+    },
+    {
+      "path": "ar-france.json",
+      "bytes": 1049,
+      "sha256": "f3b526b66a27c09bae8b19365f65f8f826b781f8198d2efdd6fe50adff332673"
+    },
+    {
+      "path": "ar-matrix/decode_c16_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "59e9d115bf1f0911fd5ac3c1295da405f5e5231303b2fc0fb62d103c40de2b74"
+    },
+    {
+      "path": "ar-matrix/decode_c16_measured.json",
+      "bytes": 34349033,
+      "sha256": "52834684cef529fe20db3e745062e227482be3f56b68a4af9db1269e6fbec903"
+    },
+    {
+      "path": "ar-matrix/decode_c16_measured.log",
+      "bytes": 400,
+      "sha256": "915a68bfddfcbd5712a993ffec3c85d3971205d64f1c677d844df50324475cf4"
+    },
+    {
+      "path": "ar-matrix/decode_c16_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "9f6e964cc09e7a0dc19b0b4d5e94a57d8b22e6f206116a3fe182721d5e5cbbeb"
+    },
+    {
+      "path": "ar-matrix/decode_c16_warmup.json",
+      "bytes": 3108118,
+      "sha256": "eeea1619f02f5a698228b7ff06f32b3994e07d562ecf24e0995e3ba97584b6e2"
+    },
+    {
+      "path": "ar-matrix/decode_c16_warmup.log",
+      "bytes": 61,
+      "sha256": "745a8bfd406c605948d22461a87b9c9f4148ca3623c3b7506bfff7387e88cc79"
+    },
+    {
+      "path": "ar-matrix/decode_c1_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/decode_c1_measured.json",
+      "bytes": 1314046,
+      "sha256": "7cec2ed50db3bc8d412d2d4a8e3b0f950206b9c7a7fc6acd5125882abcf22847"
+    },
+    {
+      "path": "ar-matrix/decode_c1_measured.log",
+      "bytes": 230,
+      "sha256": "c3f90cce25ffec0c45a49a7b1d996c731b68c49e81d32df706b295289d0b9479"
+    },
+    {
+      "path": "ar-matrix/decode_c1_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/decode_c1_warmup.json",
+      "bytes": 205544,
+      "sha256": "64644aed00f5c57171c2f945f07ebb3daf642f2df4ded81d6e146c7296482cda"
+    },
+    {
+      "path": "ar-matrix/decode_c1_warmup.log",
+      "bytes": 60,
+      "sha256": "7a90a2ec2f05818c6088def9642c2b86d29d5843c4145981525714d462b23b87"
+    },
+    {
+      "path": "ar-matrix/decode_c2_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "418c212a0b2a80ae259fbb9c67abe45231b70dc21cb7e246eb878607735f4f7e"
+    },
+    {
+      "path": "ar-matrix/decode_c2_measured.json",
+      "bytes": 1464096,
+      "sha256": "4eb6ba27fc2fd64e2e4ebd1e698df4d7f861f745de93a954eab6ca3e08dc88e4"
+    },
+    {
+      "path": "ar-matrix/decode_c2_measured.log",
+      "bytes": 128,
+      "sha256": "bfd4ffd546454f5f04401e656f0057f959545a0316028f1a0bac398b7340ef7a"
+    },
+    {
+      "path": "ar-matrix/decode_c2_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/decode_c2_warmup.json",
+      "bytes": 433575,
+      "sha256": "67aaf12c4bf896bba5459ffb97a8d097a3f8369e8251fab7d389292d6e534cb2"
+    },
+    {
+      "path": "ar-matrix/decode_c2_warmup.log",
+      "bytes": 62,
+      "sha256": "100ba60b718262e6c39d59eeb0aafa44f5ec18a8cdc0f3b98cf8858a53c78151"
+    },
+    {
+      "path": "ar-matrix/decode_c32_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "59e9d115bf1f0911fd5ac3c1295da405f5e5231303b2fc0fb62d103c40de2b74"
+    },
+    {
+      "path": "ar-matrix/decode_c32_measured.json",
+      "bytes": 73561965,
+      "sha256": "862b193ff8627721e69b1e8427df7e73d3e5b5ad29b07314c62a1455685963d3"
+    },
+    {
+      "path": "ar-matrix/decode_c32_measured.log",
+      "bytes": 450,
+      "sha256": "9d6aa5c08b239516cd3ecec26df162af42bec44b5d22407aed49f1020337aa2e"
+    },
+    {
+      "path": "ar-matrix/decode_c32_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "59e9d115bf1f0911fd5ac3c1295da405f5e5231303b2fc0fb62d103c40de2b74"
+    },
+    {
+      "path": "ar-matrix/decode_c32_warmup.json",
+      "bytes": 6584245,
+      "sha256": "b224c67b5621f4396af4b729f9df8131b02a1a2de975e72ac62f535b73727188"
+    },
+    {
+      "path": "ar-matrix/decode_c32_warmup.log",
+      "bytes": 64,
+      "sha256": "6b8461b1e946217ad34f6715b49a284df1b1e78c29c43c507686afd9f44cb118"
+    },
+    {
+      "path": "ar-matrix/decode_c4_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "339aab3c735f1f8d32c257952aff9b5bac715366ee17c640787de867e7f6e5fe"
+    },
+    {
+      "path": "ar-matrix/decode_c4_measured.json",
+      "bytes": 3970985,
+      "sha256": "f6e4a0e6774d95df0ecc907d0c3e8c6323868041caeb04b75ab6818582c8240c"
+    },
+    {
+      "path": "ar-matrix/decode_c4_measured.log",
+      "bytes": 200,
+      "sha256": "717e4368b2aa85f0cfa29180d4284207209472523d10778f8415fa32d7ca99b5"
+    },
+    {
+      "path": "ar-matrix/decode_c4_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "8b4db3e6dd6d45f2948e6ae33035fcaceb29aa42dbbcb9636be2a009975a7a89"
+    },
+    {
+      "path": "ar-matrix/decode_c4_warmup.json",
+      "bytes": 883845,
+      "sha256": "4693dd0e95b69287708280f6d0cc99958aaddcb7f376229c5375b69aede661f4"
+    },
+    {
+      "path": "ar-matrix/decode_c4_warmup.log",
+      "bytes": 63,
+      "sha256": "420a3690abc7397a67680eb973b0f33e8cf3da37f43a1789b00d981bf34338fc"
+    },
+    {
+      "path": "ar-matrix/decode_c64_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "5a957f7a6d00a931728b5ab95bce12cb7218968494f316d82f60c8f73d9f3687"
+    },
+    {
+      "path": "ar-matrix/decode_c64_measured.json",
+      "bytes": 110780783,
+      "sha256": "4cccb81af12ca2686db025d2c0c42dfa6e934e12c1fd6f92769f0f1e9bc042c1"
+    },
+    {
+      "path": "ar-matrix/decode_c64_measured.log",
+      "bytes": 352,
+      "sha256": "e932e104615000bf1755fd69e09a136c28b86367ab3c8555fc0865d9a9a751e9"
+    },
+    {
+      "path": "ar-matrix/decode_c64_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "59e9d115bf1f0911fd5ac3c1295da405f5e5231303b2fc0fb62d103c40de2b74"
+    },
+    {
+      "path": "ar-matrix/decode_c64_warmup.json",
+      "bytes": 11970624,
+      "sha256": "ec715b27a0b6756127410688fbd45c46d556234b0cafe36484f6a0c6931ac6ad"
+    },
+    {
+      "path": "ar-matrix/decode_c64_warmup.log",
+      "bytes": 64,
+      "sha256": "821d8dbe83b864d3e69ef5004a3850e536ffa1d6a8a1b503353157996702bdcc"
+    },
+    {
+      "path": "ar-matrix/decode_c8_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "339aab3c735f1f8d32c257952aff9b5bac715366ee17c640787de867e7f6e5fe"
+    },
+    {
+      "path": "ar-matrix/decode_c8_measured.json",
+      "bytes": 11398654,
+      "sha256": "ec0b95d3a03e7de5621e53129c03267242d9e4a6262c2dbeb94f10fd55459902"
+    },
+    {
+      "path": "ar-matrix/decode_c8_measured.log",
+      "bytes": 268,
+      "sha256": "95501dddf1bcb1a828cef28a67394c364fb7c76ecb4a918109f1ea07ffd295e6"
+    },
+    {
+      "path": "ar-matrix/decode_c8_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "339aab3c735f1f8d32c257952aff9b5bac715366ee17c640787de867e7f6e5fe"
+    },
+    {
+      "path": "ar-matrix/decode_c8_warmup.json",
+      "bytes": 1516749,
+      "sha256": "26e5fb09510635354de8173c4fc377213555e1ae64c4ef03bae53c9c45a0e035"
+    },
+    {
+      "path": "ar-matrix/decode_c8_warmup.log",
+      "bytes": 61,
+      "sha256": "a36f89293e5e3c5e0e4a83944c0f389baad3633207aab05d4f40b3cfe2a5583b"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "f4fb618227a5e68441d642d11f4a0c447c76f8d005534cef4bf7da2e80656c5a"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_measured.json",
+      "bytes": 14915,
+      "sha256": "655cfc0f00154d8eb48d6cab7f80e8859017e53b5307ad59277f807b29171ff5"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_measured.log",
+      "bytes": 22750,
+      "sha256": "1320bdd8db42cb57362e7f5741bb29be8cd7c53839e4ed2df2f52c6c1130b3f5"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "ed422654a642a0582e9bac7468d582d6710a4eff5e83dafb6851d348d24e7ee2"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_warmup.json",
+      "bytes": 5319,
+      "sha256": "46103a3f9337834c901bb6e25abfb9d653718ddbafcc566abfe7158acfca940d"
+    },
+    {
+      "path": "ar-matrix/prefill_c16_warmup.log",
+      "bytes": 7932,
+      "sha256": "7f8a53e60eb1778b1ecaad92dfc5eb980d152f5df8a025f19fe326b23c418a84"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "14efd457bd3b6f082e97b8cd655c7632ff280cdcdd500e0677186900918f94ef"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_measured.json",
+      "bytes": 2982,
+      "sha256": "00b9d88d98a1d1c6789b225b7e38a544131bb5143e1e3075cfa18569896ab75b"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_measured.log",
+      "bytes": 4512,
+      "sha256": "c824ec570070f14009bea47b5332b1a19ffd2a0c586064aae7a87c5b795582db"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "ce7cfc597facf619cd8b7d9ba22f9b44d92d4732441a05dd3a76df191cc2826a"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_warmup.json",
+      "bytes": 1339,
+      "sha256": "c905eb49e1e2184c57236d97396adc99848db8c55e8b2ab49f7211ef16534594"
+    },
+    {
+      "path": "ar-matrix/prefill_c1_warmup.log",
+      "bytes": 1848,
+      "sha256": "a85d647c78c7db8e4c6e9342b72f9ef2228fa8bfe03a2e1b9b8a41f53a5a08ca"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "cfd0aa437337a58d0467cff39675e3053e7aee06fbe0ae8dc7c6432126a0205f"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_measured.json",
+      "bytes": 3778,
+      "sha256": "5578ad97e29f5fd49635c2e02fa601b6a0ac7d561fcb8e193dce6ee7a5834670"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_measured.log",
+      "bytes": 5729,
+      "sha256": "4a41f4a1f310f85aaf1f91b3907bcd266b0a351a8e1d269f6ed327e5e882ce6b"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "14efd457bd3b6f082e97b8cd655c7632ff280cdcdd500e0677186900918f94ef"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_warmup.json",
+      "bytes": 1608,
+      "sha256": "090727ed0f848b4f9ff6fa204406471a0bb5b5ad982b37e83aa482ffd83f45d8"
+    },
+    {
+      "path": "ar-matrix/prefill_c2_warmup.log",
+      "bytes": 2259,
+      "sha256": "d826f881c6ec3d980d1d4c93e58e48e477ae85d8460925c916717302d8bfa76b"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_measured.json",
+      "bytes": 27629,
+      "sha256": "617b0b71333f9419b448a81dc4298c0755d9273116ea4cff9f4a00104c980bb5"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_measured.log",
+      "bytes": 42178,
+      "sha256": "791d37d8faa2e9cc1399bebc0baa7194b6cd443852ef7a3a9963542710c40000"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_warmup.json",
+      "bytes": 9558,
+      "sha256": "2b0054fe662a16def06b8da1ad9f058984b996e9fa1a3e003d93f9a309081196"
+    },
+    {
+      "path": "ar-matrix/prefill_c32_warmup.log",
+      "bytes": 14410,
+      "sha256": "43875b4218777e4c0fb9de1c429b9d1d7f0ed7215a8d8747f7d9b048c9bbba4b"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "9142e5f1146cc1705473168df87a540fa0929fb08392e0798ef1bb71aed1eec3"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_measured.json",
+      "bytes": 5368,
+      "sha256": "88689d82e660a366bb929c6e830763f9f0df20b80a086d26ebaa80aee05452d7"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_measured.log",
+      "bytes": 8159,
+      "sha256": "f02f0044253a3df47afeaa57ec77c89aa5c6a95f95184f4058a65c64a33527d8"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "cfd0aa437337a58d0467cff39675e3053e7aee06fbe0ae8dc7c6432126a0205f"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_warmup.json",
+      "bytes": 2136,
+      "sha256": "c928f4fe685fe26bced5de6e1a71cd7307e7f59337b270c5d294f758f7d643a8"
+    },
+    {
+      "path": "ar-matrix/prefill_c4_warmup.log",
+      "bytes": 3067,
+      "sha256": "0cd4df2ea79c565cf5ac48ea70455887c2b5e30e8c24f7a3c365f4e405130219"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_measured.json",
+      "bytes": 52765,
+      "sha256": "361749b67f9cc7930d59c5779c5c6943ea684dad4909d9765370e8974dd8905b"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_measured.log",
+      "bytes": 80450,
+      "sha256": "ceb0180a0551f14edddc28877abf40f13d30285ab718a20b283bdc3950f38034"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "dd7f7627b62bc81266b088064425ab233ad31626b40023c0cde541512647201b"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_warmup.json",
+      "bytes": 17915,
+      "sha256": "c611dc7a72d1537c9e259237b7b0745c8b4cb3fdbb319396bd8a5a29ef92f2cd"
+    },
+    {
+      "path": "ar-matrix/prefill_c64_warmup.log",
+      "bytes": 27124,
+      "sha256": "83ca3b1bd819d07c3476e12cf495ad78e294cd8f229348c0750fc22f6f142add"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "98e6e45db247b923639a664084c7a32f9d33d1027a821b6fbf97a1d568059be7"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_measured.json",
+      "bytes": 8562,
+      "sha256": "e253850be5412198f6e47f10356cf7c4881d4c77f6b8c68031baaa82dfe5098f"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_measured.log",
+      "bytes": 13047,
+      "sha256": "2b0b0cf8ba1c7d1ab6544db5c7727a564fa35109e6408748bf35c1ee0a38ba15"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "9142e5f1146cc1705473168df87a540fa0929fb08392e0798ef1bb71aed1eec3"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_warmup.json",
+      "bytes": 3202,
+      "sha256": "306ed9f0f7554120789fe36a7bbbfef6c4e71e561a56b22c679bb1a54db4d379"
+    },
+    {
+      "path": "ar-matrix/prefill_c8_warmup.log",
+      "bytes": 4699,
+      "sha256": "11b9240e8d1606f7b02b22921181f3c89c8ff8d51a9e07ddaae7f87656f14158"
+    },
+    {
+      "path": "ar-matrix/state.json",
+      "bytes": 8004,
+      "sha256": "c4929ba9c6bb26b00334697ff4c675c5c8d295ee8ca23fa67423290f65d6d3b7"
+    },
+    {
+      "path": "ar-matrix.service.log",
+      "bytes": 1291350,
+      "sha256": "58cd5be77c811dc7eb6cee69a405b46c4eccf75feb4c51688d5dc8ac18278eb2"
+    },
+    {
+      "path": "ar-pilot-c1-measured.client.log",
+      "bytes": 93,
+      "sha256": "a803c7b3b2d114cbdbab5b551ea8df39d7e2429670de444b2a6588cd4a5c7514"
+    },
+    {
+      "path": "ar-pilot-c1-measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "e42ef6af3182fd0182ed7b422615aedd73bb0ec55bc4746b2ae893498d115b22"
+    },
+    {
+      "path": "ar-pilot-c1-measured.json",
+      "bytes": 125641,
+      "sha256": "c49af62a16a103544a211e87955ac58645ad8a8d4fe1f8f2063c8136ab05207b"
+    },
+    {
+      "path": "ar-pilot-c1-warmup.client.log",
+      "bytes": 60,
+      "sha256": "3ea2238387d62404efb83b6ac46a128fe1aa4e988cf4bd5e55b97ac47be4d7d2"
+    },
+    {
+      "path": "ar-pilot-c1-warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "eaad92ccf7d8a0502aa4e5e8161a1fe030503d2957bca2315867b10fc7fae2ee"
+    },
+    {
+      "path": "ar-pilot-c1-warmup.json",
+      "bytes": 16731,
+      "sha256": "2abdf29a7fda1842eddf06392ed1a191165e5baf829e72107ebb746ea91f0f81"
+    },
+    {
+      "path": "ar-pilot-c32-measured.client.log",
+      "bytes": 99,
+      "sha256": "11d769fb2c3e4f88102ccecc3336fb73ca722a22e84e5512931f23f2da055741"
+    },
+    {
+      "path": "ar-pilot-c32-measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "f82ee725a40aa1f1916af1e26613201296c132ac236f19d008e3da0507cc22b1"
+    },
+    {
+      "path": "ar-pilot-c32-measured.json",
+      "bytes": 3892731,
+      "sha256": "bda501744c78419275ce0c9feb5c5df830b242f6a39d832af8aca4215ccfe143"
+    },
+    {
+      "path": "ar-pilot-c32-warmup.client.log",
+      "bytes": 63,
+      "sha256": "a9506eddcbee4f3e54cfa061e81a061391a01d6d85d3d6b7f9b76ece327fa168"
+    },
+    {
+      "path": "ar-pilot-c32-warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "33f8ffe44237ca47eba4d34b8b49a62e3635ecd87403af86a0a2232829c00c6e"
+    },
+    {
+      "path": "ar-pilot-c32-warmup.json",
+      "bytes": 507467,
+      "sha256": "93d783cc2e052f9c5cf9d9f4278d125d13b8b9097cbbf6457ab7d29a61ea1110"
+    },
+    {
+      "path": "ar-pilot-c8-measured.client.log",
+      "bytes": 95,
+      "sha256": "dc4ff3f3b9566da0433cc919820a8705ec7658950da60bf80d02c22a7e38031d"
+    },
+    {
+      "path": "ar-pilot-c8-measured.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "33f8ffe44237ca47eba4d34b8b49a62e3635ecd87403af86a0a2232829c00c6e"
+    },
+    {
+      "path": "ar-pilot-c8-measured.json",
+      "bytes": 963546,
+      "sha256": "2dd5852f0ad6f36d1e4e4ff7bafb0a4f9a05b874a337f9ffbd07ae0bb4d5c505"
+    },
+    {
+      "path": "ar-pilot-c8-warmup.client.log",
+      "bytes": 61,
+      "sha256": "b00f6acc49cb07fa6433863ba14c89ca6efc91fecec72ff70e2367c7cf8e42d9"
+    },
+    {
+      "path": "ar-pilot-c8-warmup.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "e42ef6af3182fd0182ed7b422615aedd73bb0ec55bc4746b2ae893498d115b22"
+    },
+    {
+      "path": "ar-pilot-c8-warmup.json",
+      "bytes": 127693,
+      "sha256": "9c749752c88558af68d5ba192f473dafae2f78515092c32b06b0a14e57fb42f0"
+    },
+    {
+      "path": "ar-pilot-state.json",
+      "bytes": 50134,
+      "sha256": "c38ec8b0466c7593e3e0eb7b8441914adce72e4de3f98516fbbfad229e4a791c"
+    },
+    {
+      "path": "ar-summary.json",
+      "bytes": 9264,
+      "sha256": "f5b42eb6bf0a9f3a3d419816985c7a5cf8a73d0ab082e684783224e00a8fa15a"
+    },
+    {
+      "path": "ar-vram-samples.json",
+      "bytes": 1330673,
+      "sha256": "0b26ef9975704c7b9db31a74d54f1ae6377aa24f3b6df89e68b903345551cfc1"
+    },
+    {
+      "path": "ar-vram-snapshots.jsonl",
+      "bytes": 4982267,
+      "sha256": "1d854c474372c4e86a14d5e6ecacdaf64c8040e54cead09cb855980090299f80"
+    },
+    {
+      "path": "baseline-stop.json",
+      "bytes": 3502,
+      "sha256": "386fab8d1e74a4a2b2a509f933dd8692b5c76bb01b818cf89b32f12ad9cb6093"
+    },
+    {
+      "path": "build-witnesses.jsonl",
+      "bytes": 191772,
+      "sha256": "900836d2e61a380bf97b4ac06585d06a32a68fc692b5cc094ec102d574241c3e"
+    },
+    {
+      "path": "c1-output-text-validation.json",
+      "bytes": 587,
+      "sha256": "a0bf4d6f7a5ab9ae3c1dda7ab1fb5fa1e02ca9a85e2b103fd932029d9712cf1c"
+    },
+    {
+      "path": "c1-scope32-output-text-validation.json",
+      "bytes": 608,
+      "sha256": "6da27953a59158c8a93e7962ac279ae946f59f105dab7043444eac391fd1865c"
+    },
+    {
+      "path": "c1-woa-acceptance.json",
+      "bytes": 4009,
+      "sha256": "b6dbcde2af4b981bf93165f07aaa34521d2b2440a7a1d066dae333122eec620a"
+    },
+    {
+      "path": "closing-gpu.json",
+      "bytes": 1161,
+      "sha256": "d47d77b28f024a161b5e278dea51d43f006e4da9a00a749dc0346f24a3afbf62"
+    },
+    {
+      "path": "context-window-diagnostic.json",
+      "bytes": 2304,
+      "sha256": "0760bcdbb5d4f9f4db7c7440ae1b06357c99d2b85434520e1acfe9352773cb60"
+    },
+    {
+      "path": "empty-tiles-A1.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "551e264784421b642d9b863d3394fe7fcb770ac9185d960e45bc7a6df330f191"
+    },
+    {
+      "path": "empty-tiles-A1.json",
+      "bytes": 996105,
+      "sha256": "80f337844f2eae31bbd50f530714336395827d27d940d1f0b0bfc4e942651b06"
+    },
+    {
+      "path": "empty-tiles-A2-France.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "fbf1c6017b3c5c4ea8f4dd83ccbdb10db65f12e79fb9c2fa68de9fc81711a669"
+    },
+    {
+      "path": "empty-tiles-A2-France.json",
+      "bytes": 1053,
+      "sha256": "fe5d5dbf33ca161631c59e1e8503f545ae55ba74880cb26d8b938a18b9cc638b"
+    },
+    {
+      "path": "empty-tiles-A2-service.json",
+      "bytes": 1893,
+      "sha256": "c443323093c773bc0f82f72ceb1a61c0aab0ca01500548e2aaf8091fc00efd08"
+    },
+    {
+      "path": "empty-tiles-A2-start.gpu-before.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "empty-tiles-A2-stop.json",
+      "bytes": 353,
+      "sha256": "1fd9ccb34125d71a55b06ed7f44aabb57ec3b05761d12117cda24b086959123f"
+    },
+    {
+      "path": "empty-tiles-A2-warm.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "9df2bd4a5f24db7b4a3ed7a373ccaed2a4213d9791f3b3f7834a8d7c1a56ddfc"
+    },
+    {
+      "path": "empty-tiles-A2-warm.json",
+      "bytes": 506068,
+      "sha256": "bd0dbad9aef5a171d4971f6fe9d21ada3b6ac03892f8996bfa3705107723db9c"
+    },
+    {
+      "path": "empty-tiles-A2-warm.log",
+      "bytes": 62,
+      "sha256": "e402d016c3554d93f1fbb436fc836602e4ea1c73fcbaee4e0403f2ef7d6fe1d2"
+    },
+    {
+      "path": "empty-tiles-A2.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "4419a05de752025ca9dc83cee6b996e5f173a983573da91ac3ad6895b49f0020"
+    },
+    {
+      "path": "empty-tiles-A2.json",
+      "bytes": 996147,
+      "sha256": "267b3796fefd37e78880fc51d5b653023dcb80e1314ebd6799a50d35009f4256"
+    },
+    {
+      "path": "empty-tiles-A2.log",
+      "bytes": 63,
+      "sha256": "3b54fc50625a04dbef8ae8a465b0613f962f705dec889bbf70e1e940f281c61c"
+    },
+    {
+      "path": "empty-tiles-A2.service.log",
+      "bytes": 497076,
+      "sha256": "eb7953da7de8a5f58eed0628a7a25d1a0c2401278ead04a2e297c620485128fb"
+    },
+    {
+      "path": "empty-tiles-B-France.gpu-before.json",
+      "bytes": 141939,
+      "sha256": "fd910ef065e2caa127dca9511c777d4129327927ad03cfca1d82056c6e293354"
+    },
+    {
+      "path": "empty-tiles-B-France.json",
+      "bytes": 1056,
+      "sha256": "abb04501adc7d4596ea9a6a4c68736d6616737c41ec971a44bfa68c27f284fac"
+    },
+    {
+      "path": "empty-tiles-B-service.json",
+      "bytes": 1889,
+      "sha256": "53d5bb65bef82faf00f4e0fb38d2662e975903ac26daa579de228f28f8062892"
+    },
+    {
+      "path": "empty-tiles-B-start.gpu-before.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "empty-tiles-B-stop.json",
+      "bytes": 353,
+      "sha256": "8cfb7c7b9ca9b9e751cd5c2792b2c1f541c60d1b19b88666983f0665a1710bf8"
+    },
+    {
+      "path": "empty-tiles-B-warm.gpu-before.json",
+      "bytes": 141939,
+      "sha256": "e8c0385ba7c64b1a4878191d3bb7ce40bb8d2d6490f5b3d082666c658872b330"
+    },
+    {
+      "path": "empty-tiles-B-warm.json",
+      "bytes": 506049,
+      "sha256": "40d7ddb7e13f84e5c54b3f4a8e953cf2e65d9b89be9270d9726884955a8b97d7"
+    },
+    {
+      "path": "empty-tiles-B-warm.log",
+      "bytes": 61,
+      "sha256": "273396ff68241dbdff5a750c76f377bbf6a760f80722b5ff85598e9f36a49125"
+    },
+    {
+      "path": "empty-tiles-B.service.log",
+      "bytes": 502700,
+      "sha256": "75725373033ffa9d870eb235193feeedb073b772af786f9aaf076ddebcde3a5a"
+    },
+    {
+      "path": "empty-tiles-B1.gpu-before.json",
+      "bytes": 141939,
+      "sha256": "0477f6e7ab6140a68952a701990e11d0cefd1f70bfb8e552823e897ca8f6b7ce"
+    },
+    {
+      "path": "empty-tiles-B1.json",
+      "bytes": 996305,
+      "sha256": "0838b90637f28bea7136a12a65e26279abf4b330fc4a972b177318b8d38a63a4"
+    },
+    {
+      "path": "empty-tiles-B1.log",
+      "bytes": 60,
+      "sha256": "c107e3ff1c7b4eea6d49383e6b10bb026d8433b62889dac56722c7197219fdde"
+    },
+    {
+      "path": "empty-tiles-B2.gpu-before.json",
+      "bytes": 141939,
+      "sha256": "51d45570a385496667e7d536e318e898ade11765c7796f584aaf08a1ebd8ef22"
+    },
+    {
+      "path": "empty-tiles-B2.json",
+      "bytes": 995914,
+      "sha256": "8d16a930fbe77748eec5bf99ab343e469d3e9746420a3a2cdf1824c1475bf2d4"
+    },
+    {
+      "path": "empty-tiles-B2.log",
+      "bytes": 61,
+      "sha256": "c6ba790357519f8ab631a4e04f90d156c04d7ddfde8dc9b88856d6c92649afc5"
+    },
+    {
+      "path": "empty-tiles-Final-service.json",
+      "bytes": 1936,
+      "sha256": "110dc00e461fce7e88801c5b31fa2866666dfde64fe480d1f12eb5c94d4155c7"
+    },
+    {
+      "path": "empty-tiles-Final-start.gpu-before.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "empty-tiles-Final-stop.json",
+      "bytes": 352,
+      "sha256": "1220a6fc17686a96dbccb9d111cde60a93c43f212f82ef6c4583d31b43b9bb3f"
+    },
+    {
+      "path": "empty-tiles-Final.service.log",
+      "bytes": 820266,
+      "sha256": "3a29df1f312fa6dff031a1c02d4ff9b9a8c7522ee739f1a4ad1671f5935ec932"
+    },
+    {
+      "path": "empty-tiles-WoaA2-service.json",
+      "bytes": 1998,
+      "sha256": "a038dd256de9d241b5d9b2ecc81f8f86346aee680826d37ae78668b311e7390b"
+    },
+    {
+      "path": "empty-tiles-WoaA2-start.gpu-before.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "empty-tiles-WoaA2-stop.json",
+      "bytes": 353,
+      "sha256": "fe59198ca8cfe669028127adafee0e9b6b04c364eb22679eb180ee30270af954"
+    },
+    {
+      "path": "empty-tiles-WoaA2.service.log",
+      "bytes": 374154,
+      "sha256": "45c6022674d33be81135313a5af82935f3b43ce26422c4c2d080e2f6f6dae90d"
+    },
+    {
+      "path": "empty-tiles-WoaB-service.json",
+      "bytes": 1996,
+      "sha256": "219f0d8dc59020fe4e73dc318adf493d42802543eb1dd1e682da71fbc3a2014b"
+    },
+    {
+      "path": "empty-tiles-WoaB-start.gpu-before.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "empty-tiles-WoaB-stop.json",
+      "bytes": 353,
+      "sha256": "2c812b6b2c95a4c3465e2c0650cfc689f5ecc9196ab659df4ec57f5a9388787f"
+    },
+    {
+      "path": "empty-tiles-WoaB.service.log",
+      "bytes": 473453,
+      "sha256": "e5efedbc7cdca11e5e2c4f7788658e77a91955000cedb074cba2beb807bd673d"
+    },
+    {
+      "path": "empty-tiles-full.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "551e264784421b642d9b863d3394fe7fcb770ac9185d960e45bc7a6df330f191"
+    },
+    {
+      "path": "empty-tiles-full.json",
+      "bytes": 8766,
+      "sha256": "0fac2d17257eeadae7f82920572de915c341846276859f4d1ff5a15f68c357b0"
+    },
+    {
+      "path": "empty-tiles-integrated.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "2b5a935e5caca89e55425abdf0e8795aab5728eacbbb6707ba09cee9deae8bb6"
+    },
+    {
+      "path": "empty-tiles-integrated.json",
+      "bytes": 8757,
+      "sha256": "3cfe8c93a1a2b01ca980653a5d175c928163b8e58589779fb994cd19901a7c29"
+    },
+    {
+      "path": "empty-tiles-screen.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "551e264784421b642d9b863d3394fe7fcb770ac9185d960e45bc7a6df330f191"
+    },
+    {
+      "path": "empty-tiles-screen.json",
+      "bytes": 894,
+      "sha256": "60b36b9720ce110f6c6af2f84d0376983c9c1f362fd4e7b8ba53a1c67a692a1a"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 4808,
+      "sha256": "60379ebde86cdbcc8a6b082a4bb18a5fbc4fc7058553d23b70daae21f1062232"
+    },
+    {
+      "path": "final-long-decode-diagnostic.json",
+      "bytes": 2186,
+      "sha256": "39ac266ae6ac6521fcb385bb185b36de824f9406dbddef975310e21bc9285bd4"
+    },
+    {
+      "path": "final-output-text-validation.json",
+      "bytes": 2706,
+      "sha256": "0df282aba8a296b06200509abfe8ef4a3e78ba14c40c00b911d61236a2670380"
+    },
+    {
+      "path": "final-post-matrix-quality.gpu-before.jsonl",
+      "bytes": 609830,
+      "sha256": "356697f601805d7a77fa8067c4d9de79008fb418227277f5e25e4b78a19296d6"
+    },
+    {
+      "path": "final-post-matrix-quality.json",
+      "bytes": 23553,
+      "sha256": "18dbdf4a60f5ea1845db0d6f5f9186af71f535dcb4f02e563914eec89152b399"
+    },
+    {
+      "path": "final-report.json",
+      "bytes": 26238,
+      "sha256": "86270f17b5596d50919a061646c80a118d709269f06a9a0195d74dc9b0b6e0c4"
+    },
+    {
+      "path": "final-vram-snapshots.jsonl",
+      "bytes": 2999295,
+      "sha256": "b44eddae0f506ade4773bd1bfdac7b238ec4a4f7a5863c96ec1f47a0e1caebed"
+    },
+    {
+      "path": "legacy-manifests/decode.json",
+      "bytes": 316146,
+      "sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44"
+    },
+    {
+      "path": "legacy-manifests/prefill.json",
+      "bytes": 4767908,
+      "sha256": "3ff1c2bdc5c286d15b4c197984073dce86f76cdddad54d2fb4866f2d6a69e85f"
+    },
+    {
+      "path": "long-decode-diagnostic.json",
+      "bytes": 3730,
+      "sha256": "e2fb768e968b4cc1a508b3923482c3ae60dae3af2b0937cf2f68fc3c9b2a2d47"
+    },
+    {
+      "path": "manifests64/decode.json",
+      "bytes": 637435,
+      "sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d"
+    },
+    {
+      "path": "manifests64/prefill.json",
+      "bytes": 9611218,
+      "sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c"
+    },
+    {
+      "path": "measurement-times.json",
+      "bytes": 205,
+      "sha256": "22fbf33b704399110387799449aa2644874b08c37f196185ac783c8b09b59a96"
+    },
+    {
+      "path": "output-text-validation.json",
+      "bytes": 5002,
+      "sha256": "515f2eb8fa80d04b9fefbc6d6eda727945c5d6ee86830714ec927f6bb642a13f"
+    },
+    {
+      "path": "pilot-failed-draft-state.json",
+      "bytes": 1334,
+      "sha256": "dff53541b414ba3b7ec8710e3a486bb0f453cf9399ca878f1e84658ffcf6c27f"
+    },
+    {
+      "path": "pilot-failed-ratios-state.json",
+      "bytes": 1334,
+      "sha256": "4ef097518985ce78b6e5f9ec4ee7f2cf914961b26df9895e4dd745fb71fc1bcb"
+    },
+    {
+      "path": "post-matrix-quality.gpu-before.json",
+      "bytes": 141915,
+      "sha256": "551e264784421b642d9b863d3394fe7fcb770ac9185d960e45bc7a6df330f191"
+    },
+    {
+      "path": "post-matrix-quality.json",
+      "bytes": 23313,
+      "sha256": "ac9429034f4d16c3f3edd4e700ce021a57b298ef28bfe865c186e5ade807b04a"
+    },
+    {
+      "path": "strict-pilot.failed-draft.service.log",
+      "bytes": 304310,
+      "sha256": "e7febf6a266782ad7c07016b44ab4e02ae0b6b7c095b6bf388809fcf1eb815b1"
+    },
+    {
+      "path": "strict-pilot.failed-load.service.log",
+      "bytes": 100499,
+      "sha256": "71ae4ee3b4bb642d24ae27449209d37212f0d677a24970f3c5a44b1897717199"
+    },
+    {
+      "path": "strict-pilot.failed-ratios.service.log",
+      "bytes": 126913,
+      "sha256": "efe354ac70648bca6976d31cf4ab58b9ea23e0230f91998c6b28a90d33317db6"
+    },
+    {
+      "path": "vram-summary.json",
+      "bytes": 10074,
+      "sha256": "0cd7d17cbf2113d6f350ce068605a776b35a0adf716e897989c7414bafcc0c56"
+    },
+    {
+      "path": "woa-A2-vram-snapshots.jsonl",
+      "bytes": 155127,
+      "sha256": "219a1bf577f9c945275ed3af3242806d2b0577ffa0500cb9350f36b7835d1c2b"
+    },
+    {
+      "path": "woa-B-vram-snapshots.jsonl",
+      "bytes": 291806,
+      "sha256": "aed77cf8bbcd82f1a554aa25218bf33886b23effdcd576dae7f98db82418469c"
+    },
+    {
+      "path": "woa-C1A1.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "aaa42b186a6860349d728d7294032c561c2914f5d3728ba7cf1a4f7e92737e51"
+    },
+    {
+      "path": "woa-C1A1.json",
+      "bytes": 438213,
+      "sha256": "ae11fccfb1d7a2f0d81fbb821c58561550a5846f3d8b5d095d0454d4258d86ce"
+    },
+    {
+      "path": "woa-C1A1.log",
+      "bytes": 93,
+      "sha256": "bc7ba1ce136a1fad278663f95b54439821d0cb0c92cd663b6f41be897fae91d4"
+    },
+    {
+      "path": "woa-C1A2.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "6a0afbbcfc26568c2f7586380b26620f511688bd9499d5cd78a050205b1b3732"
+    },
+    {
+      "path": "woa-C1A2.json",
+      "bytes": 438271,
+      "sha256": "56e4310f82703448b033834872cd4d5d7169caac8b430a813233277bfe370b72"
+    },
+    {
+      "path": "woa-C1A2.log",
+      "bytes": 95,
+      "sha256": "e5c773b1a8627f499cf85fe33794d0fc6cbb4a5d099ab5a8f61c8422f7d1f12d"
+    },
+    {
+      "path": "woa-C1B1.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "0ce0b351d31dd5b5360eeac6067d4f914948255e3f90dcf15fab27aa5eee7a17"
+    },
+    {
+      "path": "woa-C1B1.json",
+      "bytes": 405547,
+      "sha256": "fd1324230b5e7e5c0978f0e8ccf999096b984d9896031c235993c6fd5206cb84"
+    },
+    {
+      "path": "woa-C1B1.log",
+      "bytes": 94,
+      "sha256": "4b0cc71885c6e6898be63c251acccbad6cdf3717104068fa99a53b5c9092aa59"
+    },
+    {
+      "path": "woa-C1B2.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "0ce0b351d31dd5b5360eeac6067d4f914948255e3f90dcf15fab27aa5eee7a17"
+    },
+    {
+      "path": "woa-C1B2.json",
+      "bytes": 405567,
+      "sha256": "4443568cd0e846544c849c5db3be51076e0000314203a3aa0162aa0cc7185a80"
+    },
+    {
+      "path": "woa-C1B2.log",
+      "bytes": 95,
+      "sha256": "4df05c4db5442ee87f6bfc5091e5e6b4634d7d3a375d839c931ea01fd231659c"
+    },
+    {
+      "path": "woa-Final-France.json",
+      "bytes": 1052,
+      "sha256": "b93240ce7d91b3f1126aade6edc9b3f7fa5ce0af5dcf45a2c609b11f114384f7"
+    },
+    {
+      "path": "woa-Final-ready.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "aaa42b186a6860349d728d7294032c561c2914f5d3728ba7cf1a4f7e92737e51"
+    },
+    {
+      "path": "woa-Final-warm.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "aaa42b186a6860349d728d7294032c561c2914f5d3728ba7cf1a4f7e92737e51"
+    },
+    {
+      "path": "woa-Final-warm.json",
+      "bytes": 32223,
+      "sha256": "0e4420928f9d5bd86f6a7e3416dc6823054347d9100990fb2cd29aaa807e9c59"
+    },
+    {
+      "path": "woa-Final-warm.log",
+      "bytes": 60,
+      "sha256": "489ae6045e11db26357c7c0418a7838d09d68b25f93993726ef950f46b6fce28"
+    },
+    {
+      "path": "woa-WoaA2-France.json",
+      "bytes": 1051,
+      "sha256": "0da785107cf0b0e8d69fd5c528236016b287d4858e20a55ac65f8534f2f0d915"
+    },
+    {
+      "path": "woa-WoaA2-ready.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "e948669624adf87c796e4994f892ce3e456e6734b6b5d4259a450eed4ff46249"
+    },
+    {
+      "path": "woa-WoaA2-warm.gpu-before.json",
+      "bytes": 141891,
+      "sha256": "916dd50a05ae44b5565875399bfdeeab7fcfac0900d557de27361700a3e010aa"
+    },
+    {
+      "path": "woa-WoaA2-warm.json",
+      "bytes": 32212,
+      "sha256": "bab6100e795d8623c707c110f4a00a394a74ab057dd6b114d077aa4abeffb8b4"
+    },
+    {
+      "path": "woa-WoaA2-warm.log",
+      "bytes": 57,
+      "sha256": "b89bc14d6de4bc889a7418eb0376e2526b5764c578e17bb5ee1c475cfabe874f"
+    },
+    {
+      "path": "woa-WoaB-France.json",
+      "bytes": 1056,
+      "sha256": "1ef6fb2cfeae91c54dd7999184d72807130f27212dc382daa91dad498b8c1cd0"
+    },
+    {
+      "path": "woa-WoaB-ready.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "ec6463f099b3ef2755ee5865c0e8df8e4acf5a214bf326979045f60a1c45562b"
+    },
+    {
+      "path": "woa-WoaB-warm.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "f695bc08b6f40a3b423ebf7f3f92b08cc042e711768c632a9db9d5e952f20125"
+    },
+    {
+      "path": "woa-WoaB-warm.json",
+      "bytes": 32116,
+      "sha256": "0cf8e572fa8bbc633d4ed85f5757f66a66bd59d2b4414bbe97e27a13d2eda4ee"
+    },
+    {
+      "path": "woa-WoaB-warm.log",
+      "bytes": 60,
+      "sha256": "b755f8258b63420f1dd7bd38fc920209bc1d25bb445ac05095a209c2b001779d"
+    },
+    {
+      "path": "woa-candidate-quality.gpu-before.jsonl",
+      "bytes": 609828,
+      "sha256": "9678938d718caeb2b4c07879aeed6debc7ccb7947e16f1c85b38375092e060b0"
+    },
+    {
+      "path": "woa-candidate-quality.json",
+      "bytes": 23521,
+      "sha256": "8eeda5b3a4564fe278e32f257cf015a47da93394afdfb82bc970052d083d4b1a"
+    },
+    {
+      "path": "woa-component.gpu-before.json",
+      "bytes": 141899,
+      "sha256": "aaa42b186a6860349d728d7294032c561c2914f5d3728ba7cf1a4f7e92737e51"
+    },
+    {
+      "path": "woa-component.json",
+      "bytes": 44148,
+      "sha256": "5a37c33acfc8557fc081fde4395c8b5f130c7f135eb8116c723729c4cd28222c"
+    },
+    {
+      "path": "woa-component.log",
+      "bytes": 365,
+      "sha256": "baf22a07f4db64c1a4e3b8fff825d7ac25efa55a59846f6baefd5e673a43fc2b"
+    }
+  ]
+}

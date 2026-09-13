@@ -1,0 +1,126 @@
+{
+  "status": "accepted",
+  "arms": [
+    {
+      "label": "C1A1",
+      "rates": [
+        79.55802053438961
+      ],
+      "median": 79.55802053438961,
+      "http_aggregate_tok_s": 78.63243932412739,
+      "waves": 2,
+      "common_seconds": 45.3505501489999,
+      "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+      "signatures": [
+        {
+          "wave": 0,
+          "index": 0,
+          "tokens": 1690,
+          "sha256": "221b36b9db7d750da663aa3d42fdb1e01fb27a76d2a9054ff7cf02107d924478"
+        },
+        {
+          "wave": 1,
+          "index": 1,
+          "tokens": 1920,
+          "sha256": "c4e95950bdb4888a17e2bb56d77a3d28fe3710ad1c9b1c3b192c812554e6ff27"
+        }
+      ],
+      "artifact": "woa-C1A1.json",
+      "sha256": "ae11fccfb1d7a2f0d81fbb821c58561550a5846f3d8b5d095d0454d4258d86ce"
+    },
+    {
+      "label": "C1B1",
+      "rates": [
+        87.58315938334196
+      ],
+      "median": 87.58315938334196,
+      "http_aggregate_tok_s": 86.38148736310096,
+      "waves": 2,
+      "common_seconds": 38.11234971999511,
+      "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+      "signatures": [
+        {
+          "wave": 0,
+          "index": 0,
+          "tokens": 1453,
+          "sha256": "204519e68e8ec2b8dc12c40ca74aaacd9c38c3a628a0a3ae6d6e60035fa414ca"
+        },
+        {
+          "wave": 1,
+          "index": 1,
+          "tokens": 1887,
+          "sha256": "f2b1089dfa9e5eb9a2ebced18b3fb485c47ebad72c1e5235bb71cb409e6d97b5"
+        }
+      ],
+      "artifact": "woa-C1B1.json",
+      "sha256": "fd1324230b5e7e5c0978f0e8ccf999096b984d9896031c235993c6fd5206cb84"
+    },
+    {
+      "label": "C1B2",
+      "rates": [
+        87.50426823858353
+      ],
+      "median": 87.50426823858353,
+      "http_aggregate_tok_s": 86.30461255687887,
+      "waves": 2,
+      "common_seconds": 38.14671063700371,
+      "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+      "signatures": [
+        {
+          "wave": 0,
+          "index": 0,
+          "tokens": 1453,
+          "sha256": "204519e68e8ec2b8dc12c40ca74aaacd9c38c3a628a0a3ae6d6e60035fa414ca"
+        },
+        {
+          "wave": 1,
+          "index": 1,
+          "tokens": 1887,
+          "sha256": "f2b1089dfa9e5eb9a2ebced18b3fb485c47ebad72c1e5235bb71cb409e6d97b5"
+        }
+      ],
+      "artifact": "woa-C1B2.json",
+      "sha256": "4443568cd0e846544c849c5db3be51076e0000314203a3aa0162aa0cc7185a80"
+    },
+    {
+      "label": "C1A2",
+      "rates": [
+        79.15134622270483
+      ],
+      "median": 79.15134622270483,
+      "http_aggregate_tok_s": 78.23279100112532,
+      "waves": 2,
+      "common_seconds": 45.58355823599413,
+      "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+      "signatures": [
+        {
+          "wave": 0,
+          "index": 0,
+          "tokens": 1690,
+          "sha256": "221b36b9db7d750da663aa3d42fdb1e01fb27a76d2a9054ff7cf02107d924478"
+        },
+        {
+          "wave": 1,
+          "index": 1,
+          "tokens": 1920,
+          "sha256": "c4e95950bdb4888a17e2bb56d77a3d28fe3710ad1c9b1c3b192c812554e6ff27"
+        }
+      ],
+      "artifact": "woa-C1A2.json",
+      "sha256": "56e4310f82703448b033834872cd4d5d7169caac8b430a813233277bfe370b72"
+    }
+  ],
+  "control_mean": 79.35468337854722,
+  "candidate_mean": 87.54371381096274,
+  "gain_pct": 10.319530094211604,
+  "control_return_pct": -0.5111669558306775,
+  "b_spread_pct": 0.09011628742274184,
+  "candidate_repeat_signatures_exact": true,
+  "component": {
+    "replay_exact": 100,
+    "einsum_exact": 70,
+    "max_abs_vs_einsum": 0.5,
+    "max_relative_l2": 0.001787754357792437
+  },
+  "caveat": "Original weights, different floating reduction, not einsum bitwise equivalence. France/short source smokes are not full model numerical or factual proof. C1 supplement is a separate service profile; other-tier HTTP drain rates remain from the main matrix."
+}

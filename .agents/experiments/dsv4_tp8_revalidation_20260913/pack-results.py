@@ -2,7 +2,9 @@
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import tarfile
+import time
 
 import psutil
 
@@ -21,6 +23,12 @@ def main():
     final_path = root/'ar-final-decode/state.json'
     if final_path.exists():
         assert json.loads(final_path.read_text())['status'] == 'complete'
+    for name in ('ar-c1-gemv', 'ar-c1-gemv-scope32'):
+        extra = root/name/'state.json'
+        if extra.exists():
+            assert json.loads(extra.read_text())['status'] == 'complete'
+    gpu = json.loads(subprocess.check_output(['amd-smi', 'process', '--json']))
+    (root/'closing-gpu.json').write_text(json.dumps(dict(time=time.time(),gpus=gpu),indent=2)+'\n')
     excluded = {'evidence-index.json'}
     files = sorted(p for p in root.rglob('*')
                    if p.is_file() and p.suffix in ('.json', '.jsonl', '.log')

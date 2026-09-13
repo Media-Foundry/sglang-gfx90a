@@ -1,0 +1,869 @@
+{
+  "tp": 8,
+  "mode": "native_ar",
+  "baseline_head": "d111ffa4f79d5bf108e9093067696811005cd9b1",
+  "final_head": "3535a3d76f12f1859991f5cf6f66f8ecffa7f11c",
+  "final_controller_head": "3535a3d76f12f1859991f5cf6f66f8ecffa7f11c",
+  "c1_woa_acceptance": {
+    "status": "accepted",
+    "arms": [
+      {
+        "label": "C1A1",
+        "rates": [
+          79.55802053438961
+        ],
+        "median": 79.55802053438961,
+        "http_aggregate_tok_s": 78.63243932412739,
+        "waves": 2,
+        "common_seconds": 45.3505501489999,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "signatures": [
+          {
+            "wave": 0,
+            "index": 0,
+            "tokens": 1690,
+            "sha256": "221b36b9db7d750da663aa3d42fdb1e01fb27a76d2a9054ff7cf02107d924478"
+          },
+          {
+            "wave": 1,
+            "index": 1,
+            "tokens": 1920,
+            "sha256": "c4e95950bdb4888a17e2bb56d77a3d28fe3710ad1c9b1c3b192c812554e6ff27"
+          }
+        ],
+        "artifact": "woa-C1A1.json",
+        "sha256": "ae11fccfb1d7a2f0d81fbb821c58561550a5846f3d8b5d095d0454d4258d86ce"
+      },
+      {
+        "label": "C1B1",
+        "rates": [
+          87.58315938334196
+        ],
+        "median": 87.58315938334196,
+        "http_aggregate_tok_s": 86.38148736310096,
+        "waves": 2,
+        "common_seconds": 38.11234971999511,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "signatures": [
+          {
+            "wave": 0,
+            "index": 0,
+            "tokens": 1453,
+            "sha256": "204519e68e8ec2b8dc12c40ca74aaacd9c38c3a628a0a3ae6d6e60035fa414ca"
+          },
+          {
+            "wave": 1,
+            "index": 1,
+            "tokens": 1887,
+            "sha256": "f2b1089dfa9e5eb9a2ebced18b3fb485c47ebad72c1e5235bb71cb409e6d97b5"
+          }
+        ],
+        "artifact": "woa-C1B1.json",
+        "sha256": "fd1324230b5e7e5c0978f0e8ccf999096b984d9896031c235993c6fd5206cb84"
+      },
+      {
+        "label": "C1B2",
+        "rates": [
+          87.50426823858353
+        ],
+        "median": 87.50426823858353,
+        "http_aggregate_tok_s": 86.30461255687887,
+        "waves": 2,
+        "common_seconds": 38.14671063700371,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "signatures": [
+          {
+            "wave": 0,
+            "index": 0,
+            "tokens": 1453,
+            "sha256": "204519e68e8ec2b8dc12c40ca74aaacd9c38c3a628a0a3ae6d6e60035fa414ca"
+          },
+          {
+            "wave": 1,
+            "index": 1,
+            "tokens": 1887,
+            "sha256": "f2b1089dfa9e5eb9a2ebced18b3fb485c47ebad72c1e5235bb71cb409e6d97b5"
+          }
+        ],
+        "artifact": "woa-C1B2.json",
+        "sha256": "4443568cd0e846544c849c5db3be51076e0000314203a3aa0162aa0cc7185a80"
+      },
+      {
+        "label": "C1A2",
+        "rates": [
+          79.15134622270483
+        ],
+        "median": 79.15134622270483,
+        "http_aggregate_tok_s": 78.23279100112532,
+        "waves": 2,
+        "common_seconds": 45.58355823599413,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "signatures": [
+          {
+            "wave": 0,
+            "index": 0,
+            "tokens": 1690,
+            "sha256": "221b36b9db7d750da663aa3d42fdb1e01fb27a76d2a9054ff7cf02107d924478"
+          },
+          {
+            "wave": 1,
+            "index": 1,
+            "tokens": 1920,
+            "sha256": "c4e95950bdb4888a17e2bb56d77a3d28fe3710ad1c9b1c3b192c812554e6ff27"
+          }
+        ],
+        "artifact": "woa-C1A2.json",
+        "sha256": "56e4310f82703448b033834872cd4d5d7169caac8b430a813233277bfe370b72"
+      }
+    ],
+    "control_mean": 79.35468337854722,
+    "candidate_mean": 87.54371381096274,
+    "gain_pct": 10.319530094211604,
+    "control_return_pct": -0.5111669558306775,
+    "b_spread_pct": 0.09011628742274184,
+    "candidate_repeat_signatures_exact": true,
+    "component": {
+      "replay_exact": 100,
+      "einsum_exact": 70,
+      "max_abs_vs_einsum": 0.5,
+      "max_relative_l2": 0.001787754357792437
+    },
+    "caveat": "Original weights, different floating reduction, not einsum bitwise equivalence. France/short source smokes are not full model numerical or factual proof. C1 supplement is a separate service profile; other-tier HTTP drain rates remain from the main matrix."
+  },
+  "cells": [
+    {
+      "concurrency": 1,
+      "prefill": {
+        "rates": [
+          4676.386920867893,
+          4680.628367806622,
+          4675.943349736525
+        ],
+        "median": 4676.386920867893,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c1_measured.json",
+        "sha256": "00b9d88d98a1d1c6789b225b7e38a544131bb5143e1e3075cfa18569896ab75b"
+      },
+      "baseline_decode": {
+        "rates": [
+          75.6856854107775,
+          75.70057748383813,
+          75.70211287454683
+        ],
+        "median": 75.70057748383813,
+        "http_aggregate_tok_s": 74.87374240084478,
+        "waves": 6,
+        "common_seconds": 142.99278948600113,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c1_measured.json",
+        "sha256": "7cec2ed50db3bc8d412d2d4a8e3b0f950206b9c7a7fc6acd5125882abcf22847"
+      },
+      "final_decode": {
+        "rates": [
+          87.5540994514853,
+          87.5990027031402,
+          87.60071078501626
+        ],
+        "median": 87.5990027031402,
+        "http_aggregate_tok_s": 86.38761943002251,
+        "waves": 6,
+        "common_seconds": 114.33516982400761,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-c1-gemv/decode_c1_measured.json",
+        "sha256": "ec4660dc332b5ebf4db5da9c4471304c658608dc4f212f2ca331d7ecdf8c420d"
+      },
+      "decode_change_pct": 15.717746964139545,
+      "main_matrix_decode": {
+        "rates": [
+          79.57599317996636,
+          79.57461221353743,
+          79.56303320958604
+        ],
+        "median": 79.57461221353743,
+        "http_aggregate_tok_s": 78.66377615186143,
+        "waves": 6,
+        "common_seconds": 136.02909479000664,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c1_measured.json",
+        "sha256": "9222acfe030c2997c2f16be247e3af3adbd692ab915b28a1e47f723db4372c6e"
+      },
+      "profile": "C1 GEMV-on supplement; different reduction arithmetic",
+      "source_head": "4ea639398c9ae0a0148fdf766935e3ec00fc7244"
+    },
+    {
+      "concurrency": 2,
+      "prefill": {
+        "rates": [
+          4994.72099846776,
+          4989.245933748703,
+          4984.324651864193
+        ],
+        "median": 4989.245933748703,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c2_measured.json",
+        "sha256": "5578ad97e29f5fd49635c2e02fa601b6a0ac7d561fcb8e193dce6ee7a5834670"
+      },
+      "baseline_decode": {
+        "rates": [
+          96.14496334841816,
+          96.11886353775706,
+          96.11275523327787
+        ],
+        "median": 96.11886353775706,
+        "http_aggregate_tok_s": 94.16489417138824,
+        "waves": 3,
+        "common_seconds": 123.75484820799466,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c2_measured.json",
+        "sha256": "4eb6ba27fc2fd64e2e4ebd1e698df4d7f861f745de93a954eab6ca3e08dc88e4"
+      },
+      "final_decode": {
+        "rates": [
+          109.9392997238557,
+          109.94909023266113,
+          106.32320512335832
+        ],
+        "median": 109.9392997238557,
+        "http_aggregate_tok_s": 102.40883162308212,
+        "waves": 5,
+        "common_seconds": 148.0211649539924,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c2_measured.json",
+        "sha256": "3b20bcd294e7dd63cb1547d13fdfde32c2fe78f9abf6f4793f2693e06e9057fd"
+      },
+      "decode_change_pct": 14.37848480248598
+    },
+    {
+      "concurrency": 4,
+      "prefill": {
+        "rates": [
+          5280.225868451028,
+          5265.433768710278,
+          5265.095354568644
+        ],
+        "median": 5265.433768710278,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c4_measured.json",
+        "sha256": "88689d82e660a366bb929c6e830763f9f0df20b80a086d26ebaa80aee05452d7"
+      },
+      "baseline_decode": {
+        "rates": [
+          188.49236741128541,
+          188.14582729340356,
+          183.90027466576103
+        ],
+        "median": 188.14582729340356,
+        "http_aggregate_tok_s": 136.84647286562034,
+        "waves": 5,
+        "common_seconds": 111.0119878770056,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c4_measured.json",
+        "sha256": "f6e4a0e6774d95df0ecc907d0c3e8c6323868041caeb04b75ab6818582c8240c"
+      },
+      "final_decode": {
+        "rates": [
+          190.05136797645775,
+          188.71032758405775,
+          188.40639050998726
+        ],
+        "median": 188.71032758405775,
+        "http_aggregate_tok_s": 148.49857817311081,
+        "waves": 6,
+        "common_seconds": 118.19264739600476,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c4_measured.json",
+        "sha256": "cbe76c6c08de1be8a80b0458550e5ee527d58e1ffaffbedd5d283b27c1df0985"
+      },
+      "decode_change_pct": 0.30003338302788674
+    },
+    {
+      "concurrency": 8,
+      "prefill": {
+        "rates": [
+          4710.940572591123,
+          5099.22924809911,
+          5101.670670406732
+        ],
+        "median": 5099.22924809911,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c8_measured.json",
+        "sha256": "e253850be5412198f6e47f10356cf7c4881d4c77f6b8c68031baaa82dfe5098f"
+      },
+      "baseline_decode": {
+        "rates": [
+          326.6807601159113,
+          333.36112862921567,
+          333.5782917315721
+        ],
+        "median": 333.36112862921567,
+        "http_aggregate_tok_s": 209.70654143471404,
+        "waves": 7,
+        "common_seconds": 149.3806857330128,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c8_measured.json",
+        "sha256": "ec0b95d3a03e7de5621e53129c03267242d9e4a6262c2dbeb94f10fd55459902"
+      },
+      "final_decode": {
+        "rates": [
+          333.5947815148765,
+          334.19544163974547,
+          334.17513998857754
+        ],
+        "median": 334.17513998857754,
+        "http_aggregate_tok_s": 254.44875156301308,
+        "waves": 6,
+        "common_seconds": 116.16361785199842,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c8_measured.json",
+        "sha256": "248b96f1d4be6c3135c6fcd03677b618e4f9d208dd8bab33bb49f3fe9667222f"
+      },
+      "decode_change_pct": 0.24418304638849087
+    },
+    {
+      "concurrency": 16,
+      "prefill": {
+        "rates": [
+          5158.825856472126,
+          5171.364909896615,
+          5177.149630071134
+        ],
+        "median": 5171.364909896615,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c16_measured.json",
+        "sha256": "655cfc0f00154d8eb48d6cab7f80e8859017e53b5307ad59277f807b29171ff5"
+      },
+      "baseline_decode": {
+        "rates": [
+          609.8254578821131,
+          609.1787064126287,
+          609.1260681536951
+        ],
+        "median": 609.1787064126287,
+        "http_aggregate_tok_s": 306.3141342165417,
+        "waves": 11,
+        "common_seconds": 101.98192062100861,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c16_measured.json",
+        "sha256": "52834684cef529fe20db3e745062e227482be3f56b68a4af9db1269e6fbec903"
+      },
+      "final_decode": {
+        "rates": [
+          608.231177478838,
+          607.9523531463805,
+          608.2742576671594
+        ],
+        "median": 608.231177478838,
+        "http_aggregate_tok_s": 422.5057113881688,
+        "waves": 12,
+        "common_seconds": 106.5050071250007,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c16_measured.json",
+        "sha256": "52d23ca23784b33d8d258a6f36330f84b50cbd63df4fe7aa8d225d8c4cf6f89f"
+      },
+      "decode_change_pct": -0.1555420312325917
+    },
+    {
+      "concurrency": 32,
+      "prefill": {
+        "rates": [
+          5253.751214311878,
+          5255.495642173016,
+          5254.978633559116
+        ],
+        "median": 5254.978633559116,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c32_measured.json",
+        "sha256": "617b0b71333f9419b448a81dc4298c0755d9273116ea4cff9f4a00104c980bb5"
+      },
+      "baseline_decode": {
+        "rates": [
+          1040.8742406532433,
+          1040.98806284836,
+          1041.2791284761695
+        ],
+        "median": 1040.98806284836,
+        "http_aggregate_tok_s": 410.86131036997926,
+        "waves": 12,
+        "common_seconds": 119.07216139799857,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c32_measured.json",
+        "sha256": "862b193ff8627721e69b1e8427df7e73d3e5b5ad29b07314c62a1455685963d3"
+      },
+      "final_decode": {
+        "rates": [
+          1045.0450859971033,
+          1044.3249853402647,
+          1043.3343868568413
+        ],
+        "median": 1044.3249853402647,
+        "http_aggregate_tok_s": 680.6114604172823,
+        "waves": 12,
+        "common_seconds": 109.6121664839884,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c32_measured.json",
+        "sha256": "f9b733b81425f6c3a69a4adb3255230ec2babc879024c62333ca48e5c9cd8357"
+      },
+      "decode_change_pct": 0.32055338682503987
+    },
+    {
+      "concurrency": 64,
+      "prefill": {
+        "rates": [
+          5250.048383329672,
+          5241.777204041396,
+          5251.098059155334
+        ],
+        "median": 5250.048383329672,
+        "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+        "artifact": "ar-matrix/prefill_c64_measured.json",
+        "sha256": "361749b67f9cc7930d59c5779c5c6943ea684dad4909d9765370e8974dd8905b"
+      },
+      "baseline_decode": {
+        "rates": [
+          1330.4573916092531,
+          1331.967566567579,
+          1330.2537241016494
+        ],
+        "median": 1330.4573916092531,
+        "http_aggregate_tok_s": 447.9094616683223,
+        "waves": 9,
+        "common_seconds": 108.19257730400568,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-matrix/decode_c64_measured.json",
+        "sha256": "4cccb81af12ca2686db025d2c0c42dfa6e934e12c1fd6f92769f0f1e9bc042c1"
+      },
+      "final_decode": {
+        "rates": [
+          1334.4940583724247,
+          1334.2382785948637,
+          1332.8426067710438
+        ],
+        "median": 1334.2382785948637,
+        "http_aggregate_tok_s": 848.1403080945909,
+        "waves": 9,
+        "common_seconds": 105.92512515901035,
+        "manifest_sha256": "c4ce2b7ac237cb139a1f17554ec32fa3ab95608e072106a800c32608d1b4f73d",
+        "artifact": "ar-final-decode/decode_c64_measured.json",
+        "sha256": "710c2fd873a8580f9c93758cc72a2d10dc7d5ef2d0d7ae9f551882b1bb1dd68b"
+      },
+      "decode_change_pct": 0.2841794866528913
+    }
+  ],
+  "long_context_abba": [
+    {
+      "label": "A1",
+      "rates": [
+        169.65673113697008
+      ],
+      "median": 169.65673113697008,
+      "http_aggregate_tok_s": 83.17919110114016,
+      "waves": 1,
+      "common_seconds": 47.725781027002085,
+      "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+      "artifact": "empty-tiles-A1.json",
+      "sha256": "80f337844f2eae31bbd50f530714336395827d27d940d1f0b0bfc4e942651b06"
+    },
+    {
+      "label": "B1",
+      "rates": [
+        611.1026220695315
+      ],
+      "median": 611.1026220695315,
+      "http_aggregate_tok_s": 128.8460016327478,
+      "waves": 1,
+      "common_seconds": 13.249820418997842,
+      "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+      "artifact": "empty-tiles-B1.json",
+      "sha256": "0838b90637f28bea7136a12a65e26279abf4b330fc4a972b177318b8d38a63a4"
+    },
+    {
+      "label": "B2",
+      "rates": [
+        610.853248800223
+      ],
+      "median": 610.853248800223,
+      "http_aggregate_tok_s": 128.87922827604746,
+      "waves": 1,
+      "common_seconds": 13.255229493996012,
+      "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+      "artifact": "empty-tiles-B2.json",
+      "sha256": "8d16a930fbe77748eec5bf99ab343e469d3e9746420a3a2cdf1824c1475bf2d4"
+    },
+    {
+      "label": "A2",
+      "rates": [
+        169.84290981314885
+      ],
+      "median": 169.84290981314885,
+      "http_aggregate_tok_s": 83.25699090733849,
+      "waves": 1,
+      "common_seconds": 47.673464902996784,
+      "manifest_sha256": "3a890d0747dd3a362f1e1d5dca2ecf17dc9874c27803e6b38039de61ad2bd64c",
+      "artifact": "empty-tiles-A2.json",
+      "sha256": "267b3796fefd37e78880fc51d5b653023dcb80e1314ebd6799a50d35009f4256"
+    }
+  ],
+  "long_context_resident_speedup": 3.5992847222165127,
+  "observed_graph_tiers": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "final_observed_vram": [
+    {
+      "gpu": 0,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.82295482295483
+    },
+    {
+      "gpu": 1,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.82295482295483
+    },
+    {
+      "gpu": 2,
+      "time": 1789327249.7189856,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45710,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19810,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45710,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19810,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 131,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515782,
+        "unit": "MB"
+      },
+      "percent": 69.76495726495726
+    },
+    {
+      "gpu": 3,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45768,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19752,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45768,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19752,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.85347985347985
+    },
+    {
+      "gpu": 4,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45684,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19836,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45684,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19836,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.72527472527473
+    },
+    {
+      "gpu": 5,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45748,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19772,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.82295482295483
+    },
+    {
+      "gpu": 6,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45773,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19747,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45773,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19747,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.86111111111111
+    },
+    {
+      "gpu": 7,
+      "time": 1789327045.6034193,
+      "samples": 768,
+      "total_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_vram": {
+        "value": 45768,
+        "unit": "MB"
+      },
+      "free_vram": {
+        "value": 19752,
+        "unit": "MB"
+      },
+      "total_visible_vram": {
+        "value": 65520,
+        "unit": "MB"
+      },
+      "used_visible_vram": {
+        "value": 45768,
+        "unit": "MB"
+      },
+      "free_visible_vram": {
+        "value": 19752,
+        "unit": "MB"
+      },
+      "total_gtt": {
+        "value": 515913,
+        "unit": "MB"
+      },
+      "used_gtt": {
+        "value": 11,
+        "unit": "MB"
+      },
+      "free_gtt": {
+        "value": 515902,
+        "unit": "MB"
+      },
+      "percent": 69.85347985347985
+    }
+  ],
+  "final_matrix_end_epoch": 1789328218.1841462,
+  "caveats": [
+    "P: retained completed baseline; exact new guard excludes prefill.",
+    "D: new process, real512-token inputs, natural EOS, at most2048 output tokens.",
+    "Each D round accumulates >=30s common resident windows. Three measured rounds; warmups excluded.",
+    "Baseline vs final D is sequential matrix comparison, not per-tier ABBA. Outputs can differ.",
+    "C1 uses the accepted separate GEMV-on three-round service supplement. Other-tier whole-wave HTTP rates retain their measured GEMV-off drain behavior.",
+    "Long8K C32 comparison is separate A1/B1/B2/A2; do not apply its multiplier to short D.",
+    "1M logical token pool allocated; this is not a1M filled-context or accuracy test.",
+    "P concurrency is client requests; admission16 and chunk36864 constrain actual GPU batch.",
+    "Checkpoint precision unchanged; existing large-prefill BF16-CK is not bitwise SDOT.",
+    "Fresh processes from the shared working tree, not a separate clean checkout; existing AIter/CK/local changes are recorded in environment.json.",
+    "AMD VRAM samples ~5s apart, including startup/final matrix only; not exact allocator peak.",
+    "Exact component score/TopK tests do not establish whole-model bitwise or factual correctness."
+  ]
+}

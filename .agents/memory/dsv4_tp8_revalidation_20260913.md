@@ -382,3 +382,51 @@ absolute difference0.5 on unscaled random weights, max relativeL2 toFP32
 einsum arithmetic. Two CPU shape/predicate tests passed on current source.
 New C1 A1 control79.5580resident tok/s reproduces main-matrix79.5746.
 France passed. Candidate B is next; no C1 E2E speedup claimed yet.
+
+## CLOSED: best validated native AR profile and final measurements
+
+C1 wo_a ABBA A1/B1/B2/A2=79.5580/87.5832/87.5043/79.1513resident tok/s.
+Mean control79.3547, mean candidate87.5437, gain10.3195%; control return-0.5112%,
+B spread0.0901%. B1/B2 completion IDs identical for both whole natural answers
+(1453 and1887tokens). Those source responses are coherent and acknowledge
+truncated evidence, but contain speculative/incorrect diagnoses; they are NOT
+verified code fixes. Do not execute/apply their proposed patches as evidence.
+
+Candidate C1 separate formal three-round median87.5990; IDs->text validation
+passes all7 warmup/measured responses. France all three arms passes. Two
+repeats of France plus three8K source prompts complete (128output cap on code),
+with readable wording, not whole-model bitwise/factual parity. A subsequent
+C32 native transition smoke completes2x32x64outputs and passes64 ID/text
+checks; its~1.88s common window is too short to replace the formal C32 result.
+No C1 kernel implementation was changed: this recovers an omitted existing
+opt-in, while leaving global defaultFalse. `start-best-ar.sh LABEL` is the
+resource-guarded reproducible native-only profile with the C1 flag explicitly1.
+
+Final table (three measured rounds per reported cell):
+
+| C | P input tok/s,8K | D native resident tok/s | D whole-wave HTTP tok/s |
+|--:|--:|--:|--:|
+|1|4676.39|87.60|86.39|
+|2|4989.25|109.94|102.41|
+|4|5265.43|188.71|148.50|
+|8|5099.23|334.18|254.45|
+|16|5171.36|608.23|422.51|
+|32|5254.98|1044.32|680.61|
+|64|5250.05|1334.24|848.14|
+
+P retains the completed main matrix: both new decode guards exclude prefill.
+C1 is the accepted GEMV-on supplement, other cells are the seven-tier main
+matrix. Their whole-wave HTTP drain rates were NOT retested GEMV-on; no claim
+of identical all-tier full-request latency under the combined launcher.
+Native-only, original checkpoint, TP8/EP1/no-A2A,1M logical pool, seven graph
+tiers. D512input/naturalEOS/max2048output, >=30s resident per measured round.
+No DSpark/M128 throughput. Historical6.42k P uses2304inputs/smaller pool and is
+not the same workload; no filled1M-context stress or exact whole-model oracle.
+Cold exact-M prefill JIT remains a separate latency hole, documented above.
+
+Final test services591550/615112/624081 and owned children stopped cleanly;
+memory observers exited. Closing amd-smi reports no running GPU processes on
+any of0--7. V4.1 remains frozen; no new V4.1 service was launched.
+`RESULTS.md`, `final-report.json`, `c1-woa-acceptance.json` and the verified
+raw-evidence archive provide the final provenance. Existing unrelated files,
+including cuda_graph_runner_memory_usage.pickle, remain unstaged/preserved.

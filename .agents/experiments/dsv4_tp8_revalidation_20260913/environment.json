@@ -1,0 +1,123 @@
+{
+  "python": "3.12.13 | packaged by Anaconda, Inc. | (main, Jul  9 2026, 14:38:16) [GCC 14.3.0]",
+  "executable": "/home/pc/anaconda3/envs/DS/bin/python",
+  "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+  "packages": {
+    "torch": "2.12.0a0+git78258b9",
+    "triton": "3.7.1+git0263a6a6.rocm7.14.0",
+    "transformers": "5.12.1",
+    "tokenizers": "0.22.2",
+    "aiter": "distribution metadata unavailable",
+    "sglang-kernel": "distribution metadata unavailable"
+  },
+  "model_path": "/home/pc/models/modelscope",
+  "model_metadata": {
+    "config.json": {
+      "bytes": 1888,
+      "sha256": "6c8f3d2d3b48707541b88f32f22ef3f0f8a6b57d8523281e2b8d3cdb0ae9a023"
+    },
+    "tokenizer.json": {
+      "bytes": 6367146,
+      "sha256": "8f9f37ca37fdc4f5fd36d5cf4d3b0e8392edb4e894fd10cc0d70b4957c8633cf"
+    },
+    "tokenizer_config.json": {
+      "bytes": 801,
+      "sha256": "6ac8c8dc065ed118161d02dd532749ae3f52c243deac27872134fae2f50d8547"
+    },
+    "generation_config.json": {
+      "bytes": 170,
+      "sha256": "5fccff80f55a4d455bbe516bdd552edf3e9623df95e99fbf2a3c3389fdf91af0"
+    },
+    "model.safetensors.index.json": {
+      "bytes": 5602871,
+      "sha256": "98efab455cf08dfbbbaaba6f570e1bf10bf927d2b4c3c453a59c2f6f0e3be92b"
+    }
+  },
+  "builds": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/Code/sglang",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "c049a18b901b17ec599be718ba5815829993f3e7\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/Code/sglang",
+        "status",
+        "--short",
+        "--untracked-files=no"
+      ],
+      "returncode": 0,
+      "stdout": " M .agents/experiments/dsv4_tp8_revalidation_20260913/README.md\n M .agents/memory/dsv4_tp8_revalidation_20260913.md\n M cuda_graph_runner_memory_usage.pickle\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/pytorch/third_party/aiter",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "9a469a608b2c10b7157df573a38d31e5bf4038b4\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/pytorch/third_party/aiter",
+        "status",
+        "--short",
+        "--untracked-files=no"
+      ],
+      "returncode": 0,
+      "stdout": " m 3rdparty/composable_kernel\n M aiter/dist/device_communicators/custom_all_reduce.py\n M aiter/fused_moe.py\n M aiter/ops/custom_all_reduce.py\n M aiter/ops/moe_op.py\n M aiter/ops/triton/_triton_kernels/gemm/basic/gemm_a16w16_gated.py\n M aiter/ops/triton/_triton_kernels/quant/fused_mxfp4_quant.py\n M aiter/ops/triton/gemm/basic/gemm_a16w16_gated.py\n M aiter/ops/triton/quant/fused_mxfp4_quant.py\n M csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages.cu\n M csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages.h\n M csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages_common.cuh\n M csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages_common.py\n M csrc/ck_gemm_moe_2stages_codegen/gen_instances.py\n M csrc/ck_tile_gemm_moe_2stages/gen_instances.py\n M csrc/ck_tile_gemm_moe_2stages/include/moe_cktile2stages_common.cuh\n M csrc/ck_tile_gemm_moe_2stages/moe_cktile2stages.cu\n M csrc/ck_tile_gemm_moe_2stages/moe_cktile2stages_common.py\n M csrc/include/aiter_enum.h\n M csrc/include/custom_all_reduce.cuh\n M csrc/include/custom_all_reduce.h\n M csrc/include/rocm_ops.hpp\n M csrc/kernels/custom_all_reduce.cu\n M csrc/pybind/custom_all_reduce_pybind.cu\n M op_tests/test_moe_2stage.py\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/Code/composable_kernel",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "2657802cb685a36aec61d0b2fdcf5c194df1fb86\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/pc/Code/composable_kernel",
+        "status",
+        "--short",
+        "--untracked-files=no"
+      ],
+      "returncode": 0,
+      "stdout": " M profiler/src/profile_gemm.cpp\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/opt/rocm/bin/hipcc",
+        "--version"
+      ],
+      "returncode": 0,
+      "stdout": "HIP version: 7.15.26333-0000000\nAMD clang version 23.0.0git (https://github.com/ROCm/llvm-project.git 8f497e0992fb7513f7f78a6f6b6f1056c375e961)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/rocm/core-10.0/lib/llvm/bin\n",
+      "stderr": ""
+    }
+  ],
+  "caveat": "Captured during the matrix; service execution source is documented separately. Metadata hashes are not full weight-file hashes. /opt/rocm/bin/hipcc reports the installed compiler, not the provenance of every cached binary; dirty tracked files are listed separately."
+}

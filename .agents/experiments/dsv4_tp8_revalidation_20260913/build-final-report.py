@@ -105,7 +105,7 @@ def main():
                       'D: new process, real512-token inputs, natural EOS, at most2048 output tokens.',
                       'Each D round accumulates >=30s common resident windows. Three measured rounds; warmups excluded.',
                       'Baseline vs final D is sequential matrix comparison, not per-tier ABBA. Outputs can differ.',
-                      'If accepted, C1 uses a separate GEMV-on three-round service supplement. Other-tier whole-wave HTTP rates retain their measured GEMV-off drain behavior.',
+                      ('C1 uses the accepted separate GEMV-on three-round service supplement. Other-tier whole-wave HTTP rates retain their measured GEMV-off drain behavior.' if c1_acceptance else 'C1 remains GEMV-off in this table pending its separate revalidation.'),
                       'Long8K C32 comparison is separate A1/B1/B2/A2; do not apply its multiplier to short D.',
                       '1M logical token pool allocated; this is not a1M filled-context or accuracy test.',
                       'P concurrency is client requests; admission16 and chunk36864 constrain actual GPU batch.',
