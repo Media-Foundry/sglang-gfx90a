@@ -50,6 +50,39 @@ def stable_index_topk(scores: torch.Tensor, k: int) -> torch.Tensor:
     return selected.sort(dim=-1).values
 
 
+def select_candidate_blocks(
+    logits: torch.Tensor,
+    visible: torch.Tensor | int,
+    topk_blocks: int,
+    block_size: int,
+) -> torch.Tensor:
+    """V4.1 level-one selection, stored as a compact per-block bool mask.
+
+    Logits are [query, position], with unreachable positions already -inf.
+    Match the reference's max-per-block score and pinned newest block; use
+    logical block ID to resolve cutoff ties deterministically. Consumers must
+    still apply their own causal mask. This does not deduplicate token keys.
+    """
+    if logits.ndim != 2 or block_size <= 0 or topk_blocks <= 0:
+        raise ValueError("candidate selection needs 2-D logits and positive sizes")
+    width = logits.shape[-1]
+    if width == 0:
+        return torch.zeros_like(logits, dtype=torch.bool)
+    padded = torch.nn.functional.pad(
+        logits, (0, -width % block_size), value=-torch.inf
+    )
+    scores = padded.unflatten(-1, (-1, block_size)).amax(dim=-1)
+    newest = (visible - 1) // block_size
+    scores = scores.masked_fill(
+        torch.arange(scores.shape[-1], device=logits.device) == newest, torch.inf
+    )
+    ids = stable_index_topk(scores, min(topk_blocks, scores.shape[-1]))
+    # Drop -inf filler blocks when fewer than topk_blocks are reachable.
+    return torch.zeros_like(scores, dtype=torch.bool).scatter_(
+        -1, ids, scores.gather(-1, ids) > -torch.inf
+    )
+
+
 class RMSNorm(nn.Module):
     """fp32 statistics and fp32 weight multiply, cast back at the very end."""
 

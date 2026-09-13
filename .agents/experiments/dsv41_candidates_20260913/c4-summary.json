@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "rounds": 2,
+  "requests": 8,
+  "hashes_per_case": {
+    "france": [
+      "d57c69a7c1ba57230ae2f1ae6647862f21225304c83f419c78eb642b8e1a5a8f"
+    ],
+    "arithmetic": [
+      "496113b30ca8274118ffdbc9356333d9bbafc3ace3c49cedb238d0a1bbd91d9e"
+    ],
+    "python": [
+      "5ec09b068c70fc5607861da90b2d5e80b12929d40107dc4455ae1aa215731113"
+    ],
+    "sql": [
+      "0cbb77961121e46844d34c95602762558c0c5a8a06a85b053e1074abd600bb9d",
+      "5cc405896d27b6f50b3b44f40d81f71cd11f19da13ed200f525aa2f2c4726bea"
+    ]
+  }
+}

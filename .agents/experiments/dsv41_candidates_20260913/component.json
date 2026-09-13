@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "reference": "/media/PM983/deepseek-v4.1-flash/inference/model.py",
+  "reference_function_sha256": "201875b7a0e3ca4a75eb71150b9b6d04c94f4c10aeefd3b2a56a229bc5e3f5d7",
+  "torch": "2.12.0a0+git78258b9",
+  "shapes": [
+    {
+      "width": 16383,
+      "rows": 6,
+      "official_mask_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "score_and_position_mutations": 10,
+      "mutations_official_exact": true,
+      "mask_bytes": 12288,
+      "full_position_mask_bytes": 98298
+    },
+    {
+      "width": 16384,
+      "rows": 6,
+      "official_mask_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "score_and_position_mutations": 10,
+      "mutations_official_exact": true,
+      "mask_bytes": 12288,
+      "full_position_mask_bytes": 98304
+    },
+    {
+      "width": 16385,
+      "rows": 6,
+      "official_mask_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "score_and_position_mutations": 10,
+      "mutations_official_exact": true,
+      "mask_bytes": 12294,
+      "full_position_mask_bytes": 98310
+    },
+    {
+      "width": 32769,
+      "rows": 6,
+      "official_mask_exact": true,
+      "graph_replays": 1000,
+      "graph_errors": 0,
+      "score_and_position_mutations": 10,
+      "mutations_official_exact": true,
+      "mask_bytes": 24582,
+      "full_position_mask_bytes": 196614
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-"
+}

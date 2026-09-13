@@ -31,6 +31,7 @@ from sglang.srt.layers.attention.dsv4.compressor_v2 import (
 )
 from sglang.srt.layers.attention.dsv4.dsv41_sparse import (
     _rope_fq4,
+    select_candidate_blocks,
     stable_index_topk,
     token_req_indices,
 )
@@ -284,6 +285,11 @@ class DSV4AttnMetadata:
         init=False, default=None
     )
 
+    # V4.1 two-level indexer state belongs to this forward, not to a layer or
+    # a long-lived request slot. Store one bool per block, not per position.
+    candidate_blocks: Dict[int, torch.Tensor] = field(default_factory=dict, repr=False)
+    candidate_ratio: Optional[int] = None
+
     # unified-kv metadata
     unified: Optional[UnifiedKvMetadata] = None
 
@@ -391,6 +397,8 @@ class DSV4AttnMetadata:
                 # Recomputed by the recorded init_forward_metadata_in_graph op
                 # each forward; not copied across replays.
                 "swa_out_cache_loc",
+                "candidate_blocks",
+                "candidate_ratio",
                 "c0_flashmla_metadata",
                 "c1_flashmla_metadata",
                 "c2_flashmla_metadata",
@@ -398,6 +406,10 @@ class DSV4AttnMetadata:
                 "c128_flashmla_metadata",
             ],
         )
+        # Eager-only row ownership must never survive a copied/reused forward.
+        # Rebind rather than clear: assign_fields temporarily aliases src.
+        self.candidate_blocks = {}
+        self.candidate_ratio = None
 
     def init_compression_metadata(self, unified_swa_pages: int = 0):
         assert self.page_table.dim() == 2
@@ -720,7 +732,6 @@ class DeepseekV4HipRadixBackend(
         )
         self.has_c4 = 4 in self.present_ratios
         self.has_c128 = 128 in self.present_ratios
-        self.candidate_masks = None
         self.MAX_SEQ_LEN_FOR_CAPTURE = self.req_to_token.shape[1]
 
         assert isinstance(self.token_to_kv_pool, DeepSeekV4TokenToKVPool)
@@ -1185,6 +1196,9 @@ class DeepseekV4HipRadixBackend(
         # padding rebind out_cache_loc after out-graph metadata prep). flash_mla
         # kernels require int32 indices.
         metadata = self.forward_metadata
+        if isinstance(metadata, DSV4Metadata) and self.low_ratios:
+            metadata.core_attn_metadata.candidate_blocks.clear()
+            metadata.core_attn_metadata.candidate_ratio = None
         if (
             isinstance(metadata, DSV4Metadata)
             and forward_batch.out_cache_loc is not None
@@ -1680,6 +1694,13 @@ class DeepseekV4HipRadixBackend(
             raw_indices.fill_(-1)
 
         indexer = layer.indexer
+        if indexer.is_candidate_source:
+            core.candidate_blocks.clear()
+            core.candidate_ratio = ratio
+        elif indexer.uses_candidates and core.candidate_ratio != ratio:
+            raise RuntimeError(
+                "V4.1 candidate source must run first with the same cache ratio"
+            )
         q = indexer.queries(q_lora, layer.freqs_cis[pos])
         weights = indexer.head_weights(x)
         visible = (pos + 1) // ratio
@@ -1708,8 +1729,31 @@ class DeepseekV4HipRadixBackend(
             scores = scores.masked_fill(
                 logical[None, :] >= row_visible[:, None], -torch.inf
             )
+            if indexer.is_candidate_source:
+                core.candidate_blocks[request_id] = select_candidate_blocks(
+                    scores,
+                    row_visible[:, None],
+                    indexer.candidate_topk_blocks,
+                    indexer.candidate_block_size,
+                )
+            elif indexer.uses_candidates:
+                blocks = core.candidate_blocks.get(request_id)
+                expected_shape = (
+                    rows.numel(),
+                    (length + indexer.candidate_block_size - 1)
+                    // indexer.candidate_block_size,
+                )
+                if blocks is None or blocks.shape != expected_shape:
+                    raise RuntimeError(
+                        "V4.1 missing or incompatible per-request candidate blocks"
+                    )
+                scores = scores.masked_fill(
+                    ~blocks[:, logical // indexer.candidate_block_size], -torch.inf
+                )
             selected = stable_index_topk(scores, k)
-            chosen = selected < row_visible[:, None]
+            chosen = (selected < row_visible[:, None]) & (
+                scores.gather(-1, selected) > -torch.inf
+            )
             selected_safe = selected.clamp_max(length - 1)
             page_indices[rows, :k] = torch.where(
                 chosen,
