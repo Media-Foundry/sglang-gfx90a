@@ -47,6 +47,22 @@ def main():
         assert all(t >= 30 for t in [r['decode_seconds'] for r in load(final_path/f'decode_c{c}_measured.json')['rounds']])
         cells.append(dict(concurrency=c, prefill=p, baseline_decode=a, final_decode=b,
                           decode_change_pct=(b['median']/a['median']-1)*100))
+    c1_acceptance = None
+    c1_path = EXP/'c1-woa-acceptance.json'
+    if c1_path.exists() and load(c1_path)['status'] == 'accepted':
+        c1_acceptance = load(c1_path)
+        c1_state = load(EXP/'ar-c1-gemv/state.json')
+        c1_service = load(EXP/'empty-tiles-WoaB-service.json')
+        assert c1_state['status'] == 'complete' and c1_state['mode'] == 'ar'
+        assert c1_state['concurrencies'] == [1] and c1_state['measured_rounds'] == 3
+        assert c1_service['pid'] == c1_state['pid'] and c1_service['woa_gemv'] == 1
+        c1 = audited(EXP/'ar-c1-gemv/decode_c1_measured.json', decode_summary)
+        assert c1['manifest_sha256'] == cells[0]['final_decode']['manifest_sha256']
+        cells[0]['main_matrix_decode'] = cells[0]['final_decode']
+        cells[0]['final_decode'] = c1
+        cells[0]['profile'] = 'C1 GEMV-on supplement; different reduction arithmetic'
+        cells[0]['source_head'] = c1_service['git_head']
+        cells[0]['decode_change_pct'] = (c1['median']/cells[0]['baseline_decode']['median']-1)*100
     arms = []
     for label in ('A1', 'B1', 'B2', 'A2'):
         path = EXP/f'empty-tiles-{label}.json'
@@ -80,6 +96,7 @@ def main():
                           percent=100*mem['used_vram']['value']/mem['total_vram']['value']))
     report = dict(tp=8, mode='native_ar', baseline_head=baseline['git_head'],
                   final_head=service['git_head'], final_controller_head=final['git_head'],
+                  c1_woa_acceptance=c1_acceptance,
                   cells=cells, long_context_abba=arms,
                   long_context_resident_speedup=long_gain, observed_graph_tiers=tiers,
                   final_observed_vram=peaks, final_matrix_end_epoch=stop_time,
@@ -88,6 +105,7 @@ def main():
                       'D: new process, real512-token inputs, natural EOS, at most2048 output tokens.',
                       'Each D round accumulates >=30s common resident windows. Three measured rounds; warmups excluded.',
                       'Baseline vs final D is sequential matrix comparison, not per-tier ABBA. Outputs can differ.',
+                      'If accepted, C1 uses a separate GEMV-on three-round service supplement. Other-tier whole-wave HTTP rates retain their measured GEMV-off drain behavior.',
                       'Long8K C32 comparison is separate A1/B1/B2/A2; do not apply its multiplier to short D.',
                       '1M logical token pool allocated; this is not a1M filled-context or accuracy test.',
                       'P concurrency is client requests; admission16 and chunk36864 constrain actual GPU batch.',
