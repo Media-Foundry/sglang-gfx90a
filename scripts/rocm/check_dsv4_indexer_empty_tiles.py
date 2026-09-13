@@ -6,6 +6,7 @@ patching is local to this test process, during eager launch/graph capture.
 Do not run concurrently with a service benchmark.
 """
 import argparse
+from contextlib import nullcontext
 import json
 import math
 import os
@@ -74,9 +75,15 @@ def run_case(batch, width, live_width, skip, args):
     pages[:, :pages_n] = torch.arange(pages_n, device=device, dtype=torch.int32)
     triton_fused_store_indexer(values, cache, locations, 64)
 
-    def stage():
-        scores = indexer._fp8_paged_mqa_logits_triton(
-            q, cache.view(pages_n, 64, 1, 132), weights, lengths, pages, width, skip)
+    def stage(name):
+        if args.production:
+            scores = indexer.fp8_paged_mqa_logits_torch(
+                q, cache.view(pages_n, 64, 1, 132), weights, lengths, pages,
+                None, width, False, skip_trivial_topk=skip,
+                skip_empty_tiles=(name == 'B'))
+        else:
+            scores = indexer._fp8_paged_mqa_logits_triton(
+                q, cache.view(pages_n, 64, 1, 132), weights, lengths, pages, width, skip)
         assert scores is not None
         logical = torch.empty(batch, 512, device=device, dtype=torch.int32)
         physical = torch.empty_like(logical)
@@ -85,12 +92,14 @@ def run_case(batch, width, live_width, skip, args):
 
     outputs, graphs = {}, {}
     for name, kernel in (('A', _control_kernel), ('B', _empty_tile_candidate)):
-        with patch.object(indexer, '_fp8_paged_mqa_logits_kernel', kernel):
-            stage()
+        context = nullcontext() if args.production else patch.object(indexer, '_fp8_paged_mqa_logits_kernel', kernel)
+        with context:
+            stage(name)
             graph = torch.cuda.CUDAGraph()
             with torch.cuda.graph(graph):
-                outputs[name] = stage()
+                outputs[name] = stage(name)
             graphs[name] = graph
+    assert all(a.data_ptr() != b.data_ptr() for a, b in zip(outputs['A'], outputs['B'])), 'Independent output storage required'
 
     def check(label):
         a, b = outputs['A'], outputs['B']
@@ -98,10 +107,10 @@ def run_case(batch, width, live_width, skip, args):
         assert torch.equal(a[1], b[1]), ('logical Top-K', label)
         assert torch.equal(a[2], b[2]), ('physical Top-K', label)
 
-    for graph in graphs.values():
-        for _ in range(args.replays):
+    for replay in range(args.replays):
+        for graph in graphs.values():
             graph.replay()
-    check('fixed graph replay')
+        check(('fixed graph replay', replay))
     times = []
     for cycle in range(args.abba_cycles):
         for name in ('A', 'B', 'B', 'A'):
@@ -148,6 +157,7 @@ def main():
     parser.add_argument('--timing-iterations', type=int, default=20)
     parser.add_argument('--abba-cycles', type=int, default=2)
     parser.add_argument('--screen', action='store_true', help='One B64 case first')
+    parser.add_argument('--production', action='store_true', help='Test public integrated wrapper, not test-only patching')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     assert min(args.mutations, args.replays, args.timing_iterations, args.abba_cycles) > 0
@@ -158,7 +168,7 @@ def main():
         (1, 262144, 640, 0), (32, 262144, 640, 0), (64, 262144, 640, 0),
         (4, 577, 577, 0), (4, 8192, 8192, 0), (1, 262144, 262144, 0),
         (32, 576, 576, 512)]
-    result = dict(status='running', production_modified=False, cases=[])
+    result = dict(status='running', integrated_wrapper=args.production, cases=[])
     for case in cases:
         row = run_case(*case, args)
         result['cases'].append(row)

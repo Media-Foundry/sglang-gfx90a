@@ -1748,6 +1748,9 @@ class Envs:
     # Decode FP8 indexer operands to fp16 before the gfx90a MFMA dot. The
     # accumulator and logits remain fp32; opt-in until top-k parity is proven.
     SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT = EnvBool(False)
+    # Keep full KV capacity and exact logits, but bypass Q/K and dot work for
+    # empty captured tail tiles. Native unified-V4 decode only; opt-in pending E2E.
+    SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP = EnvBool(False)
     # Optional graph-safe upper bound for C4 logits width. A request cannot
     # exceed the whole KV token pool, so launch harnesses may set this to
     # ceil(max_total_tokens / 4) instead of capturing the model's full 1M

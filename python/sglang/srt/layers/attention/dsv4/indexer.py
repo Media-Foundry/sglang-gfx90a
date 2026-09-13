@@ -75,6 +75,7 @@ IndexerQuery: TypeAlias = Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
 
 _arange_cache = {}
 _fp8_paged_mqa_logits_debug_logged = False
+_c4_empty_tiles_debug_logged = False
 _c4_trivial_logits_debug_logged = False
 
 
@@ -252,6 +253,41 @@ if triton is not None:
                      0.0, mask=offs_s < max_seq_len)
 
 
+    @triton.jit
+    def _fp8_paged_mqa_logits_nonempty_kernel(
+        q_u8, kvcache_u8, weights, seq_lens, page_table, out,
+        max_num_pages: tl.constexpr, max_seq_len: tl.constexpr,
+        num_heads: tl.constexpr,
+        q_stride_b: tl.constexpr, q_stride_h: tl.constexpr, q_stride_d: tl.constexpr,
+        kv_stride_page: tl.constexpr,
+        weights_stride_b: tl.constexpr, weights_stride_h: tl.constexpr,
+        page_table_stride_b: tl.constexpr, page_table_stride_p: tl.constexpr,
+        out_stride_b: tl.constexpr, out_stride_s: tl.constexpr,
+        FP8_TY: tl.constexpr, DOT_TY: tl.constexpr, PRESHUFFLE_TILE: tl.constexpr,
+        BLOCK_S: tl.constexpr, BLOCK_H: tl.constexpr, BLOCK_D: tl.constexpr,
+        TRIVIAL_TOPK: tl.constexpr,
+    ):
+        # Graph width is capacity, not live KV length. Empty tiles used to
+        # execute the FP8 conversion and MFMA against masked zero K values.
+        # Preserve all stores and use the original arithmetic on live tiles.
+        row = tl.program_id(0)
+        tile = tl.program_id(1)
+        length = tl.load(seq_lens + row)
+        if tile * BLOCK_S < length:
+            _fp8_paged_mqa_logits_kernel(
+                q_u8, kvcache_u8, weights, seq_lens, page_table, out,
+                max_num_pages, max_seq_len, num_heads,
+                q_stride_b, q_stride_h, q_stride_d, kv_stride_page,
+                weights_stride_b, weights_stride_h,
+                page_table_stride_b, page_table_stride_p, out_stride_b, out_stride_s,
+                FP8_TY, DOT_TY, PRESHUFFLE_TILE, BLOCK_S, BLOCK_H, BLOCK_D, TRIVIAL_TOPK,
+            )
+        else:
+            columns = tile * BLOCK_S + tl.arange(0, BLOCK_S)
+            tl.store(out + row * out_stride_b + columns * out_stride_s,
+                     0.0, mask=columns < max_seq_len)
+
+
 def _fp8_paged_mqa_logits_triton(
     q_fp8: torch.Tensor,
     kvcache_fp8: torch.Tensor,
@@ -260,6 +296,8 @@ def _fp8_paged_mqa_logits_triton(
     page_table: torch.Tensor,
     max_seq_len: int,
     skip_trivial_topk: int = 0,
+    *,
+    skip_empty_tiles: bool = False,
 ) -> Optional[torch.Tensor]:
     if triton is None:
         _debug_fp8_paged_mqa_logits_skip("triton is unavailable")
@@ -348,7 +386,19 @@ def _fp8_paged_mqa_logits_triton(
             flush=True,
         )
         _c4_trivial_logits_debug_logged = True
-    _fp8_paged_mqa_logits_kernel[grid](
+    kernel = (
+        _fp8_paged_mqa_logits_nonempty_kernel
+        if skip_empty_tiles else _fp8_paged_mqa_logits_kernel
+    )
+    global _c4_empty_tiles_debug_logged
+    if skip_empty_tiles and not _c4_empty_tiles_debug_logged:
+        print(
+            f"[DSV4 indexer] empty-tile kernel selected: rows={batch_size}, "
+            f"C4_capacity={max_seq_len}, BLOCK_S={block_s}; no KV truncation",
+            flush=True,
+        )
+        _c4_empty_tiles_debug_logged = True
+    kernel[grid](
         q_u8,
         kvcache_u8,
         weight,
@@ -449,11 +499,13 @@ def fp8_paged_mqa_logits_torch(
     clean_logits: bool = True,
     *,
     skip_trivial_topk: int = 0,
+    skip_empty_tiles: bool = False,
 ) -> torch.Tensor:
     """Graph-compatible logits; optional Top-K-only trivial rows become zero.
 
     skip_trivial_topk is opt-in: those scores are not meaningful, and the
     consumer must synthesize all valid IDs without consulting scores.
+    skip_empty_tiles preserves every output score, including zero tail values.
     """
     _ = deep_gemm_metadata
     batch_size, _, num_heads, head_dim = q_fp8.shape
@@ -474,6 +526,7 @@ def fp8_paged_mqa_logits_torch(
     triton_scores = _fp8_paged_mqa_logits_triton(
         q_fp8, kvcache_fp8, weight, seq_lens, page_table, max_seq_len,
         skip_trivial_topk=skip_trivial_topk,
+        skip_empty_tiles=skip_empty_tiles,
     )
     if triton_scores is not None:
         return triton_scores
@@ -807,6 +860,20 @@ class C4IndexerBackendMixin:
         super().__init__()
         self.debug_use_external_c4_sparse_indices: bool = False
         self.dsa_topk_backend: DSATopKBackend = DSATopKBackend.SGL_KERNEL
+
+    def _use_c4_empty_decode_tiles(self, forward_batch: "ForwardBatch") -> bool:
+        # Opt-in original-V4 native AR only. Keep prefill, DSpark, MTP draft
+        # and paged V4.1 execution unchanged; unknown backend roles fail closed.
+        return (
+            envs.SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP.get()
+            and is_hip()
+            and is_gfx90a_supported()
+            and forward_batch.forward_mode == ForwardMode.DECODE
+            and bool(getattr(self.token_to_kv_pool, "_unified_kv", False))
+            and getattr(self, "is_draft_worker", True) is False
+            and getattr(self, "is_dspark_target", True) is False
+            and getattr(self, "mtp_enabled", True) is False
+        )
 
     @staticmethod
     def _should_skip_c4_indexer_logits(
@@ -1273,6 +1340,11 @@ class C4IndexerBackendMixin:
                     and os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "3") in ("2", "3")
                 ):
                     logits_kwargs["skip_trivial_topk"] = c4_indexer.index_topk
+                if (
+                    fn is fp8_paged_mqa_logits_torch
+                    and self._use_c4_empty_decode_tiles(forward_batch)
+                ):
+                    logits_kwargs["skip_empty_tiles"] = True
                 logits = fn(
                     q,
                     c4_indexer_kv_cache,
