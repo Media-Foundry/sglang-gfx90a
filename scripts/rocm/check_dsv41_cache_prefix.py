@@ -49,6 +49,21 @@ def compare(a, b):
     }
 
 
+def summarize_comparisons(rows):
+    """Committed IDs are the acceptance gate; ranked Top-20 is diagnostic.
+
+    At tied logits, the order of a reporting Top-K need not be the sampler's
+    argmax tie order. Equal first-ranked IDs cannot certify equal commits,
+    and different first-ranked IDs do not imply different committed tokens.
+    """
+    return {
+        "all_committed_ids_equal": bool(rows) and all(
+            row["cached_committed_id"] == row["recompute_committed_id"] for row in rows
+        ),
+        "all_top1_equal": bool(rows) and all(row["top1_equal"] for row in rows),
+    }
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--prompt-artifact", type=Path, required=True, help="JSON containing the exact input_ids to use")
@@ -92,6 +107,8 @@ def main():
             with (args.output_dir / f"{name}.json").open("x") as f:
                 json.dump(record, f, indent=2, ensure_ascii=False)
         validate(record["response"], args.topn)
+        if record["response"]["meta_info"].get("prompt_tokens") != len(prefix):
+            raise ValueError("recompute did not account for the complete fixed prefix")
         if record["response"]["meta_info"].get("cached_tokens") != 0:
             raise ValueError("fresh-cache recompute unexpectedly reused a prefix")
         return record["response"]
@@ -123,14 +140,14 @@ def main():
                 report["comparisons"].append(row)
                 print(json.dumps(row), flush=True)
         report["coverage_complete"] = True
-        report["all_top1_equal"] = all(x["top1_equal"] for x in report["comparisons"])
     except Exception as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"
     finally:
+        report.update(summarize_comparisons(report["comparisons"]))
         with (args.output_dir / "summary.json").open("x") as f:
             json.dump(report, f, indent=2)
     print(json.dumps(report, indent=2), flush=True)
-    return 0 if report["coverage_complete"] and report["all_top1_equal"] else 1
+    return 0 if report["coverage_complete"] and report["all_committed_ids_equal"] else 1
 
 
 if __name__ == "__main__":

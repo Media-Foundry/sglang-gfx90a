@@ -16,4 +16,5 @@ exec "${PYTHON_BIN}" -m pytest -q \
   test/registered/unit/layers/attention/test_dspark_swa_loc_replay.py \
   test/registered/unit/layers/attention/test_dsv41_bounded_scores.py \
   test/registered/unit/test_dsv41_mixed_context_harness.py \
+  test/registered/unit/test_dsv41_prefix_harness.py \
   test/registered/unit/test_dsv41_sql_functional_harness.py "$@"
