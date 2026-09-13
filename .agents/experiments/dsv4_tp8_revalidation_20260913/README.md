@@ -17,6 +17,20 @@ are not reference AR measurements.
 - `ar-matrix/{prefill,decode}_c*_measured.json`: three-round measurements.
   Corresponding warmup files are excluded, not silently merged into results.
 - `ar-summary.json`: recomputed checked summary, generated with the command below.
+- `ar-final-decode/state.json`: final seven-tier native D rerun after the exact
+  empty-indexer-tile fix. Three measured rounds/tier; separate warmups.
+- `empty-tiles-A1/B1/B2/A2.json`: independent long8K C32 service ABBA;
+  resident169.657/611.103/610.853/169.843tok/s. Not the short512-input matrix.
+- `empty-tiles-integrated.json`: production-wrapper score-bit and logical/
+  physical Top-K oracle, seven cases,100mutations/case and checks after every
+  one of1000graph replays/case. Components are not whole-model equivalence.
+- `empty-tiles-Final-service.json`: new process launched without an explicit
+  empty-tile flag; the validated TP8/EP1/no-A2A launcher supplies its default1.
+- `final-vram-snapshots.jsonl`: separate5s observations for that final process.
+- `build-final-report.py`: after final D completes, rechecks all21 P and21 D
+  rounds from raw evidence, produces `RESULTS.md` and `final-report.json`.
+  P remains the original completed matrix because the new guard excludes
+  prefill entirely. Baseline and final D are both retained.
 - `ar-matrix.service.log`: startup, pool capacity, actual kernel/graph selections.
 - `build-witnesses.jsonl`: compiler children observed after the watcher started;
   it cannot establish absence of in-process compilation or earlier builds.

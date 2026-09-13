@@ -29,6 +29,8 @@ def main():
     baseline = load(EXP/'ar-matrix/state.json')
     final_path = EXP/'ar-final-decode'
     final = load(final_path/'state.json')
+    service = load(EXP/'empty-tiles-Final-service.json')
+    assert service['pid'] == final['pid'] and service['profile_default']
     for state in (baseline, final):
         assert state['status'] == 'complete'
         assert state['tp'] == 8 and state['mode'] == 'ar'
@@ -77,7 +79,8 @@ def main():
         peaks.append(dict(gpu=gpu, time=t, samples=len(items), **mem,
                           percent=100*mem['used_vram']['value']/mem['total_vram']['value']))
     report = dict(tp=8, mode='native_ar', baseline_head=baseline['git_head'],
-                  final_head=final['git_head'], cells=cells, long_context_abba=arms,
+                  final_head=service['git_head'], final_controller_head=final['git_head'],
+                  cells=cells, long_context_abba=arms,
                   long_context_resident_speedup=long_gain, observed_graph_tiers=tiers,
                   final_observed_vram=peaks, final_matrix_end_epoch=stop_time,
                   caveats=[

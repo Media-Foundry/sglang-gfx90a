@@ -330,3 +330,23 @@ without an explicit flag to verify this actual default. It will repeat all
 seven native AR D concurrencies, three rounds each, unchanged real-code
 natural-EOS protocol. Completed P measurements are retained because this
 selector cannot enter prefill. Final D results are not available yet.
+
+## C1 configuration hole found during final audit (must close before handoff)
+
+While final D proceeds, direct source/process inspection found the historical
+accepted TP8 BS1 wo_a GEMV missing from this matrix launcher. It is NOT now a
+default: `SGLANG_DSV4_GFX90A_TP8_BS1_WOA_GEMV=EnvBool(False)` and Final
+PID591550 has no exported value. BF16_ATTN_LINEAR and WAVE64_GROUPED_GEMV
+are1, but single-group TP8 still falls back without the separate authorization.
+Current native C1 median79.5746 is thus not yet the best historical configuration.
+Historical `dsv4_tp8_bs1_final_20260907.md` reports a~10% candidate gain on a
+different short256-token/131072-pool benchmark; do not copy that rate here.
+
+Finish the current matrix without mid-run changes. Then revalidate the existing
+component, do a C1-only fresh-service ABBA on fixed real code, and if accepted
+repeat C1's same three-round naturalEOS/2048-output protocol. Other resident
+tiers and P cannot select this BS1/native-decode-only shape. Keep separate
+provenance and do not claim whole-request drain times unchanged by a C1 kernel.
+This candidate changes reduction arithmetic (historical tests not bit-exact);
+it needs France and long-source smoke in addition to timing. No new kernel or
+default promotion has been made for this C1 direction at this point.
