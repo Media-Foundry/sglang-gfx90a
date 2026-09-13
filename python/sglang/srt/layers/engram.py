@@ -1036,6 +1036,10 @@ class Engram(nn.Module):
         return kv
 
     def apply_gate(self, x: torch.Tensor, kv: torch.Tensor) -> torch.Tensor:
+        if torch.version.hip and envs.SGLANG_DSV41_ENGRAM_GATE_INVARIANT.get():
+            return fused_engram_gate(
+                x, kv, self.q_weight, self.k_weight, self.eps, self.clamp_value
+            )
         return engram_gate(
             x, kv, self.q_weight, self.k_weight, self.eps, self.clamp_value
         )

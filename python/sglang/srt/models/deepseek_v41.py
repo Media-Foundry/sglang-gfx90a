@@ -2980,7 +2980,11 @@ class DeepseekV4DecoderLayer(nn.Module):
             if y is None:
                 y = combine_and_norm()
             return y, pre, post, comb
-        if x.is_cuda and torch.version.cuda is not None:
+        if _is_hip and envs.SGLANG_DSV41_HC_STATS_INVARIANT.get():
+            from sglang.kernels.ops.layernorm.dsv41_invariant import hc_mix_stats_invariant
+
+            mixes = hc_mix_stats_invariant(x_flat, hc_fn, self.rms_norm_eps).unsqueeze(1)
+        elif x.is_cuda and torch.version.cuda is not None:
             # Keep mixing and RMS reductions batch-invariant; cuBLAS/torch reductions can
             # change order with num_tokens. Kernel upcasts let x_flat remain a bf16 view.
             mixes = hc_mix_stats(x_flat, hc_fn, self.rms_norm_eps).unsqueeze(1)

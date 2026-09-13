@@ -1422,6 +1422,8 @@ class Envs:
     # Fixed wo_a reduction before FP8 activation quantization; HIP V4.1 only.
     SGLANG_DSV41_WO_A_INVARIANT = EnvBool(False)
     SGLANG_DSV41_ATTN_INVARIANT = EnvBool(False)
+    SGLANG_DSV41_HC_STATS_INVARIANT = EnvBool(False)
+    SGLANG_DSV41_ENGRAM_GATE_INVARIANT = EnvBool(False)
     SGLANG_ENABLE_DSV41_ENGRAM_KV_PREFETCH = EnvBool(False)
     SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN = EnvBool(True)
     SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT = EnvStr("auto")

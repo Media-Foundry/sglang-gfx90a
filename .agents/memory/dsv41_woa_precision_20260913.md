@@ -4,6 +4,9 @@ Status at handoff: **paused for the user's emergency job; whole-model
 numerical agreement is not yet repaired**. Both experimental selectors stay
 default-off. The final TP8 service is stopped and all eight GCDs are released.
 
+Evening continuation after user authorization:
+`dsv41_hc_boundary_precision_20260913.md`. This pause status is historical.
+
 ## Scope
 
 Continuation of `dsv41_resume_prefix_20260913.md`, not a performance trial.
