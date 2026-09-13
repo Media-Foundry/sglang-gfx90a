@@ -14,6 +14,13 @@ def main():
     # Refuse a live original service. A reused unrelated PID is also a safe
     # refusal; inspect it before overriding the archival workflow.
     assert not psutil.pid_exists(state['pid']), 'Stop the owned test service first'
+    for arm_path in root.glob('empty-tiles-*-service.json'):
+        arm = json.loads(arm_path.read_text())
+        if 'pid' in arm:
+            assert not psutil.pid_exists(arm['pid']), f'Stop owned arm {arm_path.name} first'
+    final_path = root/'ar-final-decode/state.json'
+    if final_path.exists():
+        assert json.loads(final_path.read_text())['status'] == 'complete'
     excluded = {'evidence-index.json'}
     files = sorted(p for p in root.rglob('*')
                    if p.is_file() and p.suffix in ('.json', '.jsonl', '.log')

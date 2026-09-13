@@ -1,4 +1,4 @@
-"""Persist individual AMD memory snapshots (CLI watch --file overwrites)."""
+"""Persist separately timestamped AMD snapshots; CLI watch also keeps history."""
 import json
 from pathlib import Path
 import subprocess
