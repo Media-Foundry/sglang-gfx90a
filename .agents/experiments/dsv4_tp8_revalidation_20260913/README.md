@@ -31,6 +31,9 @@ are not reference AR measurements.
   substituted for the formal three-round natural-output median.
 - `check-post-matrix.py`: refuses while matrix runs; afterwards sends France
   and three8K source cases twice, saving readable output for bounded review.
+- `validate-output-text.py`: CPU-only independent tokenizer check of saved
+  completion IDs against response text, for every completed warmup/measured
+  cell; saves per-file hashes in `output-text-validation.json`.
 - `pack-results.py`: after the owned service stops, archives JSON/log evidence
   and checks every archived file against its SHA256. The resulting
   `measurement-evidence.tar.gz` and `evidence-index.json` preserve raw data

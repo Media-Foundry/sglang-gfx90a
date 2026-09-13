@@ -209,3 +209,47 @@ gfx90a JIT cache: compile0--5311ms, link5311--5373ms; object timestamp
 cold M3 vocab-projection compile during the slow wave, not a steady prefill
 kernel regression. Compiler duration is not additive critical-path time;
 the measured wave delta is only about1.1s. All three rounds remain recorded.
+
+At00:37HKT formal C16 completed:609.1787resident tok/s median. The C32
+warmup was1040.809; its first measured round was1040.874 across four windows
+(1040.01/1041.68/1041.53/1040.69). Remaining C32 rounds and C64 still running.
+Independent CPU tokenizer verification has passed835 saved completed responses
+across25 P/D files; running/incomplete files were excluded. This includes P's
+single-token outputs and is an integrity count, not835 long quality judgments.
+
+Provenance: the fresh service launched from patched working-tree source;
+startup repairs and graph audit were committed after ready as c224e9c1ce and
+d111ffa4f7. The formal controller records d111ffa4f7. Subsequent commits so far
+change audit scripts/docs only, not the active model/kernel execution path.
+This was not a separate clean-worktree checkout; unrelated existing local
+files remain preserved and unstaged.
+
+## C64 exposes a separate long-context cost cliff (baseline unchanged)
+
+Formal C32 three-round median1040.9881resident tok/s. C64 warmup1330.7371
+resident versus486.8324whole-wave HTTP tok/s;98976 output tokens over203.306s,
+TTFTmax7.772s,43natural stops and21length limits. A5-second timestamp slice
+around wave90--120s has34--36fully active requests, generated positions
+1554--1640, and only96--105aggregate tok/s. This is more than ordinary batch
+drain: input512 plus these generated positions crosses the raw2048 boundary.
+
+Read-only code/process evidence:
+- Live INDEXER_MAX_C4_SEQ_LEN=262144, TRITON_INDEXER_FULL=1; default BLOCK_S16.
+- PagedIndexerMetadata uses captured page-table capacity (bounded by that cap).
+- Full Triton grid is(batch,ceil(max_seq_len/BLOCK_S)):1048576CTAs atM64.
+- The original kernel masks invalid K loads but still performs Q loads/dot
+  on every non-trivial row's empty tail tiles. AR does not use the prefill-only
+  trivial-row optimization. At the boundary only~513--640keys/row are valid.
+This is a concrete waste mechanism, but component/causal E2E confirmation
+is still pending; do not claim a measured fix or a newly introduced merge bug.
+
+Prepared `scripts/rocm/check_dsv4_indexer_empty_tiles.py`, isolated from serving:
+candidate only guards empty tiles, invokes the original kernel for nonempty
+tiles, and preserves full-width zero stores. It checks score bits, logical and
+physical Top-K, ties/boundaries,100mutations,1000graph replays and component
+ABBA. Only Python syntax has been checked. No GPU test or production change
+has happened. Finish the unchanged baseline C64 matrix before GPU experiments.
+
+Compiler witness also observed new exact-M7679 MFMA gate/down builds at
+01:18:47--01:18:56 during C64 admission. Those are separate cold-prefill/JIT
+events; they cannot explain the much later >2048-token sparse decode slowdown.
