@@ -350,3 +350,35 @@ provenance and do not claim whole-request drain times unchanged by a C1 kernel.
 This candidate changes reduction arithmetic (historical tests not bit-exact);
 it needs France and long-source smoke in addition to timing. No new kernel or
 default promotion has been made for this C1 direction at this point.
+
+## Seven-tier default-indexer matrix completed
+
+Final PID591550 (production launch3535a3d76f; controller edb52d5a8a) completed
+all seven D tiers with three measured rounds each. C1/C2/C4/C8/C16/C32/C64:
+79.5746/109.9393/188.7103/334.1751/608.2312/1044.3250/1334.2383 resident
+tok/s. Whole-wave HTTP rates respectively78.66/102.41/148.50/254.45/422.51/
+680.61/848.14. Baseline vs final is sequential, not per-tier ABBA; C1 remains
+the GEMV-OFF control pending the explicit configuration-hole recheck above.
+
+All1367 final warmup/measured responses across14 files pass independent
+completion-ID/text decoding. Post-matrix France twice correctly answers Paris;
+three8K source prompts repeated twice complete at128output cap, coherent and
+on topic but not a factual code-audit oracle and not identical wording.
+All requested graph tiers observed, including raw_bs64/executed_rows64.
+Final D observed VRAM peak45773/65520 tool-MB=69.861%/GCD, sampled5s and
+bounded by main-matrix completion time. Large P's separate observed peak stays
+82.596%; neither establishes an exact allocator peak or1M-filled-context test.
+
+Final C64 warmup resident1336.861 versus whole-wave HTTP862.635tok/s. Post-hoc
+five-second slices at90/100s still show550.0/498.4 aggregate tok/s with30/23
+fully active requests at generated1613/1798, unlike the old~100tok/s cliff.
+These are drain diagnostics, not replacements for the formal resident table.
+
+C1 existing component recheck on physicalGPU0 after all matrix/quality traffic
+ended: einsum30.7465us versus groupedG1 GEMV6.8771us.100mutations finite,
+100/100stable repeated-replay checks;70/100fully bit-equal to einsum, largest
+absolute difference0.5 on unscaled random weights, max relativeL2 toFP32
+0.00178775. Same numerical character as the historical candidate, not exact
+einsum arithmetic. Two CPU shape/predicate tests passed on current source.
+New C1 A1 control79.5580resident tok/s reproduces main-matrix79.5746.
+France passed. Candidate B is next; no C1 E2E speedup claimed yet.
