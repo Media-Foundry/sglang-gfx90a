@@ -63,8 +63,28 @@ or that cache addressing is the source of these numerical differences.
 
 ## Fresh C1 control
 
-Started `check_dsv41_cache_prefix.py` without a reused baseline, same fixed
+Ran `check_dsv41_cache_prefix.py` without a reused baseline, same fixed
 203-token input, max_new_tokens1536/natural EOS, same12positions x2repeats.
-Output directory`/tmp/dsv41-resume-c1-prefix-20260913-1510`. Pending at this
-recording point. The purpose is to remove the old-C4/new-C1 cohort difference
-before drawing conclusions about cached decode versus recomputation.
+Output directory`/tmp/dsv41-resume-c1-prefix-20260913-1510`. Complete:
+
+- Fresh C1 answer738completion IDs, natural EOS, HTTP137.5035s including
+  prefill. Generated SQL passes16/16independent event-sessionization fixtures.
+- All24committed-token comparisons agree. At each prefix, both recomputations
+  have identical actual IDs, selected-token logprobs and complete Top-20 rows.
+- At initial prefix203, the C1 baseline and recompute also have exactly equal
+  Top-20 logprobs (contrast the cross-batch comparison's0.773645delta).
+- Numerical differences begin by the first cached-decode step204 even without
+  C4 batching. Common Top-20 logprob max difference over this set is1.624998;
+  overlap0.8-1.0. This is NOT bitwise cached-vs-prefill equivalence, and cannot
+  all be explained by C4 admission. Shape/reduction and cache-path causes have
+  not been separated by an independent layer-level oracle.
+- There is no observed committed-token mismatch clustered at the sampled
+  256/512/768boundaries. This does not rule out errors at unsampled positions,
+  low-margin decisions, other workloads or bigger contexts.
+
+The two rollout texts differ (old C4:766tokens, new C1:738), so do not compare
+their post-divergence logits by generated-offset alone. Each experiment uses
+its own fixed continuation. All raw data and the complete C1 baseline are
+preserved in`c1-recomputes.tar.gz`; summaries and functional result are provided
+separately. No arithmetic/kernel change or performance-win claim this round.
+The restored service remains running on0.0.0.0:30101.
