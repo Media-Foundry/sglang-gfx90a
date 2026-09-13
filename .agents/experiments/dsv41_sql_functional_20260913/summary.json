@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "requests": 8,
+  "concurrency": 4,
+  "rounds": 2,
+  "semantic_passes": 8,
+  "cases": {
+    "latest_build": {
+      "token_lengths": [
+        705,
+        641
+      ],
+      "hashes": [
+        "5a94b10fec5a85ca0da92410a236608c070c474c434727f33730b0520edfc631",
+        "9b51b24f6ff1fa8e18b245dbea6868d6d2df530c9abe7fc508cf94a94ddd9e24"
+      ],
+      "passed": [
+        true,
+        true
+      ]
+    },
+    "event_sessions": {
+      "token_lengths": [
+        766,
+        762
+      ],
+      "hashes": [
+        "b20e204acea19fb3a11577d7c037651a23ade8ad50c7ed12bb02c075068384e1",
+        "12e1263212fb59ebcfeded4ec046af40d5aa607b3b8b3a97ec860583e077f9f7"
+      ],
+      "passed": [
+        true,
+        true
+      ]
+    },
+    "usage_dedup": {
+      "token_lengths": [
+        751,
+        815
+      ],
+      "hashes": [
+        "9f541e03c0c3cba93c3967d72ed2de98e057be00ee2dd17c4dd28be935f3afa8",
+        "02dcd3e321d0f8e48c5ee106cc2cb33ae492c5184fdb31dec9b9850f96a6fa16"
+      ],
+      "passed": [
+        true,
+        true
+      ]
+    },
+    "dependency_closure": {
+      "token_lengths": [
+        673,
+        560
+      ],
+      "hashes": [
+        "32607e2f66454812fe9b48ab362d79801ba3f6b28cdc170ee89f60d8c9ff0f1f",
+        "e1dce4588e1d85892d4e589829f0a9037dacd34b5ed353f65abb2ecee6cfcd6c"
+      ],
+      "passed": [
+        true,
+        true
+      ]
+    }
+  }
+}
