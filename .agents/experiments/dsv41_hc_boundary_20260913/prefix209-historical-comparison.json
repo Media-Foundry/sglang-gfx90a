@@ -1,0 +1,2183 @@
+[
+  {
+    "module": 0,
+    "class": "VocabParallelEmbedding",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 0,
+    "class": "VocabParallelEmbedding",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000018,
+      "cached_rms": 0.07309345032587648,
+      "recompute_rms": 0.07309345032587648
+    }
+  },
+  {
+    "module": 1,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000018,
+      "cached_rms": 0.07309345032587648,
+      "recompute_rms": 0.07309345032587648
+    }
+  },
+  {
+    "module": 1,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.020395200934846962,
+      "recompute_rms": 0.020395200934846962
+    }
+  },
+  {
+    "module": 2,
+    "class": "MQALayer",
+    "layer_id": 0,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 0.9999999999999998,
+      "cached_rms": 0.6539737766238384,
+      "recompute_rms": 0.6539737766238384
+    }
+  },
+  {
+    "module": 3,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000022,
+      "cached_rms": 0.11421764259334793,
+      "recompute_rms": 0.11421764259334793
+    }
+  },
+  {
+    "module": 3,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.12396245783822828,
+      "recompute_rms": 0.12396245783822828
+    }
+  },
+  {
+    "module": 4,
+    "class": "DeepseekV2MoE",
+    "layer_id": 0,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.12396245783822828,
+      "recompute_rms": 0.12396245783822828
+    }
+  },
+  {
+    "module": 4,
+    "class": "DeepseekV2MoE",
+    "layer_id": 0,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 4,
+    "class": "DeepseekV2MoE",
+    "layer_id": 0,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 4,
+    "class": "DeepseekV2MoE",
+    "layer_id": 0,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.22858322510116083,
+      "recompute_rms": 0.22858322510116083
+    }
+  },
+  {
+    "module": 5,
+    "class": "Engram",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        4,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 4157440,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000435,
+      "cached_rms": 0.12070648461502347,
+      "recompute_rms": 0.12070648461502347
+    }
+  },
+  {
+    "module": 5,
+    "class": "Engram",
+    "layer_id": null,
+    "field": "args.1",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        24
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 4872
+    }
+  },
+  {
+    "module": 5,
+    "class": "Engram",
+    "layer_id": null,
+    "field": "args.2.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 5,
+    "class": "Engram",
+    "layer_id": null,
+    "field": "args.2.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 5,
+    "class": "Engram",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        4,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 4157440,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000338,
+      "cached_rms": 0.13507099574997472,
+      "recompute_rms": 0.13507099574997472
+    }
+  },
+  {
+    "module": 6,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000003,
+      "cached_rms": 0.14182116944273165,
+      "recompute_rms": 0.14182116944273165
+    }
+  },
+  {
+    "module": 6,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000007,
+      "cached_rms": 0.019883425360851775,
+      "recompute_rms": 0.019883425360851775
+    }
+  },
+  {
+    "module": 7,
+    "class": "MQALayer",
+    "layer_id": 1,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000002,
+      "cached_rms": 0.5049820261752901,
+      "recompute_rms": 0.5049820261752901
+    }
+  },
+  {
+    "module": 8,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000013,
+      "cached_rms": 0.17273450660093637,
+      "recompute_rms": 0.17273450660093637
+    }
+  },
+  {
+    "module": 8,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000016,
+      "cached_rms": 0.13003209951011144,
+      "recompute_rms": 0.13003209951011144
+    }
+  },
+  {
+    "module": 9,
+    "class": "DeepseekV2MoE",
+    "layer_id": 1,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000016,
+      "cached_rms": 0.13003209951011144,
+      "recompute_rms": 0.13003209951011144
+    }
+  },
+  {
+    "module": 9,
+    "class": "DeepseekV2MoE",
+    "layer_id": 1,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 9,
+    "class": "DeepseekV2MoE",
+    "layer_id": 1,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 9,
+    "class": "DeepseekV2MoE",
+    "layer_id": 1,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000002,
+      "cached_rms": 0.5232392394556445,
+      "recompute_rms": 0.5232392394556445
+    }
+  },
+  {
+    "module": 10,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000118,
+      "cached_rms": 0.5338323419045639,
+      "recompute_rms": 0.5338323419045639
+    }
+  },
+  {
+    "module": 10,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.0348021777293841,
+      "recompute_rms": 0.0348021777293841
+    }
+  },
+  {
+    "module": 11,
+    "class": "MQALayer",
+    "layer_id": 2,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 0.9999999999999999,
+      "cached_rms": 0.4337440997247618,
+      "recompute_rms": 0.4337440997247618
+    }
+  },
+  {
+    "module": 12,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000273,
+      "cached_rms": 0.8390963554909692,
+      "recompute_rms": 0.8390963554909692
+    }
+  },
+  {
+    "module": 12,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000013,
+      "cached_rms": 0.14521805499516027,
+      "recompute_rms": 0.14521805499516027
+    }
+  },
+  {
+    "module": 13,
+    "class": "DeepseekV2MoE",
+    "layer_id": 2,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000013,
+      "cached_rms": 0.14521805499516027,
+      "recompute_rms": 0.14521805499516027
+    }
+  },
+  {
+    "module": 13,
+    "class": "DeepseekV2MoE",
+    "layer_id": 2,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 13,
+    "class": "DeepseekV2MoE",
+    "layer_id": 2,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 13,
+    "class": "DeepseekV2MoE",
+    "layer_id": 2,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 0.9999999999999999,
+      "cached_rms": 0.2820904025942656,
+      "recompute_rms": 0.2820904025942656
+    }
+  },
+  {
+    "module": 14,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000255,
+      "cached_rms": 1.0231589182513963,
+      "recompute_rms": 1.0231589182513963
+    }
+  },
+  {
+    "module": 14,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000004,
+      "cached_rms": 0.02083033168546983,
+      "recompute_rms": 0.02083033168546983
+    }
+  },
+  {
+    "module": 15,
+    "class": "MQALayer",
+    "layer_id": 3,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.3902402695085637,
+      "recompute_rms": 0.3902402695085637
+    }
+  },
+  {
+    "module": 16,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000007,
+      "cached_rms": 0.5823822238891188,
+      "recompute_rms": 0.5823822238891188
+    }
+  },
+  {
+    "module": 16,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000013,
+      "cached_rms": 0.1634468208465642,
+      "recompute_rms": 0.1634468208465642
+    }
+  },
+  {
+    "module": 17,
+    "class": "DeepseekV2MoE",
+    "layer_id": 3,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000013,
+      "cached_rms": 0.1634468208465642,
+      "recompute_rms": 0.1634468208465642
+    }
+  },
+  {
+    "module": 17,
+    "class": "DeepseekV2MoE",
+    "layer_id": 3,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 17,
+    "class": "DeepseekV2MoE",
+    "layer_id": 3,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 17,
+    "class": "DeepseekV2MoE",
+    "layer_id": 3,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.2123990636257336,
+      "recompute_rms": 0.2123990636257336
+    }
+  },
+  {
+    "module": 18,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000107,
+      "cached_rms": 1.1931069005760757,
+      "recompute_rms": 1.1931069005760757
+    }
+  },
+  {
+    "module": 18,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.021522038467016533,
+      "recompute_rms": 0.021522038467016533
+    }
+  },
+  {
+    "module": 19,
+    "class": "MQALayer",
+    "layer_id": 4,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.4474572014658395,
+      "recompute_rms": 0.4474572014658395
+    }
+  },
+  {
+    "module": 20,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000044,
+      "cached_rms": 0.6459748707597703,
+      "recompute_rms": 0.6459748707597703
+    }
+  },
+  {
+    "module": 20,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000004,
+      "cached_rms": 0.17328095386642767,
+      "recompute_rms": 0.17328095386642767
+    }
+  },
+  {
+    "module": 21,
+    "class": "DeepseekV2MoE",
+    "layer_id": 4,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000004,
+      "cached_rms": 0.17328095386642767,
+      "recompute_rms": 0.17328095386642767
+    }
+  },
+  {
+    "module": 21,
+    "class": "DeepseekV2MoE",
+    "layer_id": 4,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 21,
+    "class": "DeepseekV2MoE",
+    "layer_id": 4,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 21,
+    "class": "DeepseekV2MoE",
+    "layer_id": 4,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000004,
+      "cached_rms": 0.2567000700239771,
+      "recompute_rms": 0.2567000700239771
+    }
+  },
+  {
+    "module": 22,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000109,
+      "cached_rms": 0.7244262054386094,
+      "recompute_rms": 0.7244262054386094
+    }
+  },
+  {
+    "module": 22,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.023306514876960914,
+      "recompute_rms": 0.023306514876960914
+    }
+  },
+  {
+    "module": 23,
+    "class": "MQALayer",
+    "layer_id": 5,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.4137520475174895,
+      "recompute_rms": 0.4137520475174895
+    }
+  },
+  {
+    "module": 24,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000104,
+      "cached_rms": 1.0032343749833583,
+      "recompute_rms": 1.0032343749833583
+    }
+  },
+  {
+    "module": 24,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.1813394482050836,
+      "recompute_rms": 0.1813394482050836
+    }
+  },
+  {
+    "module": 25,
+    "class": "DeepseekV2MoE",
+    "layer_id": 5,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.1813394482050836,
+      "recompute_rms": 0.1813394482050836
+    }
+  },
+  {
+    "module": 25,
+    "class": "DeepseekV2MoE",
+    "layer_id": 5,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 25,
+    "class": "DeepseekV2MoE",
+    "layer_id": 5,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 25,
+    "class": "DeepseekV2MoE",
+    "layer_id": 5,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 0.9999999999999998,
+      "cached_rms": 0.2610434423605406,
+      "recompute_rms": 0.2610434423605406
+    }
+  },
+  {
+    "module": 26,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000033,
+      "cached_rms": 1.4524568183416016,
+      "recompute_rms": 1.4524568183416016
+    }
+  },
+  {
+    "module": 26,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000004,
+      "cached_rms": 0.022775554511898412,
+      "recompute_rms": 0.022775554511898412
+    }
+  },
+  {
+    "module": 27,
+    "class": "MQALayer",
+    "layer_id": 6,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000002,
+      "cached_rms": 0.4155269301277083,
+      "recompute_rms": 0.4155269301277083
+    }
+  },
+  {
+    "module": 28,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.3490367750510424,
+      "recompute_rms": 0.3490367750510424
+    }
+  },
+  {
+    "module": 28,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.20355818968852335,
+      "recompute_rms": 0.20355818968852335
+    }
+  },
+  {
+    "module": 29,
+    "class": "DeepseekV2MoE",
+    "layer_id": 6,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.20355818968852335,
+      "recompute_rms": 0.20355818968852335
+    }
+  },
+  {
+    "module": 29,
+    "class": "DeepseekV2MoE",
+    "layer_id": 6,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 29,
+    "class": "DeepseekV2MoE",
+    "layer_id": 6,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 29,
+    "class": "DeepseekV2MoE",
+    "layer_id": 6,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.14145792365411997,
+      "recompute_rms": 0.14145792365411997
+    }
+  },
+  {
+    "module": 30,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000078,
+      "cached_rms": 1.1056728148510533,
+      "recompute_rms": 1.1056728148510533
+    }
+  },
+  {
+    "module": 30,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000009,
+      "cached_rms": 0.023655195730284143,
+      "recompute_rms": 0.023655195730284143
+    }
+  },
+  {
+    "module": 31,
+    "class": "MQALayer",
+    "layer_id": 7,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.4268974246744958,
+      "recompute_rms": 0.4268974246744958
+    }
+  },
+  {
+    "module": 32,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000149,
+      "cached_rms": 2.212563424670909,
+      "recompute_rms": 2.212563424670909
+    }
+  },
+  {
+    "module": 32,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.23542683972509368,
+      "recompute_rms": 0.23542683972509368
+    }
+  },
+  {
+    "module": 33,
+    "class": "DeepseekV2MoE",
+    "layer_id": 7,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.23542683972509368,
+      "recompute_rms": 0.23542683972509368
+    }
+  },
+  {
+    "module": 33,
+    "class": "DeepseekV2MoE",
+    "layer_id": 7,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 33,
+    "class": "DeepseekV2MoE",
+    "layer_id": 7,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 33,
+    "class": "DeepseekV2MoE",
+    "layer_id": 7,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.2016753315104168,
+      "recompute_rms": 0.2016753315104168
+    }
+  },
+  {
+    "module": 34,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000315,
+      "cached_rms": 1.560521365958001,
+      "recompute_rms": 1.560521365958001
+    }
+  },
+  {
+    "module": 34,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.05396919029488666,
+      "recompute_rms": 0.05396919029488666
+    }
+  },
+  {
+    "module": 35,
+    "class": "MQALayer",
+    "layer_id": 8,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0,
+      "cached_rms": 0.5924943696161112,
+      "recompute_rms": 0.5924943696161112
+    }
+  },
+  {
+    "module": 36,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.0000000000000016,
+      "cached_rms": 0.3375009966214485,
+      "recompute_rms": 0.3375009966214485
+    }
+  },
+  {
+    "module": 36,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.21770258749758148,
+      "recompute_rms": 0.21770258749758148
+    }
+  },
+  {
+    "module": 37,
+    "class": "DeepseekV2MoE",
+    "layer_id": 8,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "different": 0,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "cosine": 1.000000000000001,
+      "cached_rms": 0.21770258749758148,
+      "recompute_rms": 0.21770258749758148
+    }
+  },
+  {
+    "module": 37,
+    "class": "DeepseekV2MoE",
+    "layer_id": 8,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 37,
+    "class": "DeepseekV2MoE",
+    "layer_id": 8,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 37,
+    "class": "DeepseekV2MoE",
+    "layer_id": 8,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 1876,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.00390625,
+      "relative_l2": 4.058487065758959e-05,
+      "cosine": 0.9999999991764341,
+      "cached_rms": 0.6855241542454673,
+      "recompute_rms": 0.6855241507691168
+    }
+  },
+  {
+    "module": 38,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 1055,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.00390625,
+      "relative_l2": 5.030642306711373e-06,
+      "cosine": 0.999999999987388,
+      "cached_rms": 4.211015767959932,
+      "recompute_rms": 4.21101576723656
+    }
+  },
+  {
+    "module": 38,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 991,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.00048828125,
+      "relative_l2": 0.00014594529981024363,
+      "cosine": 0.9999999893499897,
+      "cached_rms": 0.025979877302169992,
+      "recompute_rms": 0.025979875474775142
+    }
+  },
+  {
+    "module": 39,
+    "class": "MQALayer",
+    "layer_id": 9,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 417461,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.046875,
+      "relative_l2": 0.004777444779654409,
+      "cosine": 0.9999885880414343,
+      "cached_rms": 0.5374012008675205,
+      "recompute_rms": 0.5373998925732565
+    }
+  },
+  {
+    "module": 40,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 264166,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.009765625,
+      "relative_l2": 0.00040366259428246796,
+      "cosine": 0.9999999185282966,
+      "cached_rms": 1.5391220567999415,
+      "recompute_rms": 1.539122014699708
+    }
+  },
+  {
+    "module": 40,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 252510,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.009765625,
+      "relative_l2": 0.002923917740926396,
+      "cosine": 0.9999957253438027,
+      "cached_rms": 0.22763145778563876,
+      "recompute_rms": 0.22763222325516366
+    }
+  },
+  {
+    "module": 41,
+    "class": "DeepseekV2MoE",
+    "layer_id": 9,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 252510,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.009765625,
+      "relative_l2": 0.002923917740926396,
+      "cosine": 0.9999957253438027,
+      "cached_rms": 0.22763145778563876,
+      "recompute_rms": 0.22763222325516366
+    }
+  },
+  {
+    "module": 41,
+    "class": "DeepseekV2MoE",
+    "layer_id": 9,
+    "field": "args.1.input_ids",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 41,
+    "class": "DeepseekV2MoE",
+    "layer_id": 9,
+    "field": "args.1.positions",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203
+      ],
+      "dtype": "torch.int64",
+      "exact": true,
+      "different": 0,
+      "elements": 203
+    }
+  },
+  {
+    "module": 41,
+    "class": "DeepseekV2MoE",
+    "layer_id": 9,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 549616,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.017333984375,
+      "relative_l2": 0.009221333389746351,
+      "cosine": 0.9999574826863402,
+      "cached_rms": 0.15907443829529683,
+      "recompute_rms": 0.1590832755925234
+    }
+  },
+  {
+    "module": 42,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 484119,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.0234375,
+      "relative_l2": 0.0006525126323460227,
+      "cosine": 0.999999787113623,
+      "cached_rms": 2.472757528716131,
+      "recompute_rms": 2.4727578967714727
+    }
+  },
+  {
+    "module": 42,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 474657,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.00146484375,
+      "relative_l2": 0.00603116701196587,
+      "cosine": 0.9999818125448016,
+      "cached_rms": 0.026390188813135016,
+      "recompute_rms": 0.026390143684576095
+    }
+  },
+  {
+    "module": 43,
+    "class": "MQALayer",
+    "layer_id": 10,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 641354,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.10546875,
+      "relative_l2": 0.028257060528673154,
+      "cosine": 0.9996007361442629,
+      "cached_rms": 0.5480942448714715,
+      "recompute_rms": 0.54814578507358
+    }
+  },
+  {
+    "module": 44,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "args.0",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 603200,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.033203125,
+      "relative_l2": 0.003105717949905521,
+      "cosine": 0.9999951772547572,
+      "cached_rms": 1.3288888486805646,
+      "recompute_rms": 1.3288898195994934
+    }
+  },
+  {
+    "module": 44,
+    "class": "RMSNorm",
+    "layer_id": null,
+    "field": "output",
+    "metrics": {
+      "compatible": true,
+      "shape": [
+        203,
+        5120
+      ],
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "different": 601010,
+      "elements": 1039360,
+      "finite": true,
+      "max_abs": 0.02734375,
+      "relative_l2": 0.014180894494094046,
+      "cosine": 0.9998994513148185,
+      "cached_rms": 0.2220196502730433,
+      "recompute_rms": 0.22201921479636438
+    }
+  }
+]

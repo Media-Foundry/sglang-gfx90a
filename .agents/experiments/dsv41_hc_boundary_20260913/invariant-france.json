@@ -1,0 +1,68 @@
+{
+  "request": {
+    "input_ids": [
+      0,
+      128803,
+      3085,
+      344,
+      270,
+      6102,
+      294,
+      8760,
+      33,
+      9361,
+      295,
+      834,
+      3107,
+      10175,
+      16,
+      128804,
+      128822
+    ],
+    "sampling_params": {
+      "temperature": 0,
+      "max_new_tokens": 64,
+      "ignore_eos": false
+    },
+    "cache_salt": "france-reduction-1789308454222878594"
+  },
+  "response": {
+    "text": "The capital of France is Paris.",
+    "output_ids": [
+      671,
+      6102,
+      294,
+      8760,
+      344,
+      11111,
+      16,
+      1
+    ],
+    "meta_info": {
+      "id": "d842ca37d0034b80b95fb9ad54f2096d",
+      "finish_reason": {
+        "type": "stop",
+        "matched": 1
+      },
+      "prompt_tokens": 17,
+      "weight_version": "default",
+      "num_retractions": 0,
+      "reasoning_tokens": 0,
+      "completion_tokens": 8,
+      "cached_tokens": 0,
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 8
+        }
+      ],
+      "cached_tokens_details": null,
+      "dp_rank": null,
+      "e2e_latency": 1.7008959449958638,
+      "response_sent_to_client_ts": 1789308455.933439
+    }
+  },
+  "decoded_completion": "The capital of France is Paris.",
+  "passed": true
+}

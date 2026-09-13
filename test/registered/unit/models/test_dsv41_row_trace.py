@@ -1,12 +1,29 @@
 import unittest
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 import torch
 
 from scripts.rocm.compare_dsv41_row_trace import compare_records, row_metrics
-from scripts.rocm.dsv41_trace_hooks import gather_packed_kv_rows
+from scripts.rocm.dsv41_trace_hooks import gather_packed_kv_rows, make_hook
 
 
 class TestRowTrace(unittest.TestCase):
+    def test_capture_call_selection_preserves_forward_counter(self):
+        with tempfile.TemporaryDirectory() as folder, patch('torch.cuda.is_current_stream_capturing', return_value=False):
+            hook = make_hook({'folder':folder,'label':'select','max_calls':4,'capture_calls':[2],
+                              'capture_parameters':False})
+            module = torch.nn.Identity()
+            for i in range(6):
+                value = torch.tensor([[i]])
+                self.assertIsNone(hook(module,(value,),value))
+            files=list(Path(folder).glob('*.pt'))
+            self.assertEqual(len(files),1)
+            record=torch.load(files[0],weights_only=True)
+            self.assertEqual(record['call'],2)
+            self.assertEqual(record['output'].item(),2)
+
     def test_page_planar_cache_capture(self):
         payload = torch.arange(2 * 4 * 576).reshape(2, 4, 576).to(torch.uint8)
         scales = (torch.arange(2 * 4 * 8) + 129).reshape(2, 4, 8).to(torch.uint8)

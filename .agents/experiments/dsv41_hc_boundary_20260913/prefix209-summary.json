@@ -1,0 +1,24 @@
+{
+  "prompt_tokens": 203,
+  "comparisons": [
+    {
+      "prefix_length": 209,
+      "generated_offset": 6,
+      "repeat": 0,
+      "cached_committed_id": 10997,
+      "recompute_committed_id": 10997,
+      "cached_top1": 10997,
+      "recompute_top1": 10997,
+      "top1_equal": true,
+      "cached_top1_margin": 0.0,
+      "recompute_top1_margin": 0.375,
+      "top_overlap": 0.95,
+      "max_abs_common_logprob_delta": 0.5503005981445312
+    }
+  ],
+  "coverage_complete": true,
+  "baseline_completion_tokens": 7,
+  "baseline_completion_sha256": "3666810066201bd2610dd32c6a8740e230d4b181bfaf39fdc4f07904ed2d58c5",
+  "all_committed_ids_equal": true,
+  "all_top1_equal": true
+}

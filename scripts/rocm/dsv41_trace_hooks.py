@@ -30,6 +30,11 @@ def make_hook(config):
     folder = Path(config["folder"])
     label = config["label"]
     max_calls = int(config.get("max_calls", 2))
+    capture_calls = config.get("capture_calls")
+    if capture_calls is not None:
+        capture_calls = set(capture_calls)
+        if not capture_calls or any(type(i) is not int or not 0 <= i < max_calls for i in capture_calls):
+            raise ValueError("capture_calls must select call indices within max_calls")
     max_tensor_bytes = int(config.get("max_tensor_bytes", 32 * 1024**2))
     summary_only = bool(config.get("summary_only", False))
     capture_parameters = bool(config.get("capture_parameters", True))
@@ -99,6 +104,8 @@ def make_hook(config):
         if count >= max_calls:
             return
         calls[id(module)] = count + 1
+        if capture_calls is not None and count not in capture_calls:
+            return
         module_number = module_numbers.setdefault(id(module), len(module_numbers))
         if torch.cuda.is_current_stream_capturing():
             raise RuntimeError("V4.1 diagnostic hook must not run during graph capture")

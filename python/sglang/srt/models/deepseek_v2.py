@@ -639,6 +639,17 @@ class MoEGate(nn.Module):
             return F.linear(hidden_states, self.weight, None)
 
         if (
+            _is_hip
+            and self.is_deepseek_v4
+            and envs.SGLANG_DSV41_ROUTER_INVARIANT.get()
+            and hidden_states.shape[1] == 5120
+            and self.weight.shape == (384, 5120)
+        ):
+            from sglang.kernels.ops.moe.dsv41_router_invariant import router_bf16_invariant
+
+            return router_bf16_invariant(hidden_states, self.weight)
+
+        if (
             not self.is_deepseek_v4
             and forward_batch is not None
             and (
