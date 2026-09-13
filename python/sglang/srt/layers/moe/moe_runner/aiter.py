@@ -280,6 +280,12 @@ def _install_gfx90a_dsv4_fp4_tune(
         (256, 4096, 2048),
         (256, 1024, 2048),
         (256, 512, 2048),
+        # DeepSeek-V4.1 Flash at TP8/EP1: the real intermediate shard is
+        # 288, and the loader pads it to 384 (128-aligned) before AIter sees
+        # the weights.  Without an explicit row here AIter falls through to
+        # its heuristic table, which has no gfx90a entry for the 384-expert /
+        # H5120 contract and rejects the first request at runtime.
+        (384, 768, 2560),
     ):
         return False
     if topk != 6:

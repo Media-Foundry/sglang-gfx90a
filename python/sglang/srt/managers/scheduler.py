@@ -346,6 +346,44 @@ else:
 
 logger = logging.getLogger(__name__)
 
+# Opt-in, bounded request-admission trace used while bringing up new model
+# integrations.  It is deliberately disabled by default so the scheduler hot
+# loop and production logs are unchanged.
+_TRACE_DSV41_SCHEDULER = os.getenv(
+    "SGLANG_TRACE_DSV41_SCHEDULER",
+    # The launcher preserves the request-receiver diagnostic knob while it
+    # exports the registered SGLANG_* environment set to worker processes.
+    # Reuse it as a fallback so admission tracing survives that sanitization.
+    os.getenv("SGLANG_TRACE_REQUEST_RECEIVER", "0"),
+).lower() in {
+    "1",
+    "true",
+    "yes",
+}
+_trace_dsv41_scheduler_calls = 0
+
+
+def _trace_dsv41_scheduler(scheduler, event: str, *, force: bool = False, **fields):
+    global _trace_dsv41_scheduler_calls
+    if not _TRACE_DSV41_SCHEDULER:
+        return
+    _trace_dsv41_scheduler_calls += 1
+    if not force and _trace_dsv41_scheduler_calls > 64:
+        return
+    ps = getattr(scheduler, "ps", None)
+    rank = getattr(ps, "tp_rank", getattr(ps, "rank", "?"))
+    payload = " ".join(f"{key}={value!r}" for key, value in fields.items())
+    logger.warning(
+        "[dsv41-scheduler-trace] t=%.6f pid=%d event=%s call=%d "
+        "tp_rank=%r %s",
+        time.monotonic(),
+        os.getpid(),
+        event,
+        _trace_dsv41_scheduler_calls,
+        rank,
+        payload,
+    )
+
 
 def _prewarm_hccl_group(device, group, device_module):
     warmup_tensor = torch.zeros(1, dtype=torch.int32, device=device)
@@ -1915,6 +1953,21 @@ class Scheduler(
 
     @scheduler_nvtx_method("scheduler.process_input_requests")
     def process_input_requests(self, recv_reqs: List):
+        if recv_reqs:
+            _trace_dsv41_scheduler(
+                self,
+                "process_begin",
+                force=True,
+                req_count=len(recv_reqs),
+                req_types=[type(req).__name__ for req in recv_reqs],
+                req_rids=[getattr(req, "rid", None) for req in recv_reqs],
+                waiting_before=len(self.waiting_queue),
+                running_before=(
+                    len(self.running_batch.reqs)
+                    if self.running_batch is not None
+                    else None
+                ),
+            )
         now = time.monotonic()
         self.session_controller.maybe_reap(now)
         if get_mm().mm_feature_transport == "cuda_vmm":
@@ -1931,7 +1984,40 @@ class Scheduler(
                 )
                 continue
 
-            output = self._request_dispatcher(recv_req)
+            _trace_dsv41_scheduler(
+                self,
+                "dispatch_begin",
+                force=True,
+                req_type=type(recv_req).__name__,
+                rid=getattr(recv_req, "rid", None),
+            )
+            try:
+                output = self._request_dispatcher(recv_req)
+            except Exception as exc:
+                _trace_dsv41_scheduler(
+                    self,
+                    "dispatch_error",
+                    force=True,
+                    req_type=type(recv_req).__name__,
+                    rid=getattr(recv_req, "rid", None),
+                    error=repr(exc),
+                    waiting_after=len(self.waiting_queue),
+                )
+                raise
+            _trace_dsv41_scheduler(
+                self,
+                "dispatch_end",
+                force=True,
+                req_type=type(recv_req).__name__,
+                rid=getattr(recv_req, "rid", None),
+                output_type=None if output is None else type(output).__name__,
+                waiting_after=len(self.waiting_queue),
+                running_after=(
+                    len(self.running_batch.reqs)
+                    if self.running_batch is not None
+                    else None
+                ),
+            )
             if output is not None:
                 if self.rust_server is not None:
                     # Embedded Rust server: every control-request response goes
@@ -1947,6 +2033,19 @@ class Scheduler(
         self.flush_wrapper.check_pending()
         if self.external_corpus_manager is not None:
             self.external_corpus_manager.check_pending_load()
+        if recv_reqs:
+            _trace_dsv41_scheduler(
+                self,
+                "process_end",
+                force=True,
+                req_count=len(recv_reqs),
+                waiting_after=len(self.waiting_queue),
+                running_after=(
+                    len(self.running_batch.reqs)
+                    if self.running_batch is not None
+                    else None
+                ),
+            )
 
     def _materialize_cuda_vmm_inputs(self, recv_req):
         """Release VMM slices before request handling can reject the request."""
@@ -2438,6 +2537,23 @@ class Scheduler(
         self,
         recv_req: TokenizedGenerateReqInput,
     ):
+        _trace_dsv41_scheduler(
+            self,
+            "handle_generate_begin",
+            force=True,
+            rid=getattr(recv_req, "rid", None),
+            input_len=(
+                len(recv_req.input_ids)
+                if getattr(recv_req, "input_ids", None) is not None
+                else None
+            ),
+            input_text_type=(
+                type(getattr(recv_req, "input_text", None)).__name__
+            ),
+            max_new_tokens=getattr(
+                getattr(recv_req, "sampling_params", None), "max_new_tokens", None
+            ),
+        )
         # Route: normal request / session request / session-not-found
         session_id = (
             recv_req.session_params.id if recv_req.session_params is not None else None
@@ -2753,7 +2869,30 @@ class Scheduler(
 
         added_to_grammar_queue = self.grammar_manager.process_req_with_grammar(req)
         if not added_to_grammar_queue:
+            _trace_dsv41_scheduler(
+                self,
+                "handle_generate_enqueue",
+                force=True,
+                rid=req.rid,
+                origin_len=len(req.origin_input_ids),
+                max_new_tokens=req.sampling_params.max_new_tokens,
+                finished=req.finished(),
+                finish_reason=(
+                    type(req.finished_reason).__name__
+                    if req.finished_reason is not None
+                    else None
+                ),
+                waiting_before=len(self.waiting_queue),
+            )
             self._add_request_to_queue(req)
+            _trace_dsv41_scheduler(
+                self,
+                "handle_generate_enqueued",
+                force=True,
+                rid=req.rid,
+                waiting_after=len(self.waiting_queue),
+                req_to_token_available=self.req_to_token_pool.available_size(),
+            )
 
     def handle_batch_generate_request(
         self,
@@ -2813,7 +2952,23 @@ class Scheduler(
                 )
 
     def _add_request_to_queue(self, req: Req, is_retracted: bool = False):
+        _trace_dsv41_scheduler(
+            self,
+            "add_queue_begin",
+            force=True,
+            rid=req.rid,
+            finished=req.finished(),
+            mode=str(self.disaggregation_mode),
+            waiting_before=len(self.waiting_queue),
+        )
         if not self._set_or_validate_priority(req):
+            _trace_dsv41_scheduler(
+                self,
+                "add_queue_rejected_priority",
+                force=True,
+                rid=req.rid,
+                waiting_after=len(self.waiting_queue),
+            )
             return
         if self.disaggregation_mode == DisaggregationMode.NULL:
             if self._abort_on_queued_limit(req):
@@ -2821,6 +2976,14 @@ class Scheduler(
             self._prefetch_kvcache(req)
             self.waiting_queue.append(req)
             req.time_stats.set_wait_queue_entry_time()
+            _trace_dsv41_scheduler(
+                self,
+                "add_queue_done",
+                force=True,
+                rid=req.rid,
+                waiting_after=len(self.waiting_queue),
+                available=self.req_to_token_pool.available_size(),
+            )
         elif self.disaggregation_mode == DisaggregationMode.PREFILL:
             self._prefetch_kvcache(req)
             self.disagg_prefill_bootstrap_queue.add(

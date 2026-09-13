@@ -355,6 +355,7 @@ class Fp8Config(QuantizationConfig):
         use_mxfp8: bool = False,
         is_fp4_experts: bool = False,
         kv_cache_quant_algo: Optional[str] = None,
+        scale_fmt: Optional[str] = None,
     ) -> None:
         super().__init__()
         # DSV4 mxfp4-packed (True) vs converted FP8 (False); injected by
@@ -379,6 +380,11 @@ class Fp8Config(QuantizationConfig):
         self.packed_modules_mapping = packed_modules_mapping or {}
         self.use_mxfp8 = use_mxfp8
         self.kv_cache_quant_algo = kv_cache_quant_algo
+        # DeepSeek-V4.1 publishes 32x32 FP8 blocks with UE8M0 scales.  The
+        # scale format is part of the activation-quantization contract, not
+        # merely checkpoint metadata: matching it requires power-of-two
+        # activation scales as well.
+        self.scale_fmt = scale_fmt
         if weight_block_size is not None:
             if not is_checkpoint_fp8_serialized:
                 raise ValueError(
@@ -446,6 +452,7 @@ class Fp8Config(QuantizationConfig):
         kv_cache_quant_algo = cls.get_from_keys_or(
             config, ["kv_cache_quant_algo"], None
         )
+        scale_fmt = cls.get_from_keys_or(config, ["scale_fmt"], None)
         if use_mxfp8:
             # MXFP8 (OCP) spec fixes block size to [1, 32]; ckpt field is metadata only.
             if weight_block_size is not None and weight_block_size != [1, 32]:
@@ -462,6 +469,7 @@ class Fp8Config(QuantizationConfig):
             packed_modules_mapping=packed_modules_mapping,
             use_mxfp8=use_mxfp8,
             kv_cache_quant_algo=kv_cache_quant_algo,
+            scale_fmt=scale_fmt,
         )
 
     def get_quant_method(
@@ -607,7 +615,11 @@ class Fp8LinearMethod(LinearMethodBase):
             self.mxfp8_dense_backend = resolve_mxfp8_dense_gemm_backend()
             self.w8a8_mxfp8_linear = dispatch_w8a8_mxfp8_linear()
         else:
-            self.w8a8_block_fp8_linear = dispatch_w8a8_block_fp8_linear()
+            self.w8a8_block_fp8_linear = dispatch_w8a8_block_fp8_linear(
+                weight_block_size=self.weight_block_size,
+                act_scale_ue8m0=isinstance(self.quant_config, Fp8Config)
+                and self.quant_config.scale_fmt == "ue8m0",
+            )
         self.is_checkpoint_fp8_serialized = (
             self.quant_config.is_checkpoint_fp8_serialized
         )
@@ -980,20 +992,45 @@ class Fp8LinearMethod(LinearMethodBase):
             self.process_weights_after_loading_block_quant(layer)
             if getattr(layer, "_cache_block_fp8_weight_as_bf16", False):
                 if self.weight_block_size != [128, 128]:
-                    raise ValueError(
-                        "BF16 weight caching requires block-FP8 weight_block_size=[128, 128]"
+                    is_dsv41_hip_layout = (
+                        _is_hip
+                        and self.weight_block_size == [32, 32]
+                        and getattr(self.quant_config, "scale_fmt", None) == "ue8m0"
                     )
-                layer.weight = Parameter(
-                    block_quant_dequant(
-                        layer.weight.data,
-                        layer.weight_scale_inv.data,
-                        self.weight_block_size,
-                        torch.bfloat16,
-                    ).contiguous(),
-                    requires_grad=False,
-                )
-                layer._use_cached_block_fp8_bf16_weight = True
+                    if not is_dsv41_hip_layout:
+                        raise ValueError(
+                            "BF16 weight caching requires block-FP8 "
+                            "weight_block_size=[128, 128]"
+                        )
+                    # The gfx90a DSV4.1 checkpoint uses 32x32 block scales.
+                    # Its attention projections inherit the generic DSV4
+                    # cache marker, but the BF16 materialization path is only
+                    # defined for 128x128 block-FP8.  Failing after all 48
+                    # shards have loaded is both surprising and needlessly
+                    # strands the host Engram tables.  Leave the quantized
+                    # representation in place; the caller's FP8 kernel will
+                    # handle this layout without an extra persistent copy.
+                    logger.warning_once(
+                        "Skipping BF16 FP8 weight cache for "
+                        f"{getattr(layer, 'prefix', type(layer).__name__)}: "
+                        f"weight_block_size={self.weight_block_size} "
+                        "(cache supports [128, 128] only)."
+                    )
+                    layer._cache_block_fp8_weight_as_bf16 = False
+                else:
+                    layer.weight = Parameter(
+                        block_quant_dequant(
+                            layer.weight.data,
+                            layer.weight_scale_inv.data,
+                            self.weight_block_size,
+                            torch.bfloat16,
+                        ).contiguous(),
+                        requires_grad=False,
+                    )
+                    layer._use_cached_block_fp8_bf16_weight = True
                 if (
+                    self.weight_block_size == [128, 128]
+                    and
                     envs.SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV.get()
                     and tuple(layer.weight.shape)
                     in ((8192, 1024), (4096, 2048), (1536, 4096))

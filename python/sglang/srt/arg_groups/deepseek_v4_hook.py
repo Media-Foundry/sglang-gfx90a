@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import TYPE_CHECKING
 
@@ -242,7 +243,12 @@ def validate_deepseek_v41_features(server_args: ServerArgs) -> None:
     )
 
     cfg = resolving_view(server_args)
-    if model_config_of(server_args).hf_config.model_type != "deepseek_v41":
+    # ``model_config_of`` used to be supplied by an out-of-tree hook.  The
+    # validator is now called from the in-tree ServerArgs resolution pass, so
+    # use the owning accessor explicitly.  Apart from fixing the NameError,
+    # this keeps the check tied to the same cached config used by the rest of
+    # model-specific argument handling.
+    if server_args.get_model_config().hf_config.model_type != "deepseek_v41":
         if cfg.enable_encoder_swa_bounded_replay:
             raise ValueError(
                 "--enable-encoder-swa-bounded-replay requires DeepSeek-V4.1"
@@ -326,7 +332,7 @@ def validate_deepseek_v41_features(server_args: ServerArgs) -> None:
                 "block size and TP size."
             )
 
-    from sglang.srt.model_executor.cuda_graph_config import Backend, Phase, with_phase
+    from sglang.srt.model_executor.cuda_graph_config import Backend
 
     prefill_graph = cfg.cuda_graph_config.prefill
     if prefill_graph.backend != Backend.DISABLED and prefill_graph.max_seq_len is None:
@@ -335,8 +341,12 @@ def validate_deepseek_v41_features(server_args: ServerArgs) -> None:
         declare_resolution(
             server_args,
             "validate_deepseek_v41_features",
-            cuda_graph_config=with_phase(
-                cfg.cuda_graph_config, Phase.PREFILL, max_seq_len=16 * 1024
+            cuda_graph_config=dataclasses.replace(
+                cfg.cuda_graph_config,
+                prefill=dataclasses.replace(
+                    prefill_graph,
+                    max_seq_len=16 * 1024,
+                ),
             ),
         )
         logger.warning(

@@ -35,6 +35,21 @@ def _rope_fq4(x, freqs, rope_dim, *, compressed_kv=False):
     return quant(rope_tail(x, freqs, rope_dim))
 
 
+def stable_index_topk(scores: torch.Tensor, k: int) -> torch.Tensor:
+    """Select by score, break ties by logical ID, emit ascending logical IDs.
+
+    ROCm torch.topk can choose different cutoff-tied members on repeated
+    identical small-M inputs. Sorting its resulting IDs cannot repair that
+    membership drift. Stable score sort preserves the original column order
+    at a tie, without modifying scores or dropping visible keys. This is the
+    correctness-first eager V4.1 path, not the V4 optimized Top-K selector.
+    """
+    if scores.ndim != 2 or not 0 < k <= scores.shape[1]:
+        raise ValueError(f"Invalid indexer Top-K: shape={tuple(scores.shape)}, k={k}")
+    selected = torch.argsort(scores, dim=-1, descending=True, stable=True)[:, :k]
+    return selected.sort(dim=-1).values
+
+
 class RMSNorm(nn.Module):
     """fp32 statistics and fp32 weight multiply, cast back at the very end."""
 
@@ -129,17 +144,27 @@ class DeepseekV41Compressor(nn.Module):
             else bool(fused_compress)
         )
         self.use_fused_gate = compress_ratio > 1 and self.use_fused_compress
+        # The V4.1 reference promotes ratio-2 compressor projections to FP32
+        # before the pairwise softmax pool (see inference/model.py::Compressor).
+        # The checkpoint stores these weights as BF16, but keeping the module
+        # itself in BF16 makes AIter's ``tgemm(..., otype=bf16)`` round the
+        # projection before pooling.  That is a materially different operation
+        # and can compound across the twenty ratio-2 layers.  Ratio-1 is a
+        # plain BF16 projection and must retain its checkpoint dtype.
+        projection_dtype = (
+            torch.float32 if compress_ratio > 1 else torch.bfloat16
+        )
         if self.use_fused_gate:
             self.wkv_gate = nn.Linear(
-                hidden_size, 2 * head_dim, bias=False, dtype=torch.bfloat16
+                hidden_size, 2 * head_dim, bias=False, dtype=projection_dtype
             )
         else:
             self.wkv = nn.Linear(
-                hidden_size, head_dim, bias=False, dtype=torch.bfloat16
+                hidden_size, head_dim, bias=False, dtype=projection_dtype
             )
             if compress_ratio > 1:
                 self.wgate = nn.Linear(
-                    hidden_size, head_dim, bias=False, dtype=torch.bfloat16
+                    hidden_size, head_dim, bias=False, dtype=projection_dtype
                 )
 
     def project(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:

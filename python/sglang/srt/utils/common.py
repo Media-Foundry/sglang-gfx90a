@@ -2412,6 +2412,18 @@ def broadcast_pyobj(
         else "musa" if is_musa() and not force_cpu_device else "cpu"
     )
 
+    # The extra barrier was added for ROCm/Gloo ordering, but it is useful to
+    # be able to disable it for a controlled diagnosis of scheduler hangs.
+    # Keep the production default unchanged; this opt-out is intentionally
+    # explicit and should not be used as a correctness fix.
+    sync_cpu_broadcast = (
+        is_hip()
+        and force_cpu_device
+        and dist_group is not None
+        and os.getenv("SGLANG_SKIP_HIP_CPU_BROADCAST_BARRIER", "0").lower()
+        not in {"1", "true", "yes"}
+    )
+
     if rank == src:
         if len(data) == 0:
             tensor_size = torch.tensor([0], dtype=torch.long, device=device)
@@ -2432,7 +2444,7 @@ def broadcast_pyobj(
         # next NCCL collective can make request-receiver collectives diverge.
         # Synchronize CPU-group object broadcasts before returning to the
         # scheduler loop.
-        if is_hip() and force_cpu_device and dist_group is not None:
+        if sync_cpu_broadcast:
             dist.barrier(group=dist_group)
         return data
     else:
@@ -2441,7 +2453,7 @@ def broadcast_pyobj(
         size = tensor_size.item()
 
         if size == 0:
-            if is_hip() and force_cpu_device and dist_group is not None:
+            if sync_cpu_broadcast:
                 dist.barrier(group=dist_group)
             return []
 
@@ -2450,7 +2462,7 @@ def broadcast_pyobj(
 
         serialized_data = bytes(tensor_data.cpu().numpy())
         data = pickle.loads(serialized_data)
-        if is_hip() and force_cpu_device and dist_group is not None:
+        if sync_cpu_broadcast:
             dist.barrier(group=dist_group)
         return data
 

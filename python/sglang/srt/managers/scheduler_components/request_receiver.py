@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from http import HTTPStatus
+import logging
+import os
+import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -45,6 +48,47 @@ if TYPE_CHECKING:
     )
 
 
+_logger = logging.getLogger(__name__)
+_TRACE_REQUEST_RECEIVER = os.getenv("SGLANG_TRACE_REQUEST_RECEIVER", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+_trace_recv_calls = 0
+
+
+def _trace_request_receiver(
+    receiver: "SchedulerRequestReceiver",
+    event: str,
+    *,
+    force: bool = False,
+    **fields: Any,
+) -> None:
+    """Emit a bounded per-rank trace for request/TP-CPU collective diagnosis."""
+    global _trace_recv_calls
+    if not _TRACE_REQUEST_RECEIVER:
+        return
+    _trace_recv_calls += 1
+    # Keep idle-loop logging bounded, but always retain events around a real
+    # request. A separate process emits this independently for every rank.
+    if not force and _trace_recv_calls > 32 and _trace_recv_calls % 1000 != 0:
+        return
+    rank = getattr(getattr(receiver, "tp_group", None), "rank", "?")
+    ranks = getattr(getattr(receiver, "tp_group", None), "ranks", "?")
+    payload = " ".join(f"{key}={value!r}" for key, value in fields.items())
+    _logger.warning(
+        "[dsv41-request-trace] t=%.6f pid=%d event=%s call=%d tp_rank=%r "
+        "tp_ranks=%r %s",
+        time.monotonic(),
+        os.getpid(),
+        event,
+        _trace_recv_calls,
+        rank,
+        ranks,
+        payload,
+    )
+
+
 @dataclass(kw_only=True, slots=True, frozen=True)
 class SchedulerRequestReceiver:
     recv_from_tokenizer: Union[zmq.Socket, ScriptedTokenizerRecvProxy, RustServer]
@@ -78,6 +122,14 @@ class SchedulerRequestReceiver:
     ) -> List[Union[TokenizedGenerateReqInput, TokenizedEmbeddingReqInput, Any]]:
         """Receive results at tp_rank = 0 and broadcast it to all other TP ranks."""
 
+        _trace_request_receiver(
+            self,
+            "recv_begin",
+            pp_rank=self.ps.pp_rank,
+            attn_tp_rank=self.ps.attn_tp_rank,
+            attn_cp_rank=self.ps.attn_cp_rank,
+        )
+
         if self.scripted_scheduler_hook is not None:
             self.scripted_scheduler_hook.step()
 
@@ -87,10 +139,40 @@ class SchedulerRequestReceiver:
 
         recv_reqs = self._pull_raw_reqs()
 
+        _trace_request_receiver(
+            self,
+            "after_pull",
+            force=bool(recv_reqs),
+            req_type=type(recv_reqs).__name__,
+            req_count=None if recv_reqs is None else len(recv_reqs),
+        )
+
         if self.input_blocker is not None:
             recv_reqs = self.input_blocker.handle(recv_reqs)
 
+        _trace_request_receiver(
+            self,
+            "broadcast_begin",
+            force=bool(recv_reqs),
+            req_count=None if recv_reqs is None else len(recv_reqs),
+        )
         recv_reqs = self._broadcast_reqs_across_ranks(recv_reqs)
+        _trace_request_receiver(
+            self,
+            "broadcast_end",
+            force=bool(recv_reqs),
+            req_count=None if recv_reqs is None else len(recv_reqs),
+            req_types=(
+                [type(req).__name__ for req in recv_reqs]
+                if recv_reqs
+                else None
+            ),
+            req_rids=(
+                [getattr(req, "rid", None) for req in recv_reqs]
+                if recv_reqs
+                else None
+            ),
+        )
 
         if self.ps.pp_rank == 0:
             self.unwrap_pickle_wrapper(recv_reqs)
@@ -98,6 +180,23 @@ class SchedulerRequestReceiver:
         recv_reqs = self._apply_mm_receiver(recv_reqs)
 
         self._finalize_shm_features(recv_reqs)
+
+        _trace_request_receiver(
+            self,
+            "recv_return",
+            force=bool(recv_reqs),
+            req_count=None if recv_reqs is None else len(recv_reqs),
+            req_types=(
+                [type(req).__name__ for req in recv_reqs]
+                if recv_reqs
+                else None
+            ),
+            req_rids=(
+                [getattr(req, "rid", None) for req in recv_reqs]
+                if recv_reqs
+                else None
+            ),
+        )
 
         return recv_reqs
 

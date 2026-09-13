@@ -268,6 +268,61 @@ class MhcOps(NamedTuple):
     fused_hc_head: Optional[Callable[..., Any]]
 
 
+class AiterMhcOps(NamedTuple):
+    mhc_pre: Callable[..., Any]
+    mhc_post: Callable[..., Any]
+
+
+def _mhc_weighted_collapse(
+    x_flat: torch.Tensor,
+    weights: torch.Tensor,
+    hc_mult: int,
+    output_dtype: torch.dtype,
+) -> torch.Tensor:
+    """Collapse the hyper-connection branches with the legacy V4 semantics.
+
+    The V4.1 model was copied from a revision where ``hc_combine`` meant a
+    weighted branch sum.  In the current tree that symbol denotes the gated
+    residual-combine kernel and has a different seven-argument ABI.  Keep the
+    old operation explicit here: accumulate the four branch products in the
+    input floating-point type, then perform the single cast that the legacy
+    kernel performed.
+    """
+    if weights.ndim == 3:
+        weights = weights.squeeze(1)
+    if weights.ndim != 2 or weights.shape[1] != hc_mult:
+        raise RuntimeError(
+            f"invalid MHC collapse weights shape {tuple(weights.shape)}; "
+            f"expected [M, {hc_mult}]"
+        )
+    branches = x_flat.reshape(x_flat.shape[0], hc_mult, -1)
+    if branches.shape[0] != weights.shape[0]:
+        raise RuntimeError(
+            "MHC collapse row mismatch: "
+            f"branches={branches.shape[0]} weights={weights.shape[0]}"
+        )
+    return (weights.unsqueeze(-1) * branches).sum(dim=1).to(output_dtype)
+
+
+@functools.cache
+def _get_aiter_mhc_ops() -> Optional[AiterMhcOps]:
+    """Return optional AIter MHC ops without retrying imports per layer.
+
+    The gfx90a AIter fork used by this model predates ``aiter.ops.mhc``.  MHC
+    therefore must remain an optional accelerator; the SGLang reference path
+    below is capable of serving when that module is absent.
+    """
+    try:
+        from aiter.ops.mhc import mhc_post, mhc_pre
+    except ImportError:
+        logging.getLogger(__name__).warning(
+            "AIter MHC extension is unavailable; using the SGLang reference "
+            "MHC implementation for DeepSeek V4.1."
+        )
+        return None
+    return AiterMhcOps(mhc_pre, mhc_post)
+
+
 @functools.cache
 def _get_mhc_ops() -> MhcOps:
     """Load MHC kernels only when a DeepSeek-V4 layer needs them.
@@ -613,6 +668,59 @@ def make_hc_head_params(
         nn.Parameter(torch.empty(hc_mult, dtype=torch.float32)),
         nn.Parameter(torch.empty(1, dtype=torch.float32)),
     )
+
+
+_HC_MIXING_PARAMETER_NAMES = (
+    "hc_attn_fn",
+    "hc_ffn_fn",
+    "hc_attn_base",
+    "hc_ffn_base",
+    "hc_attn_scale",
+    "hc_ffn_scale",
+)
+
+
+def _move_hc_parameters_to_device(owner: nn.Module, device: torch.device) -> int:
+    """Enforce the device contract for the tiny, always-live mHC weights.
+
+    V4.1's HC tensors are ordinary Parameters rather than quantized module
+    weights.  A few loader/capture paths can materialize those Parameters on
+    CPU even though the surrounding decoder layer is on HIP.  Letting that
+    state reach ``F.linear`` produces a late, opaque device-mismatch crash.
+    Move only the six small HC tensors in place (preserving the Parameter
+    objects and their loader attributes), and return the number moved.
+
+    This helper intentionally does not touch Engram parameters: those are
+    deliberately backed by host mmap storage and must remain on CPU.
+    """
+    moved = 0
+    for name in _HC_MIXING_PARAMETER_NAMES:
+        tensor = getattr(owner, name, None)
+        if tensor is None or tensor.device == device:
+            continue
+        if tensor.is_meta:
+            raise RuntimeError(
+                f"DeepSeek V4.1 mHC parameter {name} is still on meta while "
+                f"the layer target device is {device}; checkpoint loading "
+                "did not materialize the parameter."
+            )
+        tensor.data = tensor.data.to(device=device)
+        moved += 1
+    return moved
+
+
+def _assert_hc_parameters_on_device(owner: nn.Module, device: torch.device) -> None:
+    mismatches = []
+    for name in _HC_MIXING_PARAMETER_NAMES:
+        tensor = getattr(owner, name, None)
+        if tensor is not None and tensor.device != device:
+            mismatches.append(f"{name}={tensor.device}")
+    if mismatches:
+        raise RuntimeError(
+            "DeepSeek V4.1 mHC device contract violated: "
+            + ", ".join(mismatches)
+            + f"; expected {device}."
+        )
 
 
 def hc_head_torch(
@@ -1600,9 +1708,22 @@ class MQALayer(MqaAttentionBase):
         # the projections are what hides it. No-op unless the CP+TBO path armed
         # _cp_prefetch_comm_stream.
         if _is_hip and self.compressor is not None:
-            self.compressor.prelaunch_kv_score(x, forward_batch)
+            # The CP/TBO prefetch hook is optional.  DeepSeek-V4 exposes it
+            # on its compressor, while the V4.1 compressor deliberately has
+            # no such method.  Keep the optimization when a compressor arms
+            # it, but do not make the V4.1 forward path depend on the V4 API.
+            prelaunch_kv_score = getattr(
+                self.compressor, "prelaunch_kv_score", None
+            )
+            if callable(prelaunch_kv_score):
+                prelaunch_kv_score(x, forward_batch)
             if self.indexer is not None:
-                self.indexer.compressor.prelaunch_kv_score(x, forward_batch)
+                indexer_compressor = getattr(self.indexer, "compressor", None)
+                indexer_prelaunch = getattr(
+                    indexer_compressor, "prelaunch_kv_score", None
+                )
+                if callable(indexer_prelaunch):
+                    indexer_prelaunch(x, forward_batch)
 
         if self.fuse_wqa_wkv:
             qkv_a, _ = self.wqkv_a(x_linear)
@@ -2283,6 +2404,27 @@ class DeepseekV4DecoderLayer(nn.Module):
         self._input_layernorm_weight_bf16 = None
         self._post_attention_layernorm_weight_bf16 = None
 
+    def ensure_hc_parameters_on_device(self) -> int:
+        """Keep mHC parameters beside the decoder layer that consumes them.
+
+        The surrounding layer is the authoritative target: unlike Engram,
+        mHC parameters participate in every forward and cannot remain in the
+        host table.  This is called once after weight loading and is also safe
+        as a no-op when the parameters were materialized correctly.
+        """
+        device = self.input_layernorm.weight.device
+        moved = _move_hc_parameters_to_device(self, device)
+        _assert_hc_parameters_on_device(self, device)
+        if moved:
+            # Derived dtype caches must be rebuilt from the moved source.
+            self._input_layernorm_weight_bf16 = None
+            self._post_attention_layernorm_weight_bf16 = None
+            self._hc_attn_fn_bf16 = None
+            self._hc_ffn_fn_bf16 = None
+            self._hc_attn_fn_fp16 = None
+            self._hc_ffn_fn_fp16 = None
+        return moved
+
     def _build_self_attn(
         self,
         *,
@@ -2329,6 +2471,10 @@ class DeepseekV4DecoderLayer(nn.Module):
             rsqrt = torch.rsqrt(
                 x_flat.square().mean(-1, keepdim=True) + self.rms_norm_eps
             )
+            # CPU offload may leave the tiny replicated HC matrix on host
+            # memory.  The reference fallback is intentionally device-safe;
+            # the normal no-offload case is a no-op ``to``.
+            hc_fn = hc_fn.to(device=x_flat.device)
             mixes = (F.linear(x_flat, hc_fn) * rsqrt).unsqueeze(1)
             return x_flat, mixes
 
@@ -2410,20 +2556,20 @@ class DeepseekV4DecoderLayer(nn.Module):
             return y, post.squeeze(-1), comb, norm is not None
 
         if _is_hip:
-            from aiter.ops.mhc import mhc_pre
-
-            post, comb, y = mhc_pre(
-                residual=x,
-                fn=hc_fn,
-                hc_scale=hc_scale,
-                hc_base=hc_base,
-                rms_eps=self.rms_norm_eps,
-                hc_pre_eps=self.hc_eps,
-                hc_sinkhorn_eps=self.hc_eps,
-                hc_post_mult_value=_MHC_POST_MULT_VALUE,
-                sinkhorn_repeat=self.hc_sinkhorn_iters,
-            )
-            return y, post.squeeze(-1), comb, False
+            aiter_mhc = _get_aiter_mhc_ops()
+            if aiter_mhc is not None:
+                post, comb, y = aiter_mhc.mhc_pre(
+                    residual=x,
+                    fn=hc_fn,
+                    hc_scale=hc_scale,
+                    hc_base=hc_base,
+                    rms_eps=self.rms_norm_eps,
+                    hc_pre_eps=self.hc_eps,
+                    hc_sinkhorn_eps=self.hc_eps,
+                    hc_post_mult_value=_MHC_POST_MULT_VALUE,
+                    sinkhorn_repeat=self.hc_sinkhorn_iters,
+                )
+                return y, post.squeeze(-1), comb, False
 
         # The deepgemm tf32 gemm wins at large M (prefill) but its fixed
         # dispatch cost dominates at small M (decode): dispatch by token count.
@@ -2457,8 +2603,6 @@ class DeepseekV4DecoderLayer(nn.Module):
             self.hc_sinkhorn_iters,
             self.hc_eps,
         )
-        from sglang.kernels.ops.elementwise.hc_combine import hc_combine
-
         # y is the post-norm activation fed into the MoE. Allocate it in the
         # symmetric memory pool so the downstream all-reduce uses the low-latency
         # NCCL symmetric path: the Triton inplace MoE runner writes the expert
@@ -2468,7 +2612,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         with use_symmetric_memory(
             get_tp_group(), disabled=not is_allocation_symmetric()
         ):
-            y = hc_combine(x_flat, pre.squeeze(1), self.hc_mult, dtype)
+            y = _mhc_weighted_collapse(x_flat, pre, self.hc_mult, dtype)
         return y, post.squeeze(1), comb.squeeze(1), False
 
     def hc_post(
@@ -2528,11 +2672,11 @@ class DeepseekV4DecoderLayer(nn.Module):
             return mhc_post(x, residual, post, comb)
 
         elif _is_hip:
-            from aiter.ops.mhc import mhc_post
-
-            result = torch.empty_like(residual)
-            mhc_post(result, x, residual, post, comb)
-            return result
+            aiter_mhc = _get_aiter_mhc_ops()
+            if aiter_mhc is not None:
+                result = torch.empty_like(residual)
+                aiter_mhc.mhc_post(result, x, residual, post, comb)
+                return result
 
         assert residual.shape == (x.shape[0], self.hc_mult, x.shape[-1])
         assert post.shape == (x.shape[0], self.hc_mult)
@@ -2745,8 +2889,13 @@ class DeepseekV4DecoderLayer(nn.Module):
         """Mixing coefficients come from x; the sublayer input is x collapsed with
         apply_pre (None selects copy 0), then RMS-normalized.
         Returns (y, pre, post, comb)."""
-        from sglang.kernels.ops.elementwise.hc_combine import hc_combine
         from sglang.kernels.ops.layernorm.mhc import hc_mix_stats, hc_mix_stats_sinkhorn
+
+        # This should already be satisfied by post_load_weights().  Keep the
+        # check at the common entry point so a future offloader/capture path
+        # fails with an actionable message rather than a backend-specific
+        # ``mat2 is on cpu`` error.
+        _assert_hc_parameters_on_device(self, x.device)
 
         dtype = x.dtype
         x_flat = x.flatten(1)
@@ -2773,7 +2922,9 @@ class DeepseekV4DecoderLayer(nn.Module):
                 return hc_combine_norm(
                     x_flat, apply_pre, norm.weight, norm.variance_epsilon
                 )
-            return norm(hc_combine(x_flat, apply_pre, self.hc_mult, dtype))
+            return norm(
+                _mhc_weighted_collapse(x_flat, apply_pre, self.hc_mult, dtype)
+            )
 
         if (
             x.is_cuda
@@ -3627,7 +3778,11 @@ class DeepseekV4Model(nn.Module):
         cp_extend = (
             is_cp_v2_active(forward_batch) and forward_batch.forward_mode.is_extend()
         )
-        if self.engram_hasher is not None:
+        engram_enabled = (
+            self.engram_hasher is not None
+            and not envs.SGLANG_DSV41_DISABLE_ENGRAM.get()
+        )
+        if engram_enabled:
             # The V4.1 Engram hasher keeps per-request n-gram history.  The
             # upstream model integration assumes the scheduler initializes it,
             # but gfx90a's scheduler path does not currently expose that hook.
@@ -3700,7 +3855,7 @@ class DeepseekV4Model(nn.Module):
                 if hash_ids is not None:
                     hash_ids = tail.rows(hash_ids)
             engram = self.layers[i].engram
-            if engram is not None:
+            if engram_enabled and engram is not None:
                 before_engram = hidden_states
                 if i == 14 and prefetched_engram_kv is not None:
                     main_stream = torch.cuda.current_stream()
@@ -4138,9 +4293,7 @@ class DeepseekV4Model(nn.Module):
         pre_hc_head = hidden_states.flatten(1)
 
         if self.hc_pre_from_prev_sublayer:
-            from sglang.kernels.ops.layernorm.mhc import hc_combine
-
-            hidden_states = hc_combine(
+            hidden_states = _mhc_weighted_collapse(
                 pre_hc_head.float(), last_pre, self.hc_mult, hidden_states.dtype
             )
         else:
@@ -4500,6 +4653,48 @@ class DeepseekV41ForCausalLM(nn.Module):
     def post_load_weights(self, is_nextn=False, weight_names=None):
         if self.wo_a_fp8:
             self._setup_fp8_wo_a_scales(is_nextn)
+
+        # mHC weights are tiny but are consumed by every decoder layer.  Keep
+        # them on the same device as the layer's RMSNorm even when a startup
+        # loader/capture path materialized ordinary Parameters on CPU.  This
+        # must happen before derived dtype caches and any kernel prewarm.
+        moved_hc = 0
+        for layer in self.model.layers:
+            if isinstance(layer, DeepseekV4DecoderLayer):
+                moved_hc += layer.ensure_hc_parameters_on_device()
+
+        if (
+            self.pp_group.is_last_rank
+            and self.model.norm is not None
+            and self.model.hc_head_fn is not None
+        ):
+            target_device = self.model.norm.weight.device
+            head_fields = ("hc_head_fn", "hc_head_base", "hc_head_scale")
+            for name in head_fields:
+                tensor = getattr(self.model, name)
+                if tensor is None or tensor.device == target_device:
+                    continue
+                if tensor.is_meta:
+                    raise RuntimeError(
+                        f"DeepSeek V4.1 {name} is still on meta while the final "
+                        f"HC head target device is {target_device}."
+                    )
+                tensor.data = tensor.data.to(device=target_device)
+                moved_hc += 1
+            for name in head_fields:
+                tensor = getattr(self.model, name)
+                if tensor is not None and tensor.device != target_device:
+                    raise RuntimeError(
+                        f"DeepSeek V4.1 {name} is on {tensor.device}, expected "
+                        f"{target_device}."
+                    )
+
+        if moved_hc:
+            logger.warning(
+                "Moved %d V4.1 mHC parameter tensors to their compute device; "
+                "Engram host mmap parameters were left untouched.",
+                moved_hc,
+            )
 
         if is_nextn:
             return

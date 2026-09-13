@@ -2365,6 +2365,15 @@ def _execute_server_warmup(server_args: ServerArgs):
 def _freeze_gc_after_server_warmup(server_args: ServerArgs):
     # Freeze GC after server warmup so static objects skip future GC gen2 collection.
     # Use /freeze_gc to freeze scheduler and detokenizer as well.
+    # There is no post-warmup phase when startup warmup was explicitly skipped.
+    # In that mode sending a control request here can race the scheduler's first
+    # request-receiver broadcast (and, on ROCm/Gloo, leave the TP group waiting
+    # forever).  Keep the opt-out genuinely side-effect free; callers can still
+    # invoke /freeze_gc explicitly after a successful request if desired.
+    if server_args.skip_server_warmup:
+        logger.info("Skipping post-warmup GC freeze because server warmup is disabled.")
+        return
+
     freeze_key = server_args.admin_api_key or server_args.api_key
     freeze_headers = {}
     if freeze_key:

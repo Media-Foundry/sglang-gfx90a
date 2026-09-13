@@ -6009,10 +6009,16 @@ class ServerArgs:
             from sglang.srt.arg_groups.deepseek_v4_hook import (
                 validate_deepseek_v4_cp,
                 validate_deepseek_v4_mega_moe_token_budget,
+                validate_deepseek_v41_features,
             )
 
             validate_deepseek_v4_cp(self)
             validate_deepseek_v4_mega_moe_token_budget(self)
+            # V4.1 has ratio-1/2 compressed pools and cannot consume the
+            # legacy unified-KV layout.  Run this before model construction so
+            # an incompatible backend fails with an actionable message rather
+            # than an assertion deep in KV-pool allocation.
+            validate_deepseek_v41_features(self)
 
             if is_sm120_supported():
                 # SM120 lacks tcgen05/TMEM: disable features that depend on

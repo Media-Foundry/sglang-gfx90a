@@ -555,7 +555,10 @@ if is_sm90_supported() and is_flashinfer_available():
     from flashinfer.gemm import fp8_blockscale_gemm_sm90
 
 
-def dispatch_w8a8_block_fp8_linear() -> Callable:
+def dispatch_w8a8_block_fp8_linear(
+    weight_block_size: Optional[List[int]] = None,
+    act_scale_ue8m0: bool = False,
+) -> Callable:
     """
     Dispatch to the appropriate FP8 block linear implementation.
 
@@ -563,6 +566,16 @@ def dispatch_w8a8_block_fp8_linear() -> Callable:
     1. The --fp8-gemm-backend server argument (preferred)
     2. Auto-detection based on hardware capabilities
     """
+    if weight_block_size is not None and weight_block_size != [128, 128]:
+        # DeepGEMM, FlashInfer groupwise and AIter CK accept their own fixed
+        # block contracts.  V4.1 uses 32x32 blocks, which the Triton kernel
+        # reads directly at launch time.  Never silently route this shape to
+        # a 128x128 backend.
+        return partial(
+            triton_w8a8_block_fp8_linear,
+            act_scale_ue8m0=act_scale_ue8m0,
+        )
+
     backend = get_fp8_gemm_runner_backend()
 
     # Handle explicit backend selection via --fp8-gemm-backend
@@ -1066,8 +1079,9 @@ def deepgemm_w8a8_block_fp8_linear_with_fallback(
 
     # TODO: https://github.com/sgl-project/sglang/pull/6890#issuecomment-2943395737
     shape_supported = weight.shape[0] % 64 == 0 and weight.shape[1] % 128 == 0
+    block_supported = block_size == [128, 128]
 
-    if not (shape_supported and dtype_supported):
+    if not (shape_supported and dtype_supported and block_supported):
         # fall back to triton
         # If weight_scale is in UE8M0 packed format (int32), convert back to float32
         # UE8M0 format has shape (N, K//block_k//4) with dtype int32
@@ -1252,20 +1266,38 @@ def triton_w8a8_block_fp8_linear(
     weight_scale: torch.Tensor,
     input_scale: Optional[torch.Tensor] = None,
     bias: Optional[torch.Tensor] = None,
+    act_scale_ue8m0: bool = False,
 ) -> torch.Tensor:
-    assert input_scale is None
-    input_2d = input.view(-1, input.shape[-1])
-    output_shape = [*input.shape[:-1], weight.shape[0]]
-
-    q_input, x_scale = per_token_group_quant_fp8(
-        input_2d, block_size[1], column_major_scales=False
-    )
+    if input_scale is not None:
+        q_input = input.view(-1, input.shape[-1])
+        x_scale = input_scale
+        output_dtype = torch.bfloat16
+        output_shape = [*input.shape[:-1], weight.shape[0]]
+    else:
+        input_2d = input.view(-1, input.shape[-1])
+        output_dtype = input_2d.dtype
+        output_shape = [*input.shape[:-1], weight.shape[0]]
+        if act_scale_ue8m0:
+            q_input, x_scale = sglang_per_token_group_quant_fp8(
+                input_2d,
+                block_size[1],
+                scale_ue8m0=True,
+            )
+        else:
+            q_input, x_scale = per_token_group_quant_fp8(
+                input_2d, block_size[1], column_major_scales=False
+            )
     output = w8a8_block_fp8_matmul_triton(
-        q_input, weight, x_scale, weight_scale, block_size, output_dtype=input_2d.dtype
+        q_input,
+        weight,
+        x_scale,
+        weight_scale,
+        block_size,
+        output_dtype=output_dtype,
     )
     if bias is not None:
         output += bias
-    return output.to(dtype=input_2d.dtype).view(*output_shape)
+    return output.to(dtype=output_dtype).view(*output_shape)
 
 
 @lru_cache(maxsize=1)

@@ -29,6 +29,11 @@ from sglang.srt.layers.attention.dsv4.compressor_v2 import (
     FusedCompressMetadata,
     create_paged_compressor_data,
 )
+from sglang.srt.layers.attention.dsv4.dsv41_sparse import (
+    _rope_fq4,
+    stable_index_topk,
+    token_req_indices,
+)
 from sglang.srt.layers.attention.dsv4.indexer import C4IndexerBackendMixin
 from sglang.srt.layers.attention.dsv4.metadata import (
     PagedIndexerMetadata,
@@ -36,6 +41,7 @@ from sglang.srt.layers.attention.dsv4.metadata import (
     maybe_copy_inplace,
 )
 from sglang.srt.mem_cache.deepseek_v4_memory_pool import DeepSeekV4TokenToKVPool
+from sglang.srt.mem_cache.deepseek_v4_compress_state import KVAndScore
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch, ForwardMode
 from sglang.srt.runtime_context import (
     get_parallel,
@@ -81,6 +87,81 @@ def _create_flashmla_metadata():
 
 def _create_dummy_paged_compress_data(compress_ratio: int):
     return None
+
+
+def _low_ratio_compression_metadata(
+    compress_ratio: int,
+    seq_lens_casual: torch.Tensor,
+    raw_out_loc: torch.Tensor,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Build the cache locations and visible lengths for V4.1 c1/c2 pools.
+
+    A ratio-r latent is committed only when the current causal position closes a
+    complete group.  The pool is addressed in compressed-slot coordinates, so a
+    full-token location is divided by ``compress_ratio``.  This is deliberately
+    kept as a small tensor expression (rather than a host-side loop) because the
+    same metadata is used by eager target-verify forwards.
+    """
+    num_write_tokens = raw_out_loc.shape[0]
+    completes_group = (
+        seq_lens_casual[:num_write_tokens] % compress_ratio == 0
+    )
+    out_loc = torch.where(
+        completes_group,
+        raw_out_loc.to(torch.int64) // compress_ratio,
+        torch.full_like(raw_out_loc, -1, dtype=torch.int64),
+    )
+    visible = (seq_lens_casual // compress_ratio).clamp_min(1)
+    return out_loc, visible.to(torch.int32)
+
+
+def _low_ratio_sparse_buffers(
+    topk_lengths_clamp1: torch.Tensor,
+    topk: int,
+    is_prefill: bool,
+) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+    """Allocate fixed-shape sparse attention indices for one low ratio."""
+    sparse_lengths = torch.clamp(topk_lengths_clamp1, max=topk)
+    page_indices = _pad_last_dim(
+        torch.full(
+            (topk_lengths_clamp1.shape[0], topk),
+            -1,
+            dtype=torch.int32,
+            device=topk_lengths_clamp1.device,
+        )
+    )
+    raw_indices = torch.empty_like(page_indices) if is_prefill else None
+    return sparse_lengths, page_indices, raw_indices
+
+
+def _expand_low_ratio_page_table(
+    page_table: torch.Tensor,
+    *,
+    full_page_size: int,
+    compress_ratio: int,
+    index_page_size: int,
+) -> torch.Tensor:
+    """Expand a full-token page table to the 64-slot low-ratio index pages.
+
+    The eager HIP path currently uses the torch indexer and therefore does not
+    need this table, but keeping the conversion here makes the metadata contract
+    explicit and provides a safe basis for a later graph kernel.
+    """
+    slots_per_full_page = full_page_size // compress_ratio
+    if slots_per_full_page % index_page_size:
+        raise ValueError(
+            f"{full_page_size=}/{compress_ratio=} is not divisible by "
+            f"{index_page_size=}"
+        )
+    blocks_per_page = slots_per_full_page // index_page_size
+    if blocks_per_page == 1:
+        return page_table
+    offsets = torch.arange(
+        blocks_per_page, device=page_table.device, dtype=torch.int64
+    )
+    expanded = page_table.to(torch.int64).unsqueeze(-1) * blocks_per_page
+    expanded = expanded + offsets
+    return expanded.reshape(page_table.shape[0], -1).to(torch.int32)
 
 
 @dataclass
@@ -157,6 +238,12 @@ class DSV4AttnMetadata:
     swa_topk_lengths: torch.Tensor
 
     c4_sparse_topk: int
+    # Ratios actually allocated by the model's KV pool.  DeepSeek V4 uses
+    # (4,128), while V4.1 on the HIP bring-up path uses (1,2).  Keeping this
+    # explicit prevents low-ratio-only metadata from trying to manufacture a
+    # nonexistent c4/c128 page table.
+    present_ratios: Tuple[int, ...] = (4, 128)
+    low_ratios: Tuple[int, ...] = ()
     # SWA KV-store write target (out_cache_loc translated to SWA space), computed
     # once per iteration in make_core_attn_metadata and read by the store path.
     swa_out_cache_loc: Optional[torch.Tensor] = None
@@ -173,10 +260,44 @@ class DSV4AttnMetadata:
     c128_topk_lengths_clamp1: Optional[torch.Tensor] = None
     c128_topk_lengths_raw: Optional[torch.Tensor] = None
 
+    # V4.1 ratio-1/2 compressed-cache locations and sparse index buffers.
+    c1_out_loc: Optional[torch.Tensor] = None
+    c1_topk_lengths_clamp1: Optional[torch.Tensor] = None
+    c1_sparse_topk_lengths: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+    c1_sparse_page_indices: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+    c1_sparse_raw_indices: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+    c2_out_loc: Optional[torch.Tensor] = None
+    c2_topk_lengths_clamp1: Optional[torch.Tensor] = None
+    c2_sparse_topk_lengths: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+    c2_sparse_page_indices: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+    c2_sparse_raw_indices: Optional[torch.Tensor] = field(
+        init=False, default=None
+    )
+
     # unified-kv metadata
     unified: Optional[UnifiedKvMetadata] = None
 
-    c1_flashmla_metadata: FlashMLASchedMeta = field(init=False, repr=False)
+    # FlashMLA scheduling metadata is kept separate for the uncompressed
+    # stream (c0) and V4.1's low-ratio streams (c1/c2).  HIP/Triton currently
+    # ignores the scheduler object, but keeping the distinction avoids sending
+    # a c0 object to a ratio-1 call when CUDA graph support is added later.
+    c0_flashmla_metadata: FlashMLASchedMeta = field(init=False, repr=False)
+    c1_flashmla_metadata: Optional[FlashMLASchedMeta] = field(
+        init=False, default=None, repr=False
+    )
+    c2_flashmla_metadata: Optional[FlashMLASchedMeta] = field(
+        init=False, default=None, repr=False
+    )
     c4_flashmla_metadata: FlashMLASchedMeta = field(init=False, repr=False)
     c128_flashmla_metadata: FlashMLASchedMeta = field(init=False, repr=False)
 
@@ -184,15 +305,46 @@ class DSV4AttnMetadata:
     def positions(self) -> torch.Tensor:
         return self.positions_casual
 
-    def get_flashmla_metadata(self, compress_ratio: Literal[0, 4, 128]):
+    def get_flashmla_metadata(self, compress_ratio: Literal[0, 1, 2, 4, 128]):
         if compress_ratio == 0:
+            return self.c0_flashmla_metadata
+        elif compress_ratio == 1:
             return self.c1_flashmla_metadata
+        elif compress_ratio == 2:
+            return self.c2_flashmla_metadata
         elif compress_ratio == 4:
             return self.c4_flashmla_metadata
         elif compress_ratio == 128:
             return self.c128_flashmla_metadata
         else:
             raise ValueError(f"invalid {compress_ratio=}")
+
+    def sparse_page_indices(self, compress_ratio: Literal[1, 2, 4]):
+        if compress_ratio == 1:
+            return self.c1_sparse_page_indices
+        if compress_ratio == 2:
+            return self.c2_sparse_page_indices
+        if compress_ratio == 4:
+            return self.c4_sparse_page_indices
+        raise ValueError(f"invalid {compress_ratio=}")
+
+    def sparse_raw_indices(self, compress_ratio: Literal[1, 2, 4]):
+        if compress_ratio == 1:
+            return self.c1_sparse_raw_indices
+        if compress_ratio == 2:
+            return self.c2_sparse_raw_indices
+        if compress_ratio == 4:
+            return self.c4_sparse_raw_indices
+        raise ValueError(f"invalid {compress_ratio=}")
+
+    def sparse_topk_lengths(self, compress_ratio: Literal[1, 2, 4]):
+        if compress_ratio == 1:
+            return self.c1_sparse_topk_lengths
+        if compress_ratio == 2:
+            return self.c2_sparse_topk_lengths
+        if compress_ratio == 4:
+            return self.c4_sparse_topk_lengths
+        raise ValueError(f"invalid {compress_ratio=}")
 
     def copy_(self, other: DSV4AttnMetadata) -> None:
         copy_metadata(
@@ -202,6 +354,8 @@ class DSV4AttnMetadata:
                 "c4_sparse_topk",
                 "page_size",
                 "cuda_int32_kwargs",
+                "present_ratios",
+                "low_ratios",
             ],
             copy_fields=[
                 "raw_out_loc",
@@ -221,13 +375,25 @@ class DSV4AttnMetadata:
                 "c4_sparse_topk_lengths_raw",
                 "c4_sparse_page_indices",
                 "c4_sparse_raw_indices",
+                "c1_out_loc",
+                "c1_topk_lengths_clamp1",
+                "c1_sparse_topk_lengths",
+                "c1_sparse_page_indices",
+                "c1_sparse_raw_indices",
+                "c2_out_loc",
+                "c2_topk_lengths_clamp1",
+                "c2_sparse_topk_lengths",
+                "c2_sparse_page_indices",
+                "c2_sparse_raw_indices",
                 "unified",
             ],
             assign_fields=[
                 # Recomputed by the recorded init_forward_metadata_in_graph op
                 # each forward; not copied across replays.
                 "swa_out_cache_loc",
+                "c0_flashmla_metadata",
                 "c1_flashmla_metadata",
+                "c2_flashmla_metadata",
                 "c4_flashmla_metadata",
                 "c128_flashmla_metadata",
             ],
@@ -239,33 +405,73 @@ class DSV4AttnMetadata:
             self.raw_out_loc.shape == self.seq_lens_casual.shape
         ), f"{self.raw_out_loc.shape=}, {self.seq_lens_casual.shape=}"
 
-        (
-            self.c4_out_loc,
-            _,
-            self.c4_topk_lengths_raw,
-            self.c4_topk_lengths_clamp1,
-            self.c128_out_loc,
-            _,
-            self.c128_topk_lengths_raw,
-            self.c128_topk_lengths_clamp1,
-            self.c128_page_indices,
-        ) = _init_compression_metadata_triton(
-            self.seq_lens_casual,
-            self.positions_casual,
-            self.raw_out_loc,
-            self.page_table,
-            self.page_size,
-            compute_page_indices=True,
-        )
+        # The metadata kernel is the legacy V4 (c4/c128) contract.  V4.1's
+        # ratio-1/2 pools use a different physical page size and must not pass
+        # through that kernel; doing so either allocates a bogus c4 table or
+        # fails before the first request.  Keep all absent fields explicitly
+        # None so callers can select the active ratio without stale state.
+        self.c4_out_loc = None
+        self.c4_topk_lengths_raw = None
+        self.c4_topk_lengths_clamp1 = None
+        self.c128_out_loc = None
+        self.c128_page_indices = None
+        self.c128_topk_lengths_raw = None
+        self.c128_topk_lengths_clamp1 = None
+        if 4 in self.present_ratios or 128 in self.present_ratios:
+            (
+                c4_out_loc,
+                _,
+                c4_topk_lengths_raw,
+                c4_topk_lengths_clamp1,
+                c128_out_loc,
+                _,
+                c128_topk_lengths_raw,
+                c128_topk_lengths_clamp1,
+                c128_page_indices,
+            ) = _init_compression_metadata_triton(
+                self.seq_lens_casual,
+                self.positions_casual,
+                self.raw_out_loc,
+                self.page_table,
+                self.page_size,
+                compute_page_indices=128 in self.present_ratios,
+            )
+            if 4 in self.present_ratios:
+                self.c4_out_loc = c4_out_loc
+                self.c4_topk_lengths_raw = c4_topk_lengths_raw
+                self.c4_topk_lengths_clamp1 = c4_topk_lengths_clamp1
+            if 128 in self.present_ratios:
+                self.c128_out_loc = c128_out_loc
+                self.c128_topk_lengths_raw = c128_topk_lengths_raw
+                self.c128_topk_lengths_clamp1 = c128_topk_lengths_clamp1
+                self.c128_page_indices = _pad_last_dim(c128_page_indices)
 
-        self.c128_page_indices = _pad_last_dim(self.c128_page_indices)
+        self.c1_out_loc = None
+        self.c1_topk_lengths_clamp1 = None
+        self.c2_out_loc = None
+        self.c2_topk_lengths_clamp1 = None
+        if 1 in self.low_ratios:
+            self.c1_out_loc, self.c1_topk_lengths_clamp1 = (
+                _low_ratio_compression_metadata(
+                    1, self.seq_lens_casual, self.raw_out_loc
+                )
+            )
+        if 2 in self.low_ratios:
+            self.c2_out_loc, self.c2_topk_lengths_clamp1 = (
+                _low_ratio_compression_metadata(
+                    2, self.seq_lens_casual, self.raw_out_loc
+                )
+            )
+
         self.swa_page_indices = _pad_last_dim(self.swa_page_indices)
 
         if unified_swa_pages:
             if self.unified is None:
                 self.unified = UnifiedKvMetadata()
-            self.unified.c4_out_loc = self.c4_out_loc + unified_swa_pages
-            self.unified.c128_out_loc = self.c128_out_loc + unified_swa_pages
+            if self.c4_out_loc is not None:
+                self.unified.c4_out_loc = self.c4_out_loc + unified_swa_pages
+            if self.c128_out_loc is not None:
+                self.unified.c128_out_loc = self.c128_out_loc + unified_swa_pages
 
     _CP_REINDEX_FIELDS = [
         "seq_lens_casual",
@@ -325,32 +531,81 @@ class DSV4AttnMetadata:
             f"unexpected c4_sparse_topk={self.c4_sparse_topk}; "
             "supported: 512 (small) or 1024 (large)"
         )
-        assert self.c4_topk_lengths_clamp1 is not None
-        self.c4_sparse_topk_lengths = torch.clamp(
-            self.c4_topk_lengths_clamp1, max=self.c4_sparse_topk
+        has_c4 = 4 in self.present_ratios
+        has_c128 = 128 in self.present_ratios
+        if has_c4:
+            assert self.c4_topk_lengths_clamp1 is not None
+            assert self.c4_topk_lengths_raw is not None
+            self.c4_sparse_topk_lengths = torch.clamp(
+                self.c4_topk_lengths_clamp1, max=self.c4_sparse_topk
+            )
+            self.c4_sparse_topk_lengths_raw = torch.clamp(
+                self.c4_topk_lengths_raw, max=self.c4_sparse_topk
+            )
+            self.c4_sparse_page_indices = torch.full(
+                (self.c4_topk_lengths_clamp1.size(0), self.c4_sparse_topk),
+                -1,
+                dtype=torch.int32,
+                device=self.c4_topk_lengths_clamp1.device,
+            )
+            self.c4_sparse_page_indices = _pad_last_dim(
+                self.c4_sparse_page_indices
+            )
+            if is_prefill:
+                self.c4_sparse_raw_indices = torch.empty_like(
+                    self.c4_sparse_page_indices
+                )
+        else:
+            self.c4_sparse_topk_lengths = None
+            self.c4_sparse_topk_lengths_raw = None
+            self.c4_sparse_page_indices = None
+            self.c4_sparse_raw_indices = None
+
+        if 1 in self.low_ratios:
+            assert self.c1_topk_lengths_clamp1 is not None
+            (
+                self.c1_sparse_topk_lengths,
+                self.c1_sparse_page_indices,
+                self.c1_sparse_raw_indices,
+            ) = _low_ratio_sparse_buffers(
+                self.c1_topk_lengths_clamp1, self.c4_sparse_topk, is_prefill
+            )
+        if 2 in self.low_ratios:
+            assert self.c2_topk_lengths_clamp1 is not None
+            (
+                self.c2_sparse_topk_lengths,
+                self.c2_sparse_page_indices,
+                self.c2_sparse_raw_indices,
+            ) = _low_ratio_sparse_buffers(
+                self.c2_topk_lengths_clamp1, self.c4_sparse_topk, is_prefill
+            )
+
+        self.c0_flashmla_metadata = _create_flashmla_metadata()
+        self.c1_flashmla_metadata = (
+            _create_flashmla_metadata() if 1 in self.low_ratios else None
         )
-        assert self.c4_topk_lengths_raw is not None
-        self.c4_sparse_topk_lengths_raw = torch.clamp(
-            self.c4_topk_lengths_raw, max=self.c4_sparse_topk
+        self.c2_flashmla_metadata = (
+            _create_flashmla_metadata() if 2 in self.low_ratios else None
         )
-        self.c4_sparse_page_indices = torch.full(
-            (self.c4_topk_lengths_clamp1.size(0), self.c4_sparse_topk),
-            -1,
-            dtype=torch.int32,
-            device=self.c4_topk_lengths_clamp1.device,
+        self.c4_flashmla_metadata = (
+            _create_flashmla_metadata() if has_c4 else None
         )
-        self.c4_sparse_page_indices = _pad_last_dim(self.c4_sparse_page_indices)
-        if is_prefill:
-            self.c4_sparse_raw_indices = torch.empty_like(self.c4_sparse_page_indices)
-        self.c1_flashmla_metadata = _create_flashmla_metadata()
-        self.c4_flashmla_metadata = _create_flashmla_metadata()
-        self.c128_flashmla_metadata = _create_flashmla_metadata()
+        self.c128_flashmla_metadata = (
+            _create_flashmla_metadata() if has_c128 else None
+        )
 
 
 @dataclass
 class DSV4Metadata:
     core_attn_metadata: DSV4AttnMetadata
     indexer_metadata: Optional[PagedIndexerMetadata]
+
+    # Low-ratio indexer metadata is kept separately because the existing
+    # ``indexer_metadata`` name is tied to the legacy c4 page geometry.  The
+    # eager HIP bring-up does not consume these objects, but retaining them
+    # makes raw/graph upgrades type-safe and avoids a future c1/c2 alias bug.
+    c1_indexer_metadata: Optional[PagedIndexerMetadata] = None
+    c2_indexer_metadata: Optional[PagedIndexerMetadata] = None
 
     c4_compress_metadata: Optional[FusedCompressMetadata] = None
     c128_compress_metadata: Optional[FusedCompressMetadata] = None
@@ -362,6 +617,8 @@ class DSV4Metadata:
     def copy_(self, other: DSV4Metadata):
         self.core_attn_metadata.copy_(other.core_attn_metadata)
         maybe_copy_inplace(self.indexer_metadata, src=other.indexer_metadata)
+        maybe_copy_inplace(self.c1_indexer_metadata, src=other.c1_indexer_metadata)
+        maybe_copy_inplace(self.c2_indexer_metadata, src=other.c2_indexer_metadata)
         maybe_copy_inplace(self.c4_compress_metadata, src=other.c4_compress_metadata)
         maybe_copy_inplace(
             self.c128_compress_metadata, src=other.c128_compress_metadata
@@ -451,6 +708,19 @@ class DeepseekV4HipRadixBackend(
         self.token_to_kv_pool: DeepSeekV4TokenToKVPool = model_runner.token_to_kv_pool
         self.hisparse_coordinator = model_runner.hisparse_coordinator
         self.req_to_token = model_runner.req_to_token_pool.req_to_token
+        # The V4.1 memory pool already exposes the ratios that are actually
+        # allocated (1/2 for the current Flash checkpoint).  Keep this separate
+        # from the per-layer ratio list so metadata creation never asks for a
+        # legacy c4/c128 buffer that does not exist.
+        self.present_ratios: Tuple[int, ...] = tuple(
+            sorted(self.token_to_kv_pool.kv_pools)
+        )
+        self.low_ratios: Tuple[int, ...] = tuple(
+            ratio for ratio in (1, 2) if ratio in self.present_ratios
+        )
+        self.has_c4 = 4 in self.present_ratios
+        self.has_c128 = 128 in self.present_ratios
+        self.candidate_masks = None
         self.MAX_SEQ_LEN_FOR_CAPTURE = self.req_to_token.shape[1]
 
         assert isinstance(self.token_to_kv_pool, DeepSeekV4TokenToKVPool)
@@ -492,11 +762,36 @@ class DeepseekV4HipRadixBackend(
         pin_tensor = torch.tensor(x, dtype=torch.int32, pin_memory=True)
         return pin_tensor.to(self.device, non_blocking=True)
 
-    def init_forward_metadata_indexer(self, core_attn_metadata: DSV4AttnMetadata):
+    def init_forward_metadata_indexer(
+        self, core_attn_metadata: DSV4AttnMetadata, compress_ratio: int = 4
+    ):
+        if compress_ratio == 4:
+            c_seq_lens = core_attn_metadata.c4_topk_lengths_raw
+            page_table = core_attn_metadata.page_table
+        elif compress_ratio == 1:
+            c_seq_lens = core_attn_metadata.c1_topk_lengths_clamp1
+            page_table = _expand_low_ratio_page_table(
+                core_attn_metadata.page_table,
+                full_page_size=self.page_size,
+                compress_ratio=1,
+                index_page_size=self.token_to_kv_pool.get_index_k_page_size(1),
+            )
+        elif compress_ratio == 2:
+            c_seq_lens = core_attn_metadata.c2_topk_lengths_clamp1
+            page_table = _expand_low_ratio_page_table(
+                core_attn_metadata.page_table,
+                full_page_size=self.page_size,
+                compress_ratio=2,
+                index_page_size=self.token_to_kv_pool.get_index_k_page_size(2),
+            )
+        else:
+            raise ValueError(f"unsupported indexer compress ratio {compress_ratio}")
+        if c_seq_lens is None:
+            return None
         return PagedIndexerMetadata(
             page_size=self.page_size,
-            page_table=core_attn_metadata.page_table,
-            c4_seq_lens=core_attn_metadata.c4_topk_lengths_raw,
+            page_table=page_table,
+            c4_seq_lens=c_seq_lens,
         )
 
     def init_forward_metadata_decode(
@@ -584,7 +879,17 @@ class DeepseekV4HipRadixBackend(
             )
         indexer_metadata = (
             self.init_forward_metadata_indexer(core_attn_metadata)
-            if need_compress
+            if need_compress and self.has_c4
+            else None
+        )
+        c1_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=1)
+            if need_compress and 1 in self.low_ratios
+            else None
+        )
+        c2_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=2)
+            if need_compress and 2 in self.low_ratios
             else None
         )
         if not need_compress:
@@ -619,8 +924,12 @@ class DeepseekV4HipRadixBackend(
         return DSV4Metadata(
             core_attn_metadata,
             indexer_metadata,
-            c4_compress_metadata=create(compress_ratio=4),
-            c128_compress_metadata=create(compress_ratio=128),
+            c1_indexer_metadata=c1_indexer_metadata,
+            c2_indexer_metadata=c2_indexer_metadata,
+            c4_compress_metadata=(create(compress_ratio=4) if self.has_c4 else None),
+            c128_compress_metadata=(
+                create(compress_ratio=128) if self.has_c128 else None
+            ),
         )
 
     def init_forward_metadata_target_verify(
@@ -737,7 +1046,21 @@ class DeepseekV4HipRadixBackend(
             out_loc=out_cache_loc,
             need_compress=True,
         )
-        indexer_metadata = self.init_forward_metadata_indexer(core_attn_metadata)
+        indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata)
+            if self.has_c4
+            else None
+        )
+        c1_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=1)
+            if 1 in self.low_ratios
+            else None
+        )
+        c2_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=2)
+            if 2 in self.low_ratios
+            else None
+        )
         create = functools.partial(
             create_paged_compressor_data,
             is_prefill=True,
@@ -754,8 +1077,12 @@ class DeepseekV4HipRadixBackend(
         return DSV4Metadata(
             core_attn_metadata,
             indexer_metadata,
-            c4_compress_metadata=create(compress_ratio=4),
-            c128_compress_metadata=create(compress_ratio=128),
+            c1_indexer_metadata=c1_indexer_metadata,
+            c2_indexer_metadata=c2_indexer_metadata,
+            c4_compress_metadata=(create(compress_ratio=4) if self.has_c4 else None),
+            c128_compress_metadata=(
+                create(compress_ratio=128) if self.has_c128 else None
+            ),
         )
 
     def make_forward_metadata_from_raw_decode(
@@ -774,7 +1101,21 @@ class DeepseekV4HipRadixBackend(
             need_compress=True,
         )
         self._attach_unified_kv_decode_streams(core_attn_metadata, req_pool_indices)
-        indexer_metadata = self.init_forward_metadata_indexer(core_attn_metadata)
+        indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata)
+            if self.has_c4
+            else None
+        )
+        c1_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=1)
+            if 1 in self.low_ratios
+            else None
+        )
+        c2_indexer_metadata = (
+            self.init_forward_metadata_indexer(core_attn_metadata, compress_ratio=2)
+            if 2 in self.low_ratios
+            else None
+        )
 
         create = functools.partial(
             create_paged_compressor_data,
@@ -788,8 +1129,12 @@ class DeepseekV4HipRadixBackend(
         return DSV4Metadata(
             core_attn_metadata,
             indexer_metadata,
-            c4_compress_metadata=create(compress_ratio=4),
-            c128_compress_metadata=create(compress_ratio=128),
+            c1_indexer_metadata=c1_indexer_metadata,
+            c2_indexer_metadata=c2_indexer_metadata,
+            c4_compress_metadata=(create(compress_ratio=4) if self.has_c4 else None),
+            c128_compress_metadata=(
+                create(compress_ratio=128) if self.has_c128 else None
+            ),
         )
 
     def init_forward_metadata_draft_extend(
@@ -1116,15 +1461,267 @@ class DeepseekV4HipRadixBackend(
             metadata.core_attn_metadata, DSV4AttnMetadata
         ):
             core = metadata.core_attn_metadata
-            core.c1_flashmla_metadata = _create_flashmla_metadata()
-            core.c4_flashmla_metadata = _create_flashmla_metadata()
-            core.c128_flashmla_metadata = _create_flashmla_metadata()
+            core.c0_flashmla_metadata = _create_flashmla_metadata()
+            core.c1_flashmla_metadata = (
+                _create_flashmla_metadata() if 1 in core.low_ratios else None
+            )
+            core.c2_flashmla_metadata = (
+                _create_flashmla_metadata() if 2 in core.low_ratios else None
+            )
+            core.c4_flashmla_metadata = (
+                _create_flashmla_metadata() if 4 in core.present_ratios else None
+            )
+            core.c128_flashmla_metadata = (
+                _create_flashmla_metadata() if 128 in core.present_ratios else None
+            )
 
         # PREP_IN_CUDA_GRAPH=True: warmup upgraded raw->full on the host;
         # restore raw so capture re-runs the upgrade inside the graph.
         current_raw = getattr(self, "_current_capture_raw", None)
         if current_raw is not None:
             self.forward_metadata = current_raw
+
+    # ---- DeepSeek V4.1 ratio-1/2 eager source path (HIP bring-up) ----
+
+    def forward_low_ratio_sources(
+        self,
+        *,
+        layer,
+        x: torch.Tensor,
+        q_lora: Optional[torch.Tensor],
+        positions: torch.Tensor,
+        forward_batch: ForwardBatch,
+        run_compressor: bool = True,
+        run_indexer: bool = True,
+    ) -> None:
+        """Populate V4.1 ratio-1/2 compressed and indexer caches.
+
+        The upstream V4.1 backend has CUDA/DeepGEMM implementations for this
+        contract, but the gfx90a backend is a separate class and historically
+        stopped at the old c4/c128 interface.  This first HIP implementation is
+        intentionally eager and torch-based: it preserves the reference data
+        flow, avoids CUDA-only kernels, and gives the attention path valid cache
+        indices before any optimization is attempted.
+        """
+        if forward_batch.forward_mode.is_idle():
+            return
+        if getattr(forward_batch, "encoder_swa_replay", False):
+            run_compressor = False
+
+        n = min(x.shape[0], positions.shape[0])
+        if n == 0:
+            return
+        x = x[:n]
+        positions = positions[:n].to(torch.int64)
+        if q_lora is not None:
+            q_lora = q_lora[:n]
+        req = token_req_indices(forward_batch, num_tokens=n)[:n]
+
+        if run_compressor and layer.compressor is not None:
+            self._low_ratio_compress_torch(layer, x, req, positions)
+        if run_indexer and layer.indexer is not None:
+            if q_lora is None:
+                raise RuntimeError(
+                    "V4.1 low-ratio indexer requires normalized q_lora"
+                )
+            self._low_ratio_index_topk_torch(
+                layer, x, q_lora, req, positions
+            )
+
+    def _low_ratio_compress_torch(
+        self,
+        layer,
+        x: torch.Tensor,
+        req: torch.Tensor,
+        pos: torch.Tensor,
+    ) -> None:
+        core = self.forward_metadata.core_metadata
+        n = pos.shape[0]
+        if n == 0:
+            return
+        kv, score = layer.compressor.project(x)
+        ratio = layer.compress_ratio
+        if ratio == 1:
+            self._low_ratio_write_group(
+                layer,
+                kv,
+                core.c1_out_loc[:n],
+                pos,
+            )
+            return
+        if ratio != 2:
+            raise ValueError(f"unexpected V4.1 low ratio {ratio}")
+        assert score is not None
+        # ``raw_out_loc`` is a physical slot and zero is a valid allocation
+        # (in particular, the first token of a fresh request).  Using
+        # ``raw_out_loc == 0`` as a padding sentinel silently drops that row
+        # from the ratio-2 carry state and corrupts the first pair.  The source
+        # path trims graph padding before reaching here; a negative position is
+        # the only unambiguous invalid-row marker.
+        pad = pos < 0
+        partner_kv, partner_score = self._low_ratio_pair_partners(
+            layer_id=layer.layer_id,
+            kv=kv,
+            score=score,
+            req=req,
+            pos=pos,
+            pad=pad,
+        )
+        pooled = layer.compressor.pool_pairs(
+            torch.stack([partner_kv, kv], dim=1),
+            torch.stack([partner_score, score], dim=1),
+        )
+        group_pos = torch.where(pos % 2 == 1, pos - 1, pos)
+        out_loc = core.c2_out_loc[:n]
+        self._low_ratio_write_group(layer, pooled, out_loc, group_pos)
+
+    def _low_ratio_pair_partners(
+        self,
+        *,
+        layer_id: int,
+        kv: torch.Tensor,
+        score: torch.Tensor,
+        req: torch.Tensor,
+        pos: torch.Tensor,
+        pad: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Read ratio-2 partners before publishing this batch into the ring."""
+        state = self.token_to_kv_pool.get_attention_compress_states(layer_id)
+        n = pos.shape[0]
+        read_pos = (pos - 1).masked_fill(pad, -1)
+        carried = state.get_state_by_state_loc(
+            state.translate_from_req_position_to_state_loc(req, read_pos)
+        )
+        in_batch = torch.zeros_like(pad)
+        if n > 1:
+            in_batch[1:] = (
+                (req[1:] == req[:-1])
+                & (pos[1:] == pos[:-1] + 1)
+                & ~pad[1:]
+                & ~pad[:-1]
+            )
+        rolled_kv = torch.roll(kv, 1, 0)
+        rolled_score = torch.roll(score, 1, 0)
+        partner_kv = torch.where(in_batch[:, None], rolled_kv, carried.kv)
+        partner_score = torch.where(
+            in_batch[:, None], rolled_score, carried.score
+        )
+
+        # Retain the latest ring window for cross-chunk pairs.  The state API
+        # maps negative positions to its sentinel row, so padded rows are safe.
+        ring = state.ring_size
+        keep = ~pad
+        if n > ring:
+            keep[:-ring] &= (req[:-ring] != req[ring:]) | pad[ring:]
+        write_pos = pos.masked_fill(~keep, -1)
+        state.set_state_by_state_loc(
+            state.translate_from_req_position_to_state_loc(req, write_pos),
+            KVAndScore.from_kv_score(kv=kv, score=score),
+        )
+        return partner_kv, partner_score
+
+    def _low_ratio_write_group(
+        self,
+        layer,
+        pooled: torch.Tensor,
+        slots: torch.Tensor,
+        group_pos: torch.Tensor,
+    ) -> None:
+        """Norm/rotate and scatter one completed c1/c2 latent group."""
+        valid = slots >= 0
+        if not bool(valid.any().item()):
+            return
+        pooled = pooled[valid]
+        slots = slots[valid].to(torch.int64)
+        group_pos = group_pos[valid].to(torch.int64)
+        latent = layer.compressor.finish(pooled)
+        freqs = layer.freqs_cis[group_pos]
+        pool = self.token_to_kv_pool
+
+        # The indexer consumes the pre-RoPE latent.  Store its packed FP4 key
+        # before applying the compressed-KV RoPE/fake-quant transformation.
+        if layer.indexer is not None and layer.indexer.owns_k:
+            pool.set_index_k_fp4(
+                layer_id=layer.layer_id,
+                loc=slots,
+                cache_k=layer.indexer.index_keys(latent, freqs),
+            )
+
+        latent = _rope_fq4(
+            latent, freqs, layer.rope_head_dim, compressed_kv=True
+        )
+        pool.set_extra_key_buffer_fused(
+            layer_id=layer.layer_id,
+            loc=slots,
+            cache_k=latent,
+        )
+
+    def _low_ratio_index_topk_torch(
+        self,
+        layer,
+        x: torch.Tensor,
+        q_lora: torch.Tensor,
+        req: torch.Tensor,
+        pos: torch.Tensor,
+    ) -> None:
+        """Reference FP4-indexer selection for HIP eager forwards.
+
+        Requests are processed independently so a ragged batch never compares
+        scores from unrelated page tables.  The selected logical positions are
+        sorted before conversion to compressed physical slots, matching the
+        attention consumer's deterministic ordering contract.
+        """
+        core = self.forward_metadata.core_metadata
+        ratio = layer.compress_ratio
+        page_indices = core.sparse_page_indices(ratio)
+        raw_indices = core.sparse_raw_indices(ratio)
+        page_indices.fill_(-1)
+        if raw_indices is not None:
+            raw_indices.fill_(-1)
+
+        indexer = layer.indexer
+        q = indexer.queries(q_lora, layer.freqs_cis[pos])
+        weights = indexer.head_weights(x)
+        visible = (pos + 1) // ratio
+        topk = indexer.index_topk
+
+        # The scheduler lays each request's rows contiguously in the normal
+        # eager path.  unique_consecutive also handles ragged verify batches.
+        for request_id in torch.unique_consecutive(req).tolist():
+            rows = (req == request_id).nonzero(as_tuple=False).flatten()
+            if rows.numel() == 0:
+                continue
+            length = int(visible[rows].max().item())
+            if length <= 0:
+                continue
+            k = min(topk, length)
+            logical = torch.arange(length, device=pos.device)
+            full_slots = self.req_to_token[
+                int(request_id), logical * ratio
+            ].to(torch.int64)
+            compressed_slots = full_slots // ratio
+            index_k = self.token_to_kv_pool.get_low_ratio_index_k_dequant(
+                layer.layer_id, compressed_slots
+            )
+            scores = indexer.scores(q[rows], index_k, weights[rows])
+            row_visible = visible[rows].to(torch.int64)
+            scores = scores.masked_fill(
+                logical[None, :] >= row_visible[:, None], -torch.inf
+            )
+            selected = stable_index_topk(scores, k)
+            chosen = selected < row_visible[:, None]
+            selected_safe = selected.clamp_max(length - 1)
+            page_indices[rows, :k] = torch.where(
+                chosen,
+                compressed_slots[selected_safe],
+                torch.full_like(selected_safe, -1),
+            ).to(torch.int32)
+            if raw_indices is not None:
+                raw_indices[rows, :k] = torch.where(
+                    chosen,
+                    selected,
+                    torch.full_like(selected, -1),
+                ).to(torch.int32)
 
     def _attach_unified_kv_decode_streams(
         self, core: DSV4AttnMetadata, state_slot: torch.Tensor
@@ -1264,7 +1861,7 @@ class DeepseekV4HipRadixBackend(
         kv: torch.Tensor,
         layer: RadixAttention,
         forward_batch: ForwardBatch,
-        compress_ratio: Literal[0, 4, 128],
+        compress_ratio: Literal[0, 1, 2, 4, 128],
         attn_sink: torch.Tensor,
         core_attn_metadata: DSV4AttnMetadata,
         save_kv_cache: bool = True,
@@ -1682,6 +2279,12 @@ class DeepseekV4HipRadixBackend(
                 extra_k_cache = token_to_kv_pool.get_extra_key_buffer(layer_id)
                 extra_indices = core_attn_metadata.c4_sparse_page_indices
                 extra_topk_lengths = core_attn_metadata.c4_sparse_topk_lengths
+            elif compress_ratio in (1, 2):
+                extra_k_cache = token_to_kv_pool.get_extra_key_buffer(layer_id)
+                extra_indices = core_attn_metadata.sparse_page_indices(compress_ratio)
+                extra_topk_lengths = core_attn_metadata.sparse_topk_lengths(
+                    compress_ratio
+                )
             elif compress_ratio == 128:
                 extra_k_cache = token_to_kv_pool.get_extra_key_buffer(layer_id)
                 extra_indices = core_attn_metadata.c128_page_indices
@@ -1696,6 +2299,8 @@ class DeepseekV4HipRadixBackend(
 
             if extra_k_cache is not None:
                 page_sizes = {
+                    1: token_to_kv_pool.page_size // 1,
+                    2: token_to_kv_pool.page_size // 2,
                     4: token_to_kv_pool.page_size // 4,
                     128: token_to_kv_pool.page_size // 128,
                 }
@@ -1861,19 +2466,23 @@ class DeepseekV4HipRadixBackend(
             swa_page_indices=swa_page_indices,
             swa_topk_lengths=swa_topk_lengths,
             c4_sparse_topk=self.c4_topk,
+            present_ratios=self.present_ratios,
+            low_ratios=self.low_ratios,
         )
 
         if need_compress:
             core_attn_metadata.init_compression_metadata(
                 unified_swa_pages=getattr(self.token_to_kv_pool, "unified_swa_pages", 0)
             )
-            core_attn_metadata.init_flashmla_related()
+            core_attn_metadata.init_flashmla_related(is_prefill=is_prefill)
         else:
             core_attn_metadata.c4_sparse_topk_lengths = None
             core_attn_metadata.c4_sparse_topk_lengths_raw = None
             core_attn_metadata.c4_sparse_page_indices = None
             core_attn_metadata.c4_sparse_raw_indices = None
-            core_attn_metadata.c1_flashmla_metadata = _create_flashmla_metadata()
+            core_attn_metadata.c0_flashmla_metadata = _create_flashmla_metadata()
+            core_attn_metadata.c1_flashmla_metadata = None
+            core_attn_metadata.c2_flashmla_metadata = None
             core_attn_metadata.c4_flashmla_metadata = None
             core_attn_metadata.c128_flashmla_metadata = None
         return core_attn_metadata

@@ -1414,10 +1414,19 @@ class Envs:
 
     # DeepSeek-V4.1 Engram host-resident table and prefetch controls.
     SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE = EnvBool(False)
+    # Correctness ablation only: keep the checkpoint/table loaded but bypass
+    # Engram hashing, lookup, and residual injection in V4.1 forward.  This is
+    # useful for isolating the large host-backed table from the backbone path;
+    # it must remain off for normal inference.
+    SGLANG_DSV41_DISABLE_ENGRAM = EnvBool(False)
     SGLANG_ENABLE_DSV41_ENGRAM_KV_PREFETCH = EnvBool(False)
     SGLANG_DSV41_ENGRAM_HOST_TABLE_PIN = EnvBool(True)
     SGLANG_DSV41_ENGRAM_HOST_TABLE_LAYOUT = EnvStr("auto")
     SGLANG_ENABLE_DSV41_ENGRAM_DROP_PAGE_CACHE = EnvBool(True)
+    # Correctness-only oracle: gather host-backed Engram rows on the CPU and
+    # copy the small dequantized result to the accelerator.  This deliberately
+    # synchronizes and is not a production path.
+    SGLANG_DSV41_ENGRAM_HOST_CPU_REFERENCE = EnvBool(False)
 
     # Model and Quantization
     # Set False when using FP4-to-FP8 converted DeepSeek V4 checkpoint.
