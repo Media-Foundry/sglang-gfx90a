@@ -1,0 +1,57 @@
+{
+  "padding": 384,
+  "fix_w2_rows": false,
+  "compact_down": true,
+  "rows": 2048,
+  "graph_replays": 0,
+  "graph_exact": null,
+  "tiled_input_rows": true,
+  "rank": 0,
+  "raw_expert_ids": [
+    282,
+    10,
+    369,
+    355,
+    118,
+    167
+  ],
+  "weight_shapes": [
+    [
+      8,
+      768,
+      2560
+    ],
+    [
+      8,
+      5120,
+      192
+    ]
+  ],
+  "scale_shapes": [
+    [
+      6144,
+      160
+    ],
+    [
+      40960,
+      16
+    ]
+  ],
+  "stage1": {
+    "finite": true,
+    "actual_rms": 0.04152103140950203,
+    "reference_rms": 0.04163898527622223,
+    "relative_l2": 0.004341013263911009,
+    "cosine": 0.9999945759773254,
+    "max_abs": 0.0078125
+  },
+  "output": {
+    "finite": true,
+    "actual_rms": 0.01120007038116455,
+    "reference_rms": 0.01123182475566864,
+    "relative_l2": 0.00540429400280118,
+    "cosine": 0.99998939037323,
+    "max_abs": 0.00047034770250320435
+  },
+  "replay_exact": true
+}

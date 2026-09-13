@@ -302,8 +302,13 @@ class OpenAIServingChat(OpenAIServingBase):
         )
 
         # Which Python-based chat encoder (if any) bypasses apply_chat_template.
-        # Values: "dsv32", "dsv4", or custom values set by subclass. None for default.
+        # Values include "dsv32", "dsv4", "dsv41"; None uses the HF template.
         self.chat_encoding_spec = self._resolve_chat_encoding_spec()
+        self._dsv41_effort_profile = (
+            chat_encoding.resolve_dsv41_effort_profile(self.tokenizer_manager.model_path)
+            if self.chat_encoding_spec == "dsv41"
+            else None
+        )
         self._dsv4_reasoning_effort_profile = (
             chat_encoding.resolve_dsv4_reasoning_effort_profile(
                 model_path=self.tokenizer_manager.model_path,
@@ -506,6 +511,36 @@ class OpenAIServingChat(OpenAIServingBase):
 
         Returns prompt_ids if handled, None to use default encoding.
         """
+        if self.chat_encoding_spec == "dsv41":
+            from sglang.srt.entrypoints.openai import encoding_dsv41
+
+            # Keep content blocks intact: V4.1's encoder knows image markers
+            # and collects them in prompt order. The caller still extracts
+            # the media payloads for the multimodal processor below.
+            messages, assistant_prefix = self._handle_last_assistant_message(
+                messages, request
+            )
+            if tools and messages and messages[0]["role"] != "system":
+                messages.insert(0, {"role": "system", "content": ""})
+            if tools:
+                messages[0]["tools"] = tools
+            if request.task is not None:
+                encoding_dsv41.attach_task_to_last_user_message(messages, request.task)
+            effort = request.reasoning_effort
+            if effort == "none":
+                effort = None
+            profile = getattr(self, "_dsv41_effort_profile", None)
+            if profile is not None:
+                effort = chat_encoding.dsv41_effort_budget(effort, profile)
+            real_input = encoding_dsv41.encode_messages(
+                messages, thinking_mode=thinking_mode, reasoning_effort=effort
+            )
+            prompt_ids = self.tokenizer_manager.tokenizer.encode(real_input)
+            if assistant_prefix:
+                prompt_ids = self._append_assistant_prefix_to_prompt_ids(
+                    prompt_ids, assistant_prefix
+                )
+            return prompt_ids
         if self.chat_encoding_spec == "inkling":
             # Inkling: render messages -> input_ids with framing tokens + ONE placeholder per
             # media (encoding/expansion happens later in InklingMultimodalProcessor). The
@@ -1241,7 +1276,7 @@ class OpenAIServingChat(OpenAIServingBase):
         )
 
         if prompt_ids is not None:
-            if self.chat_encoding_spec in ("inkling", "kimi_k3"):
+            if self.chat_encoding_spec in ("dsv41", "inkling", "kimi_k3"):
                 for message in request.messages:
                     msg_dict = message.model_dump()
                     if msg_dict.get("content") is None:

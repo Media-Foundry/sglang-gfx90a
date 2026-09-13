@@ -9,12 +9,77 @@ from __future__ import annotations
 
 import ast
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sglang.srt.entrypoints.openai import encoding_dsv4
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=16)
+def resolve_dsv41_effort_profile(model_path: str):
+    """Read alias budgets from a local checkpoint without executing its code.
+
+    V4.1 snapshots differ (e.g. low/high=50/75 vs 25/50). Keep the bundled
+    encoder default when no checked local reference is available.
+    """
+    from sglang.srt.entrypoints.openai import encoding_dsv41
+
+    for filename in ("encoding/encoding.py", "encoding/encoding_dsv41.py"):
+        path = Path(model_path) / filename
+        try:
+            if not path.is_file() or path.stat().st_size > 1 << 20:
+                continue
+            values = {}
+            for node in ast.parse(path.read_text(encoding="utf-8")).body:
+                if isinstance(node, ast.Assign):
+                    targets, value = node.targets, node.value
+                elif isinstance(node, ast.AnnAssign):
+                    targets, value = [node.target], node.value
+                else:
+                    continue
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "REASONING_EFFORT_MAPPINGS",
+                        "DEFAULT_REASONING_EFFORT",
+                    ):
+                        values[target.id] = ast.literal_eval(value)
+            mapping = values.get("REASONING_EFFORT_MAPPINGS")
+            default = values.get("DEFAULT_REASONING_EFFORT")
+            if (
+                isinstance(mapping, dict)
+                and mapping
+                and all(
+                    isinstance(k, str) and type(v) is int and 1 <= v <= 100
+                    for k, v in mapping.items()
+                )
+                and isinstance(default, str)
+                and default in mapping
+            ):
+                return mapping, default
+        except (OSError, SyntaxError, ValueError, TypeError, UnicodeError):
+            logger.debug("Could not read V4.1 effort profile from %s", path)
+    return (
+        dict(encoding_dsv41.REASONING_EFFORT_MAPPINGS),
+        encoding_dsv41.DEFAULT_REASONING_EFFORT,
+    )
+
+
+def dsv41_effort_budget(effort, profile):
+    mapping, default = profile
+    if effort is None:
+        effort = default
+    if isinstance(effort, str):
+        if effort not in mapping:
+            raise ValueError(
+                f"Unsupported V4.1 reasoning effort {effort!r}; "
+                f"expected {list(mapping)} or integer 1..100"
+            )
+        return mapping[effort]
+    return effort  # The encoder strictly validates numeric budgets.
+
 
 DSV4_REASONING_EFFORT_PROFILE_OVERRIDE = "dsv4_reasoning_effort_profile"
 _DSV4_REASONING_EFFORT_ENCODER = "encoding/encoding_dsv4.py"
@@ -116,6 +181,8 @@ def resolve_chat_encoding_spec(
     None means the default path (HF chat template); any non-None spec also owns
     reasoning-history rendering (:func:`spec_owns_reasoning_history`).
     """
+    if tool_call_parser == "deepseekv41":
+        return "dsv41"
     if tool_call_parser == "deepseekv4":
         return "dsv4"
     if tool_call_parser == "deepseekv32":
@@ -126,6 +193,11 @@ def resolve_chat_encoding_spec(
     architectures = hf_config.architectures
     arch = architectures[0] if architectures else ""
 
+    # V4.1 has spaced DSML tags and a numeric effort budget. Check it before
+    # the V4 substring, otherwise an apparently working plain-chat endpoint
+    # silently uses the wrong tool/thinking conversation format.
+    if "DeepseekV41" in arch:
+        return "dsv41"
     if "DeepseekV4" in arch:
         return "dsv4"
     if "KimiK3" in arch:
@@ -184,10 +256,23 @@ def encode_simple_chat(
             add_generation_prompt=False,
         )
 
-    if spec in ("dsv4", "dsv32"):
-        if messages and messages[0]["role"] != "system":
+    if spec in ("dsv41", "dsv4", "dsv32"):
+        if spec != "dsv41" and messages and messages[0]["role"] != "system":
             messages = [{"role": "system", "content": ""}] + list(messages)
-        if spec == "dsv4":
+        if spec == "dsv41":
+            from sglang.srt.entrypoints.openai import encoding_dsv41
+
+            real_input = encoding_dsv41.encode_messages(
+                messages,
+                thinking_mode=thinking_mode,
+                reasoning_effort=dsv41_effort_budget(
+                    None,
+                    resolve_dsv41_effort_profile(
+                        getattr(tokenizer, "name_or_path", "") or ""
+                    ),
+                ),
+            )
+        elif spec == "dsv4":
             from sglang.srt.entrypoints.openai import encoding_dsv4
 
             real_input = encoding_dsv4.encode_messages(

@@ -1,0 +1,79 @@
+{
+  "case": "sql",
+  "round": 0,
+  "request": {
+    "input_ids": [
+      0,
+      128803,
+      21750,
+      260,
+      19662,
+      13607,
+      396,
+      23180,
+      710,
+      17721,
+      295,
+      270,
+      5516,
+      4184,
+      16,
+      19414,
+      418,
+      270,
+      13607,
+      1353,
+      16,
+      128804,
+      128822
+    ],
+    "sampling_params": {
+      "temperature": 0,
+      "max_new_tokens": 48,
+      "ignore_eos": false
+    },
+    "cache_salt": "c4-smoke-0-sql-1789270172945491907"
+  },
+  "passed": true,
+  "response": {
+    "text": "SELECT COUNT(*) FROM events;",
+    "output_ids": [
+      21039,
+      54583,
+      79341,
+      17934,
+      5516,
+      29,
+      1
+    ],
+    "meta_info": {
+      "id": "968025cedbf749f9ae239f7ee6d7f873",
+      "finish_reason": {
+        "type": "stop",
+        "matched": 1
+      },
+      "prompt_tokens": 23,
+      "weight_version": "default",
+      "num_retractions": 0,
+      "reasoning_tokens": 0,
+      "completion_tokens": 7,
+      "cached_tokens": 0,
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 7
+        }
+      ],
+      "cached_tokens_details": null,
+      "dp_rank": null,
+      "e2e_latency": 4.891027212999688,
+      "response_sent_to_client_ts": 1789270177.8527315
+    }
+  },
+  "text_matches_ids": true,
+  "expected_substring": "count(*)",
+  "expected_substring_pass": true,
+  "hash": "0cbb77961121e46844d34c95602762558c0c5a8a06a85b053e1074abd600bb9d",
+  "elapsed_s": 4.898603064999406
+}

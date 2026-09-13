@@ -46,7 +46,7 @@ from sglang.test.ci.ci_register import register_cpu_ci
 register_cpu_ci(est_time=11, suite="base-a-test-cpu")
 
 # Every spec resolve_chat_encoding_spec can return; pinned by the guard below.
-_ALL_CHAT_ENCODING_SPECS = ("dsv4", "dsv32", "inkling", "kimi_k3")
+_ALL_CHAT_ENCODING_SPECS = ("dsv41", "dsv4", "dsv32", "inkling", "kimi_k3")
 
 
 def _spec_result(index):
@@ -1949,6 +1949,44 @@ class ServingChatTestCase(unittest.TestCase):
         tm.tokenizer.chat_template = None
         serving_chat = OpenAIServingChat(tm, TemplateManager())
         self.assertEqual(serving_chat.chat_encoding_spec, "dsv4")
+
+    def test_dsv41_encoding_precedes_v4_substring(self):
+        from sglang.srt.parser.template_manager import TemplateManager
+
+        tm = _MockTokenizerManager()
+        tm.model_config.hf_config.architectures = ["DeepseekV41ForCausalLM"]
+        serving = OpenAIServingChat(tm, TemplateManager())
+        self.assertEqual(serving.chat_encoding_spec, "dsv41")
+        self.assertIsNone(serving._dsv4_reasoning_effort_profile)
+        tm.model_config.hf_config.architectures = ["LlamaForCausalLM"]
+        tm.server_args.tool_call_parser = "deepseekv41"
+        self.assertEqual(OpenAIServingChat(tm, TemplateManager()).chat_encoding_spec, "dsv41")
+
+    def test_dsv41_official_effort_and_tool_tags(self):
+        from sglang.srt.entrypoints.openai import encoding_dsv41
+
+        self.chat.chat_encoding_spec = "dsv41"
+        for effort in (1, 50, 75, 100, "low", "high", "max", None):
+            with self.subTest(effort=effort):
+                req = ChatCompletionRequest(
+                    model="test", messages=[{"role": "user", "content": "Look up Paris."}],
+                    reasoning_effort=effort,
+                    tools=[{"type": "function", "function": {"name": "lookup", "parameters": {"type": "object", "properties": {}}}}],
+                )
+                messages = [msg.model_dump() for msg in req.messages]
+                tools = [tool.model_dump() for tool in req.tools]
+                self.chat._encode_messages(messages, req, "thinking", tools)
+                actual = self.chat.tokenizer_manager.tokenizer.encode.call_args.args[0]
+                expected = encoding_dsv41.encode_messages(
+                    [{"role": "system", "content": "", "tools": tools}, *[msg.model_dump() for msg in req.messages]],
+                    thinking_mode="thinking", reasoning_effort=effort,
+                )
+                self.assertEqual(actual, expected)
+                self.assertIn("Reasoning Effort:", actual)
+                self.assertIn("<｜DSML｜ calls>", actual)
+                self.assertNotIn("<｜DSML｜tool_calls>", actual)
+        req = ChatCompletionRequest(model="test", messages=[{"role": "user", "content": "Hi"}], reasoning={"effort": 75})
+        self.assertIs(type(req.reasoning_effort), int)
 
     def test_kimi_k3_encoding_detection(self):
         from sglang.srt.parser.template_manager import TemplateManager

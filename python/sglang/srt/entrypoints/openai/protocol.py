@@ -55,6 +55,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictInt,
     field_serializer,
     field_validator,
     model_serializer,
@@ -803,6 +804,7 @@ ECHOABLE_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high"})
 ReasoningEffortType = Optional[
     Union[
         ReasoningEffortTier,
+        Annotated[StrictInt, Field(ge=1, le=100)],
         Annotated[float, Field(ge=0.0, le=0.99, allow_inf_nan=False)],
     ]
 ]
@@ -1000,7 +1002,11 @@ class ChatCompletionRequest(BaseModel):
                 "max",
             }:
                 values["reasoning_effort"] = effort
-            elif isinstance(effort, (int, float)) and not isinstance(effort, bool):
+            elif isinstance(effort, int) and not isinstance(effort, bool):
+                # V4.1 uses an integer budget; keep it distinct from the
+                # fractional effort used by other model families.
+                values["reasoning_effort"] = effort
+            elif isinstance(effort, float):
                 values["reasoning_effort"] = float(effort)
             elif isinstance(effort, str):
                 # Keep parity with the top-level reasoning_effort field, whose

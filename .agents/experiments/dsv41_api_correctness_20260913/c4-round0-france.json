@@ -1,0 +1,74 @@
+{
+  "case": "france",
+  "round": 0,
+  "request": {
+    "input_ids": [
+      0,
+      128803,
+      3085,
+      344,
+      270,
+      6102,
+      294,
+      8760,
+      33,
+      9361,
+      295,
+      834,
+      3107,
+      10175,
+      16,
+      128804,
+      128822
+    ],
+    "sampling_params": {
+      "temperature": 0,
+      "max_new_tokens": 48,
+      "ignore_eos": false
+    },
+    "cache_salt": "c4-smoke-0-france-1789270172943790548"
+  },
+  "passed": true,
+  "response": {
+    "text": "The capital of France is Paris.",
+    "output_ids": [
+      671,
+      6102,
+      294,
+      8760,
+      344,
+      11111,
+      16,
+      1
+    ],
+    "meta_info": {
+      "id": "adbeb0ffa1bc4b3db15d2911f9954738",
+      "finish_reason": {
+        "type": "stop",
+        "matched": 1
+      },
+      "prompt_tokens": 17,
+      "weight_version": "default",
+      "num_retractions": 0,
+      "reasoning_tokens": 0,
+      "completion_tokens": 8,
+      "cached_tokens": 0,
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 8
+        }
+      ],
+      "cached_tokens_details": null,
+      "dp_rank": null,
+      "e2e_latency": 5.0768979150007,
+      "response_sent_to_client_ts": 1789270178.0371342
+    }
+  },
+  "text_matches_ids": true,
+  "expected_substring": "paris",
+  "expected_substring_pass": true,
+  "hash": "d57c69a7c1ba57230ae2f1ae6647862f21225304c83f419c78eb642b8e1a5a8f",
+  "elapsed_s": 5.081541570999434
+}

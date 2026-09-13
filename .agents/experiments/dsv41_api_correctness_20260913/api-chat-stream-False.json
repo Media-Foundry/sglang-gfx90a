@@ -1,0 +1,74 @@
+{
+  "name": "chat-stream-False",
+  "request": {
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "temperature": 0,
+    "max_tokens": 256,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the capital of France? Answer in one short sentence."
+      }
+    ],
+    "stream": false,
+    "stream_options": null
+  },
+  "protocol_passed": true,
+  "status": 200,
+  "raw_body": "{\"id\":\"3927be95b03a433a856adb515f9078a2\",\"object\":\"chat.completion\",\"created\":1789270093,\"model\":\"/media/PM983/deepseek-v4.1-flash\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"The capital of France is Paris.\",\"reasoning_content\":null,\"tool_calls\":null},\"logprobs\":null,\"finish_reason\":\"stop\",\"matched_stop\":1}],\"usage\":{\"prompt_tokens\":17,\"total_tokens\":25,\"completion_tokens\":8,\"prompt_tokens_details\":null,\"reasoning_tokens\":0},\"metadata\":{\"weight_version\":\"default\",\"weight_versions\":[{\"version\":\"default\",\"start\":0,\"end\":8}]}}",
+  "response": {
+    "id": "3927be95b03a433a856adb515f9078a2",
+    "object": "chat.completion",
+    "created": 1789270093,
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The capital of France is Paris.",
+          "reasoning_content": null,
+          "tool_calls": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "matched_stop": 1
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 17,
+      "total_tokens": 25,
+      "completion_tokens": 8,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default",
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 8
+        }
+      ]
+    }
+  },
+  "message": {
+    "role": "assistant",
+    "content": "The capital of France is Paris.",
+    "reasoning_content": null,
+    "tool_calls": null
+  },
+  "finish_reason": "stop",
+  "usage": {
+    "prompt_tokens": 17,
+    "total_tokens": 25,
+    "completion_tokens": 8,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "elapsed_s": 1.722638328999892
+}

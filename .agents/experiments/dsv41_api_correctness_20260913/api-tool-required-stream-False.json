@@ -1,0 +1,117 @@
+{
+  "name": "tool-required-stream-False",
+  "request": {
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "temperature": 0,
+    "max_tokens": 256,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "Call lookup once with city exactly \"Paris\". Do not answer without calling the tool."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "lookup",
+          "description": "Return the current temperature for the given city.",
+          "strict": true,
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": "required",
+    "stream": false,
+    "stream_options": null
+  },
+  "protocol_passed": true,
+  "status": 200,
+  "raw_body": "{\"id\":\"ec18b5b2611b47d0b877734034850c22\",\"object\":\"chat.completion\",\"created\":1789270121,\"model\":\"/media/PM983/deepseek-v4.1-flash\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":null,\"tool_calls\":[{\"id\":\"call_41f2c2dab377410d8dae58ff\",\"index\":0,\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\\\"city\\\": \\\"Paris\\\"}\"}}]},\"logprobs\":null,\"finish_reason\":\"tool_calls\",\"matched_stop\":null}],\"usage\":{\"prompt_tokens\":293,\"total_tokens\":322,\"completion_tokens\":29,\"prompt_tokens_details\":null,\"reasoning_tokens\":0},\"metadata\":{\"weight_version\":\"default\",\"weight_versions\":[{\"version\":\"default\",\"start\":0,\"end\":29}]}}",
+  "response": {
+    "id": "ec18b5b2611b47d0b877734034850c22",
+    "object": "chat.completion",
+    "created": 1789270121,
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": null,
+          "tool_calls": [
+            {
+              "id": "call_41f2c2dab377410d8dae58ff",
+              "index": 0,
+              "type": "function",
+              "function": {
+                "name": "lookup",
+                "arguments": "{\"city\": \"Paris\"}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls",
+        "matched_stop": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 293,
+      "total_tokens": 322,
+      "completion_tokens": 29,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default",
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 29
+        }
+      ]
+    }
+  },
+  "message": {
+    "role": "assistant",
+    "content": "",
+    "reasoning_content": null,
+    "tool_calls": [
+      {
+        "id": "call_41f2c2dab377410d8dae58ff",
+        "index": 0,
+        "type": "function",
+        "function": {
+          "name": "lookup",
+          "arguments": "{\"city\": \"Paris\"}"
+        }
+      }
+    ]
+  },
+  "finish_reason": "tool_calls",
+  "usage": {
+    "prompt_tokens": 293,
+    "total_tokens": 322,
+    "completion_tokens": 29,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "elapsed_s": 5.673163384999498
+}

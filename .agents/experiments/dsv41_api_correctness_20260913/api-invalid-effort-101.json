@@ -1,0 +1,29 @@
+{
+  "name": "invalid-effort-101",
+  "request": {
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "temperature": 0,
+    "max_tokens": 256,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the capital of France? Answer in one short sentence."
+      }
+    ],
+    "reasoning_effort": 101
+  },
+  "protocol_passed": true,
+  "status": 400,
+  "raw_body": "{\"object\":\"error\",\"message\":\"3 validation errors:\\n  {'type': 'literal_error', 'loc': ('body', 'reasoning_effort', \\\"literal['none','minimal','low','medium','high','xhigh','max']\\\"), 'msg': \\\"Input should be 'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\\\", 'input': 101, 'ctx': {'expected': \\\"'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\\\"}}\\n  {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-int'), 'msg': 'Input should be less than or equal to 100', 'input': 101, 'ctx': {'le': 100}}\\n  {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-float'), 'msg': 'Input should be less than or equal to 0.99', 'input': 101, 'ctx': {'le': 0.99}}\\n\\n  File \\\"/home/pc/Code/sglang/python/sglang/srt/entrypoints/http_server.py\\\", line 1728, in openai_v1_chat_completions\\n    POST /v1/chat/completions [{'type': 'literal_error', 'loc': ('body', 'reasoning_effort', \\\"literal['none','minimal','low','medium','high','xhigh','max']\\\"), 'msg': \\\"Input should be 'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\\\", 'input': 101, 'ctx': {'expected': \\\"'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\\\"}}, {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-int'), 'msg': 'Input should be less than or equal to 100', 'input': 101, 'ctx': {'le': 100}}, {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-float'), 'msg': 'Input should be less than or equal to 0.99', 'input': 101, 'ctx': {'le': 0.99}}]\",\"type\":\"Bad Request\",\"param\":null,\"code\":400}",
+  "response": {
+    "object": "error",
+    "message": "3 validation errors:\n  {'type': 'literal_error', 'loc': ('body', 'reasoning_effort', \"literal['none','minimal','low','medium','high','xhigh','max']\"), 'msg': \"Input should be 'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\", 'input': 101, 'ctx': {'expected': \"'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\"}}\n  {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-int'), 'msg': 'Input should be less than or equal to 100', 'input': 101, 'ctx': {'le': 100}}\n  {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-float'), 'msg': 'Input should be less than or equal to 0.99', 'input': 101, 'ctx': {'le': 0.99}}\n\n  File \"/home/pc/Code/sglang/python/sglang/srt/entrypoints/http_server.py\", line 1728, in openai_v1_chat_completions\n    POST /v1/chat/completions [{'type': 'literal_error', 'loc': ('body', 'reasoning_effort', \"literal['none','minimal','low','medium','high','xhigh','max']\"), 'msg': \"Input should be 'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\", 'input': 101, 'ctx': {'expected': \"'none', 'minimal', 'low', 'medium', 'high', 'xhigh' or 'max'\"}}, {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-int'), 'msg': 'Input should be less than or equal to 100', 'input': 101, 'ctx': {'le': 100}}, {'type': 'less_than_equal', 'loc': ('body', 'reasoning_effort', 'constrained-float'), 'msg': 'Input should be less than or equal to 0.99', 'input': 101, 'ctx': {'le': 0.99}}]",
+    "type": "Bad Request",
+    "param": null,
+    "code": 400
+  },
+  "elapsed_s": 0.0017665080004007905
+}

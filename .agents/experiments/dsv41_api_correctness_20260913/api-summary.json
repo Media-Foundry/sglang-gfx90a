@@ -1,0 +1,155 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:30101",
+  "model": "/media/PM983/deepseek-v4.1-flash",
+  "checks": 10,
+  "failures": [],
+  "results": [
+    {
+      "name": "chat-stream-False",
+      "status": 200,
+      "elapsed_s": 1.722638328999892,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": null,
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "chat-stream-True",
+      "status": 200,
+      "elapsed_s": 1.6975284700001794,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": "",
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "thinking-budget-75",
+      "status": 200,
+      "elapsed_s": 7.693033292000109,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": "We need answer. User asks capital of France, one short sentence. Need comply. \"The capital of France is Paris.\" That's one short sentence.",
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "tool-auto-stream-False",
+      "status": 200,
+      "elapsed_s": 5.641601577000074,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_7fb0437c9e4849b8b7c8c695",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-result-roundtrip",
+      "status": 200,
+      "elapsed_s": 2.5203305210006874,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The temperature in Paris is 22°C.",
+        "reasoning_content": null,
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "tool-auto-stream-True",
+      "status": 200,
+      "elapsed_s": 5.487198052999702,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "\n\n\n",
+        "reasoning_content": "",
+        "tool_calls": [
+          {
+            "id": "call_3cb307e671f34531b5030be7",
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-required-stream-False",
+      "status": 200,
+      "elapsed_s": 5.673163384999498,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_41f2c2dab377410d8dae58ff",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-named-stream-False",
+      "status": 200,
+      "elapsed_s": 5.672140656999545,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_6cd1050fa1ae4f749ad82be6",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "invalid-effort-101",
+      "status": 400,
+      "elapsed_s": 0.0017665080004007905
+    },
+    {
+      "name": "invalid-effort-0.5",
+      "status": 400,
+      "elapsed_s": 0.0012547160004032776
+    }
+  ],
+  "scope": "Text/thinking/tool API smoke; no external tools executed, no broad quality claim."
+}

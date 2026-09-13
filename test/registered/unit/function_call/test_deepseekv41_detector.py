@@ -1,6 +1,7 @@
 """Unit tests for DeepSeekV41Detector (spaced DSML tags) -- no server, no model loading."""
 
 import json
+import unittest
 
 from sglang.srt.entrypoints.openai import encoding_dsv41
 from sglang.srt.entrypoints.openai.protocol import (
@@ -13,7 +14,6 @@ from sglang.srt.function_call.deepseekv41_detector import DeepSeekV41Detector
 from sglang.srt.function_call.function_call_parser import FunctionCallParser
 from sglang.srt.parser.reasoning_parser import ReasoningParser
 from sglang.test.ci.ci_register import register_cpu_ci
-from sglang.test.test_utils import CustomTestCase
 
 register_cpu_ci(est_time=2, suite="base-a-test-cpu")
 
@@ -67,7 +67,7 @@ def _assemble(calls):
     ]
 
 
-class TestDeepSeekV41RoundTrip(CustomTestCase):
+class TestDeepSeekV41RoundTrip(unittest.TestCase):
     """Encoder-rendered assistant tool calls parse back to the same arguments,
     in one shot and at every chunk size."""
 
@@ -140,8 +140,48 @@ class TestDeepSeekV41RoundTrip(CustomTestCase):
                 self.assertEqual(normal.strip(), "summary")
                 self.assertEqual(_assemble(calls), self.expected)
 
+    def test_multiple_json_and_zero_arg_calls_stream_exactly(self):
+        text = (
+            'Checking.\n\n<｜DSML｜ calls>\n'
+            '<｜DSML｜ invoke name="lookup">'
+            '{"query":"parameter invoke Paris", "flags":[true, null], "limit":2}'
+            '</｜DSML｜ invoke>\n'
+            '<｜DSML｜ invoke name="get_weather"/>\n</｜DSML｜ calls>'
+        )
+        expected = [
+            ("lookup", {"query": "parameter invoke Paris", "flags": [True, None], "limit": 2}),
+            ("get_weather", {}),
+        ]
+        parser = FunctionCallParser(self.tools, "deepseekv41")
+        normal, calls = parser.parse_non_stream(text)
+        self.assertEqual(normal, "Checking.")
+        self.assertEqual([(c.name, json.loads(c.parameters)) for c in calls], expected)
+        for chunk_size in CHUNK_SIZES:
+            with self.subTest(chunk_size=chunk_size):
+                parser = FunctionCallParser(self.tools, "deepseekv41")
+                normal, calls = "", []
+                for i in range(0, len(text), chunk_size):
+                    content, delta = parser.parse_stream_chunk(text[i:i + chunk_size])
+                    normal += content
+                    calls.extend(delta)
+                content, delta = parser.parse_stream_end()
+                normal += content
+                calls.extend(delta)
+                self.assertEqual(normal.strip(), "Checking.")
+                self.assertEqual(_assemble(calls), expected)
 
-class TestDeepSeekV41ConstrainedDecoding(CustomTestCase):
+    def test_v4_and_v32_unspaced_contracts_stay_independent(self):
+        for parser_name, block in (("deepseekv4", "tool_calls"), ("deepseekv32", "function_calls")):
+            parser = FunctionCallParser(self.tools, parser_name)
+            _, calls = parser.parse_non_stream(
+                f'<｜DSML｜{block}><｜DSML｜invoke name="lookup">'
+                '{"query":"Paris"}</｜DSML｜invoke>'
+                f'</｜DSML｜{block}>'
+            )
+            self.assertEqual([(c.name, json.loads(c.parameters)) for c in calls], [("lookup", {"query": "Paris"})])
+
+
+class TestDeepSeekV41ConstrainedDecoding(unittest.TestCase):
     """A forced call must open the calls block before the first invoke; the
     per-tool legacy tag started the grammar at the invoke trigger, the model
     closed a block it had not opened, and the parser dropped the call."""

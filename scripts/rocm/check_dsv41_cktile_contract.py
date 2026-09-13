@@ -55,8 +55,14 @@ def main():
     paths = list(args.trace.glob(f"rank{args.rank}-firstdiv-FusedMoE-*-call0-*.pt"))
     assert len(paths) == 1, paths
     trace = torch.load(paths[0], weights_only=True)
-    assert 1 <= args.rows <= trace["args"][0].shape[0]
-    x = trace["args"][0][-args.rows:].cuda()
+    assert 1 <= args.rows <= 8192
+    source = trace["args"][0]
+    if args.rows <= source.shape[0]:
+        x = source[-args.rows:].cuda()
+    else:
+        # Geometry oracle only: tile real captured rows, do not label this
+        # a diverse-request service benchmark.
+        x = source.repeat((args.rows + source.shape[0] - 1) // source.shape[0], 1)[:args.rows].cuda()
     route_weights = trace["args"][1][0][-1:].expand(args.rows, -1).contiguous().cuda()
     expert_ids = trace["args"][1][1][-1].tolist()
     h, inter, e = x.shape[-1], 2304 // args.tp, 8
@@ -174,6 +180,7 @@ def main():
         "padding": args.padding, "fix_w2_rows": args.fix_w2_rows,
         "compact_down": args.compact_down,
         "rows": args.rows, "graph_replays": args.graph_replays, "graph_exact": graph_exact,
+        "tiled_input_rows": args.rows > source.shape[0],
         "rank": args.rank, "raw_expert_ids": expert_ids,
         "weight_shapes": [list(w13.shape), list(w2.shape)],
         "scale_shapes": [list(s13.shape), list(s2.shape)],

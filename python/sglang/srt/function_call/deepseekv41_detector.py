@@ -1,7 +1,9 @@
+import re
 from typing import List, Literal, Optional, Union
 
 from sglang.srt.entrypoints.openai.protocol import Tool, ToolChoice
 from sglang.srt.function_call.base_format_detector import StructuralTag
+from sglang.srt.function_call.core_types import StructureInfo
 from sglang.srt.function_call.deepseekv32_detector import DeepSeekV32Detector
 
 
@@ -19,6 +21,42 @@ class DeepSeekV41Detector(DeepSeekV32Detector):
     # blank line, and renders it even when there is no content.
     tool_calls_prefix = "\n\n"
     think_end_token = "</think>"
+
+    def __init__(self):
+        super().__init__()
+        # The V3.2 constructor uses literal unspaced tag names; class attributes
+        # alone do not override its parser or the streaming state machine.
+        self.bot_token = f"<｜DSML｜{self.tool_calls_block_name}>"
+        self.eot_token = f"</｜DSML｜{self.tool_calls_block_name}>"
+        self.invoke_start_token = f"<｜DSML｜{self.invoke_tag_name}"
+        self.invoke_end_token = f"</｜DSML｜{self.invoke_tag_name}>"
+        parameter_start = re.escape(f"<｜DSML｜{self.parameter_tag_name}")
+        parameter_end = re.escape(f"</｜DSML｜{self.parameter_tag_name}>")
+        parameter_header = parameter_start + r'\s+name="([^"]+)"\s+string="([^"]+)"\s*>'
+        self.parameter_regex = parameter_header + r"(.*?)" + parameter_end
+        self.partial_parameter_regex = parameter_header + r"(.*)$"
+        self.function_calls_regex = (
+            re.escape(self.bot_token) + r"(.*?)" + re.escape(self.eot_token)
+        )
+        self.invoke_regex = (
+            re.escape(self.invoke_start_token)
+            + r'\s+name="(?P<name>[^"]+)"\s*'
+            + r"(?:(?P<self_close>/>)|>(?P<body>.*?)(?P<end>(?:"
+            + re.escape(self.invoke_end_token)
+            + r"|$)))"
+        )
+        self.prefix_parameter_end_call = ["</", "｜DSML｜", self.parameter_tag_name]
+        self.prefix_invoke_end_call = ["</", "｜DSML｜", self.invoke_tag_name]
+
+    def has_tool_call(self, text: str) -> bool:
+        return self.bot_token in text or self.invoke_start_token in text
+
+    def structure_info(self):
+        return lambda name: StructureInfo(
+            begin=f'{self.invoke_start_token} name="{name}">',
+            end=self.invoke_end_token,
+            trigger=self.invoke_start_token,
+        )
 
     def get_structural_tag_name(self) -> Optional[str]:
         # xgrammar's builtin "deepseek_v4" tag hardcodes the unspaced names,

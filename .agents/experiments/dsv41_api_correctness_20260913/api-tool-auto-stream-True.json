@@ -1,0 +1,443 @@
+{
+  "name": "tool-auto-stream-True",
+  "request": {
+    "model": "/media/PM983/deepseek-v4.1-flash",
+    "temperature": 0,
+    "max_tokens": 256,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "Call lookup once with city exactly \"Paris\". Do not answer without calling the tool."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "lookup",
+          "description": "Return the current temperature for the given city.",
+          "strict": true,
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "city"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto",
+    "stream": true,
+    "stream_options": {
+      "include_usage": true
+    }
+  },
+  "protocol_passed": true,
+  "status": 200,
+  "events": [
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270111,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning_content": null,
+            "role": "assistant",
+            "content": ""
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ]
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270111,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": "\n\n",
+            "reasoning_content": null,
+            "tool_calls": null
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270113,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": "call_3cb307e671f34531b5030be7",
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": "lookup",
+                  "arguments": ""
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270113,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "{"
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270113,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "\""
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270114,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "city"
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270114,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "\":"
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270114,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": " \""
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270114,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "Paris"
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270114,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "\""
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270115,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": null,
+            "reasoning_content": null,
+            "tool_calls": [
+              {
+                "id": null,
+                "index": 0,
+                "type": "function",
+                "function": {
+                  "name": null,
+                  "arguments": "}"
+                }
+              }
+            ]
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270115,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": null,
+            "content": "\n",
+            "reasoning_content": null,
+            "tool_calls": null
+          },
+          "logprobs": null,
+          "finish_reason": null,
+          "matched_stop": null
+        }
+      ],
+      "usage": null
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270116,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning_content": null
+          },
+          "logprobs": null,
+          "finish_reason": "tool_calls",
+          "matched_stop": 1
+        }
+      ]
+    },
+    {
+      "id": "f59d3e1c23094ae0b6fafcc77e5e6e00",
+      "object": "chat.completion.chunk",
+      "created": 1789270116,
+      "model": "/media/PM983/deepseek-v4.1-flash",
+      "choices": [],
+      "usage": {
+        "prompt_tokens": 293,
+        "total_tokens": 321,
+        "completion_tokens": 28,
+        "prompt_tokens_details": null,
+        "reasoning_tokens": 0
+      }
+    }
+  ],
+  "message": {
+    "role": "assistant",
+    "content": "\n\n\n",
+    "reasoning_content": "",
+    "tool_calls": [
+      {
+        "id": "call_3cb307e671f34531b5030be7",
+        "type": "function",
+        "function": {
+          "name": "lookup",
+          "arguments": "{\"city\": \"Paris\"}"
+        }
+      }
+    ]
+  },
+  "finish_reason": "tool_calls",
+  "usage": {
+    "prompt_tokens": 293,
+    "total_tokens": 321,
+    "completion_tokens": 28,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "elapsed_s": 5.487198052999702
+}

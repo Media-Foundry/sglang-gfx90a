@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--max-new-tokens", type=int, default=32)
     parser.add_argument("--user-message", default="What is the capital of France? Answer in one short sentence.")
     parser.add_argument("--expect", default="Paris", help="Case-insensitive substring smoke, not a quality oracle")
+    parser.add_argument("--source-file", type=Path, action="append", default=[], help="Append real source text to the user message")
     args = parser.parse_args()
     # Refuse to overwrite an earlier trial, including a partially failed one.
     with args.output.open("x") as record:
@@ -47,8 +48,11 @@ def main():
             tokenizer = AutoTokenizer.from_pretrained(
                 args.model_dir, trust_remote_code=True, local_files_only=True
             )
+            user_message = args.user_message
+            for source in args.source_file:
+                user_message += f"\n\nFile: {source.name}\n```\n{source.read_text()}\n```"
             prompt = (
-                "<｜begin▁of▁sentence｜><｜User｜>" + args.user_message
+                "<｜begin▁of▁sentence｜><｜User｜>" + user_message
                 + "<｜Assistant｜></think>"
             )
             input_ids = tokenizer.encode(prompt, add_special_tokens=False)

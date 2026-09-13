@@ -1,0 +1,164 @@
+{
+  "passed": false,
+  "url": "http://127.0.0.1:30101",
+  "model": "/media/PM983/deepseek-v4.1-flash",
+  "checks": 10,
+  "failures": [
+    {
+      "name": "invalid-effort-101",
+      "error": "{'object': 'error', 'message': '3 validation errors:\\n  {\\'type\\': \\'literal_error\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \"literal[\\'none\\',\\'minimal\\',\\'low\\',\\'medium\\',\\'high\\',\\'xhigh\\',\\'max\\']\"), \\'msg\\': \"Input should be \\'none\\', \\'minimal\\', \\'low\\', \\'medium\\', \\'high\\', \\'xhigh\\' or \\'max\\'\", \\'input\\': 101, \\'ctx\\': {\\'expected\\': \"\\'none\\', \\'minimal\\', \\'low\\', \\'medium\\', \\'high\\', \\'xhigh\\' or \\'max\\'\"}}\\n  {\\'type\\': \\'less_than_equal\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \\'constrained-int\\'), \\'msg\\': \\'Input should be less than or equal to 100\\', \\'input\\': 101, \\'ctx\\': {\\'le\\': 100}}\\n  {\\'type\\': \\'less_than_equal\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \\'constrained-float\\'), \\'msg\\': \\'Input should be less than or equal to 0.99\\', \\'input\\': 101, \\'ctx\\': {\\'le\\': 0.99}}\\n\\n  File \"/home/pc/Code/sglang/python/sglang/srt/entrypoints/http_server.py\", line 1728, in openai_v1_chat_completions\\n    POST /v1/chat/completions [{\\'type\\': \\'literal_error\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \"literal[\\'none\\',\\'minimal\\',\\'low\\',\\'medium\\',\\'high\\',\\'xhigh\\',\\'max\\']\"), \\'msg\\': \"Input should be \\'none\\', \\'minimal\\', \\'low\\', \\'medium\\', \\'high\\', \\'xhigh\\' or \\'max\\'\", \\'input\\': 101, \\'ctx\\': {\\'expected\\': \"\\'none\\', \\'minimal\\', \\'low\\', \\'medium\\', \\'high\\', \\'xhigh\\' or \\'max\\'\"}}, {\\'type\\': \\'less_than_equal\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \\'constrained-int\\'), \\'msg\\': \\'Input should be less than or equal to 100\\', \\'input\\': 101, \\'ctx\\': {\\'le\\': 100}}, {\\'type\\': \\'less_than_equal\\', \\'loc\\': (\\'body\\', \\'reasoning_effort\\', \\'constrained-float\\'), \\'msg\\': \\'Input should be less than or equal to 0.99\\', \\'input\\': 101, \\'ctx\\': {\\'le\\': 0.99}}]', 'type': 'Bad Request', 'param': None, 'code': 400}"
+    },
+    {
+      "name": "invalid-effort-0.5",
+      "error": "{'object': 'error', 'message': \"Invalid reasoning effort for deepseek_v41: 0.5, should be int within [1,100] or ['low', 'high', 'xhigh', 'max']\", 'type': 'BadRequest', 'param': None, 'code': 400}"
+    }
+  ],
+  "results": [
+    {
+      "name": "chat-stream-False",
+      "status": 200,
+      "elapsed_s": 3.1956960620000245,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": null,
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "chat-stream-True",
+      "status": 200,
+      "elapsed_s": 1.6891828890002216,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": "",
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "thinking-budget-75",
+      "status": 200,
+      "elapsed_s": 9.186479413000598,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The capital of France is Paris.",
+        "reasoning_content": "We need answer. User asks capital of France, one short sentence. Need comply. \"The capital of France is Paris.\" That's one short sentence.",
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "tool-auto-stream-False",
+      "status": 200,
+      "elapsed_s": 10.085164873000394,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_51f43baaf4d24ebc828d6985",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-result-roundtrip",
+      "status": 200,
+      "elapsed_s": 4.0572048639996865,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The temperature in Paris is 22°C.",
+        "reasoning_content": null,
+        "tool_calls": null
+      }
+    },
+    {
+      "name": "tool-auto-stream-True",
+      "status": 200,
+      "elapsed_s": 5.546531965000213,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "\n\n\n",
+        "reasoning_content": "",
+        "tool_calls": [
+          {
+            "id": "call_8232976413e74606b52d3382",
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-required-stream-False",
+      "status": 200,
+      "elapsed_s": 5.648454682000192,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_d1ca6ac3ee66442390702e68",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tool-named-stream-False",
+      "status": 200,
+      "elapsed_s": 5.743209223999656,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": null,
+        "tool_calls": [
+          {
+            "id": "call_36ad1366bfa24db2a2439f86",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "lookup",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "invalid-effort-101",
+      "status": 400,
+      "elapsed_s": 0.002158876999601489
+    },
+    {
+      "name": "invalid-effort-0.5",
+      "status": 400,
+      "elapsed_s": 0.0013711639994653524
+    }
+  ],
+  "scope": "Text/thinking/tool API smoke; no external tools executed, no broad quality claim."
+}

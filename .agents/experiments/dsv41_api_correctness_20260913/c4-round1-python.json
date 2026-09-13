@@ -1,0 +1,77 @@
+{
+  "case": "python",
+  "round": 1,
+  "request": {
+    "input_ids": [
+      0,
+      128803,
+      1124,
+      15255,
+      14,
+      1192,
+      696,
+      342,
+      14031,
+      270,
+      2310,
+      64702,
+      1812,
+      103060,
+      33,
+      19414,
+      418,
+      270,
+      5793,
+      1353,
+      16,
+      128804,
+      128822
+    ],
+    "sampling_params": {
+      "temperature": 0,
+      "max_new_tokens": 48,
+      "ignore_eos": false
+    },
+    "cache_salt": "c4-smoke-1-python-1789270178040181361"
+  },
+  "passed": true,
+  "response": {
+    "text": "xs[::-1]",
+    "output_ids": [
+      38753,
+      127929,
+      19,
+      63,
+      1
+    ],
+    "meta_info": {
+      "id": "c83213ece5e64af78c52b3ec6d20c873",
+      "finish_reason": {
+        "type": "stop",
+        "matched": 1
+      },
+      "prompt_tokens": 23,
+      "weight_version": "default",
+      "num_retractions": 0,
+      "reasoning_tokens": 0,
+      "completion_tokens": 5,
+      "cached_tokens": 0,
+      "weight_versions": [
+        {
+          "version": "default",
+          "start": 0,
+          "end": 5
+        }
+      ],
+      "cached_tokens_details": null,
+      "dp_rank": null,
+      "e2e_latency": 1.6178164220000326,
+      "response_sent_to_client_ts": 1789270179.6762094
+    }
+  },
+  "text_matches_ids": true,
+  "expected_substring": "xs[::-1]",
+  "expected_substring_pass": true,
+  "hash": "5ec09b068c70fc5607861da90b2d5e80b12929d40107dc4455ae1aa215731113",
+  "elapsed_s": 1.6201198249991648
+}
