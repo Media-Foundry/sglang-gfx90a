@@ -170,13 +170,15 @@ matched short pilot regressing from81 to75. No output cap/EOS policy changed.
 Formal C2 first two waves are96.145/96.119tok/s, with1984/2048 output tokens;
 readable conclusions/tests, no evident loop. Remaining groups pending.
 
-VRAM collector correction: AMD CLI watch with `--file` overwrites its JSON
-snapshot in this version. The old file preserves only the final observation,
-NOT the whole prefill peak history. Stopped only that monitor (PID534376),
-replaced it with `watch-vram.py` appending each5s observation as JSONL during
-decode. No prefill peak is claimed from the overwritten samples. Serving
-PID519441 was not interrupted. Last prefill snapshot was roughly54.1k of
-65.52k tool-reported MB/GCD (~82.6%); this is a snapshot, not exact peak.
+VRAM observer switched from CLI watch (PID534376) to append-only JSONL
+`watch-vram.py`; serving PID519441 was not interrupted. **Correction at00:33:**
+the earlier claim that the old CLI file held only the final observation was
+wrong. Although the file is rewritten, its JSON array retains cumulative
+history:1272 entries,159 observations/GPU,23:48:31--00:01:46HKT, starting
+during P16. Observed old-file peak54100/65520 tool-MB (82.57%, GPU6) at
+23:49:31. It covers later prefill, but not P1--P8, and is not an exact
+allocator peak. `audit-vram.py` now handles both history and JSONL wrappers;
+the original raw history remains preserved. P/D throughput is unaffected.
 
 Formal D completed through C8: C1/2/4/8 medians
 75.7006/96.1189/188.1458/333.3611 resident output tok/s. C16 is running;
@@ -196,3 +198,14 @@ Tail16-gram repetition screening of88 completed formal C1--C8 answers gave
 maximum0.199; the five highest cases were inspected and contain repeated test
 scaffolding rather than obvious loops. Their source-based factual assertions
 remain unverified. This is not a substitute for a numerical reference oracle.
+
+P C8 three raw rates are4710.94/5099.23/5101.67. The excluded warmup used
+chunks36864+28672; the first measured wave used36864+4096+24576. An on-disk
+Ninja witness in that first measured interval is
+`sgl_kernel_jit_gfx90a_bf16_gemv_3_16160_4096_2_2_8/`
+`build-c301d38b774bd4d3/deps-d693b77de2686ee8/.ninja_log` under the persistent
+gfx90a JIT cache: compile0--5311ms, link5311--5373ms; object timestamp
+2026-09-13T23:47:55.028788HKT and module23:47:55.115173. This establishes a
+cold M3 vocab-projection compile during the slow wave, not a steady prefill
+kernel regression. Compiler duration is not additive critical-path time;
+the measured wave delta is only about1.1s. All three rounds remain recorded.

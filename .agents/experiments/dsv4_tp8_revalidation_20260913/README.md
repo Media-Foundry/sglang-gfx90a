@@ -21,8 +21,11 @@ are not reference AR measurements.
 - `build-witnesses.jsonl`: compiler children observed after the watcher started;
   it cannot establish absence of in-process compilation or earlier builds.
 - `ar-vram-snapshots.jsonl`: appended memory observations during decode.
-  The earlier `ar-vram-samples.json` was overwritten by AMD CLI watch and is
-  only its last snapshot, **not** prefill peak history.
+  The earlier `ar-vram-samples.json` contains cumulative CLI history,
+  159 observations/GPU from23:48:31 through00:01:46, starting during P16.
+  An earlier claim that it held only the last snapshot was wrong and has
+  been corrected. Neither file establishes an exact allocator peak.
+- `audit-vram.py` / `vram-summary.json`: independently summarize both sources.
 - `audit-window-context.py` / `context-window-diagnostic.json`: post-hoc
   first-wave timing before generated1400 (input<=512). Diagnostic only; never
   substituted for the formal three-round natural-output median.
