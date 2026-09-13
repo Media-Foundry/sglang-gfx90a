@@ -69,6 +69,7 @@ is total prompt tokens divided by wave start to last first-token time. C is
 client concurrency; admission is capped16 and chunk rows36864, not C-sized
 GPU prefill. The accepted BF16-CK prefill profile changes execution arithmetic
 but does not modify checkpoint files; it is not SDOT bitwise equivalence.
+This8K/1M-pool table is not the earlier2304-token/131072-pool6.42k profile.
 
 D:512-token inputs, temperature0, natural EOS, at most2048 output tokens.
 Each wave's resident interval starts at the latest first token and ends at the
@@ -77,6 +78,9 @@ Separate HTTP wall throughput includes admission and drain. Case selection
 rotates deterministically through64 cases; natural answer length can change
 the number of waves and their context mix. Record case counts rather than
 assuming identical distributions across concurrency tiers.
+Fully resident requested tiers have matching captured rows. During drain,
+intermediate sizes round up (e.g.33--63 requests use M64); this is counted in
+whole-wave HTTP throughput, not represented as a fully resident C64 sample.
 
 All requests retain readable text, completion IDs/hashes, finish reasons and
 raw streaming timestamps/counts. These integrity checks and France are bounded

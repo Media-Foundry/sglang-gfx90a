@@ -92,6 +92,7 @@ def main():
                       '1M logical token pool allocated; this is not a1M filled-context or accuracy test.',
                       'P concurrency is client requests; admission16 and chunk36864 constrain actual GPU batch.',
                       'Checkpoint precision unchanged; existing large-prefill BF16-CK is not bitwise SDOT.',
+                      'Fresh processes from the shared working tree, not a separate clean checkout; existing AIter/CK/local changes are recorded in environment.json.',
                       'AMD VRAM samples ~5s apart, including startup/final matrix only; not exact allocator peak.',
                       'Exact component score/TopK tests do not establish whole-model bitwise or factual correctness.',
                   ])

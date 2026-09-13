@@ -4,6 +4,7 @@ This is diagnostic streaming wall time, not a kernel profiler or a replacement
 for the formal common-resident metric. Counts include all requests; the
 fully_active count only includes requests alive for the whole interval.
 """
+import argparse
 import bisect
 import json
 from pathlib import Path
@@ -11,8 +12,14 @@ from pathlib import Path
 
 def main():
     root = Path(__file__).resolve().parent
-    path = root/'ar-matrix/decode_c64_warmup.json'
-    wave = json.loads(path.read_text())['rounds'][0]['waves'][0]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, default=root/'ar-matrix/decode_c64_warmup.json')
+    parser.add_argument('--output', type=Path, default=root/'long-decode-diagnostic.json')
+    args = parser.parse_args()
+    path = args.source.resolve()
+    data = json.loads(path.read_text())
+    assert data['status'] == 'complete'
+    wave = data['rounds'][0]['waves'][0]
     requests = wave['requests']
     origin = min(q['samples'][0][0]-q['ttft'] for q in requests)
     for q in requests:
@@ -32,7 +39,7 @@ def main():
     result = dict(source=str(path.relative_to(root)), interval_semantics=__doc__,
                   resident_tok_s=wave['resident_tok_s'],
                   http_output_tok_s=wave['http_output_tok_s'], slices=rows)
-    (root/'long-decode-diagnostic.json').write_text(json.dumps(result, indent=2)+'\n')
+    args.output.write_text(json.dumps(result, indent=2)+'\n')
     print(json.dumps(result, indent=2))
 
 
