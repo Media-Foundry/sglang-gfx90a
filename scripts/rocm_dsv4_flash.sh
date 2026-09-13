@@ -598,6 +598,9 @@ server_args=(
   --host "${HOST}"
   --port "${PORT}"
 )
+if [[ -n "${FORWARD_HOOKS_JSON:-}" ]]; then
+  server_args+=(--forward-hooks "${FORWARD_HOOKS_JSON}")
+fi
 if [[ "${ENABLE_METRICS:-0}" == "1" ]]; then
   server_args+=(--enable-metrics)
 fi

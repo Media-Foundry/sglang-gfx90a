@@ -1,0 +1,43 @@
+{
+  "key": "layers.0.attn.wq_a",
+  "shape": [
+    1280,
+    5120
+  ],
+  "device": "AMD Instinct MI250X / MI250",
+  "cases": [
+    {
+      "rows": 1,
+      "finite": true,
+      "prequant_equal": true,
+      "max_abs": 0.013994693756103516,
+      "relative_l2": 0.0015976149588823318,
+      "passed": true
+    },
+    {
+      "rows": 3,
+      "finite": true,
+      "prequant_equal": true,
+      "max_abs": 0.015354156494140625,
+      "relative_l2": 0.0016613840125501156,
+      "passed": true
+    },
+    {
+      "rows": 17,
+      "finite": true,
+      "prequant_equal": true,
+      "max_abs": 0.01557302474975586,
+      "relative_l2": 0.0016645442228764296,
+      "passed": true
+    },
+    {
+      "rows": 32,
+      "finite": true,
+      "prequant_equal": true,
+      "max_abs": 0.015610694885253906,
+      "relative_l2": 0.0016503726365044713,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

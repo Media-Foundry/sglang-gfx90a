@@ -1525,6 +1525,7 @@ class MQALayer(MqaAttentionBase):
                 swa_page_size=swa_page_size,
                 q_out=q_out,
                 dtype=x.dtype,
+                normalize_q=self.q_head_norm,
             )
         else:
             q_lora = self.q_norm(q_lora)
@@ -1724,6 +1725,7 @@ class MQALayer(MqaAttentionBase):
                 q_out=q_out,
                 dtype=x.dtype,
                 bf16_store=bf16_store,
+                normalize_q=self.q_head_norm,
             )
             # On the verify path the kernel normed + RoPE'd kv in place and wrote
             # nothing, so hand it back: the caller feeds it to attention as the

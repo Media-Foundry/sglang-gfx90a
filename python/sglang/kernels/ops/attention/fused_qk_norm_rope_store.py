@@ -98,6 +98,7 @@ def _fused_qk_norm_rope_store_kernel(
     BF16_STORE: tl.constexpr,
     IS_FNUZ: tl.constexpr,
     HAS_Q: tl.constexpr,
+    NORMALIZE_Q: tl.constexpr,
 ):
     pid_m = tl.program_id(0).to(tl.int64)
     pid_h = tl.program_id(1).to(tl.int64)
@@ -128,11 +129,14 @@ def _fused_qk_norm_rope_store_kernel(
         q_tile = tl.load(q_ptrs, mask=m_mask[None, :, None], other=0.0).to(tl.float32)
         q_acc = tl.sum(q_tile, axis=0)
 
-        if q_norm_weight_ptr is not None:
-            w_q = tl.load(q_norm_weight_ptr + offs_d_full).to(tl.float32)
+        if NORMALIZE_Q:
+            if q_norm_weight_ptr is not None:
+                w_q = tl.load(q_norm_weight_ptr + offs_d_full).to(tl.float32)
+            else:
+                w_q = None
+            q_normed = _batched_rmsnorm(q_acc, w_q, HEAD_DIM, q_eps)
         else:
-            w_q = None
-        q_normed = _batched_rmsnorm(q_acc, w_q, HEAD_DIM, q_eps)
+            q_normed = q_acc
 
         q_base = q_out_ptr + m_offs[:, None] * stride_qm + pid_h * stride_qh
         tl.store(
@@ -317,6 +321,7 @@ def fused_qk_norm_rope_swa_store(
     dtype: torch.dtype = torch.bfloat16,
     bf16_store: bool = False,
     _oracle_q_off: bool = False,
+    normalize_q: bool = True,
 ) -> torch.Tensor:
     """Fused Q norm + KV norm + RoPE + optional SWA store.
 
@@ -327,6 +332,8 @@ def fused_qk_norm_rope_swa_store(
         swa_loc: [M] int32 pre-translated paged indices
         swa_page_size: tokens per SWA page (default 128)
         bf16_store: write the whole head_dim as plain bf16 at swa_cache[swa_loc]
+        normalize_q: apply per-head Q RMSNorm (V4). V4.1 sets this False:
+            its q_lora is normalized upstream, but wq_b output is only rotated.
     """
     head_dim = kv.shape[1]
 
@@ -413,6 +420,7 @@ def fused_qk_norm_rope_swa_store(
         BF16_STORE=bf16_store,
         IS_FNUZ=_fp8_fnuz,
         HAS_Q=not _oracle_q_off,
+        NORMALIZE_Q=normalize_q,
         num_warps=num_warps,
     )
     return q_out

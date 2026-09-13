@@ -23,6 +23,7 @@ from sglang.srt.utils import get_bool_env_var, get_int_env_var, is_gfx95_support
 
 logger = logging.getLogger(__name__)
 _logged_gfx90a_fast_direct_compare = False
+_logged_dsv41_compact_ck = False
 
 
 @functools.cache
@@ -425,6 +426,36 @@ class AiterRunnerCore(MoeRunnerCore):
             return AiterRunnerOutput(hidden_states=runner_input.hidden_states)
 
         from sglang.srt.environ import envs
+
+        if getattr(quant_info.w2_weight, "dsv41_compact_down_layout", None) == "a16w4_v1":
+            # The older CKTile W2 pipeline requires K%256==0. V4.1 TP8 has
+            # real K=288 and weight K=384, while its legacy scale shuffler
+            # stores 16 groups. Keep those compact weights but consume the
+            # two independent physical strides with an explicit HIP kernel.
+            if (
+                not _is_runtime_gfx90a()
+                or quant_info.quant_type is not AiterQuantType.PER_1X32
+                or quant_info.expert_mask is not None
+                or runner_input.num_local_tokens is not None
+                or quant_info.doweight_stage1
+                or self.config.no_combine
+                or quant_info.intermediate_pad != 96
+                or quant_info.swiglu_limit != 10
+            ):
+                raise RuntimeError("V4.1 compact A16W4 down requires TP8/EP1, W4A16 and bounded SwiGLU=10")
+            from sglang.kernels.ops.moe.gfx90a_dsv41_compact_ck import compact_ck_moe
+
+            global _logged_dsv41_compact_ck
+            if not _logged_dsv41_compact_ck:
+                logger.info("V4.1 routed backend: CKTile gate + compact HIP down, A16W4-v1, I288/K384, fixed Top6 reduction")
+                _logged_dsv41_compact_ck = True
+            output = compact_ck_moe(
+                runner_input.hidden_states, quant_info.w13_weight, quant_info.w13_scale,
+                quant_info.w2_weight, quant_info.w2_scale,
+                runner_input.topk_ids, runner_input.topk_weights,
+                out=runner_input.output_tensor,
+            )
+            return AiterRunnerOutput(hidden_states=output)
 
         if (
             envs.SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE.get()

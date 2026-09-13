@@ -190,18 +190,67 @@ def _is_gfx90a_dsv4_cktile_fp4_shape(layer: Module) -> bool:
     }
 
 
+_legacy_a16w4_shuffle = False
 if _use_aiter or _use_hip_int4:
     try:
         from aiter.ops.shuffle import shuffle_scale, shuffle_weight
     except ImportError:
+        _legacy_a16w4_shuffle = True
         from aiter.ops.shuffle import (
             shuffle_scale_a16w4,
             shuffle_weight as _legacy_shuffle_weight,
             shuffle_weight_a16w4,
         )
 
+        def _pad_legacy_a16w4_scale(scale: torch.Tensor) -> torch.Tensor:
+            """Pad the K/group axis required by older AIter scale shufflers.
+
+            The unified AIter ``shuffle_scale`` added support for K/32 group
+            counts that are not divisible by eight.  The older
+            ``shuffle_scale_a16w4`` implementation computes ``K1 = groups //
+            8`` and consequently drops (or, for a non-divisible shape, fails
+            to view) the final partial tile.  DeepSeek-V4.1 TP8 has a local
+            W2 intermediate width of 288, padded to 384 by the MoE kernel,
+            which produces exactly 12 groups.  Pad those groups to 16 with
+            the neutral UE8M0 scale (1.0) before applying the old layout
+            transform. This changes the physical scale K stride. It is NOT
+            sufficient to make CKTile's K=384 stage-2 pipeline valid: V4.1
+            must use the compact HIP down consumer with independent strides.
+            """
+            if scale.ndim != 2:
+                raise ValueError(
+                    "A16W4 scale shuffle expects a 2D tensor, "
+                    f"got shape {tuple(scale.shape)}"
+                )
+            groups = scale.shape[1]
+            if groups % 8 == 0:
+                return scale
+
+            padded_groups = (groups + 7) // 8 * 8
+            padded = torch.empty(
+                (scale.shape[0], padded_groups),
+                dtype=scale.dtype,
+                device=scale.device,
+            )
+            # UE8M0 encodes 1.0 as 0x7f.  Some older loaders expose the raw
+            # byte dtype, while newer torch builds expose float8_e8m0fnu;
+            # initialize through a byte view for both representations.  The
+            # non-UE8M0 fallback is deliberately conservative and uses a
+            # typed value instead of writing a byte pattern into another
+            # float8 format.
+            e8m0_dtype = getattr(torch, "float8_e8m0fnu", None)
+            if scale.dtype == torch.uint8 or (
+                e8m0_dtype is not None and scale.dtype == e8m0_dtype
+            ):
+                padded.view(torch.uint8).fill_(0x7F)
+            else:
+                padded.fill_(1)
+            padded[:, :groups].copy_(scale)
+            return padded
+
         def shuffle_scale(scale, num_experts, is_gu_interleave=True, is_w13_scale=True):
             del is_gu_interleave
+            scale = _pad_legacy_a16w4_scale(scale)
             return shuffle_scale_a16w4(scale, num_experts, is_w13_scale)
 
         def shuffle_weight(weight, is_guinterleave=True, gate_up=True):
@@ -1754,6 +1803,14 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                 )
             layer.w13_weight.is_shuffled = is_shuffled
             layer.w2_weight.is_shuffled = is_shuffled
+            if (
+                is_gfx90a_supported() and _legacy_a16w4_shuffle and is_shuffled
+                and tuple(layer.w13_weight.shape) == (384, 768, 2560)
+                and tuple(layer.w2_weight.shape) == (384, 5120, 192)
+                and not get_bool_env_var("SGLANG_DSV4_DEBUG_AITER_GENERIC_W2_SHUFFLE")
+                and not get_bool_env_var("SGLANG_DSV4_DEBUG_AITER_RAW_FP4_SCALES")
+            ):
+                layer.w2_weight.dsv41_compact_down_layout = "a16w4_v1"
             return
 
         if self.convert_mxfp8_to_block:
@@ -2917,6 +2974,9 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                 if getattr(layer.w13_weight, "is_shuffled", False):
                     w13_weight.is_shuffled = True
                     w2_weight.is_shuffled = True
+                compact_layout = getattr(layer.w2_weight, "dsv41_compact_down_layout", None)
+                if compact_layout is not None:
+                    w2_weight.dsv41_compact_down_layout = compact_layout
             w13_scale = layer.w13_weight_scale_inv
             w2_scale = layer.w2_weight_scale_inv
         else:

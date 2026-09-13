@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "m": 1,
+      "heads": 8,
+      "non_rope_exact": true,
+      "legacy_default_exact": true,
+      "kv_exact": true,
+      "finite": true,
+      "relative_l2": 0.0,
+      "old_vs_new_relative_l2": 0.8556386232376099,
+      "passed": true
+    },
+    {
+      "m": 3,
+      "heads": 8,
+      "non_rope_exact": true,
+      "legacy_default_exact": true,
+      "kv_exact": true,
+      "finite": true,
+      "relative_l2": 0.00045974706881679595,
+      "old_vs_new_relative_l2": 0.8576841950416565,
+      "passed": true
+    },
+    {
+      "m": 17,
+      "heads": 8,
+      "non_rope_exact": true,
+      "legacy_default_exact": true,
+      "kv_exact": true,
+      "finite": true,
+      "relative_l2": 0.0005683141062036157,
+      "old_vs_new_relative_l2": 0.8575510382652283,
+      "passed": true
+    },
+    {
+      "m": 3,
+      "heads": 16,
+      "non_rope_exact": true,
+      "legacy_default_exact": true,
+      "kv_exact": true,
+      "finite": true,
+      "relative_l2": 0.00048780260840430856,
+      "old_vs_new_relative_l2": 0.85814368724823,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

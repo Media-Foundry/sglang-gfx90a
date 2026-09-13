@@ -1,0 +1,53 @@
+{
+  "padding": 384,
+  "fix_w2_rows": false,
+  "compact_down": true,
+  "rank": 0,
+  "raw_expert_ids": [
+    282,
+    10,
+    369,
+    355,
+    118,
+    167
+  ],
+  "weight_shapes": [
+    [
+      8,
+      768,
+      2560
+    ],
+    [
+      8,
+      5120,
+      192
+    ]
+  ],
+  "scale_shapes": [
+    [
+      6144,
+      160
+    ],
+    [
+      40960,
+      16
+    ]
+  ],
+  "stage1": {
+    "finite": true,
+    "actual_rms": 0.05574975907802582,
+    "reference_rms": 0.055902402848005295,
+    "relative_l2": 0.0043035815469920635,
+    "cosine": 0.9999944567680359,
+    "max_abs": 0.00390625
+  },
+  "output": {
+    "finite": true,
+    "actual_rms": 0.0177116971462965,
+    "reference_rms": 0.017757754772901535,
+    "relative_l2": 0.005082154180854559,
+    "cosine": 0.9999904632568359,
+    "max_abs": 0.0004562288522720337
+  },
+  "replay_exact": true
+}
