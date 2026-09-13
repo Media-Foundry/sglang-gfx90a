@@ -601,6 +601,9 @@ server_args=(
 if [[ -n "${FORWARD_HOOKS_JSON:-}" ]]; then
   server_args+=(--forward-hooks "${FORWARD_HOOKS_JSON}")
 fi
+if [[ -n "${CONTEXT_LENGTH:-}" ]]; then
+  server_args+=(--context-length "${CONTEXT_LENGTH}")
+fi
 if [[ "${ENABLE_METRICS:-0}" == "1" ]]; then
   server_args+=(--enable-metrics)
 fi

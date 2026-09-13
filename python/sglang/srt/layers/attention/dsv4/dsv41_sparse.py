@@ -7,6 +7,7 @@ for subsequent attention layers.
 
 from __future__ import annotations
 
+import logging
 from typing import Optional, Tuple
 
 import torch
@@ -21,6 +22,44 @@ from sglang.srt.layers.attention.dsv4.torch_quant import (
 from sglang.srt.layers.linear import ReplicatedLinear
 from sglang.srt.layers.quantization.base_config import QuantizationConfig
 from sglang.srt.utils import add_prefix
+
+logger = logging.getLogger(__name__)
+INDEXER_SCORE_SLAB_BYTES = 128 * 1024 * 1024
+
+
+def bounded_indexer_scores(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    weights: torch.Tensor,
+    *,
+    max_slab_bytes: int = INDEXER_SCORE_SLAB_BYTES,
+) -> torch.Tensor:
+    """Bound eager QK temporaries without changing per-query arithmetic.
+
+    Tile only independent query rows. Each row retains its full head and K
+    reductions. In-place ReLU and weighting retain the original intermediate
+    dtype/rounding points; mixed weight dtypes must use the unfused reference.
+    The final [query, position] FP32 scores are still materialized for Top-K.
+    """
+    if (
+        q.ndim != 3 or k.ndim != 2 or weights.shape != q.shape[:2]
+        or q.shape[-1] != k.shape[-1]
+        or q.dtype != k.dtype or q.dtype != weights.dtype
+        or max_slab_bytes <= 0
+    ):
+        raise ValueError("Invalid bounded indexer score shape/dtype/budget")
+    rows = max(
+        1, max_slab_bytes // max(1, q.shape[1] * k.shape[0] * q.element_size())
+    )
+    out = torch.empty((q.shape[0], k.shape[0]), dtype=torch.float32, device=q.device)
+    for begin in range(0, q.shape[0], rows):
+        end = min(begin + rows, q.shape[0])
+        slab = torch.einsum("bhd,nd->bhn", q[begin:end], k)
+        slab.relu_().mul_(weights[begin:end].unsqueeze(-1))
+        out[begin:end].copy_(slab.sum(dim=1))
+        # Do not keep the old slab live while allocating the next one.
+        del slab
+    return out
 
 
 def _rope_fq4(x, freqs, rope_dim, *, compressed_kv=False):
@@ -340,6 +379,20 @@ class DeepseekV41Indexer(nn.Module):
     ) -> torch.Tensor:
         """q [t, H, d], k [n, d], weights [t, H] -> [t, n], summed over all heads;
         bf16 up to the reduction, as the reference does."""
+        if (
+            torch.version.hip is not None
+            and q.is_cuda
+            and q.dtype == k.dtype == weights.dtype
+            and q.shape[0] * q.shape[1] * k.shape[0] * q.element_size()
+            > INDEXER_SCORE_SLAB_BYTES
+        ):
+            if self is not None and not getattr(self, "_bounded_scores_logged", False):
+                logger.info(
+                    "V4.1 HIP bounded indexer scores: rows=%s keys=%s slab_bytes=%s",
+                    q.shape[0], k.shape[0], INDEXER_SCORE_SLAB_BYTES,
+                )
+                self._bounded_scores_logged = True
+            return bounded_indexer_scores(q, k, weights)
         s = torch.einsum("bhd,nd->bhn", q, k)
         s = (s.relu() * weights.unsqueeze(-1)).sum(dim=1)
         return s.float()

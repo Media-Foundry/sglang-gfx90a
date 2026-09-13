@@ -1,0 +1,89 @@
+{
+  "passed": true,
+  "kind": "isolated synthetic FP4-grid inputs",
+  "production": false,
+  "rows": 2304,
+  "slab_mib": 128,
+  "shapes": [
+    {
+      "length": 8192,
+      "reference": {
+        "median_ms": 8.613618850708008,
+        "times_ms": [
+          8.805292129516602,
+          8.613618850708008,
+          8.598739624023438
+        ],
+        "peak_increment_bytes": 3623878656
+      },
+      "bounded": {
+        "median_ms": 9.083843231201172,
+        "times_ms": [
+          9.077762603759766,
+          9.12240219116211,
+          9.083843231201172
+        ],
+        "peak_increment_bytes": 343932928
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    },
+    {
+      "length": 16384,
+      "reference": {
+        "median_ms": 18.453594207763672,
+        "times_ms": [
+          18.578392028808594,
+          18.453594207763672,
+          18.398555755615234
+        ],
+        "peak_increment_bytes": 7247757312
+      },
+      "bounded": {
+        "median_ms": 19.544435501098633,
+        "times_ms": [
+          19.53627586364746,
+          19.544435501098633,
+          19.605554580688477
+        ],
+        "peak_increment_bytes": 419430400
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    },
+    {
+      "length": 32768,
+      "reference": {
+        "median_ms": 46.461578369140625,
+        "times_ms": [
+          46.98188018798828,
+          46.315025329589844,
+          46.461578369140625
+        ],
+        "peak_increment_bytes": 14495514624
+      },
+      "bounded": {
+        "median_ms": 48.593345642089844,
+        "times_ms": [
+          48.54710388183594,
+          48.814937591552734,
+          48.593345642089844
+        ],
+        "peak_increment_bytes": 570425344
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-",
+  "torch": "2.12.0a0+git78258b9"
+}

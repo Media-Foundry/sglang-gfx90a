@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "kind": "isolated synthetic FP4-grid inputs",
+  "production": true,
+  "rows": 129,
+  "slab_mib": 128,
+  "shapes": [
+    {
+      "length": 16384,
+      "reference": {
+        "median_ms": 1.259490966796875,
+        "times_ms": [
+          1.407647967338562,
+          1.259490966796875,
+          1.231492042541504
+        ],
+        "peak_increment_bytes": 408944640
+      },
+      "bounded": {
+        "median_ms": 1.2476509809494019,
+        "times_ms": [
+          1.3734079599380493,
+          1.2476509809494019,
+          1.2407710552215576
+        ],
+        "peak_increment_bytes": 146866176
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    },
+    {
+      "length": 32768,
+      "reference": {
+        "median_ms": 2.8536949157714844,
+        "times_ms": [
+          2.9095330238342285,
+          2.8455350399017334,
+          2.8536949157714844
+        ],
+        "peak_increment_bytes": 811597824
+      },
+      "bounded": {
+        "median_ms": 2.8869740962982178,
+        "times_ms": [
+          2.883294105529785,
+          2.8869740962982178,
+          2.9061739444732666
+        ],
+        "peak_increment_bytes": 155320320
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-",
+  "torch": "2.12.0a0+git78258b9"
+}

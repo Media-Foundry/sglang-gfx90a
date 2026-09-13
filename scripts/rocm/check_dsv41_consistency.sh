@@ -32,6 +32,7 @@ git diff --check
   python/sglang/kernels/ops/moe/gfx90a_dsv41_compact_ck.py \
   python/sglang/kernels/ops/attention/fused_qk_norm_rope_store.py \
   python/sglang/srt/layers/attention/deepseek_v4_backend_hip_radix.py \
+  python/sglang/srt/layers/attention/dsv4/dsv41_sparse.py \
   python/sglang/srt/models/deepseek_v41.py
 bash -n scripts/rocm_dsv4_flash.sh
 bash -n scripts/rocm/start_dsv41_correctness.sh

@@ -11,6 +11,9 @@ export TP_SIZE=8 EP_SIZE=1 MOE_A2A_BACKEND=none
 export MOE_RUNNER_BACKEND=aiter ATTENTION_BACKEND=dsv4 SGLANG_USE_AITER=1
 export TOOL_CALL_PARSER=deepseekv41 REASONING_PARSER=deepseek-v41
 export MAX_TOTAL_TOKENS="${MAX_TOTAL_TOKENS:-8192}" MEM_FRACTION_STATIC=0.96
+# Advertise the configured test limit, not the unvalidated 1M model-card limit.
+# Enlarging the pool/context still requires a full-model capacity/quality test.
+export CONTEXT_LENGTH="${CONTEXT_LENGTH:-${MAX_TOTAL_TOKENS}}"
 export CHUNKED_PREFILL_SIZE="${CHUNKED_PREFILL_SIZE:-2304}"
 export CUDA_GRAPH_MAX_BS_DECODE=1 DISABLE_DECODE_CUDA_GRAPH=1
 export SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE=1

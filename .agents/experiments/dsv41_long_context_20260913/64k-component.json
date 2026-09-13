@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "kind": "isolated synthetic FP4-grid inputs",
+  "production": true,
+  "rows": 2304,
+  "slab_mib": 128,
+  "shapes": [
+    {
+      "length": 65536,
+      "reference": {
+        "median_ms": 132.22454833984375,
+        "times_ms": [
+          132.60791015625,
+          131.8411865234375
+        ],
+        "peak_increment_bytes": 28991029248
+      },
+      "bounded": {
+        "median_ms": 124.3154411315918,
+        "times_ms": [
+          124.42231750488281,
+          124.20856475830078
+        ],
+        "peak_increment_bytes": 742916096
+      },
+      "scores_exact": true,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "top512_exact": true,
+      "candidate_blocks_exact": true
+    }
+  ],
+  "gpu": "gfx90a:sramecc+:xnack-",
+  "torch": "2.12.0a0+git78258b9"
+}
