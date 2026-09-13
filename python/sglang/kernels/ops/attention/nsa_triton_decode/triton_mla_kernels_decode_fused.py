@@ -593,6 +593,7 @@ def fused_gather_attn_decode_dsv4(
     topk_length: Optional[torch.Tensor] = None,
     attn_sink: Optional[torch.Tensor] = None,
     s_q: int = 1,
+    invariant_reduction: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Fused gather+dequant+attention for DSV4.
@@ -632,7 +633,7 @@ def fused_gather_attn_decode_dsv4(
     disable_buffer_ops = kv_cache_size > BUFFER_OPS_DISABLE_THRESHOLD
 
     # Use Split-K for large topk
-    if topk >= SPLITK_TOPK_THRESHOLD:
+    if topk >= SPLITK_TOPK_THRESHOLD and not invariant_reduction:
         split_k = _select_split_k(topk, h_q, total_tokens)
         topk_per_split = (topk + split_k - 1) // split_k
 
@@ -782,7 +783,11 @@ def fused_gather_attn_decode_dsv4(
     grid = lambda meta: (triton.cdiv(h_q, meta["BLOCK_H"]), total_tokens)
 
     def run_kernel():
-        _fused_gather_attn_dsv4_kernel[grid](
+        # V4.1 precision validation: keep the same head/KV tiles and online
+        # softmax rounding across row counts. Default autotuning is unchanged.
+        kernel = _fused_gather_attn_dsv4_kernel.fn if invariant_reduction else _fused_gather_attn_dsv4_kernel
+        launch = {"BLOCK_H": 16, "BLOCK_N": 32, "num_warps": 4, "num_stages": 1} if invariant_reduction else {}
+        kernel[grid](
             q,
             kv_flat,
             indices,
@@ -811,6 +816,7 @@ def fused_gather_attn_decode_dsv4(
             lse.stride(1),
             HAS_TOPK_LENGTH=topk_length is not None,
             HAS_ATTN_SINK=attn_sink is not None,
+            **launch,
         )
 
     if disable_buffer_ops:
@@ -1645,6 +1651,7 @@ def fused_gather_attn_decode_dsv4_dual_scope(
     attn_sink: Optional[torch.Tensor] = None,
     s_q: int = 1,
     force_no_splitk: bool = False,
+    invariant_reduction: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Fused gather+dequant+attention for DSV4 with dual scope (main + extra).
@@ -1707,7 +1714,7 @@ def fused_gather_attn_decode_dsv4_dual_scope(
 
     split_k = (
         0
-        if force_no_splitk
+        if force_no_splitk or invariant_reduction
         else _decide_splitk_dual_scope(total_tokens, h_q, total_topk)
     )
     if split_k > 0:
@@ -1876,7 +1883,9 @@ def fused_gather_attn_decode_dsv4_dual_scope(
     grid = lambda meta: (triton.cdiv(h_q, meta["BLOCK_H"]), total_tokens)
 
     def run_kernel():
-        _fused_gather_attn_dsv4_dual_scope_kernel[grid](
+        kernel = _fused_gather_attn_dsv4_dual_scope_kernel.fn if invariant_reduction else _fused_gather_attn_dsv4_dual_scope_kernel
+        launch = {"BLOCK_H": 16, "BLOCK_N": 64, "num_warps": 8, "num_stages": 1} if invariant_reduction else {}
+        kernel[grid](
             q,
             kv_flat_main,
             indices_main,
@@ -1915,6 +1924,7 @@ def fused_gather_attn_decode_dsv4_dual_scope(
             HAS_TOPK_LENGTH_MAIN=topk_length_main is not None,
             HAS_TOPK_LENGTH_EXTRA=topk_length_extra is not None,
             HAS_ATTN_SINK=attn_sink is not None,
+            **launch,
         )
 
     if disable_buffer_ops:

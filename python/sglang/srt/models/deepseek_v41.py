@@ -2142,6 +2142,8 @@ class MQALayer(MqaAttentionBase):
         )
 
         if is_unified_kv_triton():
+            if _is_hip and envs.SGLANG_DSV41_ATTN_INVARIANT.get():
+                raise ValueError("V4.1 invariant attention currently requires the radix backend, not unified KV")
             o = attn_backend.forward(
                 q=q_out if q_out is not None else q,
                 k=attn_k,
@@ -2178,6 +2180,7 @@ class MQALayer(MqaAttentionBase):
                     compress_ratio=self.compress_ratio,
                     attn_sink=attn_sink,
                     save_kv_cache=save_kv_cache,
+                    **({"invariant_reduction": True} if _is_hip and envs.SGLANG_DSV41_ATTN_INVARIANT.get() else {}),
                 )
             o = o[:, tp_slice, :]
         if (

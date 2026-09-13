@@ -54,6 +54,7 @@ def triton_sparse_attn_decode(
     sm_scale: float,
     d_v: int = 512,
     attn_sink: Optional[torch.Tensor] = None,
+    invariant_reduction: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Optimized sparse attention decode for DeepSeek V4 (d_qk=512)."""
     d_qk = q.shape[-1]
@@ -64,7 +65,7 @@ def triton_sparse_attn_decode(
         )
 
     return _triton_sparse_attn_decode_dsv4(
-        q, kv_scope, extra_kv_scope, sm_scale, d_v, attn_sink
+        q, kv_scope, extra_kv_scope, sm_scale, d_v, attn_sink, invariant_reduction
     )
 
 
@@ -75,6 +76,7 @@ def _triton_sparse_attn_decode_dsv4(
     sm_scale: float,
     d_v: int,
     attn_sink: Optional[torch.Tensor],
+    invariant_reduction: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Sparse attention decode for DeepSeek V4 (d_qk=512).
 
@@ -108,6 +110,7 @@ def _triton_sparse_attn_decode_dsv4(
             topk_length=kv_scope.topk_length,
             attn_sink=attn_sink,
             s_q=s_q,
+            invariant_reduction=invariant_reduction,
         )
         return output.view(b, s_q, h_q, d_v), lse.view(b, s_q, h_q).transpose(1, 2)
 
@@ -125,7 +128,7 @@ def _triton_sparse_attn_decode_dsv4(
     ).contiguous()
 
     # Dispatch: use split-K for small batches, no-splitk for everything else.
-    if _should_use_fused_splitk(total_tokens, h_q, total_topk):
+    if not invariant_reduction and _should_use_fused_splitk(total_tokens, h_q, total_topk):
         # Small batch: fused split-K kernel (better GPU utilization)
         output, lse = fused_gather_attn_decode_dsv4_dual_scope_low_overhead(
             q_reshaped,
@@ -157,6 +160,7 @@ def _triton_sparse_attn_decode_dsv4(
             attn_sink=attn_sink,
             s_q=s_q,
             force_no_splitk=True,
+            invariant_reduction=invariant_reduction,
         )
 
     return output.view(b, s_q, h_q, d_v), lse.view(b, s_q, h_q).transpose(1, 2)

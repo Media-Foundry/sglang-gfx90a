@@ -2281,6 +2281,7 @@ class DeepseekV4HipRadixBackend(
         attn_sink: Optional[torch.Tensor] = None,
         inverse_rope_freqs: Optional[torch.Tensor] = None,
         inverse_rope_positions: Optional[torch.Tensor] = None,
+        invariant_reduction: bool = False,
         **_,
     ) -> torch.Tensor:
         if self.mtp_enabled and forward_batch.forward_mode.is_idle():
@@ -2300,6 +2301,8 @@ class DeepseekV4HipRadixBackend(
         )
 
         if is_unified_kv_triton():
+            if invariant_reduction:
+                raise ValueError("Invariant attention is not implemented for unified KV")
             return self._forward_unified_kv(
                 q=q,
                 kv=swa_k,
@@ -2394,6 +2397,8 @@ class DeepseekV4HipRadixBackend(
             )
 
             backend = envs.SGLANG_HACK_FLASHMLA_BACKEND.get()
+            if invariant_reduction and backend != "triton":
+                raise ValueError("V4.1 invariant attention requires the HIP Triton backend")
             input_dict = dict(
                 q=q,
                 k_cache=swa_k_cache,
@@ -2410,6 +2415,8 @@ class DeepseekV4HipRadixBackend(
                 extra_indices_in_kvcache=extra_indices,
                 extra_topk_length=extra_topk_lengths,
             )
+            if invariant_reduction:
+                input_dict["invariant_reduction"] = True
             o = flash_mla_with_kvcache_entrypoint(**input_dict, backend=backend)[0]
 
             o = o.squeeze(1)

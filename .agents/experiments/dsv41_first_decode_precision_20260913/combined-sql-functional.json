@@ -1,0 +1,123 @@
+{
+  "case": "event_sessions",
+  "passed": true,
+  "query": "WITH ordered AS (\n  SELECT\n    user_id,\n    ts,\n    id,\n    LAG(ts) OVER (PARTITION BY user_id ORDER BY ts, id) AS prev_ts\n  FROM events\n),\nflagged AS (\n  SELECT\n    user_id,\n    ts,\n    id,\n    CASE\n      WHEN prev_ts IS NULL THEN 0\n      WHEN ts - prev_ts > 1800 THEN 1\n      ELSE 0\n    END AS new_session\n  FROM ordered\n),\nnumbered AS (\n  SELECT\n    user_id,\n    ts,\n    SUM(new_session) OVER (\n      PARTITION BY user_id\n      ORDER BY ts, id\n      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n    ) + 1 AS session_no\n  FROM flagged\n)\nSELECT\n  user_id,\n  session_no,\n  MIN(ts) AS start_ts,\n  MAX(ts) AS end_ts,\n  COUNT(*) AS event_count\nFROM numbered\nGROUP BY user_id, session_no\nORDER BY user_id, session_no;",
+  "finish_reason": {
+    "type": "stop",
+    "matched": 1
+  },
+  "fixtures": [
+    {
+      "seed": 0,
+      "input_row_count": 0,
+      "output_row_count": 0,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 1,
+      "input_row_count": 54,
+      "output_row_count": 16,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 2,
+      "input_row_count": 54,
+      "output_row_count": 22,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 3,
+      "input_row_count": 54,
+      "output_row_count": 24,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 4,
+      "input_row_count": 54,
+      "output_row_count": 17,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 5,
+      "input_row_count": 54,
+      "output_row_count": 18,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 6,
+      "input_row_count": 54,
+      "output_row_count": 22,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 7,
+      "input_row_count": 54,
+      "output_row_count": 21,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 8,
+      "input_row_count": 54,
+      "output_row_count": 17,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 9,
+      "input_row_count": 54,
+      "output_row_count": 18,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 10,
+      "input_row_count": 54,
+      "output_row_count": 14,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 11,
+      "input_row_count": 54,
+      "output_row_count": 23,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 12,
+      "input_row_count": 54,
+      "output_row_count": 22,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 13,
+      "input_row_count": 54,
+      "output_row_count": 23,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 14,
+      "input_row_count": 54,
+      "output_row_count": 23,
+      "passed": true,
+      "error": null
+    },
+    {
+      "seed": 15,
+      "input_row_count": 54,
+      "output_row_count": 16,
+      "passed": true,
+      "error": null
+    }
+  ]
+}

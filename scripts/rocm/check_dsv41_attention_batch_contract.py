@@ -28,6 +28,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trace-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--invariant-attention", action="store_true")
+    parser.add_argument("--service-woa-invariant", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -55,6 +57,7 @@ def main():
                 indices=ids, attn_sink=c["sink"].cuda(), extra_k_cache=extra,
                 extra_indices_in_kvcache=extra_ids, topk_length=lens,
                 extra_topk_length=extra_lens,
+                invariant_reduction=args.invariant_attention,
             )
             outputs.append(out[-1].cpu())
             if w is not None:
@@ -80,8 +83,8 @@ def main():
             service_decode = torch.load(next(args.trace_dir.glob(f"rank{trace['rank']}-*RowParallelLinear-module{wob_num}-call1-*.pt")), weights_only=True, map_location="cpu")["args"][0]
             service_prefill = torch.load(next(args.trace_dir.glob(f"rank{trace['rank']}-*RowParallelLinear-module{wob_num}-call3-*.pt")), weights_only=True, map_location="cpu")["args"][0][-1:]
             result.update(woa_M1_vs_M204=row_metrics(*absorb),
-                          reproduced_service_decode=row_metrics(absorb[0].reshape_as(service_decode), service_decode),
-                          reproduced_service_prefill=row_metrics(absorb[1].reshape_as(service_prefill), service_prefill),
+                          reproduced_service_decode=row_metrics((invariant if args.service_woa_invariant else absorb)[0].reshape_as(service_decode), service_decode),
+                          reproduced_service_prefill=row_metrics((invariant if args.service_woa_invariant else absorb)[1].reshape_as(service_prefill), service_prefill),
                           invariant_M1_vs_M204=row_metrics(*invariant),
                           invariant_vs_fp64=row_metrics(invariant[0], reference),
                           fp32_woa_M1_vs_M204=row_metrics(*accurate),
