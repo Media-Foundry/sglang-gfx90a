@@ -37,6 +37,12 @@ git diff --check
 bash -n scripts/rocm_dsv4_flash.sh
 bash -n scripts/rocm/start_dsv41_correctness.sh
 
+case "${DSV41_RUN_UNIT_TESTS:-1}" in
+  1) bash scripts/rocm/check_dsv41_unit.sh ;;
+  0) echo "[dsv41-check] unit tests explicitly skipped (DSV41_RUN_UNIT_TESTS=0)" ;;
+  *) echo "[dsv41-check] DSV41_RUN_UNIT_TESTS must be 0 or 1" >&2; exit 2 ;;
+esac
+
 if [[ -n "${LOG_FILE}" ]]; then
   if [[ ! -f "${LOG_FILE}" ]]; then
     echo "[dsv41-check] log not found: ${LOG_FILE}" >&2
@@ -46,4 +52,4 @@ if [[ -n "${LOG_FILE}" ]]; then
   rg -n "model storage audit|engram host table|Memory pool end|HSA_STATUS_ERROR_MEMORY_FAULT|_engram_gather_kernel|cudaHostRegister" "${LOG_FILE}" || true
 fi
 
-echo "[dsv41-check] PASS: checkpoint, Engram header/row probe, source syntax"
+echo "[dsv41-check] PASS: checkpoint, Engram header/row probe, source syntax; unit_tests=${DSV41_RUN_UNIT_TESTS:-1}"

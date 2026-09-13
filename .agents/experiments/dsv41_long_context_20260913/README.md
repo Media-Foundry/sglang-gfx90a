@@ -54,3 +54,14 @@ standalone France pass and8/8 post-long-request C4 semantic checks. The older
 `long-prefix-summary.json`, `short-prefix-summary.json` and
 `long-prefix-recomputes.tar.gz` retain cached-vs-full-recompute evidence;
 top1 agreement does not imply floating-point parity.
+
+## Mixed long-decode / short-prefill
+
+`mixed-context-run1.tar.gz` and `mixed-context-run2.tar.gz` contain one22K
+long-code request and eight short semantic requests each, including exact
+payloads, responses, checker stdout, and the corresponding server log window.
+All18requests pass the unchanged answer checks. Each window contains two
+prefill markers with4new short sequences and1running long decode request.
+This does NOT show simultaneous long-prefill chunks. The long answers'90IDs
+and all returned logprob rows match between the two runs. See
+`../../memory/dsv41_mixed_context_correctness_20260913.md` for scope limits.
