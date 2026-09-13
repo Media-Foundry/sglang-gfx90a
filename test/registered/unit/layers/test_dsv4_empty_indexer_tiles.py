@@ -2,6 +2,8 @@
 import ast
 from enum import Enum
 from pathlib import Path
+import os
+import subprocess
 from types import SimpleNamespace as NS
 import unittest
 
@@ -79,6 +81,28 @@ class TestEmptyIndexerTiles(unittest.TestCase):
                 skip_empty_tiles=flag)
             self.assertIs(observed, result)
             self.assertEqual(calls[-1], dict(skip_trivial_topk=0, skip_empty_tiles=flag))
+
+    def test_launcher_default_and_explicit_override(self):
+        # Evaluate only the profile assignment block, never source the launcher
+        # or invoke any service/GPU commands in this CPU contract test.
+        root = Path(__file__).resolve().parents[4]
+        source = (root/'scripts/rocm_dsv4_flash.sh').read_text()
+        start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
+        end = source.index('\nfi\n', start)+4
+        block = source[start:end]
+        flag = 'SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP'
+        for profile, override, tp, expected in (
+            ('1',None,'8','1'), ('1','0','8','0'), ('1','1','8','1'),
+            ('0',None,'8','unset'), ('1',None,'4','unset')):
+            with self.subTest(profile=profile, override=override, tp=tp):
+                env = dict(PATH=os.environ['PATH'], TP_SIZE=tp,
+                           SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=profile)
+                if override is not None:
+                    env[flag] = override
+                result = subprocess.run(['bash','--noprofile','--norc','-c',
+                    'set -eu\n'+block+'\nprintf "%s" "${'+flag+'-unset}"'],
+                    env=env, text=True, capture_output=True, check=True)
+                self.assertEqual(result.stdout, expected)
 
 
 if __name__ == '__main__':

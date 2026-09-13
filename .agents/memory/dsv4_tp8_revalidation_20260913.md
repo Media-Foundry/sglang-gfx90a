@@ -312,3 +312,21 @@ B PID576055 was stopped cleanly. Return control A2 PID583304 is ready with
 flag0 and no empty-tile hit log; pool1M retained. Its warmup/formal wave are
 running, so ABBA acceptance is still pending. No default launcher promotion
 has happened yet. The baseline table remains separately preserved.
+
+## Accepted ABBA and final native matrix rerun
+
+Return control A2 completed at169.8429 resident tok/s, reproducing A1.
+Final sequence A1/B1/B2/A2=169.6567/611.1026/610.8532/169.8429 on the
+same32 public8K source requests. The roughly3.60x gain applies to this
+long-context resident window, not the short-context baseline. No KV capacity,
+weight precision, selected IDs or nonempty-tile arithmetic was changed.
+
+The validated TP8/EP1/no-A2A multi-request launcher now defaults the exact
+empty-tile guard to1, preserving explicit0. Global EnvBool remainsFalse;
+runtime guards still exclude prefill/draft/DSpark/MTP/paged-V4.1. Seven CPU
+contract tests (including profile default/override), shell syntax, Python
+syntax and git diff whitespace checks passed. Final service will be launched
+without an explicit flag to verify this actual default. It will repeat all
+seven native AR D concurrencies, three rounds each, unchanged real-code
+natural-EOS protocol. Completed P measurements are retained because this
+selector cannot enter prefill. Final D results are not available yet.

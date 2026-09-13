@@ -14,7 +14,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('label')
     parser.add_argument('--enabled', type=int, choices=(0, 1), required=True)
+    parser.add_argument('--profile-default', action='store_true', help='Remove explicit flag and verify launcher default')
     args = parser.parse_args()
+    assert not args.profile_default or args.enabled == 1
     assert re.fullmatch(r'[A-Za-z0-9_-]+', args.label)
     root = Path(__file__).resolve().parent
     log = root/f'empty-tiles-{args.label}.service.log'
@@ -26,12 +28,14 @@ def main():
     assert not active, f'GPUs occupied: {active}'
     (root/f'empty-tiles-{args.label}-start.gpu-before.json').write_text(json.dumps(gpu, indent=2)+'\n')
     session = f'dsv4-empty-tiles-{args.label}-20260914'
-    launch = ['env', f'SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP={args.enabled}',
-              'bash', str(root/'start-ar-matrix.sh')]
+    flag = 'SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP'
+    launch = (['env', '-u', flag] if args.profile_default else ['env', f'{flag}={args.enabled}'])
+    launch += ['bash', str(root/'start-ar-matrix.sh')]
     command = shlex.join(launch)+' >'+shlex.quote(str(log))+' 2>&1'
     subprocess.run(['tmux', 'new-session', '-d', '-s', session, command], check=True)
     pane = int(subprocess.check_output(['tmux', 'display-message', '-p', '-t', session, '#{pane_pid}']))
     state = dict(label=args.label, enabled=args.enabled, tmux=session, pane_pid=pane,
+                 profile_default=args.profile_default,
                  log=str(log), launch=launch, created=time.time(),
                  git_head=subprocess.check_output(['git','-C','/home/pc/Code/sglang','rev-parse','HEAD']).decode().strip())
     state_path.write_text(json.dumps(state, indent=2)+'\n')

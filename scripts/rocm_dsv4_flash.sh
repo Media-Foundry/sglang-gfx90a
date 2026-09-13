@@ -103,6 +103,12 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
   export SGLANG_ROCM_USE_MULTI_STREAM="${SGLANG_ROCM_USE_MULTI_STREAM:-1}"
   export AITER_GFX90A_MXFP4_QUANT_MAX_ROWS="${AITER_GFX90A_MXFP4_QUANT_MAX_ROWS:-192}"
   export SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK="${SGLANG_MORI_DECODE_MAX_DISPATCH_TOKENS_PER_RANK:-64}"
+  # Keep the 1M pool without computing MFMA logits for empty captured tails.
+  # Exact score/Top-K oracle and 8K-code native C32 ABBA passed. Runtime guards
+  # exclude prefill, draft/speculative paths and paged V4.1. Explicit0 wins.
+  if [[ "${TP_SIZE}" == "8" && "${EP_SIZE}" == "1" && "${MOE_A2A_BACKEND}" == "none" ]]; then
+    export SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP="${SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP:-1}"
+  fi
 fi
 
 # One TP4 replica dedicated to a resident BS32 decode batch.  This is distinct
