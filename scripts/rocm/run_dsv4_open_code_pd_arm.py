@@ -19,7 +19,13 @@ def main():
     p.add_argument('--manifests', type=Path, required=True)
     p.add_argument('--output-dir', type=Path, required=True)
     p.add_argument('--phases', nargs='+', choices=('decode', 'prefill'), default=['decode', 'prefill'])
+    p.add_argument('--concurrencies', type=int, nargs='+', choices=(1,2,4,8,16,32,64), default=[1,2,4,8,16,32])
+    p.add_argument('--rounds', type=int, default=3)
+    p.add_argument('--decode-seconds', type=float, default=30)
+    p.add_argument('--decode-tokens', type=int, default=2048)
     args = p.parse_args()
+    if args.rounds < 1 or args.decode_seconds < 0 or args.decode_tokens < 2:
+        p.error('rounds>=1, decode-seconds>=0 and decode-tokens>=2 required')
     args.output_dir.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parent
     service = psutil.Process(args.pid)
@@ -32,14 +38,16 @@ def main():
     if spec:
         assert cmd[cmd.index('--speculative-algorithm') + 1].upper() == 'DSPARK'
     state = dict(status='running', pid=args.pid, tp=args.tp, mode=args.mode,
-                 measured_rounds=3, warmup_rounds=1, results=[],
-                 decode_tokens=2048, prefill_output_tokens=1)
+                 measured_rounds=args.rounds, warmup_rounds=1, results=[],
+                 decode_tokens=args.decode_tokens, prefill_output_tokens=1,
+                 command=cmd, concurrencies=args.concurrencies,
+                 git_head=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip())
     def save():
         (args.output_dir / 'state.json').write_text(json.dumps(state, indent=2) + '\n')
     try:
         for phase in args.phases:
-            for concurrency in (1, 2, 4, 8, 16, 32):
-                for kind, rounds in [('warmup', 1), ('measured', 3)]:
+            for concurrency in args.concurrencies:
+                for kind, rounds in [('warmup', 1), ('measured', args.rounds)]:
                     assert service.is_running() and service.create_time() == birth
                     owned = {service.pid, *[x.pid for x in service.children(recursive=True)]}
                     gpu = json.loads(subprocess.check_output(['amd-smi', 'process', '--json']))
@@ -47,15 +55,17 @@ def main():
                               if isinstance(x.get('process_info'), dict)}
                     assert active <= owned, f'external GPU PIDs: {active-owned}'
                     stem = f'{phase}_c{concurrency}_{kind}'
+                    (args.output_dir / f'{stem}.gpu-before.json').write_text(
+                        json.dumps(gpu, indent=2) + '\n')
                     out = args.output_dir / f'{stem}.json'
                     script = ('bench_dsv4_open_code_decode.py' if phase == 'decode'
                               else 'bench_dsv4_prefill_diverse_concurrent.py')
                     command = [sys.executable, str(root / script), '--base-url', args.base_url,
                                '--inputs', str(args.manifests / f'{phase}.json'),
                                '--request-count', str(concurrency), '--rounds', str(rounds),
-                               '--tokens', '2048' if phase == 'decode' else '1', '--output', str(out)]
+                               '--tokens', str(args.decode_tokens) if phase == 'decode' else '1', '--output', str(out)]
                     if phase == 'decode':
-                        command += ['--seconds', '0' if kind == 'warmup' else '30']
+                        command += ['--seconds', '0' if kind == 'warmup' else str(args.decode_seconds)]
                     state.update(current=stem, updated=time.time())
                     save()
                     print('START', stem, flush=True)

@@ -1578,6 +1578,28 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
 
         return round_up_grid(total_verify_tokens, self.capture_num_tokens)
 
+    def _log_decode_graph_key(self, forward_batch: ForwardBatch) -> None:
+        """Optional host-only audit; no tensor reads or device synchronization."""
+        worker = "draft" if self.model_runner.is_draft_worker else "target"
+        size = self._replay_graph_key.size
+        rows = size if self.ragged_verify_mode else size * self.captured_req_width
+        key = (worker, forward_batch.forward_mode.name,
+               forward_batch.batch_size, size, rows)
+        if os.getenv("SGLANG_LOG_DECODE_GRAPH_KEY_ONCE", "0") == "1":
+            seen = getattr(self, "_logged_decode_graph_keys", None)
+            if seen is None:
+                seen = self._logged_decode_graph_keys = set()
+            if key in seen:
+                return
+            seen.add(key)
+        logger.info(
+            "Decode graph replay: worker=%s key_size=%s (%s) mode=%s "
+            "raw_bs=%d executed_rows=%d input_rows=%d",
+            worker, size, "num_tokens" if self.ragged_verify_mode else "bs",
+            forward_batch.forward_mode.name, forward_batch.batch_size,
+            rows, forward_batch.input_ids.numel(),
+        )
+
     def execute(
         self,
         forward_batch: ForwardBatch,
@@ -1592,19 +1614,7 @@ class DecodeCudaGraphRunner(BaseCudaGraphRunner):
         with timer_ctx, self.backend.replay_session():
             self.load_batch(forward_batch, pp_proxy_tensors)
             if envs.SGLANG_LOG_DECODE_GRAPH_KEY.get():
-                logger.info(
-                    "Decode graph replay: worker=%s key_size=%s (%s) mode=%s raw_bs=%d%s",
-                    "draft" if self.model_runner.is_draft_worker else "target",
-                    self._replay_graph_key.size,
-                    "num_tokens" if self.ragged_verify_mode else "bs",
-                    forward_batch.forward_mode.name,
-                    forward_batch.batch_size,
-                    (
-                        f" slots={self._ragged_capture_slots(self._replay_graph_key.size)}"
-                        if self.ragged_verify_mode
-                        else ""
-                    ),
-                )
+                self._log_decode_graph_key(forward_batch)
             if shared_read_ends is SharedReadEnds.PRE_REPLAY:
                 self._publish_read_done(in_graph=False)
 

@@ -15,6 +15,7 @@ def main():
     p.add_argument('--revision', default='54b93c45c2')
     p.add_argument('--model', default='/home/pc/models/modelscope')
     p.add_argument('--output-dir', type=Path, required=True)
+    p.add_argument('--request-count', type=int, choices=(32, 64), default=32)
     args = p.parse_args()
     revision = subprocess.check_output(['git', 'rev-parse', args.revision]).decode().strip()
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
@@ -32,8 +33,11 @@ def main():
         if destination.exists():
             raise FileExistsError(destination)
         requests = []
-        for index, (preferred, task) in enumerate(FILES_AND_TASKS):
-            first = preferred if preferred in paths else paths[index]
+        for index in range(args.request_count):
+            preferred, task = FILES_AND_TASKS[index % len(FILES_AND_TASKS)]
+            # Preserve the historical first32 requests byte-for-byte. Extra
+            # requests review different real files, not duplicated prompts.
+            first = (preferred if preferred in paths else paths[index]) if index < 32 else paths[index]
             ordered = [first] + [x for x in paths[index:] + paths[:index] if x != first]
             snippets, provenance = [], []
             for path in ordered:
@@ -64,7 +68,7 @@ def main():
             requests.append({'index': index, 'task': task, 'prompt': best[0], 'input_ids': best[1],
                              'prompt_tokens': len(best[1]), 'source_candidates': provenance,
                              'input_sha256': hashlib.sha256(json.dumps(best[1]).encode()).hexdigest()})
-        assert len({tuple(x['input_ids']) for x in requests}) == 32
+        assert len({tuple(x['input_ids']) for x in requests}) == args.request_count
         destination.write_text(json.dumps({'format': 'dsv4-open-code-pd-v1', 'revision': revision,
                                           'phase': phase, 'target_tokens': target,
                                           'requests': requests}, indent=2) + '\n')

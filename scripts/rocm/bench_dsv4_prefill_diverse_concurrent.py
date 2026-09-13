@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure C1--C32 DSV4 prefill on fixed, real heterogeneous code prompts."""
+"""Measure C1--C64 DSV4 prefill on fixed, real heterogeneous code prompts."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=root / ".agents/memory/dsv4_prefill_diverse_32_input_ids.json",
     )
-    parser.add_argument("--request-count", type=int, choices=(1, 2, 4, 8, 16, 32), default=32)
+    parser.add_argument("--request-count", type=int, choices=(1, 2, 4, 8, 16, 32, 64), default=32)
     parser.add_argument("--tokens", type=int, default=8)
     parser.add_argument("--request-offset", type=int, default=0)
     parser.add_argument("--rounds", type=int, default=5)

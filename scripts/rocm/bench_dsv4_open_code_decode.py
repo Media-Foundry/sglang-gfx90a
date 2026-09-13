@@ -25,12 +25,14 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--base-url', required=True)
     p.add_argument('--inputs', type=Path, required=True)
-    p.add_argument('--request-count', type=int, choices=(1,2,4,8,16,32), required=True)
+    p.add_argument('--request-count', type=int, choices=(1,2,4,8,16,32,64), required=True)
     p.add_argument('--rounds', type=int, default=3)
     p.add_argument('--seconds', type=float, default=30)
     p.add_argument('--tokens', type=int, default=2048)
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
+    if args.rounds < 1 or args.tokens < 2 or args.seconds < 0:
+        p.error('rounds>=1, tokens>=2 and seconds>=0 are required')
     assert not args.output.exists()
     manifest = json.loads(args.inputs.read_text())
     requests = manifest['requests']
@@ -44,7 +46,8 @@ def main():
     for rep in range(args.rounds):
         record = dict(round=rep, waves=[], decode_seconds=0., decode_tokens=0)
         result['rounds'].append(record)
-        while not record['waves'] or record['decode_seconds'] < args.seconds:
+        while (not record['waves'] or record['decode_seconds'] <= 0
+               or record['decode_seconds'] < args.seconds):
             wave = len(record['waves'])
             assert wave < 64, 'Insufficient common resident decode; inspect wave data'
             chosen = [requests[(wave*args.request_count+i)%len(requests)] for i in range(args.request_count)]
@@ -58,27 +61,34 @@ def main():
                 barrier.wait()
                 begin = time.perf_counter()
                 response, samples = post_stream(args.base_url+'/generate', payload, 1200)
-                return begin, response, samples
+                return begin, response, samples, time.perf_counter()
             with concurrent.futures.ThreadPoolExecutor(max_workers=args.request_count) as pool:
                 fs = [pool.submit(run,i,item) for i,item in enumerate(chosen)]
                 barrier.wait()
                 outputs = [f.result() for f in fs]
-            start = max(s[0][0] for _,_,s in outputs)
-            end = min(s[-1][0] for _,_,s in outputs)
-            tokens = sum(count_at(s,end)-count_at(s,start) for _,_,s in outputs) if end>start else 0
+            start = max(s[0][0] for _,_,s,_ in outputs)
+            end = min(s[-1][0] for _,_,s,_ in outputs)
+            tokens = sum(count_at(s,end)-count_at(s,start) for _,_,s,_ in outputs) if end>start else 0
             wall = max(0.,end-start)
             witnesses=[]
-            for item,(begin,response,samples) in zip(chosen,outputs):
+            for item,(begin,response,samples,finished) in zip(chosen,outputs):
                 ids=completion_ids(response)
                 meta=response['meta_info']
                 assert ids and meta['finish_reason']['type'] in ('stop','length')
                 assert len(ids)==meta['completion_tokens']
+                assert samples[-1][1] == len(ids), 'stream count must equal completion-only IDs'
+                assert all(t1 >= t0 and n1 >= n0 for (t0,n0),(t1,n1) in zip(samples,samples[1:]))
                 witnesses.append(dict(index=item['index'], output_ids=ids, text=response.get('text'),
                                       finish_reason=meta['finish_reason'], ttft=samples[0][0]-begin,
+                                      wall_seconds=finished-begin, cached_tokens=meta.get('cached_tokens'),
+                                      samples=samples,
                                       spec_accept_length=meta.get('spec_accept_length'),
                                       sha256=hashlib.sha256(json.dumps(ids).encode()).hexdigest()))
+            request_wall = max(x[3] for x in outputs)-min(x[0] for x in outputs)
             record['waves'].append(dict(wave=wave, resident_seconds=wall, resident_tokens=tokens,
                                          resident_tok_s=tokens/wall if wall else None,
+                                         http_wall_seconds=request_wall,
+                                         http_output_tok_s=sum(len(x['output_ids']) for x in witnesses)/request_wall,
                                          common_start=start, common_end=end, requests=witnesses))
             record['decode_seconds'] += wall
             record['decode_tokens'] += tokens
