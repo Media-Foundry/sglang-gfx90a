@@ -65,11 +65,17 @@ also has France and two128-token quality waves with full input echoes.
 Actual policy hits and unchanged FP16 Fn must be witnessed on every rank.
 
 Partial readback on September15 (not a completed ABBA): A1 finished with
-three-wave median5542.583721 input tok/s. Candidate B1 finished with
-three-wave median5480.998651 input tok/s (about1.11% lower). B2 has begun;
-final control A2 has not started. Do not report this as an accepted result.
+three-wave median5542.583721 input tok/s. Candidate B1/B2 finished with
+three-wave medians5480.998651/5480.220425 input tok/s (about1.11% lower).
+B completed and stopped; final control A2 is loading. Do not report this
+as an accepted result.
 All eight candidate ranks logged legacy8 -> config20 policy selection;
-candidate France returned Paris. Long candidate outputs remain unreviewed.
+candidate France returned Paris. All32 candidate128-token excerpts have
+been manually read: coherent and code-topic-related, without obvious collapse,
+not a factual-accuracy certificate. Candidate input echoes32/32 match;
+full-answer repeat9/16 and first-token repeat16/16. Seven answers still diverge
+later, so config20 is not a complete end-to-end determinism fix. No first-wave
+candidate answer fully matched either A1 control wave (first tokens7/16,6/16).
 A1 full input echoes passed32/32, but only6/16 full128-token answers repeated
 between its quality waves (15/16 first tokens matched). Thus control itself
 is not deterministic. Manual control inspection found coherent text but

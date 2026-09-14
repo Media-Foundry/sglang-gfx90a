@@ -31,6 +31,10 @@ class TestAnalysis(unittest.TestCase):
         changed=copy.deepcopy(result);changed[3][5]=8
         self.assertEqual(analysis.differences(result,changed),[
             dict(case=3,common_prefix_tokens=5,left_token=7,right_token=8)])
+        changed[0][0]=8
+        differences=analysis.differences(result,changed)
+        self.assertEqual(16-len(differences),14)
+        self.assertEqual(16-sum(x['common_prefix_tokens']==0 for x in differences),15)
 
 
 if __name__=='__main__':unittest.main()

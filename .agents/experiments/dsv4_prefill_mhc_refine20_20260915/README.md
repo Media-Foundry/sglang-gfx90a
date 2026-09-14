@@ -14,6 +14,15 @@ boundary in the config20 component test. A tiny one-wave comb continuation
 might avoid keeping the large8-wave RMSNorm CTA busy for those extra pairs.
 This is a hypothesis, not a gain estimate or proof that launch splitting wins.
 
+The in-progress config20 service trial has a useful magnitude check: its
+six candidate timing waves average leg medians5480.609538 versus initial
+control5542.583721 input tok/s, about1.07s extra per524286-token wave.
+Assuming16 large forwards,43 layers and two affected boundaries per layer,
+the isolated0.881747ms increment would total1.21s. This is consistent in
+scale but is not a service critical-path measurement or a completed ABBA.
+The candidate aims to recover this small correctness cost, not to claim a
+large throughput increase over the old8-iteration baseline.
+
 The candidate adds one launch and an in-place read/write of16 FP32 values
 per token (2MiB each direction at M32768), with no additional tensor workspace.
 It preserves the existing pre-mix, Fn precision, post and normalized output.

@@ -106,7 +106,9 @@ def main(root):
             output=quality_wave(manifests[arm],read(f'{arm}/quality-{rep}.json'),arm,rep,tokenizer)
             pair.append(output);waves[f'{arm}.{rep}']=output
         changed=differences(*pair)
-        quality[arm]=dict(input_echo_exact=32,repeat_exact=16-len(changed),divergences=changed)
+        quality[arm]=dict(input_echo_exact=32,repeat_exact=16-len(changed),
+            first_token_repeat_exact=16-sum(x['common_prefix_tokens']==0 for x in changed),
+            divergences=changed)
     assert sources['A1']==sources['B']==sources['A2']
     other_flags={a:{k:v for k,v in flags[a].items() if k!='SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS'} for a in arms}
     assert other_flags['A1']==other_flags['B']==other_flags['A2']
@@ -119,7 +121,9 @@ def main(root):
         for i in (0,1):
             for j in (0,1):
                 changed=differences(waves[f'{a}.{i}'],waves[f'{b}.{j}'])
-                comparisons[f'{a}.{i}-{b}.{j}']=dict(exact=16-len(changed),divergences=changed)
+                comparisons[f'{a}.{i}-{b}.{j}']=dict(exact=16-len(changed),
+                    first_token_exact=16-sum(x['common_prefix_tokens']==0 for x in changed),
+                    divergences=changed)
     result=dict(legs=legs,warmups=warmups,quality=quality,sources=sources,flags=flags,
         control_mean_leg_median=rates['A'],candidate_mean_leg_median=rates['B'],
         throughput_change_percent=100*(rates['B']/rates['A']-1),
