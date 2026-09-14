@@ -1,0 +1,86 @@
+{
+  "status": "complete",
+  "scope": "Pending GPU contract check for existing H8 CK; no production edits.\n\nQ=0, valid KV rows=1, sink=0 gives output valid_count/(valid_count+1).\nNegative slots must not add softmax mass. This is not a speed benchmark.\n",
+  "cases": [
+    {
+      "name": "valid",
+      "slots": [
+        0
+      ],
+      "valid_occurrences": 1,
+      "expected": 0.5,
+      "actual": 0.5,
+      "all_finite": true,
+      "max_abs": 0.0,
+      "exact": true
+    },
+    {
+      "name": "mixed_negative",
+      "slots": [
+        0,
+        -1
+      ],
+      "valid_occurrences": 1,
+      "expected": 0.5,
+      "actual": 0.333984375,
+      "all_finite": true,
+      "max_abs": 0.166015625,
+      "exact": false
+    },
+    {
+      "name": "other_negative",
+      "slots": [
+        -2,
+        1
+      ],
+      "valid_occurrences": 1,
+      "expected": 0.5,
+      "actual": 0.333984375,
+      "all_finite": true,
+      "max_abs": 0.166015625,
+      "exact": false
+    },
+    {
+      "name": "duplicate",
+      "slots": [
+        0,
+        0
+      ],
+      "valid_occurrences": 2,
+      "expected": 0.66796875,
+      "actual": 0.66796875,
+      "all_finite": true,
+      "max_abs": 0.0,
+      "exact": true
+    },
+    {
+      "name": "all_negative",
+      "slots": [
+        -1,
+        -2
+      ],
+      "valid_occurrences": 0,
+      "expected": 0.0,
+      "actual": 0.0,
+      "all_finite": true,
+      "max_abs": 0.0,
+      "exact": true
+    },
+    {
+      "name": "empty",
+      "slots": [],
+      "valid_occurrences": 0,
+      "expected": 0.0,
+      "actual": 0.0,
+      "all_finite": true,
+      "max_abs": 0.0,
+      "exact": true
+    }
+  ],
+  "source_sha256": {
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_sparse_h8.py": "8f3b2493be1e33ae290a543e4c98e2dbaf0363acd0e27aa17ed465bb0c79976b",
+    "python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_dsv4_sparse_h8_oracle.cuh": "92d4147cde8e84c38dd75d0e1f74d247be12346435775cda64efb03f47140462",
+    "python/sglang/kernels/jit/csrc/deepseek_v4/dsv4_unified_sparse_decode_ck.cuh": "abe9df00c12c3b71757069f2dc9054a21f85babeed5c8e45a2294aca3ea7988e"
+  },
+  "contract_pass": false
+}

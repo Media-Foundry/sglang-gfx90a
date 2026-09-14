@@ -810,7 +810,18 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             : end - begin;
         const int score_valid_keys =
             max(0, min(kTile, score_length - tile_index * kTile));
+#if defined(SGLANG_DSV4_CK_SENTINEL_ORACLE)
+        // Experimental contract repair only; normal production builds retain
+        // their existing code. kv_slots may already hold the NEXT tile because
+        // of PipelineKV, so validate this score against its original list.
+        const int score_slot = softmax_key < score_valid_keys
+            ? args.kv_indices[tile_begin + softmax_key] : -1;
+        const bool score_key_active = softmax_key < score_valid_keys &&
+            score_slot >= 0 && score_slot < args.pool_slots;
+        score = score_key_active ? score * args.softmax_scale : -__builtin_inff();
+#else
         score = softmax_key < score_valid_keys ? score * args.softmax_scale : -__builtin_inff();
+#endif
 
         float block_max = score;
 #pragma unroll
@@ -818,11 +829,20 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             block_max = fmaxf(block_max, __shfl_down(block_max, offset, kTile));
         block_max = __shfl(block_max, 0, kTile);
 
+#if defined(SGLANG_DSV4_CK_SENTINEL_ORACLE)
+        // An entirely invalid tile must not evaluate exp(-inf - -inf).
+        const bool score_row_active = block_max != -__builtin_inff();
+#else
         const bool score_row_active = score_valid_keys > 0;
+#endif
         const float next_max = score_row_active ? fmaxf(softmax_max, block_max)
                                                 : softmax_max;
         const float alpha = score_row_active ? expf(softmax_max - next_max) : 1.0f;
+#if defined(SGLANG_DSV4_CK_SENTINEL_ORACLE)
+        const float weight = score_row_active && score_key_active
+#else
         const float weight = score_row_active && softmax_key < score_valid_keys
+#endif
             ? expf(score - next_max) : 0.0f;
         float block_sum = weight;
 #pragma unroll
