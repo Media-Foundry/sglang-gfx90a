@@ -119,6 +119,9 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
       # Exact FP32/K1024 pre-mix, four token rows share Fn loads. Same scope:
       # C16 x8K / 1M KV ABBA: 5937.41 -> 6477.19 input tok/s.
       export SGLANG_DSV4_PREFILL_MIX_REUSE4="${SGLANG_DSV4_PREFILL_MIX_REUSE4:-1}"
+      # Eight-row exact FP32 reuse: C16 ABBA 6876.65 -> 6959.46 (+1.20%).
+      # Runtime keeps small/unsupported M on four rows; explicit4 is preserved.
+      export SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE="${SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE:-8}"
       # Per-row exact C4 K reuse; M8K..64K, width <=2048, native TP8 only.
       # C16 x8K / 1M KV ABBA: 6480.22 -> 6773.27 input tok/s.
       export SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4="${SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4:-1}"

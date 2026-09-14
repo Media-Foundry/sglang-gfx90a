@@ -8,6 +8,7 @@ root=Path(__file__).resolve().parent
 summary=json.loads((root/'summary.json').read_text())
 assert [x['name'] for x in summary['legs']]==['A1','B1','B2','A2']
 files=[(root/'summary.json','summary.json'),(root/'sweep.log','sweep.log')]
+files.append((root/'case8-review.json','case8-review.json'))
 for arm in ('A1','B','A2'):
     directory=root/arm
     assert (directory/'complete.json').exists()

@@ -174,16 +174,19 @@ def test_premix8_wrapper_scope_and_fallback():
         assert ns['premix_reuse4'](x,fn,tensor((8192,64),'fp32'),1e-6,group_size=8) is None
 
 
-@pytest.mark.parametrize("flag", [POST_REUSE_ENV, MIX_REUSE_ENV])
+@pytest.mark.parametrize("flag", [POST_REUSE_ENV, MIX_REUSE_ENV,
+                                  'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE'])
 def test_profile_default_and_explicit_override(flag):
     root = Path(__file__).resolve().parents[4]
     source = (root / "scripts/rocm_dsv4_flash.sh").read_text()
     start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
     block = source[start:source.index('\nfi\n', start)+4]
+    group_flag=flag=='SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE'
+    default,off,on=('8','4','8') if group_flag else ('1','0','1')
     for tp_profile, prefill, tp, ep, a2a, override, expected in (
-        ('1','1','8','1','none',None,'1'),
-        ('1','1','8','1','none','0','0'),
-        ('1','1','8','1','none','1','1'),
+        ('1','1','8','1','none',None,default),
+        ('1','1','8','1','none',off,off),
+        ('1','1','8','1','none',on,on),
         ('0','1','8','1','none',None,'unset'),
         ('1','0','8','1','none',None,'unset'),
         ('1','1','4','1','none',None,'unset'),
