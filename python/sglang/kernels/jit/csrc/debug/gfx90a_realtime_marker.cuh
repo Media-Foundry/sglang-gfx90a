@@ -19,6 +19,18 @@ __global__ void gfx90a_realtime_marker_kernel(uint64_t* output, int slot) {
 }
 
 struct Gfx90aRealtimeMarkerKernel {
+  static int64_t wall_clock_khz(int64_t device) {
+#if defined(__HIP_PLATFORM_AMD__)
+    int rate = 0;
+    const auto status = hipDeviceGetAttribute(&rate, hipDeviceAttributeWallClockRate,
+                                              static_cast<int>(device));
+    host::RuntimeCheck(status == hipSuccess && rate > 0, "HIP wall-clock frequency query failed");
+    return rate;
+#else
+    return 0;
+#endif
+  }
+
   static void run(tvm::ffi::TensorView output, int64_t slot) {
     using namespace host;
     RuntimeCheck(output.IsContiguous(), "output must be contiguous");

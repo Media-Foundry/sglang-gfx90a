@@ -16,12 +16,18 @@ def _jit_marker() -> Module:
     return load_jit(
         "gfx90a_realtime_marker",
         cuda_files=["debug/gfx90a_realtime_marker.cuh"],
-        cuda_wrappers=[("run", "sglang::Gfx90aRealtimeMarkerKernel::run")],
+        cuda_wrappers=[("run", "sglang::Gfx90aRealtimeMarkerKernel::run"),
+                       ("wall_clock_khz", "sglang::Gfx90aRealtimeMarkerKernel::wall_clock_khz")],
         extra_cuda_cflags=["-O3"],
     )
 
 
 def gfx90a_realtime_marker(output: torch.Tensor, slot: int) -> None:
+    if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR"):
+        from sglang.kernels.ops.debug.dsv4_prefill_markers import active
+
+        if not active():
+            return
     module = _jit_marker()
     # Isolate decode graph instrumentation from eager prefill schedules.
     # Resolve the module even on warmup so first use need not load it in capture.

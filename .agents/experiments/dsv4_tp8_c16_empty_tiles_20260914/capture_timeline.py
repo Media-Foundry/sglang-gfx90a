@@ -24,6 +24,12 @@ life=importlib.util.module_from_spec(spec);spec.loader.exec_module(life)
 life.ROOT=life.OLD=out
 source=root/args.source_arm
 launcher=(source/'start-ar-matrix.sh').read_text()
+if args.source_arm=='B':
+    # Validate the newly accepted launcher default in this fresh process,
+    # rather than carrying the benchmark's explicit override forward.
+    line='export SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP=1'
+    assert launcher.count(line)==1
+    launcher=launcher.replace(line,'unset SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP')
 (out/'start-ar-matrix.sh').write_text(launcher)
 manifest=json.loads((source/'inputs.json').read_text());life.save('inputs.json',manifest)
 traces=out/'traces';traces.mkdir()
@@ -35,6 +41,10 @@ session=requests.Session();session.trust_env=False
 profiling=False
 try:
     life.ready(state)
+    actual=life.owned(state).environ().get('SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP')
+    assert actual==('1' if args.source_arm=='B' else '0')
+    life.save('default-resolution.json',dict(source_arm=args.source_arm,resolved=actual,
+                                           explicit_override_removed=args.source_arm=='B'))
     for name in ('warmup','traced'):
         life.resources(name+'-before',life.owned(state))
         if name=='traced':

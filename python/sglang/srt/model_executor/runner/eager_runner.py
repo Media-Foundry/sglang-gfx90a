@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Tuple, Union
 
 import torch
 
+from sglang.kernels.ops.debug.dsv4_prefill_markers import instrument as prefill_marker_instrument
 from sglang.srt.dllm.config import DllmConfig
 from sglang.srt.environ import envs
 from sglang.srt.layers.cp.utils import (
@@ -258,6 +259,7 @@ class EagerRunner(BaseRunner):
                 **kwargs,
             )
 
+    @prefill_marker_instrument
     def _execute_extend(
         self,
         forward_batch: ForwardBatch,
