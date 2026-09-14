@@ -1,8 +1,8 @@
-"""Independent wider-C4 query16 oracle. Production width guard stays unchanged.
+"""Independent wider-C4 query16 oracle; wide production admission is opt-in.
 
 Synthetic paged causal/prefix metadata, not actual service captures. Compare
 the current empty-tile score path plus deterministic Top-K to the unchanged
-runtime-M query16 kernel called directly at wider widths.
+runtime-M query16 kernel, directly or through its opt-in production wrapper.
 """
 import argparse
 import hashlib
@@ -27,13 +27,16 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--mutations',type=int,default=3)
 p.add_argument('--replays',type=int,default=10)
+p.add_argument('--cases',nargs='+')
+p.add_argument('--integrated',action='store_true')
 args=p.parse_args();assert not args.output.exists()
 assert args.mutations > 0 and args.replays > 0
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 torch.manual_seed(20260915)
 root=Path(__file__).resolve().parent
-result=dict(status='running',scope=__doc__,cases=[],source_sha256={})
+result=dict(status='running',scope=__doc__,integrated=args.integrated,cases=[],source_sha256={})
 for name in ('python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_runtime_m.py',
+             'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py',
              'python/sglang/srt/layers/attention/dsv4/indexer.py'):
     path=root.parents[2]/name
     result['source_sha256'][name]=hashlib.sha256(path.read_bytes()).hexdigest()
@@ -49,7 +52,18 @@ def save():args.output.write_text(json.dumps(result,indent=2)+'\n')
 cases=[('16k-causal',4096,[16384,16384],[0,0]),
        ('32k-causal',8192,[32768],[0]),
        ('mixed-prefix',8192,[8191,8193,8190,8194],[0,4096,16384,24574]),
-       ('ragged-partial-tile',8201,[17],[32787])]
+       ('ragged-partial-tile',8201,[17],[32787]),
+       ('16k-single',4096,[16384],[0]),
+       ('16k-prefix-m8192',4096,[8192],[8192]),
+       ('32k-prefix-m8192',8192,[8192],[24576]),
+       ('32k-double-m65536',8192,[32768,32768],[0,0]),
+       ('16k-ragged-m32763',4096,[16381,16382],[0,0]),
+       ('32k-ragged-m32767',8192,[32767],[1])]
+if args.cases:
+    assert set(args.cases)<=set(c[0] for c in cases)
+    cases=[c for c in cases if c[0] in args.cases]
+if args.integrated:
+    assert all(8192<=sum(c[2])<=65536 and 2048<c[1]<=8192 for c in cases)
 save()
 for name,width,counts,prefixes in cases:
     m=sum(counts);np=(width+63)//64;npages=np*len(counts)
@@ -79,6 +93,11 @@ for name,width,counts,prefixes in cases:
         if arm=='A':
             scores=indexer.fp8_paged_mqa_logits_torch(q,kv,weights,lengths,pages,
                 None,width,False,skip_trivial_topk=512,skip_empty_tiles=True)
+        elif args.integrated:
+            scores=prefill_query_reuse4(q,kv,weights,lengths,pages,width,block_s=16,
+                preshuffle_tile=shuffle,dot_fp16=fp16,fp8_fnuz=fnuz,
+                query_group_size=16,runtime_m=True,allow_wide=True)
+            assert scores is not None,(name,'integrated admission')
         else:
             scores=torch.empty(m,width,device='cuda',dtype=torch.float32)
             c=reuse_runtime_m[(triton.cdiv(m,16),triton.cdiv(width,16))](

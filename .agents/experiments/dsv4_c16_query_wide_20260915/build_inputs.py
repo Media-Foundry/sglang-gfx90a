@@ -38,8 +38,8 @@ def main():
         requests = []
         for index in range(args.request_count):
             preferred, task = FILES_AND_TASKS[index % len(FILES_AND_TASKS)]
-            # Preserve the historical first32 requests byte-for-byte. Extra
-            # requests review different real files, not duplicated prompts.
+            # Preserve historical source/task order; the larger prefill budget
+            # intentionally changes input text. Extra requests use other files.
             first = (preferred if preferred in paths else paths[index]) if index < 32 else paths[index]
             ordered = [first] + [x for x in paths[index:] + paths[:index] if x != first]
             snippets, provenance = [], []

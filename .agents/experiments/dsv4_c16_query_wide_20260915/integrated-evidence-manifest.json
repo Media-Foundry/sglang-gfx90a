@@ -1,0 +1,6 @@
+{
+  "files": 15,
+  "bytes": 1827323,
+  "sha256": "896be4c928c8a9b014612acd6ce1bb3a73aa1013a95c8d5f66fe302f1837bd93",
+  "scope": "Supplemental direct and opt-in wrapper GPU checks; real input validation; no E2E result yet. Screen source is integrated version; supplemental run records its earlier driver hash."
+}

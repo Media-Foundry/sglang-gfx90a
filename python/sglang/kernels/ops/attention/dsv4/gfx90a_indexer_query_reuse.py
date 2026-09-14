@@ -75,9 +75,13 @@ def reuse(q,cache,w,lens,pages,out,M:tl.constexpr,W:tl.constexpr,NP:tl.constexpr
 
 def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
                         block_s, preshuffle_tile, dot_fp16, fp8_fnuz,
-                        query_group_size=4, runtime_m=False, trace_rank=None):
+                        query_group_size=4, runtime_m=False, trace_rank=None,
+                        allow_wide=False):
     """Return None for unsupported contracts; never repack query/cache tensors."""
     m = q.shape[0]
+    max_width = 8192 if (
+        allow_wide and query_group_size == 16 and runtime_m and 8192 <= m <= 65536
+    ) else 2048
     dtype = torch.float8_e4m3fnuz if fp8_fnuz else torch.float8_e4m3fn
     if lengths.ndim == 2 and lengths.shape[-1] == 1:
         lengths = lengths.squeeze(-1)
@@ -95,7 +99,7 @@ def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
         and all(t.device == q.device for t in tensors)
         and q.device.type == "cuda" and bool(torch.version.hip)
         and "gfx90a" in torch.cuda.get_device_properties(q.device).gcnArchName
-        and 512 <= width <= 2048 and block_s == 16
+        and 512 <= width <= max_width and block_s == 16
         and preshuffle_tile in (0, 8, 16)
         and query_group_size in (4, 8, 16)
     ):

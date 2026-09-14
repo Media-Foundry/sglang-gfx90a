@@ -82,6 +82,7 @@ _fp8_paged_mqa_logits_debug_logged = False
 _c4_empty_tiles_debug_logged = False
 _c4_empty_prefill_debug_logged = False
 _c4_query_reuse_debug_logged = False
+_c4_query_wide_debug_logged = False
 _c4_trivial_logits_debug_logged = False
 
 
@@ -1430,6 +1431,7 @@ class C4IndexerBackendMixin:
                         fp8_fnuz=is_fp8_fnuz(),
                         query_group_size=query_group_size,
                         runtime_m=runtime_m,
+                        allow_wide=os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_WIDE", "0") == "1",
                         trace_rank=(get_parallel().tp_rank if
                             os.getenv("SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES", "0") == "1" else None),
                     )
@@ -1439,6 +1441,12 @@ class C4IndexerBackendMixin:
                               f"C4_capacity={indexer_metadata.max_c4_seq_len} query_group={query_group_size} "
                               f"runtime_m={int(runtime_m)}", flush=True)
                         _c4_query_reuse_debug_logged = True
+                    global _c4_query_wide_debug_logged
+                    if logits is not None and indexer_metadata.max_c4_seq_len > 2048 and not _c4_query_wide_debug_logged:
+                        print(f"[TP{get_parallel().tp_rank}] [DSV4 indexer] prefill wide-query-reuse selected: rows={q.shape[0]} "
+                              f"C4_capacity={indexer_metadata.max_c4_seq_len} query_group={query_group_size} "
+                              f"runtime_m={int(runtime_m)}", flush=True)
+                        _c4_query_wide_debug_logged = True
                 if logits is None:
                     logits = fn(
                         q,

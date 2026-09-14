@@ -81,6 +81,25 @@ class TestEmptyIndexerTiles(unittest.TestCase):
             self.assertEqual(out.getvalue().count('compile-shape'),1)
             self.assertIn('[TP7]',out.getvalue())
             self.assertIn('runtime_m=1 align=0,0,0,0,0 artifact=artifact-runtime',out.getvalue())
+            for m,width,group,runtime,wide,admitted in (
+                (8192,4096,16,True,False,False),
+                (8192,4096,16,True,True,True),
+                (8191,4096,16,True,True,False),
+                (65536,8192,16,True,True,True),
+                (65537,8192,16,True,True,False),
+                (32768,8193,16,True,True,False),
+                (32768,4096,4,True,True,False),
+                (32768,4096,8,True,True,False),
+                (32768,4096,16,False,True,False)):
+                with self.subTest(m=m,width=width,group=group,runtime=runtime,wide=wide):
+                    x=tensor((m,1,64,128),'fn');w=tensor((m,64),'f32')
+                    lens=tensor((m,),'i32');np=(width+63)//64
+                    pages=tensor((m,np),'i32');pages.stride=lambda i:np+3 if i==0 else 1
+                    count=len(calls)
+                    got=ns[fn.name](x,cache,w,lens,pages,width,block_s=16,preshuffle_tile=16,
+                        dot_fp16=False,fp8_fnuz=False,query_group_size=group,runtime_m=runtime,allow_wide=wide)
+                    self.assertIs(got,result if admitted else None)
+                    self.assertEqual(len(calls),count+int(admitted))
 
     def test_query_group_default_and_launch_contract(self):
         root=Path(__file__).resolve().parents[4]
@@ -90,6 +109,7 @@ class TestEmptyIndexerTiles(unittest.TestCase):
         self.assertEqual(ast.literal_eval(defaults['query_group_size']),4)
         self.assertEqual(ast.literal_eval(defaults['runtime_m']),False)
         self.assertIsNone(ast.literal_eval(defaults['trace_rank']))
+        self.assertIs(ast.literal_eval(defaults['allow_wide']),False)
         launch=next(n for n in ast.walk(fn) if isinstance(n,ast.Call)
                     and isinstance(n.func,ast.Subscript) and isinstance(n.func.value,ast.Name)
                     and n.func.value.id=='kernel')
