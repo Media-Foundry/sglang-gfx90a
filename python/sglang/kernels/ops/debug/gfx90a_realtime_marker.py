@@ -24,10 +24,11 @@ def _jit_marker() -> Module:
 
 def gfx90a_realtime_marker(output: torch.Tensor, slot: int) -> None:
     if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR"):
-        from sglang.kernels.ops.debug.dsv4_prefill_markers import active
+        from sglang.kernels.ops.debug.dsv4_prefill_markers import active, select_detail_row
 
         if not active():
             return
+        select_detail_row(output, slot)
     module = _jit_marker()
     # Isolate decode graph instrumentation from eager prefill schedules.
     # Resolve the module even on warmup so first use need not load it in capture.

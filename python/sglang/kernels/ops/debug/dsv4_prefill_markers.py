@@ -19,6 +19,33 @@ import torch
 
 DIR = 'SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR'
 _active = ContextVar('dsv4_prefill_markers_active', default=False)
+_detail_row = ContextVar('dsv4_prefill_detail_row', default=None)
+_detail_paths = ContextVar('dsv4_prefill_detail_paths', default=None)
+
+
+def select_detail_row(row, slot):
+    """Existing layer-entry/output markers select the current boundary."""
+    if slot == 0:
+        _detail_row.set((row, 32))
+    elif slot == 5:
+        _detail_row.set((row, 40))
+
+
+def detail_mark(slot, path=None, *, absolute=False):
+    if not active():
+        return
+    current = _detail_row.get()
+    if current is None:
+        return
+    row, base = current
+    if row.numel() < 64:
+        return
+    index = slot if absolute else base + slot
+    assert 32 <= index < 64
+    from sglang.kernels.ops.debug.gfx90a_realtime_marker import gfx90a_realtime_marker
+    gfx90a_realtime_marker(row, index)
+    if path is not None:
+        _detail_paths.get()[f'{row.storage_offset() // row.numel()}:{index}'] = path
 
 
 def active():
@@ -26,7 +53,8 @@ def active():
 
 
 def report(ticks, gpu_ms, metadata):
-    assert len(ticks) == 44 and all(len(row) == 32 for row in ticks)
+    assert len(ticks) == 44 and len(ticks[0]) in (32, 64)
+    assert all(len(row) == len(ticks[0]) for row in ticks)
     begin, end = ticks[43][:2]
     assert 0 < begin < end and gpu_ms > 0
     assert metadata['wall_clock_khz'] > 0
@@ -65,7 +93,7 @@ class Collector:
         assert os.getenv('SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY','0')=='0'
         from sglang.kernels.ops.debug.gfx90a_realtime_marker import _jit_marker
         _jit_marker()  # Cold module work must precede clock calibration.
-        self.matrix=torch.zeros((44,32),dtype=torch.uint64,device=device)
+        self.matrix=torch.zeros((44,64),dtype=torch.uint64,device=device)
         self.wall_clock_khz=int(_jit_marker().wall_clock_khz(self.matrix.device.index))
         # Prime the FFI call binding as well as the compiled module.
         _jit_marker().run(self.matrix[43],31)
@@ -117,6 +145,7 @@ class Collector:
             extend_lens=[int(x) for x in batch.extend_seq_lens_cpu],
             prefix_lens=[int(x) for x in batch.extend_prefix_lens_cpu],
             stream=int(stream.cuda_stream),
+            detail_paths=_detail_paths.get(),
             cpu_submit_begin_ns=time.perf_counter_ns())
 
     def end(self, token):
@@ -125,7 +154,7 @@ class Collector:
         from sglang.kernels.ops.debug.gfx90a_realtime_marker import gfx90a_realtime_marker
         gfx90a_realtime_marker(self.matrix[43],1)
         end.record()
-        host=torch.empty((44,32),dtype=torch.uint64,pin_memory=True)
+        host=torch.empty(self.matrix.shape,dtype=torch.uint64,pin_memory=True)
         host.copy_(self.matrix,non_blocking=True)
         ready.record()
         metadata['cpu_submit_end_ns']=time.perf_counter_ns()
@@ -145,11 +174,15 @@ def instrument(fn):
             collector=Collector(runner,forward_batch.input_ids.device)
             self._dsv4_prefill_marker_collector=collector
         scope=_active.set(True)
+        row_scope=_detail_row.set(None)
+        paths_scope=_detail_paths.set({})
         try:
             token=collector.begin(forward_batch)
             result=fn(self,forward_batch,*args,**kwargs)
             collector.end(token)
             return result
         finally:
+            _detail_paths.reset(paths_scope)
+            _detail_row.reset(row_scope)
             _active.reset(scope)
     return wrapped

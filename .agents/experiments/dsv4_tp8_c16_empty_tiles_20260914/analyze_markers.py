@@ -2,8 +2,13 @@
 import json
 from pathlib import Path
 from statistics import mean
+import argparse
+import re
 
-ROOT = Path(__file__).resolve().parent / 'markers-B'
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--label', default='B')
+args=p.parse_args();assert re.fullmatch(r'[A-Za-z0-9-]+',args.label)
+ROOT = Path(__file__).resolve().parent / f'markers-{args.label}'
 NAMES = ['attn_mhc_norm', 'attn_entry_gap', 'attn_prepare', 'sparse_attention',
          'attn_output_projection_collective', 'ffn_mhc_norm', 'moe_collective']
 frames = [json.loads(p.read_text()) for p in sorted((ROOT/'markers').glob('rank-*-frame-*.json'))]
@@ -67,3 +72,38 @@ result=dict(scope='Diagnostic spans include synchronization/waits and instrument
             waves=waves,selected_frames=selected)
 (ROOT/'analysis.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps({k:v for k,v in result.items() if k not in ('waves','selected_frames')},indent=2))
+
+if len(frames[0]['layers'][0]['ticks'])==64:
+    detail_waves=[]
+    for wave in range(3):
+        totals={};counts={};paths={}
+        for selected_frame in selected[wave*4:(wave+1)*4]:
+            f=next(f for f in frames if (f['rank'],f['sequence']) ==
+                   (selected_frame['rank'],selected_frame['sequence']))
+            paths.update(f.get('detail_paths',{}))
+            for layer in f['layers']:
+                t=layer['ticks']
+                for side,base in [('attn',32),('ffn',40)]:
+                    if not any(t[base:base+5]):
+                        # First-layer pre has no preceding post boundary.
+                        assert side=='attn' and layer['layer']==0
+                        continue
+                    assert all(0<t[base+i]<=t[base+i+1] for i in range(4))
+                    for i,name in enumerate(('post','mix','sinkhorn','weighted_norm')):
+                        key=f'{side}_{name}'
+                        totals[key]=totals.get(key,0)+(t[base+i+1]-t[base+i])*.04/1000
+                        counts[key]=counts.get(key,0)+1
+                if t[48]:
+                    assert all(0<t[i]<=t[i+1] for i in range(48,54))
+                    for a,b,name in [(49,50,'index_weights'),(50,51,'index_query'),
+                                     (51,52,'index_compressor'),(52,53,'index_logits_plus_metadata'),
+                                     (53,54,'index_topk_plus_metadata')]:
+                        totals[name]=totals.get(name,0)+(t[b]-t[a])*.04/1000
+                        counts[name]=counts.get(name,0)+1
+        detail_waves.append(dict(totals_ms=totals,counts=counts,paths=paths))
+    assert all(w['counts']==detail_waves[0]['counts'] for w in detail_waves)
+    details=dict(scope='Nested subdivisions, already included in coarse spans. Same selected rank/forward. Metadata/launch/wait costs remain inside call boundaries.',
+                 mean_wave_ms={n:mean(w['totals_ms'][n] for w in detail_waves) for n in detail_waves[0]['totals_ms']},
+                 waves=detail_waves)
+    (ROOT/'details-analysis.json').write_text(json.dumps(details,indent=2)+'\n')
+    print(json.dumps(details['mean_wave_ms'],indent=2))

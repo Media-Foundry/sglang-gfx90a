@@ -2,6 +2,7 @@ import functools
 import importlib
 import logging
 import math
+import os
 import threading
 from typing import Tuple
 
@@ -20,6 +21,10 @@ from sglang.srt.layers.dp_attention import is_allocation_symmetric
 from sglang.srt.layers.utils.common import strict_contiguous
 
 logger = logging.getLogger(__name__)
+
+_prefill_detail_mark = None
+if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR"):
+    from sglang.kernels.ops.debug.dsv4_prefill_markers import detail_mark as _prefill_detail_mark
 
 # This module is imported during model-registry discovery. Do not import the real
 # TileLang package here: it loads native CUDA stubs. The proxy below lets
@@ -2832,6 +2837,8 @@ def mhc_fused_post_pre(
         and hidden_size == 4096
         and sinkhorn_repeat == 20
     ):
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(0, "gfx90a_mhc_fused_post_pre")
         if (
             envs.SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL.get()
             # Use a rank-invariant graph-tier predicate.  ``num_tokens`` is a
@@ -2910,6 +2917,8 @@ def mhc_fused_post_pre(
             )
         if residual_cur is None:
             raise RuntimeError("gfx90a fused MHC post-combine rejected its shape")
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(1, "post_combine_rms" if rms_partials is not None else "post_combine")
         if (
             envs.SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL.get()
             and rms_partials is not None
@@ -2974,6 +2983,9 @@ def mhc_fused_post_pre(
             mixes = gfx90a_mhc_pre_mix_triton(residual_cur, fn, rms_eps)
         if mixes is None:
             raise RuntimeError("gfx90a fused MHC pre-mix rejected its shape")
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(2, "bf16_mix" if use_bf16_mix else (
+                "fp32_from_partials" if rms_partials is not None else "fp32_mix"))
         if (
             envs.SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE.get()
             and global_batch_size == 1
@@ -3027,6 +3039,8 @@ def mhc_fused_post_pre(
             hc_sinkhorn_eps,
             global_batch_size,
         )
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(3, f"sinkhorn_{sinkhorn_repeat}")
         with use_symmetric_memory(
             get_tp_group(), disabled=not is_allocation_symmetric()
         ):
@@ -3074,6 +3088,8 @@ def mhc_fused_post_pre(
                         num_warps=8,
                     )
                     layer_input = normalized
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(4, "weighted_sum_norm_end")
         return (
             residual_cur.view(*outer_shape, hc_mult, hidden_size),
             # Decoder-layer chaining accepts either shape, while the trailing

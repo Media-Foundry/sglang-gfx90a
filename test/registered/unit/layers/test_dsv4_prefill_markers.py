@@ -36,6 +36,10 @@ class MarkerTests(unittest.TestCase):
         value=report(ticks,0.20004,dict(rank=0,sequence=1,wall_clock_khz=25000))
         self.assertAlmostEqual(value['us_per_tick'],0.04)
         self.assertTrue(all(r['coarse_valid'] for r in value['layers']))
+        wide=[row+[0]*32 for row in ticks]
+        extended=report(wide,0.20004,dict(wall_clock_khz=25000))
+        self.assertEqual(extended['layers'][0]['coarse_us'],value['layers'][0]['coarse_us'])
+        self.assertEqual(len(extended['layers'][0]['ticks']),64)
         ticks[20][4]=0
         value=report(ticks,0.20004,dict(wall_clock_khz=25000))
         self.assertFalse(value['layers'][20]['coarse_valid'])

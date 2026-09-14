@@ -14,6 +14,10 @@ from typing import (
 
 import os
 
+_prefill_detail_mark = None
+if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR"):
+    from sglang.kernels.ops.debug.dsv4_prefill_markers import detail_mark as _prefill_detail_mark
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -1003,13 +1007,19 @@ class C4IndexerBackendMixin:
         if TYPE_CHECKING:
             assert isinstance(self, CompressorBackendMixin)
 
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(49, f"indexer_query_rows_{x.shape[0]}", absolute=True)
         precomputed = getattr(forward_batch, "_dsv4_precomputed_index_weights", None)
         weights = (
             precomputed.pop(c4_indexer.layer_id)
             if precomputed is not None and c4_indexer.layer_id in precomputed
             else c4_indexer.compute_weights(x, skip_scale=True)
         )
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(50, "indexer_weights_done", absolute=True)
         q, weights = c4_indexer.compute_q(q_lora, positions, weights)
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(51, "indexer_query_done", absolute=True)
         if not skip_compressor:
             self.forward_indexer_compressor(
                 x=x,
@@ -1017,6 +1027,8 @@ class C4IndexerBackendMixin:
                 layer_id=c4_indexer.layer_id,
                 compressor=c4_indexer.compressor,
             )
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(52, "indexer_compressor_done", absolute=True)
         return q, weights
 
     def _can_use_nonpaged_indexer(
@@ -1190,6 +1202,8 @@ class C4IndexerBackendMixin:
     ) -> None:
         if forward_batch.forward_mode.is_idle():
             return
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(48, "forward_c4_indexer", absolute=True)
         token_to_kv_pool = self.token_to_kv_pool
 
         if TYPE_CHECKING:
@@ -1390,6 +1404,8 @@ class C4IndexerBackendMixin:
                     **logits_kwargs,
                 )
 
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(53, "indexer_logits_done", absolute=True)
         assert indexer_metadata.page_table is core_metadata.page_table
         if self.debug_use_external_c4_sparse_indices:
             return
@@ -1448,6 +1464,8 @@ class C4IndexerBackendMixin:
                 indexer_metadata.c4_page_size,
                 raw_indices,
             )
+        if _prefill_detail_mark is not None:
+            _prefill_detail_mark(54, "indexer_topk_done", absolute=True)
         if hisparse_coordinator is not None:
             if hisparse_decode:
                 compress_layer_id = token_to_kv_pool.layer_mapping[

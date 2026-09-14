@@ -4,10 +4,15 @@ import importlib.util
 import json
 from pathlib import Path
 import time
+import argparse
+import re
 
 root=Path(__file__).resolve().parent;repo=root.parents[2]
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--label', default='B')
+args=p.parse_args();assert re.fullmatch(r'[A-Za-z0-9-]+',args.label)
 source=root/'B';assert (source/'complete.json').exists()
-out=root/'markers-B';out.mkdir(exist_ok=False)
+out=root/f'markers-{args.label}';out.mkdir(exist_ok=False)
 directory=out/'markers';directory.mkdir()
 helper=repo/'.agents/experiments/dsv4_tp8_ar_down_consumer_20260914/trial.py'
 spec=importlib.util.spec_from_file_location('marker_life',helper)
@@ -25,6 +30,8 @@ manifest=json.loads((source/'inputs.json').read_text());life.save('inputs.json',
 paths=('python/sglang/srt/model_executor/runner/eager_runner.py',
        'python/sglang/kernels/ops/debug/dsv4_prefill_markers.py',
        'python/sglang/kernels/ops/debug/gfx90a_realtime_marker.py',
+       'python/sglang/kernels/ops/layernorm/mhc.py',
+       'python/sglang/srt/layers/attention/dsv4/indexer.py',
        'python/sglang/kernels/jit/csrc/debug/gfx90a_realtime_marker.cuh')
 life.save('plan.json',dict(diagnostic_only=True,kineto=False,
     sources={p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in paths},

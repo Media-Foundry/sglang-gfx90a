@@ -13,7 +13,7 @@ args=p.parse_args();assert not args.output_dir.exists();args.output_dir.mkdir()
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 os.environ['SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR']=str(args.output_dir.resolve())
 os.environ['SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY']='0'
-from sglang.kernels.ops.debug.dsv4_prefill_markers import active,instrument
+from sglang.kernels.ops.debug.dsv4_prefill_markers import active,instrument,detail_mark
 from sglang.kernels.ops.debug.gfx90a_realtime_marker import gfx90a_realtime_marker
 
 layers=[NS(self_attn=NS(wo_b=NS()),mlp=NS()) for _ in range(43)]
@@ -25,7 +25,10 @@ class Fake:
     @instrument
     def forward(self,batch,x):
         for layer in layers:
-            for slot in range(8):gfx90a_realtime_marker(layer._gfx90a_realtime_trace,slot)
+            for slot in range(8):
+                gfx90a_realtime_marker(layer._gfx90a_realtime_trace,slot)
+                if slot in (0,5):detail_mark(0, f'boundary-{slot}')
+                if slot == 2:detail_mark(48, 'indexer', absolute=True)
         return x*2+1
 
 fake=Fake();torch.manual_seed(7)
@@ -42,6 +45,10 @@ for i in range(2):
     assert target.exists(),fake._dsv4_prefill_marker_collector.error
     report=json.loads(target.read_text())
     assert all(row['coarse_valid'] for row in report['layers'])
+    assert all(all(row['ticks'][slot]>0 for slot in (32,40,48)) for row in report['layers'])
+    assert all(report['detail_paths'][f'{layer}:32']=='boundary-0' and
+               report['detail_paths'][f'{layer}:40']=='boundary-5' and
+               report['detail_paths'][f'{layer}:48']=='indexer' for layer in range(43))
     assert .03 < report['us_per_tick'] < .05
     print(i,'exact output, valid43 layers; HIP-reported us/tick',report['us_per_tick'],flush=True)
 batch.forward_mode.is_extend_without_speculative=lambda:False
