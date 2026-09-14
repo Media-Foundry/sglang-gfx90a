@@ -132,6 +132,32 @@ class TestEmptyIndexerTiles(unittest.TestCase):
                     env=env, text=True, capture_output=True, check=True)
                 self.assertEqual(result.stdout, expected)
 
+    def test_prefill_launcher_requires_both_profiles_and_preserves_override(self):
+        root = Path(__file__).resolve().parents[4]
+        source = (root/'scripts/rocm_dsv4_flash.sh').read_text()
+        start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
+        end = source.index('\nfi\n', start)+4
+        block = source[start:end]
+        flag = 'SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP'
+        for tp_profile,prefill,tp,ep,a2a,override,expected in (
+            ('1','1','8','1','none',None,'1'),
+            ('1','1','8','1','none','0','0'),
+            ('1','1','8','1','none','1','1'),
+            ('1','0','8','1','none',None,'unset'),
+            ('0','1','8','1','none',None,'unset'),
+            ('1','1','4','1','none',None,'unset'),
+            ('1','1','8','2','none',None,'unset'),
+            ('1','1','8','1','mori',None,'unset')):
+            env=dict(PATH=os.environ['PATH'],TP_SIZE=tp,EP_SIZE=ep,MOE_A2A_BACKEND=a2a,
+                     SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=tp_profile,
+                     GFX90A_PREFILL_THROUGHPUT_PROFILE=prefill)
+            if override is not None:env[flag]=override
+            with self.subTest(env=env):
+                result=subprocess.run(['bash','--noprofile','--norc','-c',
+                    'set -eu\n'+block+'\nprintf "%s" "${'+flag+'-unset}"'],
+                    env=env,text=True,capture_output=True,check=True)
+                self.assertEqual(result.stdout,expected)
+
 
 if __name__ == '__main__':
     unittest.main()

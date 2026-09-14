@@ -108,6 +108,12 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
   # exclude prefill, draft/speculative paths and paged V4.1. Explicit0 wins.
   if [[ "${TP_SIZE}" == "8" && "${EP_SIZE}" == "1" && "${MOE_A2A_BACKEND}" == "none" ]]; then
     export SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP="${SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP:-1}"
+    # Independent ordinary-prefill path: same valid score bits and Top-K.
+    # C16 x8K / 1M KV / chunk32K ABBA: 5298.15 -> 5569.78 input tok/s.
+    # Enable only alongside the large-prefill profile; explicit0 still wins.
+    if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE:-0}" == "1" ]]; then
+      export SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP="${SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP:-1}"
+    fi
   fi
 fi
 

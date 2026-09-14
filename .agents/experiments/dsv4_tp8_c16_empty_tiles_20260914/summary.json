@@ -1,0 +1,118 @@
+{
+  "legs": [
+    {
+      "name": "A1",
+      "rates": [
+        5295.009035180761,
+        5301.482394801496,
+        5292.931364432731
+      ],
+      "median": 5295.009035180761,
+      "median_wave_s": 24.753309980995255,
+      "median_request_ttft_s": 15.565397935992223,
+      "forwards": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "name": "B1",
+      "rates": [
+        5570.698706196415,
+        5566.164090406834,
+        5569.045758903843
+      ],
+      "median": 5569.045758903843,
+      "median_wave_s": 23.535270794003736,
+      "median_request_ttft_s": 14.796623275484308,
+      "forwards": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "name": "B2",
+      "rates": [
+        5570.900687716017,
+        5570.522203913848,
+        5566.2205027622385
+      ],
+      "median": 5570.522203913848,
+      "median_wave_s": 23.52903286300716,
+      "median_request_ttft_s": 14.81679178950435,
+      "forwards": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "name": "A2",
+      "rates": [
+        5299.478909076565,
+        5304.543226514364,
+        5301.295748579547
+      ],
+      "median": 5301.295748579547,
+      "median_wave_s": 24.723955466004554,
+      "median_request_ttft_s": 15.537407200492453,
+      "forwards": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ]
+    }
+  ],
+  "quality": {
+    "A1": {
+      "input_echo_exact": 32,
+      "repeat_exact": 15
+    },
+    "B": {
+      "input_echo_exact": 32,
+      "repeat_exact": 16
+    },
+    "A2": {
+      "input_echo_exact": 32,
+      "repeat_exact": 15
+    }
+  },
+  "sources": {
+    "A1": {
+      "python/sglang/srt/layers/attention/dsv4/indexer.py": "5d07538f105d61145d0f632721ff2c05997cd27a4b9f52ff918f2ddeeaa86f55",
+      "python/sglang/srt/layers/attention/dsv4/compressor.py": "61b78a4812e23c59733cf179361a9189b206d9d480ddef4f79a336c5e0700d78",
+      "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac"
+    },
+    "B": {
+      "python/sglang/srt/layers/attention/dsv4/indexer.py": "5d07538f105d61145d0f632721ff2c05997cd27a4b9f52ff918f2ddeeaa86f55",
+      "python/sglang/srt/layers/attention/dsv4/compressor.py": "61b78a4812e23c59733cf179361a9189b206d9d480ddef4f79a336c5e0700d78",
+      "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac"
+    },
+    "A2": {
+      "python/sglang/srt/layers/attention/dsv4/indexer.py": "5d07538f105d61145d0f632721ff2c05997cd27a4b9f52ff918f2ddeeaa86f55",
+      "python/sglang/srt/layers/attention/dsv4/compressor.py": "61b78a4812e23c59733cf179361a9189b206d9d480ddef4f79a336c5e0700d78",
+      "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac"
+    }
+  },
+  "control_mean_leg_median": 5298.152391880154,
+  "candidate_mean_leg_median": 5569.783981408846,
+  "throughput_gain_percent": 5.126911599315065,
+  "request_ttft_change_percent": -4.7886036804728915,
+  "mean_leg_median_request_ttft_s": {
+    "A": 15.551402568242338,
+    "B": 14.806707532494329
+  },
+  "identical_timed_forward_shape_counts": true,
+  "input_sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+  "scope": "Original V4 TP8/native AR C16x8K zero-prefix prefill wave throughput,1M KV; not whole-model determinism."
+}
