@@ -138,3 +138,35 @@ request ID, bad cache count and empty-output rejection. A32K plan-only run
 was generated; real cache/API behavior remains to be validated after the
 current zero-prefix sweep. No additional requests were sent concurrently
 with the timed service experiment.
+
+## Candidate B completed; A2 pending
+
+B1 rates6326.6799/6322.6787/6320.7745, median6322.6787 input tok/s.
+B2 rates6321.2493/6324.9873/6319.5982, median6321.2493. B1 timed shape
+counts match A1:24 forwards of2 requests/M32768, no serving compile warning.
+The approximate11.8-percent gain versus A1 is preliminary until A2 closes.
+All8 ranks logged wide-query selection at M32768/C4width4096/group16/runtime1.
+
+B warmup was5000.9397, with a first `reuse_runtime_m` compile reported as
+8.40..8.63 seconds across the8 ranks. These concurrent rank timings must not
+be summed into68 seconds. Runtime-M removes repeated M specialization but
+does not remove the first compile for new width/layout specialization.
+Wide-context cold prewarm remains an outstanding production gate.
+
+B quality:32/32 full input echoes exact,13/16 within-arm token sequences
+repeat; differing cases2/8/13. A1-to-B across both wave pairs matches12/12/
+13/12 of16. Both complete candidate waves were visually inspected (all16
+first-wave excerpts plus the three changed second-wave excerpts): coherent
+code-review prose, no obvious repetition collapse. Some asserted defects
+are speculative; this is NOT a validation that every claimed source-code
+bug is real. Control A1 itself repeats10/16, so these counts do not identify
+a new candidate-induced drift cause or establish global determinism.
+B stopped cleanly. A2 is loading; no final ABBA result is claimed here.
+
+Prepared a separate32K suite in
+`.agents/experiments/dsv4_c16_query_wide32k_service_20260915/`, not launched.
+It keeps1M KV/chunk32768 and requires the completed16K summary to improve
+over2 percent plus an explicitly confirmed bounded output review. Both
+16K/32K suites have a review tool whose default is *not* to assert a semantic
+smoke pass. The review/packaging tools preserve input hashes, all candidate
+texts and matches against all four control quality waves.
