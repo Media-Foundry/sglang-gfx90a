@@ -3,7 +3,11 @@
 Baseline production remains original V4 TP8/native AR C16x8K, about6959
 input tok/s with query16/runtime-M and pre-mix8. This independent coverage
 experiment does not change that8K number. A separate, default-off wider
-wrapper admission has now been added; service acceptance is still pending.
+wrapper admission has now been added. The16K service ABBA has since completed:
+5657.4803 ->6321.9640 input tok/s (+11.7452 percent), see
+`dsv4_c16_query_wide16k_service_20260915.md`.32K and real-prefix acceptance
+remain pending; wide mode is still default-off. Earlier partial status below
+is retained as chronological experiment history.
 
 ## First four fixtures passed
 
