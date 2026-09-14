@@ -1008,7 +1008,35 @@ class AiterRunnerCore(MoeRunnerCore):
                     slot_end=slot_end,
                     rows=direct_rows,
                 )
-            use_m32_down_consumer = (
+            use_native_m32_down_consumer = False
+            if (use_grouped_prefill
+                    and envs.SGLANG_DSV4_GFX90A_TP8_M32_DOWN_CONSUMER.get()):
+                from sglang.srt.distributed import (
+                    get_tensor_model_parallel_world_size,
+                    get_moe_expert_parallel_world_size,
+                )
+                from sglang.srt.distributed.device_communicators.dsv4_ar_experiment import (
+                    down_uniform_eligible, native_m32_active,
+                )
+                use_native_m32_down_consumer = down_uniform_eligible(
+                    native_scope=native_m32_active(),
+                    tp_size=get_tensor_model_parallel_world_size(),
+                    ep_size=get_moe_expert_parallel_world_size(),
+                    gfx90a=_is_runtime_gfx90a(),
+                    hidden_shape=runner_input.hidden_states.shape,
+                    topk_shape=runner_input.topk_ids.shape,
+                    weight_shape=quant_info.w2_weight.shape,
+                    geometry=(grouped_assignments, grouped_down_rows, 8,
+                              get_int_env_var("SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS", 208),
+                              use_lds_unpack),
+                    incompatible=(use_runtime_m or use_mfma32_prefill
+                                  or runner_input.gfx90a_defer_reduction
+                                  or envs.SGLANG_DSV4_GFX90A_SPLIT_MOE_DP_FAST_PATH.get()),
+                )
+                if use_native_m32_down_consumer and not getattr(self, '_native_down_consumer_logged', False):
+                    logger.info('DSV4 native TP8 M32 down-consumer CTA16 selected (I256, A4/R2, no speculation)')
+                    self._native_down_consumer_logged = True
+            use_m32_down_consumer = use_native_m32_down_consumer or (
                 use_grouped_prefill
                 and (
                     (

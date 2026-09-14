@@ -1,5 +1,14 @@
 # M128 scope and evidence audit (2026-09-14)
 
+## Scope correction after the user's clarification
+
+M128 is a token-row shape, not inherently speculative. Native C128 can use
+M128; the same down-consumer method can also be tested at native M32/M64.
+The earlier cancel-or-DSpark-only clarification below was too restrictive.
+The user now requests a small native C32 trial first, and C1 only if C32
+benefits. This does not authorize resuming DSpark speed tests. New evidence
+will be in `../experiments/dsv4_tp8_ar_down_consumer_20260914/`.
+
 Source inspected: 3d73a75923. This is a read-only code/history audit, not a new
 GPU experiment or a claim that the M128 candidate works on the merged source.
 The requested AR P/D matrix is complete separately. The persistent goal still

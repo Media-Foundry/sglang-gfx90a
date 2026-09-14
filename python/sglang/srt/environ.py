@@ -1706,6 +1706,8 @@ class Envs:
     # TP8 M32 decode: quantize each A4 intermediate tile in LDS and consume it
     # directly in the FP4 down projection, avoiding the global quant tensor.
     SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER = EnvBool(False)
+    # Native TP8 M32 only; the older shape-only experiment remains separate.
+    SGLANG_DSV4_GFX90A_TP8_M32_DOWN_CONSUMER = EnvBool(False)
     SGLANG_DSV4_GFX90A_M64_DOWN_CONSUMER = EnvBool(False)
     SGLANG_DSV4_GFX90A_M64_DOWN_WAVES4 = EnvBool(False)
     # Group 32 routed rows per expert with CDNA2 i8 MFMA and a four-wave K

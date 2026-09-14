@@ -1,0 +1,89 @@
+{
+  "scope": "Small TP8 C32 original-weight native-AR ABBA, fixed public-source cases, two natural-EOS waves/leg",
+  "candidate_hits_requested_tier": true,
+  "interpretation": "C32 candidate trial",
+  "control_mean": 1044.6113007382346,
+  "candidate_mean": 1060.704673931648,
+  "gain_pct": 1.540608758687556,
+  "arms": {
+    "A1": {
+      "resident_tok_s": 1047.7632693824821,
+      "waves_tok_s": [
+        1047.4077438696731,
+        1048.1187948952909
+      ],
+      "resident_seconds": [
+        10.734119607004686,
+        11.384205738999299
+      ],
+      "http_tok_s": 714.9639319067545,
+      "complete_responses": 64,
+      "exact_ids_to_text": true,
+      "sha256": "98c990fe6d1c9d125060aee1d8b669cbc6dd9109a0d83d58a5c495c62abfc207",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 0,
+      "max_tail8_repeat_ratio": 0.18473895582329314,
+      "tail8_repeat_above_0_5": 0
+    },
+    "B1": {
+      "resident_tok_s": 1060.2064469288093,
+      "waves_tok_s": [
+        1060.538513664057,
+        1059.8743801935618
+      ],
+      "resident_seconds": [
+        10.28062617201067,
+        10.117236721998779
+      ],
+      "http_tok_s": 712.2275091402017,
+      "complete_responses": 64,
+      "exact_ids_to_text": true,
+      "sha256": "dda8d0314cddf174949de87931ce029edb6d20337cd23e7057d0da66eceab367",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 0,
+      "max_tail8_repeat_ratio": 0.28915662650602414,
+      "tail8_repeat_above_0_5": 0
+    },
+    "B2": {
+      "resident_tok_s": 1061.2029009344865,
+      "waves_tok_s": [
+        1059.0622798422755,
+        1063.3435220266977
+      ],
+      "resident_seconds": [
+        11.586665141003323,
+        10.079527244000928
+      ],
+      "http_tok_s": 696.6130824448136,
+      "complete_responses": 64,
+      "exact_ids_to_text": true,
+      "sha256": "04165a7b0bbc62dc554b2d70f9716693d1f91db445a2c98468e0554151384959",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 1,
+      "max_tail8_repeat_ratio": 0.22088353413654616,
+      "tail8_repeat_above_0_5": 0
+    },
+    "A2": {
+      "resident_tok_s": 1041.459332093987,
+      "waves_tok_s": [
+        1042.4871460883098,
+        1040.4315180996646
+      ],
+      "resident_seconds": [
+        10.538259431996266,
+        10.953147613996407
+      ],
+      "http_tok_s": 687.5158596201319,
+      "complete_responses": 64,
+      "exact_ids_to_text": true,
+      "sha256": "33e8f7c082487dd8d56d892931143417dec411951bb7469dbd9d0dafffb1688a",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 0,
+      "max_tail8_repeat_ratio": 0.22891566265060237,
+      "tail8_repeat_above_0_5": 0
+    }
+  },
+  "control_return_pct": -0.6016566406465418,
+  "candidate_leg_difference_pct": 0.09398678989018805,
+  "caveat": "Short screening trial, not the earlier >=30s/round formal matrix; ID/text integrity and component equality are not whole-model bitwise/factual correctness."
+}

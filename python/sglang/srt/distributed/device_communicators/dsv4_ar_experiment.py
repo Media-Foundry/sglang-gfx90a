@@ -102,7 +102,8 @@ def shared_after_topk_eligible(*, enabled, hip, arch, decode, batch_size,
 def dsv4_ar_scope(batch, device):
     enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR.get()
     gate_enabled = envs.SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH.get()
-    down_enabled = down_uniform_requested()
+    down_enabled = (down_uniform_requested()
+                    or envs.SGLANG_DSV4_GFX90A_TP8_M32_DOWN_CONSUMER.get())
     attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_DECODE_ATTN_WARPS2.get()
     c1_attention_enabled = envs.SGLANG_DSV4_GFX90A_TP8_C1_ATTN_WARPS2.get()
     dspark_enabled = (

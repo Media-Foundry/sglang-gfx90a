@@ -1,0 +1,90 @@
+{
+  "scope": "Small TP8 C1 original-weight native-AR ABBA, fixed public-source cases, two natural-EOS waves/leg",
+  "candidate_hits_requested_tier": false,
+  "interpretation": "C1 isolation/regression only: existing M1 kernel unchanged",
+  "control_mean": 89.72210577779038,
+  "candidate_mean": 90.02405110026595,
+  "gain_pct": 0.336533923115212,
+  "arms": {
+    "A1": {
+      "resident_tok_s": 89.85332468290403,
+      "waves_tok_s": [
+        89.85237583241332,
+        89.85427353339475
+      ],
+      "resident_seconds": [
+        16.159839810003177,
+        16.159498518012697
+      ],
+      "http_tok_s": 88.40537473643329,
+      "complete_responses": 2,
+      "exact_ids_to_text": true,
+      "sha256": "bbdd25671ca592cd678ca0837a308490c3661a61728054784ce5b269cc73c2aa",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 1,
+      "max_tail8_repeat_ratio": 0.0,
+      "tail8_repeat_above_0_5": 0
+    },
+    "B1": {
+      "resident_tok_s": 90.03372420396305,
+      "waves_tok_s": [
+        90.03523660871927,
+        90.03221179920682
+      ],
+      "resident_seconds": [
+        16.12701931700576,
+        16.1275611359888
+      ],
+      "http_tok_s": 88.57551841772812,
+      "complete_responses": 2,
+      "exact_ids_to_text": true,
+      "sha256": "2e917dcc86b8cbd2a6edc4d25de94f181680613a25147348d5b51bdd889b5288",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 1,
+      "max_tail8_repeat_ratio": 0.0,
+      "tail8_repeat_above_0_5": 0
+    },
+    "B2": {
+      "resident_tok_s": 90.01437799656887,
+      "waves_tok_s": [
+        90.04437171021907,
+        89.98438428291868
+      ],
+      "resident_seconds": [
+        16.1253832129878,
+        16.136133080988657
+      ],
+      "http_tok_s": 88.55170432433172,
+      "complete_responses": 2,
+      "exact_ids_to_text": true,
+      "sha256": "d206a64f1c49d122b159b77a2fb90010a048fd6af858c01e12965cf9e33b9e2d",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 1,
+      "max_tail8_repeat_ratio": 0.0,
+      "tail8_repeat_above_0_5": 0
+    },
+    "A2": {
+      "resident_tok_s": 89.59088687267672,
+      "waves_tok_s": [
+        89.58998275512752,
+        89.59179099022593
+      ],
+      "resident_seconds": [
+        16.207169098008308,
+        16.206841987994267
+      ],
+      "http_tok_s": 88.12316195346828,
+      "complete_responses": 2,
+      "exact_ids_to_text": true,
+      "sha256": "a78facc7be0ae10f5701b4801ee8f558fc30856a4c7d1860973f7f08b59cbb9a",
+      "manifest_sha256": "12494eea5a4b77379561e4b5f34e2b4f869d4b7563ad25e047aed2d1bf89dd44",
+      "within_leg_full_ids_exact": 1,
+      "max_tail8_repeat_ratio": 0.0,
+      "tail8_repeat_above_0_5": 0
+    }
+  },
+  "control_return_pct": -0.29207356673052187,
+  "candidate_leg_difference_pct": -0.021487734252056967,
+  "caveat": "Short screening trial, not the earlier >=30s/round formal matrix; ID/text integrity and component equality are not whole-model bitwise/factual correctness.",
+  "unique_completion_sequences_across_all_8_waves": 1
+}
