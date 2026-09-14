@@ -52,3 +52,19 @@ completion-token counts. First tokens match16/16 against both A1 quality
 waves. Full excerpts match10/16 and9/16 respectively; cases2,4,6,11 are not
 identical to either A1 wave and have been read as part of the bounded review.
 Candidate second-wave and final-control review are still pending.
+
+## B second wave and process completion
+
+Read all eight changed B.1 excerpts; the other eight are token-identical to
+the already reviewed B.0 text. They remain coherent and code-topic-related,
+without obvious looping/garbling. Changed case / zero-based first difference:
+`2:41,4:46,5:44,6:13,10:51,11:12,13:3,14:26`.
+
+Input echoes32/32 match with zero cache hits and128 completion-token counts.
+First tokens repeat16/16, complete excerpts8/16. This is not a global
+determinism fix; comparison with A1's10/16 alone is not enough to attribute
+any drift to the candidate. Final A2 control remains required.
+
+B finished and its owned process tree stopped. A2 is now loading with
+config20 enabled and comb-refine disabled. No candidate throughput promotion
+has been made while this last control remains outstanding.
