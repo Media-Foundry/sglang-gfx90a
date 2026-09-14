@@ -114,3 +114,12 @@ mutation/row permutation. No GPU execution or performance result yet.
 Syntax/help and two CPU contract tests passed. The model-level sinkhorn arg
 is20 (required by the gfx90a dispatcher), while both arms retain the existing
 internal env override8. No production selector or numerical path was changed.
+
+Retry A1 has now completed both quality waves and stopped cleanly.32/32 full
+input echoes match;12/16 full128-token outputs repeat and15/16 first tokens
+repeat. Changed cases/zero-based first positions:5/18,6/0,9/23,13/3. The
+second-wave changed excerpts were also inspected and remain coherent code
+reviews, not factual-accuracy or complete-answer proofs. This confirms that
+single-request large-prefill admission does not eliminate same-configuration
+drift; the MHC priority issue is not a complete explanation. B has started,
+and the full32K ABBA is still pending.
