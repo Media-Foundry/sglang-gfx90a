@@ -3,6 +3,7 @@
 import gzip
 import hashlib
 import io
+import json
 from pathlib import Path
 import subprocess
 import tarfile
@@ -14,19 +15,22 @@ from check_report import ROOT, check, check_log, tex_inputs
 def main():
     check(compiled=True)
     tex, figures = tex_inputs(ROOT)
-    paths = sorted(tex | figures | {Path('data/results.json'), Path('references.bib'), Path('main.bbl')})
-    note = ('Compile main.tex with pdfLaTeX until references stabilize (2-4 passes).\n'
-            'All figure PDFs are included.\n'
-            'Uses acmart [sigplan,10pt,review] and ACM-Reference-Format.\n'
-            'main.bbl is included; BibTeX is needed only to regenerate references.\n'
-            'No Python, system fonts, shell escape, or Biber required.\n'
-            'The compiled article is deliberately excluded from this source archive.\n'
-            'data/results.json records evidence provenance and numerical summaries.\n')
+    paths = sorted(tex | figures | {Path('references.bib'), Path('main.bbl')})
+    readme = {
+        'spec_version': 1,
+        'process': {'compiler': 'pdflatex'},
+        'sources': [{'filename': 'main.tex', 'usage': 'toplevel'}],
+        # This report is developed and clean-built with TeX Live 2023. It also
+        # uses cleveref, for which arXiv documents a TeX Live 2025 caveat.
+        'texlive_version': 2023,
+    }
     buf = io.BytesIO()
     with gzip.GzipFile(fileobj=buf, mode='wb', mtime=0) as gz:
         with tarfile.open(fileobj=gz, mode='w') as archive:
             files = [(str(path), (ROOT / path).read_bytes()) for path in paths]
-            files.append(('00README.txt', note.encode()))
+            files.append(
+                ('00README.json', (json.dumps(readme, indent=2) + '\n').encode())
+            )
             for name, raw in files:
                 info = tarfile.TarInfo(name)
                 info.size = len(raw)

@@ -11,8 +11,8 @@ was supplied, so neither is invented.
 ## Build the paper
 
 Use **pdfLaTeX**, not XeLaTeX. The document uses the supplied template's exact
-`\documentclass[sigplan,10pt,review]{acmart}` and topmatter policy. ACM controls
-the two-column layout, 10pt body font, margins, review line numbers, headings,
+`\documentclass[sigplan,10pt]{acmart}` and topmatter policy. ACM controls
+the two-column layout, 10pt body font, margins, headings,
 and captions. There are no body-font, geometry, or page-style overrides. Figures
 retain embedded Arial and only left/bottom spines.
 

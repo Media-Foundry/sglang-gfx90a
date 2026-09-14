@@ -1,6 +1,6 @@
 % !TEX TS-program = pdflatex
 % Class/options and topmatter policy follow the supplied DiffProg/PPoPP template.
-\documentclass[sigplan,10pt,review]{acmart}
+\documentclass[sigplan,10pt]{acmart}
 \settopmatter{printfolios=true,printccs=false,printacmref=false}
 % This is a 2026 technical report, not a claimed PPoPP'24 publication.
 \acmConference[Technical Report]{Technical Report (PPoPP Template)}{September 2026}{}
@@ -348,7 +348,10 @@ The initial request can trigger compilation even after another shape was warm. T
   \item Layer level: router top-k, stage 1, activation, stage 2, and rank-local sum.
   \item Model level: decode completion IDs independently and check semantic sentinels and logits on fixed inputs. France is a sanity check, not a quality benchmark.
   \item Attribution level: batch shapes, admission, prefixes, physical cache state, and numerical path must be controlled before comparing whole output hashes. Greedy divergence alone cannot identify the faulty operator.
-  \item Remaining coverage: broad teacher-forced cached-versus-recompute tests at compression/window/indexer boundaries and filled-long-context quality evaluation. Existing local fixtures are not universal coverage.
+  \item Remaining coverage: broad teacher-forced tests comparing cached decode
+  with recomputation at compression, window, and indexer boundaries, plus
+  filled-long-context quality evaluation. Existing local fixtures are not
+  universal coverage.
 \end{enumerate}
 
 \section{Rejected or reverted directions}
@@ -414,7 +417,9 @@ Streaming/non-streaming tool-call checks were interface smokes, not throughput o
 \begin{enumerate}
   \item \textbf{Capacity is not occupancy.} Fill the allocated 1M pool with controlled long contexts and verify quality, admission, sustained throughput, and exact memory peaks. Current measurements do not provide this evidence.
   \item \textbf{Numerical coverage.} Preserve deterministic Top-K membership/order, test real nonconstant scale layouts, and separate atomic/reduction-order variation from scheduling-dependent trajectories. Fixed-slot CK stage-2 reduction remains a possible experiment, not a measured gain here.
-  \item \textbf{Cold-shape coverage.} Audit exact-M compilation keys and prewarm supported shapes. Report cold, restarted, and warm TTFT separately. Do not hide latency outliers inside resident-only speed claims.
+  \item \textbf{Cold-shape coverage.} Audit shape-specific compilation keys
+  and pre-warm supported shapes. Report cold, restarted, and warm TTFT
+  separately. Do not hide latency outliers inside resident-only speed claims.
   \item \textbf{Indexer work.} Active-query production and elimination of full logits materialization are distinct from the accepted trivial-row and empty-tile skips. A historical M128 query-row partition saved about 9.7 microseconds in projection but required about 37 microseconds for optimized index exchange, so it was not integrated. Long-context opportunities require a new matched profile.
   \item \textbf{Controlled comparisons.} Matched TP4 and TP8 matrices and a fresh strict-DSpark regression remain missing. This update ran neither; unavailable temporary artifacts are not reconstructed as invented measurements.
   \item \textbf{Deployment decision.} The C32 consumer remains opt-in after a small positive screen. Broader request mixtures and context ranges are required before changing a global default. The C1 isolation result is not another kernel optimization.
@@ -471,9 +476,11 @@ make
 make arxiv
 \end{lstlisting}
 
-The report follows the supplied PPoPP workshop template's unmodified
-\texttt{acmart} class. Its options are \path{sigplan,10pt,review}. The class
-controls two-column layout, margins, fonts, line numbers, headings and captions;
+The report follows the supplied PPoPP workshop template's
+\texttt{acmart} class. Its options are \path{sigplan,10pt}; the
+\texttt{review} option is deliberately omitted because the public arXiv
+version must not contain line numbers. The class controls two-column layout,
+margins, fonts, headings and captions;
 no geometry or body-font override is applied. Bibliography formatting uses
 \texttt{ACM-Reference-Format} and BibTeX. Figures embed Arial and retain only
 left/bottom spines. Normal compilation needs neither Python nor a GPU.

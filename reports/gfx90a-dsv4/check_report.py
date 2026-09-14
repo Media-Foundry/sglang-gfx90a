@@ -74,8 +74,12 @@ def check(root=ROOT, compiled=False):
         raise ValueError(f'Missing/duplicate labels: {refs - set(labels)}')
     if 'fontspec' in contents or '\\setmainfont' in contents:
         raise ValueError('Unexpected host font dependency')
-    if r'\documentclass[sigplan,10pt,review]{acmart}' not in contents:
+    if r'\documentclass[sigplan,10pt]{acmart}' not in contents:
         raise ValueError('Document no longer follows the supplied PPoPP class/options')
+    if re.search(r'\\documentclass\[[^]]*\breview\b[^]]*\]\{acmart\}', contents):
+        raise ValueError('arXiv source must not enable acmart review line numbers')
+    if r'\linenumbers' in contents or r'\usepackage{lineno}' in contents:
+        raise ValueError('arXiv source must not contain line numbers')
     if r'\author{Siming HUANG}' not in contents or r'\institution{HKUST(GZ)}' not in contents:
         raise ValueError('Author/affiliation differs from the requested metadata')
     if re.search(r'\\usepackage(?:\[[^\]]*\])?\{(?:geometry|helvet|fontspec|fancyhdr)\}', contents):
