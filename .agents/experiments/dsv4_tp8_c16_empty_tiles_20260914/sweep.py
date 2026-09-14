@@ -1,10 +1,19 @@
 """Run the three owned fresh-service arms in order; stop on any failure."""
 from pathlib import Path
+import argparse
+import json
 import subprocess
 import sys
 
 root=Path(__file__).resolve().parent
-for arm in ('A1','B','A2'):
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--resume-from',choices=('A1','B','A2'),default='A1')
+args=p.parse_args()
+arms=('A1','B','A2');start=arms.index(args.resume_from)
+for arm in arms[:start]:
+    assert (root/arm/'complete.json').exists(),f'Prior arm {arm} incomplete'
+    assert json.loads((root/arm/f'P16-empty-{arm}.stop.json').read_text())['remaining']==[]
+for arm in arms[start:]:
     assert not (root/arm).exists(),f'Refuse to overwrite or restart existing arm {arm}'
     print('ARM START',arm,flush=True)
     with (root/(arm+'-run.log')).open('x') as log:

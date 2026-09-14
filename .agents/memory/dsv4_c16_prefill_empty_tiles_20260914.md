@@ -45,3 +45,18 @@ decode graphs1/2/4/8/16/32/64. All stability and capture diagnostics are
 explicitly disabled. Backend actual-hit assertion follows warmup. France and
 two128-token quality/input-echo/ID-text checks per process are separate from
 timed P (one generated token). No default-on or speed claim until this finishes.
+
+### Rejected incomplete B attempt (harness failure, retained)
+
+First A1 completed at5295.009 tok/s. First B timed legs were5571.646/5570.429,
+but its subsequent quality phase failed before requests: a newly prepared local
+`profile.py` shadowed stdlib `profile` when transformers imported cProfile.
+A direct CPU import reproduced the exact traceback. This was an agent-created
+tooling error, not a GPU/kernel failure. PID1128695 was stopped with no remaining
+owned processes. Files are retained in `B-import-shadow-failed/` and the matching
+run log; those timings are excluded from the final acceptance table.
+
+Renamed the tool to `capture_timeline.py`, added stdlib-name collision and import
+preflight tests, and moved tokenizer imports before service startup. Resume from
+B reruns the whole candidate arm (warmup, six timed waves, two quality waves),
+then runs A2. Preserve the already completed A1; model/runtime sources unchanged.

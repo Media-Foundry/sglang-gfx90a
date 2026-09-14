@@ -7,9 +7,11 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from transformers import AutoTokenizer
 
 root=Path(__file__).resolve().parent
 repo=root.parents[2]
+assert not ({f.stem for f in root.glob('*.py')} & sys.stdlib_module_names), 'Experiment files shadow stdlib modules'
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--arm',choices=('A1','B','A2'),required=True)
 args=p.parse_args()
@@ -73,7 +75,6 @@ try:
         if name=='warmup':
             hit='prefill empty tiles selected' in Path(state['log']).read_text()
             assert hit==candidate,('unexpected selector hit',hit,candidate)
-    from transformers import AutoTokenizer
     tokenizer=AutoTokenizer.from_pretrained('/home/pc/models/modelscope',local_files_only=True)
     answers=[]
     for rep in range(2):
