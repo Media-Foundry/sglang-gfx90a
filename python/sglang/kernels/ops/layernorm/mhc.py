@@ -526,11 +526,15 @@ def gfx90a_mhc_pre_mix_from_partials_triton(
     if block_k == 1024 and _prefill_mix_reuse_active is not None and _prefill_mix_reuse_active():
         from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse import premix_reuse4
 
-        candidate = premix_reuse4(residual, fn, rms_partials, rms_eps)
+        group_size = 8 if (
+            os.getenv("SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE", "4") == "8"
+            and 8192 <= num_tokens <= 65536
+        ) else 4
+        candidate = premix_reuse4(residual, fn, rms_partials, rms_eps, group_size=group_size)
         if candidate is not None:
             global _prefill_mix_reuse_logged
             if not _prefill_mix_reuse_logged:
-                logger.info("DSV4 native TP8 prefill mix-reuse4 selected: rows=%d", num_tokens)
+                logger.info("DSV4 native TP8 prefill mix-reuse4 selected: rows=%d group=%d", num_tokens, group_size)
                 _prefill_mix_reuse_logged = True
             return candidate
     mixes = torch.empty(

@@ -114,9 +114,10 @@ def test_mix_dispatch_preserves_nondefault_k_contract():
             return lambda *a,**kw:calls.append(kw['BLOCK_K'])
     kernel_module=ModuleType('sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse')
     candidate=object();fallback=object()
-    kernel_module.premix_reuse4=lambda *a:candidate
+    groups=[]
+    kernel_module.premix_reuse4=lambda *a,**kw:(groups.append(kw['group_size']) or candidate)
     block_k=1024;enabled=True
-    ns=dict(torch=NS(Tensor=object,version=NS(hip=True),bfloat16='bf16',float32='fp32',
+    ns=dict(os=os,torch=NS(Tensor=object,version=NS(hip=True),bfloat16='bf16',float32='fp32',
                      empty=lambda *a,**k:fallback),
             envs=NS(SGLANG_DSV4_GFX90A_MHC_BLOCK_K=NS(get=lambda:block_k)),
             _prefill_mix_reuse_active=lambda:enabled,_prefill_mix_reuse_logged=True,
@@ -127,14 +128,50 @@ def test_mix_dispatch_preserves_nondefault_k_contract():
     fn=NS(shape=(24,16384),dtype='fp32',is_contiguous=lambda:True)
     partials=NS(shape=(8192,64),dtype='fp32',is_contiguous=lambda:True)
     call=ns['gfx90a_mhc_pre_mix_from_partials_triton']
-    with patch.dict(sys.modules,{kernel_module.__name__:kernel_module}):
+    with patch.dict(sys.modules,{kernel_module.__name__:kernel_module}), \
+         patch.dict(os.environ,{'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE':'4'}):
         assert call(x,fn,partials,1e-6) is candidate
+        assert groups==[4]
+        with patch.dict(os.environ,{'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE':'8'}):
+            assert call(x,fn,partials,1e-6) is candidate
+            assert groups==[4,8]
         block_k=2048
         assert call(x,fn,partials,1e-6) is fallback
         assert calls==[2048]
         block_k=1024;enabled=False
         assert call(x,fn,partials,1e-6) is fallback
         assert calls==[2048,1024]
+
+
+def test_premix8_wrapper_scope_and_fallback():
+    root=Path(__file__).resolve().parents[4]
+    path=root/'python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py'
+    node=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.FunctionDef)
+              and n.name=='premix_reuse4')
+    calls=[]
+    class Launch:
+        def __init__(self,group):self.group=group
+        def __getitem__(self,grid):
+            return lambda *a,**kw:calls.append((self.group,grid,kw))
+    device=NS(type='cuda')
+    module=ModuleType('sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse8')
+    module.premix8=Launch(8)
+    out=object()
+    ns=dict(torch=NS(bfloat16='bf16',float32='fp32',version=NS(hip=True),
+        cuda=NS(get_device_properties=lambda _:NS(gcnArchName='gfx90a')),
+        empty=lambda *a,**kw:out),triton=NS(cdiv=lambda a,b:(a+b-1)//b),
+        _premix_reuse_kernel=Launch(4))
+    exec(compile(ast.Module(body=[node],type_ignores=[]),'<current premix wrapper>','exec'),ns)
+    def tensor(shape,dtype):return NS(shape=shape,dtype=dtype,device=device,is_contiguous=lambda:True)
+    with patch.dict(sys.modules,{module.__name__:module}):
+        for m in (128,8191,8192,32765,65536,65537):
+            for requested in (4,8):
+                x=tensor((m,4,4096),'bf16');fn=tensor((24,16384),'fp32');rms=tensor((m,64),'fp32')
+                assert ns['premix_reuse4'](x,fn,rms,1e-6,group_size=requested) is out
+                expected=8 if requested==8 and 8192<=m<=65536 else 4
+                assert calls[-1]==(expected,(24,(m+expected-1)//expected),{'num_warps':1})
+        x=tensor((8192,4,4096),'fp32')
+        assert ns['premix_reuse4'](x,fn,tensor((8192,64),'fp32'),1e-6,group_size=8) is None
 
 
 @pytest.mark.parametrize("flag", [POST_REUSE_ENV, MIX_REUSE_ENV])
