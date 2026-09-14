@@ -1,23 +1,24 @@
 \section{Current TP8 native-AR results}
 \label{sec:current-native}
 
-The primary result is the September 13--14 fresh-process revalidation on the
-merged original-V4 implementation, archived at \commit{3d73a75923}. All seven
+The primary result comes from fresh processes on September 13--14.
+The merged original-V4 implementation and results are archived at
+\commit{3d73a75923}. All seven
 native graph tiers were captured and observed with matching active input and
 executed rows during full residency. The model remained a single TP8/EP1
 instance. No DSpark, MTP, or approximate routed-expert verification contributed
 to the following table.
 
-\begin{table}[htbp]
+\begin{table*}[tp]
   \centering
   \caption{Formal native P/D matrix: P and resident D are three-round medians;
   HTTP aggregates complete measured waves. Prefill divides aggregate input by
   wave time to the last first token. Resident and HTTP decode are distinct metrics.}
   \label{tab:tp8-matrix}
   \input{generated/tp8_matrix}
-\end{table}
+\end{table*}
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{figures/tp8_pd_matrix.pdf}
   \caption{Latest TP8 matrix. Colored points/lines show three-round medians;
@@ -25,7 +26,8 @@ to the following table.
   intervals. Gray decode points are complete-wave HTTP rates, not a slower
   kernel configuration. Concurrency uses a base-2 axis.}
   \label{fig:tp8-pd}
-\end{figure}
+  \Description{TP8 concurrency 1 through 64: prefill plateaus around 5200 input tokens per second; resident native decode grows from 87.60 to 1334.24, while whole HTTP decode reaches 848.14.}
+\end{figure*}
 
 \paragraph{Protocol boundaries.}
 Prefill uses 8191--8192-token public-source prompts, fresh cache salts, and one
@@ -93,14 +95,15 @@ completion sequences in that test, and France passed. The separate formal C1
 median is 87.599. These controls are more informative than an unpaired
 comparison with the August 74.5 HTTP result.
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{figures/native_abba.pdf}
   \caption{Separate native ABBA experiments: empty C4 tiles at C32 with 8K
   inputs, and the C1 projection specialization with 512-token code inputs.
   The right axis is expanded; the experiments must not be multiplied together.}
   \label{fig:native-abba}
-\end{figure}
+  \Description{Separate ABBA plots show a 3.60-fold resident gain for empty C4 tile elimination at C32 with 8K inputs, and a 10.32 percent gain for the C1 GEMV specialization.}
+\end{figure*}
 
 \subsection{Down-consumer pilot: a small C32 gain, no C1 kernel change}
 
@@ -137,11 +140,12 @@ waves; neither whole-model bitwise parity nor code-answer factual correctness
 is established. All 264 measured pilot responses passed independent ID/text
 integrity checks, and all service France sentinels passed.
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\textwidth]{figures/down_consumer_abba.pdf}
   \caption{Default-off down-consumer pilot, expanded y-axes. Dots are the two
   measured waves per leg; short bars mark their median. C1 never executes
   the candidate and is a negative-control scope check.}
   \label{fig:consumer-abba}
-\end{figure}
+  \Description{Two waves per ABBA leg show a 1.54 percent resident C32 consumer gain; C1 is an unchanged-kernel isolation check with no attributed gain. Both axes are expanded.}
+\end{figure*}

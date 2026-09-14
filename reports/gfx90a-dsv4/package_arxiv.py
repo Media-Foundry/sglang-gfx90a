@@ -14,10 +14,12 @@ from check_report import ROOT, check, check_log, tex_inputs
 def main():
     check(compiled=True)
     tex, figures = tex_inputs(ROOT)
-    paths = sorted(tex | figures | {Path('data/results.json')})
+    paths = sorted(tex | figures | {Path('data/results.json'), Path('references.bib'), Path('main.bbl')})
     note = ('Compile main.tex with pdfLaTeX until references stabilize (2-4 passes).\n'
             'All figure PDFs are included.\n'
-            'No Python, system fonts, shell escape, BibTeX, or Biber required.\n'
+            'Uses acmart [sigplan,10pt,review] and ACM-Reference-Format.\n'
+            'main.bbl is included; BibTeX is needed only to regenerate references.\n'
+            'No Python, system fonts, shell escape, or Biber required.\n'
             'The compiled article is deliberately excluded from this source archive.\n'
             'data/results.json records evidence provenance and numerical summaries.\n')
     buf = io.BytesIO()
@@ -46,7 +48,7 @@ def main():
             if result.returncode:
                 raise RuntimeError(f'Clean bundle pass {number} failed:\n{result.stdout}')
             print(f'Clean extracted source: pdfLaTeX pass {number} completed.')
-            auxiliary = tuple((root / f'main.{ext}').read_bytes() for ext in ('aux', 'toc', 'out'))
+            auxiliary = tuple((root / f'main.{ext}').read_bytes() for ext in ('aux', 'out'))
             if auxiliary == previous_aux:
                 break
             previous_aux = auxiliary

@@ -1,27 +1,25 @@
 % !TEX TS-program = pdflatex
-\documentclass[11pt,a4paper]{article}
+% Class/options and topmatter policy follow the supplied DiffProg/PPoPP template.
+\documentclass[sigplan,10pt,review]{acmart}
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
+% This is a 2026 technical report, not a claimed PPoPP'24 publication.
+\acmConference[Technical Report]{Technical Report (PPoPP Template)}{September 2026}{}
+\acmYear{2026}
+\acmISBN{}
+\acmDOI{}
+\startPage{1}
+\setcopyright{none}
+\bibliographystyle{ACM-Reference-Format}
 
-% Use TeX-distributed Type 1 fonts so arXiv does not depend on host fontconfig.
-% Helvetica is metrically close to Arial; the generated charts embed Arial.
-\usepackage[T1]{fontenc}
-\usepackage[scaled=0.95]{helvet}
-\usepackage{courier}
-\renewcommand{\familydefault}{\sfdefault}
-\setlength{\emergencystretch}{2em}
-
-\usepackage[a4paper,margin=23mm,headheight=15pt]{geometry}
-\usepackage{amsmath,amssymb}
-\usepackage{booktabs,longtable,tabularx,array,multirow}
-\usepackage{graphicx}
-\usepackage{xcolor}
-\usepackage{enumitem}
-\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{tabularx}
 \usepackage{listings}
-\usepackage{caption}
+\usepackage{xurl}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
-\usepackage{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
+\hypersetup{pdfauthor={Siming HUANG}}
 
 \definecolor{mfblue}{HTML}{2F5D8C}
 \definecolor{mfteal}{HTML}{2A8C82}
@@ -29,15 +27,6 @@
 \definecolor{mfred}{HTML}{B44A4A}
 \definecolor{ink}{HTML}{25313C}
 \definecolor{codebg}{HTML}{F5F7FA}
-\hypersetup{
-  colorlinks=true,
-  linkcolor=mfblue,
-  urlcolor=mfblue,
-  citecolor=mfteal,
-  pdftitle={DeepSeek-V4-Flash on AMD gfx90a: Correctness and Performance Engineering},
-  pdfauthor={Media Foundry / SGLang gfx90a Engineering}
-}
-
 \lstdefinestyle{reportcode}{
   basicstyle=\ttfamily\small,
   backgroundcolor=\color{codebg},
@@ -52,36 +41,37 @@
 \lstset{style=reportcode}
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
-\newcommand{\metric}[1]{\textbf{\color{mfblue}#1}}
-\newcommand{\risk}[1]{\textbf{\color{mfred}#1}}
+\newcommand{\metric}[1]{#1}
+\newcommand{\risk}[1]{\textbf{#1}}
 \newcommand{\commit}[1]{\texttt{#1}}
-
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{DeepSeek-V4-Flash on AMD gfx90a}
-\fancyhead[R]{Technical report v0.3}
-\fancyfoot[C]{\thepage}
-
-\title{\bfseries DeepSeek-V4-Flash on AMD gfx90a\\[3mm]
-\Large Correctness Recovery and Inference Performance Engineering}
-\author{Media Foundry / SGLang gfx90a Engineering}
-\date{September 14, 2026\\[1mm]
-\small TP8 matrix archive \commit{3d73a75923}; native-AR pilot \commit{fb2e39fca9}}
 
 \begin{document}
 
-\maketitle
+\title[DeepSeek-V4-Flash on AMD gfx90a]{DeepSeek-V4-Flash on AMD gfx90a}
+\subtitle{Correctness Recovery and Inference Performance Engineering}
+\author{Siming HUANG}
+\affiliation{
+  \institution{HKUST(GZ)}
+  \city{Guangzhou}
+  \country{China}
+}
+% Email and ORCID were not provided; do not invent either.
 
 \begin{abstract}
 We report the enablement, correctness recovery, and performance engineering of DeepSeek-V4-Flash inference on AMD Instinct MI250 (gfx90a/CDNA2) using SGLang. Original mixed FP4/FP8 checkpoint weights are retained; execution uses shape-specific HIP, AIter, Composable Kernel, and Triton paths. The study extends an earlier four-GCD investigation to a single eight-GCD tensor-parallel instance with a 1,048,576-token logical KV pool. Fresh-process native autoregressive measurements on public-source code requests cover concurrency 1 through 64, with three measured rounds per group. Single-request resident decode reaches \metric{87.60 output tokens/s}, while C32 and C64 reach \metric{1044.32} and \metric{1334.24 output tokens/s}. Separate 8K-input prefill measurements span \metric{4.68--5.27k input tokens/s}. An exact empty-indexer-tile guard provides a 3.60-fold resident improvement in a separate 8K-input C32 ABBA test; a restored single-request projection specialization improves its matched control by 10.32\%. A subsequent, default-off down-consumer pilot adds 1.54\% at C32. We distinguish these workload-specific results from historical speculative throughput and from whole-request HTTP latency. Component equality and bounded semantic checks do not establish universal numerical equivalence; dynamic batching, cold-shape compilation, and untested million-token occupancy remain explicit limitations.
 \end{abstract}
 
-\tableofcontents
-\clearpage
+\keywords{LLM inference, mixture of experts, AMD MI250, tensor parallelism,
+  quantization, correctness, speculative decoding}
+\maketitle
+\hypersetup{pdfauthor={Siming HUANG}}
 
 \section{Executive summary}
 
-\begin{table}[htbp]
+This report updates the evidence through September 14, 2026: formal TP8 matrix
+archive \commit{3d73a75923} and native-AR pilot \commit{fb2e39fca9}.
+
+\begin{table*}[tp]
   \centering
   \caption{Evidence-backed state as of September 14. C denotes client concurrency; resident decode excludes admission and drain.}
   \label{tab:headline}
@@ -100,23 +90,23 @@ We report the enablement, correctness recovery, and performance engineering of D
     Service state & Benchmark services stopped after testing; no live endpoint is implied by this report \\
     \bottomrule
   \end{tabularx}
-\end{table}
+\end{table*}
 
 The report applies three evidence rules:
 
-\begin{enumerate}[leftmargin=2em]
-  \item Native AR, full-target DSpark, and historical approximate-target DSpark are different experiments. Their rates are not interchangeable.
+\begin{enumerate}
+  \item Native AR and full-target DSpark are distinct from historical approximate verification. Their rates are not interchangeable.
   \item Original checkpoint precision, component equality, repeated output hashes, and end-to-end answer quality are distinct claims. No one check substitutes for the others.
   \item Formal three-round matrices and small ABBA screens remain separate. Minima/maxima describe observed runs, not confidence intervals; percentages from different experiments are not added together.
 \end{enumerate}
 
 \section{Related systems}
 
-This work builds on serving systems that reduce scheduling and memory-management overhead for autoregressive language models. SGLang combines a structured runtime with RadixAttention and continuous batching, while vLLM introduced PagedAttention to manage KV-cache fragmentation and sharing efficiently\cite{sglang,vllm}. Our contribution is narrower and hardware-specific: we retain SGLang's serving abstractions while adapting the DeepSeek-V4 execution path to CDNA2 and validating optimizations against fixed-token numerical oracles.
+This work builds on serving systems that reduce scheduling and memory-management overhead for autoregressive language models. SGLang combines a structured runtime with RadixAttention and continuous batching, while vLLM introduced PagedAttention to manage KV-cache fragmentation and sharing efficiently~\cite{sglang,vllm}. Our contribution is narrower and hardware-specific: we retain SGLang's serving abstractions while adapting the DeepSeek-V4 execution path to CDNA2 and validating optimizations against fixed-token numerical oracles.
 
-DeepSeek-V3 established the MoE, routing, multi-token prediction, and low-precision training lineage; DeepSeek-V4 adds compressed sparse/heavily compressed attention and mHC\cite{dsv3,dsv4report}. MegaBlocks demonstrates block-sparse MoE training\cite{megablocks}; our serving workload instead spans tiny per-expert decode matrices and large prefill chunks. These regimes require different execution geometries rather than a universal kernel. DSpark supplies a separate confidence-scheduled speculative design\cite{dspark}; we report its historical full-target results separately from the current native-AR matrix.
+DeepSeek-V3 established the MoE, routing, multi-token prediction, and low-precision training lineage; DeepSeek-V4 adds compressed sparse/heavily compressed attention and mHC~\cite{dsv3,dsv4report}. MegaBlocks demonstrates block-sparse MoE training~\cite{megablocks}; our serving workload instead spans tiny per-expert decode matrices and large prefill chunks. These regimes require different execution geometries rather than a universal kernel. DSpark supplies a separate confidence-scheduled speculative design~\cite{dspark}; we report its historical full-target results separately from the current native-AR matrix.
 
-On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile building blocks for GEMM, quantization, attention, and MoE\cite{ck,aiter}. We use these libraries where their supported shapes are effective, but introduce gfx90a-specific paths where generic kernels do not match FP4 storage, wave64 execution, or the small-$M$ decode regime. The resulting system is therefore an integration and measurement study rather than a replacement for either the serving runtime or the kernel libraries.
+On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile building blocks for GEMM, quantization, attention, and MoE~\cite{ck,aiter}. We use these libraries where their supported shapes are effective, but introduce gfx90a-specific paths where generic kernels do not match FP4 storage, wave64 execution, or the small-$M$ decode regime. The resulting system is therefore an integration and measurement study rather than a replacement for either the serving runtime or the kernel libraries.
 
 \section{System and model context}
 
@@ -124,17 +114,24 @@ On AMD GPUs, Composable Kernel and AIter provide tuned HIP, CK, and CKTile build
 
 The experimental host is a Supermicro A+ Server AS-4124GQ-TNMI with two AMD EPYC 7763 processors and SMT enabled. Host memory comprises 32 32-GiB DDR4-2933 2Rx8 RDIMMs, totaling 1 TiB. Historical TP4 runs used four GCDs; the new TP8 matrix uses all eight GCDs as one model instance, not two independent TP4 replicas. The accelerators are MI250, not MI250X.
 
-The September environment record identifies Python 3.12.13, PyTorch \texttt{2.12.0a0+git78258b9}, Triton \texttt{3.7.1+git0263a6a6.rocm7.14.0}, Transformers 5.12.1, and Tokenizers 0.22.2. The installed HIP compiler reports 7.15.26333 and AMD clang 23; this is distinct from the HIP 7.14 build provenance recorded in earlier runs and does not identify every cached binary. SGLang, AIter, and CK include local source changes. The environment ledger lists dependency commits and dirty paths; a clean SGLang commit alone is not a complete binary reproducibility guarantee.
+The recorded software environment is:
+\begin{itemize}
+  \item Python 3.12.13;
+  \item PyTorch \path{2.12.0a0+git78258b9};
+  \item Triton \path{3.7.1+git0263a6a6.rocm7.14.0};
+  \item Transformers 5.12.1 and Tokenizers 0.22.2.
+\end{itemize}
+The installed HIP compiler reports 7.15.26333 and AMD clang 23; this is distinct from the HIP 7.14 build provenance recorded in earlier runs and does not identify every cached binary. SGLang, AIter, and CK include local source changes. The environment ledger lists dependency commits and dirty paths; a clean SGLang commit alone is not a complete binary reproducibility guarantee.
 
 The original checkpoint comprises 48 indexed safetensors shards. Recorded SHA256 values cover configuration, tokenizer, generation settings, and the shard index, not every weight byte. This study does not include V4.1 or Engram offload results.
 
-CDNA2 provides wave64 execution, 64 KiB LDS per CU, and INT8/BF16/FP16 matrix or dot instructions, but no native FP4 matrix core comparable to newer accelerator generations. DeepSeek-V4-Flash stores routed-expert weights in FP4. Consequently, the critical gfx90a cost is not raw HBM bandwidth alone: it is the combination of small-M utilization, online FP4 unpacking, scale handling, activation quantization, expert sorting, and layer-level synchronization. The AMD MI200 ISA manual guided the custom HIP kernels in this work\cite{amdisa}.
+CDNA2 provides wave64 execution, 64 KiB LDS per CU, and INT8/BF16/FP16 matrix or dot instructions, but no native FP4 matrix core comparable to newer accelerator generations. DeepSeek-V4-Flash stores routed-expert weights in FP4. Consequently, the critical gfx90a cost is not raw HBM bandwidth alone: it is the combination of small-M utilization, online FP4 unpacking, scale handling, activation quantization, expert sorting, and layer-level synchronization. The AMD MI200 ISA manual guided the custom HIP kernels in this work~\cite{amdisa}.
 
 \subsection{Execution structure}
 
-DeepSeek-V4-Flash has 43 decoder layers, 256 routed experts, top-6 routing per token, shared experts, mHC, and compressed sparse attention. The official model card reports 284B total parameters, 13B active parameters, a one-million-token context, and mixed FP4 expert / FP8 non-expert precision\cite{dsv4card}.
+DeepSeek-V4-Flash has 43 decoder layers, 256 routed experts, top-6 routing per token, shared experts, mHC, and compressed sparse attention. The official model card reports 284B total parameters, 13B active parameters, a one-million-token context, and mixed FP4 expert / FP8 non-expert precision~\cite{dsv4card}.
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \begin{tikzpicture}[
     node distance=5mm and 7mm,
@@ -160,18 +157,19 @@ DeepSeek-V4-Flash has 43 decoder layers, 256 routed experts, top-6 routing per t
   \end{tikzpicture}
   \caption{Schematic native TP-only layer boundaries. Shared and routed experts contribute to a join. TP4/EP1 and TP8/EP1 avoid expert A2A but retain TP collectives; the historical EP variants instead require dispatch/combine.}
   \label{fig:architecture}
-\end{figure}
+  \Description{Native TP-only dataflow: attention feeds FFN normalization, which branches to shared and routed experts; their partials join before a TP all-reduce.}
+\end{figure*}
 
 \section{gfx90a enablement}
 
-The original ROCm path primarily targeted gfx942 and gfx950. The gfx90a bring-up required the following changes:
+The initial ROCm implementation targeted gfx942 and gfx950. Enabling gfx90a required the following changes:
 
-\begin{itemize}[leftmargin=2em]
-  \item add gfx90a as a build target and select \texttt{HIP\_FP8\_TYPE\_FNUZ};
+\begin{itemize}
+  \item add the gfx90a build target and select \path{HIP_FP8_TYPE_FNUZ};
   \item repair ROCm 7.14 include, library, and rpath discovery while avoiding the conda host-side \texttt{hipcc};
   \item build AOT HIP kernels and enable AIter FP4 CK MoE execution on gfx90a;
   \item handle Mori topology and XGMI initialization on a node without an RDMA NIC;
-  \item validate HIP CUDA Graph capture and replay on gfx90a instead of attributing architecture-specific kernel selection failures to the hardware;
+  \item validate graph capture and replay on gfx90a, separating kernel selection failures from hardware faults;
   \item establish both TP4/EP4 with Mori and TP4/EP1 without A2A as executable reference paths.
 \end{itemize}
 
@@ -181,9 +179,9 @@ The initial bring-up checkpoint was \commit{505b3373794a}. It predates the later
 
 \subsection{Admission, sampling, and chat encoding}
 
-An early request stall was an SWA admission failure rather than a Mori or RCCL deadlock. The combination of \texttt{max-total-tokens=4096}, \texttt{swa-full-tokens-ratio=0.1}, and \texttt{page-size=256} produced a pool below the admission floor. A separate gfx90a AIter greedy-sampler issue could return \texttt{token\_id == vocab\_size} on special logits rows; gfx90a now uses \texttt{torch.argmax} for this case.
+An early request stalled at SWA admission, not in Mori or RCCL. A 4096-token pool, SWA ratio 0.1, and page size 256 together fell below the admission floor. A separate AIter sampler issue on gfx90a could return an invalid token ID on special logits rows; the replacement uses \path{torch.argmax} for this case.
 
-DeepSeek-V4 does not ship a Jinja chat template. It requires the model-specific encoding and output parser, which is also stated in the official model card\cite{dsv4card}.
+DeepSeek-V4 does not ship a Jinja chat template. It requires the model-specific encoding and output parser, which is also stated in the official model card~\cite{dsv4card}.
 
 \subsection{W2 permutation: invalidating the early 60 tok/s result}
 
@@ -206,7 +204,8 @@ to raw W2 weights and scales during loading restored the logical output order fo
 The fixed France oracle uses the following input IDs:
 
 \begin{lstlisting}
-[0,128803,3085,344,270,6102,294,8760,2755,128804,128822]
+[0,128803,3085,344,270,6102,
+ 294,8760,2755,128804,128822]
 \end{lstlisting}
 
 Its expected completion is:
@@ -235,7 +234,7 @@ After the W2 repair, the corrected TP4/EP4+Mori BS1 baseline was only 14.2--15.0
 
 The historical TP4/EP1 decode route combines:
 
-\begin{itemize}[leftmargin=2em]
+\begin{itemize}
   \item packed 4-bit FP4 weights without an offline expansion;
   \item online BF16 activation quantization to INT8 per 32 elements;
   \item E2M1 nibble mapping to $0,\pm1,\pm2,\pm3,\pm4,\pm6,\pm8,\pm12$;
@@ -245,12 +244,13 @@ The historical TP4/EP1 decode route combines:
   \item TP-only mHC launch geometry that no longer reserves CUs for Mori progress.
 \end{itemize}
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=0.96\textwidth]{figures/decode_progress.pdf}
   \caption{Historical TP4 short-probe milestones retained from the earlier report. Different checkpoints and controls are not a single controlled speedup series. The invalid early FP4 route is excluded; the later 60.20 point follows a separate repair.}
   \label{fig:decode-progress}
-\end{figure}
+  \Description{Historical TP4 single-request native HTTP rates rise from 14.6 to 74.5 tokens per second across six different checkpoints; these are not one controlled ablation.}
+\end{figure*}
 
 The ledger associates the largest jump in \cref{fig:decode-progress} with peer-read all-reduce, approximately 25.54 to 60.20 tok/s. The August short-probe milestone is about 74.5 tok/s. A September 6 isolated-tree reproduction obtained a seven-request HTTP median of 74.018 and maximum of 74.655 tok/s, with the historical hash on all seven requests. This was \emph{TP4 native AR}, not TP8 or DSpark. The inherited rebased tree ran about 53 tok/s; its different tree contents exposed a lost gfx90a MHC selector. Historical author dates and copied experiment notes did not establish performance on the rebased code. The current TP8 C1 result uses a different public-code protocol and must not be divided by 74.5 to claim TP scaling efficiency.
 
@@ -260,7 +260,7 @@ The ledger associates the largest jump in \cref{fig:decode-progress} with peer-r
 
 The original raw-FP4 direct kernel sent M=256 prefill through a per-assignment FP16 dot path, with approximately 12.9 s TTFT for a 1028-token prompt. The optimization sequence introduced:
 
-\begin{enumerate}[leftmargin=2em]
+\begin{enumerate}
   \item packed-FP4 unpack reuse across rows, first group8 and then group32 for M$\geq$1024;
   \item \texttt{v\_perm\_b32} lookup tables instead of branch-heavy nibble decoding;
   \item MI250 block-FP8 tuned configurations for M512 and M1024 dense projections;
@@ -271,16 +271,17 @@ The original raw-FP4 direct kernel sent M=256 prefill through a per-assignment F
   \item an expert sorter block increase from 32 to 64 rows, allowing an expert with approximately 48 assignments to scan packed weights once.
 \end{enumerate}
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=0.96\textwidth]{figures/prefill_progress.pdf}
   \caption{Historical TP4 sequence for a 4604-token prompt. Rates derive from HTTP TTFT; these points are not the latest 8K-input TP8 matrix.}
   \label{fig:prefill-progress}
-\end{figure}
+  \Description{Historical 4604-token TP4 prefill throughput rises from 1336 to 2234 input tokens per second across eight chronological configurations.}
+\end{figure*}
 
 The historical M2048 microbenchmark compares the 32-row and 64-row sorter variants in \cref{fig:micro}. Gate/up improves from 7.26 to 5.55 ms (23.6\%), down improves from 6.01 to 5.26 ms (12.5\%), and the combined kernel time improves by approximately 18.5\%. The recorded component fixtures reported identical outputs; this is not a full-model equality claim.
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \begin{minipage}[t]{0.49\textwidth}
     \centering
@@ -292,7 +293,8 @@ The historical M2048 microbenchmark compares the 32-row and 64-row sorter varian
   \end{minipage}
   \caption{Left: M2048 routed-MoE kernel latency. Right: strict endpoint-level ABBA validation of the 64-row sorter.}
   \label{fig:micro}
-\end{figure}
+  \Description{The 64-row sorter reduces gate and down microbenchmark latency. The separate endpoint ABBA records 2.184, 2.061, 2.062 and 2.185 seconds.}
+\end{figure*}
 
 The historical endpoint ABBA sequence was A1=2.184 s, B1=2.061 s, B2=2.062 s, and A2=2.185 s. A later chunk-only TP4 test used B1=1.861 s, A=1.978 s, and B2=1.852 s (six steady samples per arm). Chunk 2304 removes the small tail traversal for 4604 tokens; it is not a universal optimum over prompt lengths. The first new-shape request still took over 20 s, whereas the warm measurements were near 1.85 s.
 
@@ -318,7 +320,7 @@ Launchers compare GPU owners with their recorded service PID, birth time, comman
 
 Early experiments used NUMA node 1 because the host had a known node-0 memory fault, independent of MI250 or SGLang. The operator subsequently reported that fault repaired. The September 13--14 launcher uses NUMA interleaving across the host; it does not retain the old node-1-only policy. This report does not claim a new hardware-health diagnosis.
 
-Approximately five-second AMD-SMI observations recorded a peak of 45,773/65,520 tool-reported MB per GCD (69.86\%) during the final decode observations. Separate large-prefill observations reached about 82.60\%; prefill coverage was incomplete. These are sampled observations, not exact allocator peaks, and \texttt{mem\_fraction\_static=0.96} is a budgeting setting rather than a claim of constant 96\% utilization. Logical KV capacity, allocated storage, graph/workspace memory, and occupied context are different quantities.
+AMD-SMI was sampled roughly every five seconds. Final decode observations peaked at 45,773 of 65,520 tool-reported MB per GCD (69.86\%). Separate large-prefill observations reached about 82.60\%; prefill coverage was incomplete. These samples are not exact allocator peaks. The setting \path{mem_fraction_static=0.96} controls a budget, not constant 96\% utilization. Logical KV capacity, allocated storage, graph and workspace memory, and occupied context are different quantities.
 
 \subsection{Timing definitions and aggregation}
 
@@ -337,32 +339,28 @@ Candidate comparisons use the order
 
 A1 and A2 use independently started control processes; consecutive B1/B2 legs can share one candidate process. This is stated per experiment, not represented as four independent starts. Explicit warmup files are excluded. Measured outliers remain in the formal three-round matrix. The small down-consumer pilot uses two fixed waves per leg and mean arm medians for its ABBA comparison. No statistical confidence interval is inferred from these small samples. Earlier trimmed-mean or short-probe protocols retain their original labels.
 
-The initial request can trigger compilation even after another shape was warm. The new corpus includes 511/512-token rows; different admission groups exposed M8190/M8191 below the M8192 CK selector. Object timestamps and Ninja records associated four builds totaling about 23.1 s with one slow wave. This evidence explains that cold-shape event, not all HTTP variability. Runtime-M repair already removed one small-prefill specialization problem, but remaining exact-M tails are an open latency risk. Generated IDs, raw stream samples, finish reasons, input hashes, and cold/warm separation are retained outside temporary directories.
+The initial request can trigger compilation even after another shape was warm. The new corpus includes rows of 511 and 512 tokens; admission groups exposed M8190 and M8191 below the M8192 CK selector. Object timestamps and Ninja records associated four builds totaling about 23.1 s with one slow wave. This evidence explains that cold-shape event, not all HTTP variability. Runtime-M repair already removed one small-prefill specialization problem, but remaining exact-M tails are an open latency risk. Generated IDs, raw stream samples, finish reasons, input hashes, and cold/warm separation are retained outside temporary directories.
 
 \subsection{Correctness hierarchy}
 
-\begin{enumerate}[leftmargin=2em]
+\begin{enumerate}
   \item Kernel level: elementwise bitwise equality, maximum absolute error, relative L2, and cosine similarity.
   \item Layer level: router top-k, stage 1, activation, stage 2, and rank-local sum.
-  \item Model level: independent decoding of completion-only IDs, semantic sentinels, and matched fixed-input/logit checks. France is a short sanity check, not a quality benchmark.
+  \item Model level: decode completion IDs independently and check semantic sentinels and logits on fixed inputs. France is a sanity check, not a quality benchmark.
   \item Attribution level: batch shapes, admission, prefixes, physical cache state, and numerical path must be controlled before comparing whole output hashes. Greedy divergence alone cannot identify the faulty operator.
   \item Remaining coverage: broad teacher-forced cached-versus-recompute tests at compression/window/indexer boundaries and filled-long-context quality evaluation. Existing local fixtures are not universal coverage.
 \end{enumerate}
 
 \section{Rejected or reverted directions}
 
-The following observations are historical, shape/configuration-specific results from the experiment ledger. They do not prove a general algorithm or ISA instruction is unusable, and were not all rerun during this report update. Component timing is never substituted for a service-level win.
+The following historical observations apply to the tested shapes and configurations. They do not prove a general algorithm or ISA instruction is unusable, and were not all rerun during this report update. Component timing is never substituted for a service-level win.
 
-\begin{longtable}{@{}p{0.27\textwidth}p{0.22\textwidth}p{0.44\textwidth}@{}}
-  \caption{Important negative results and their implications.}\label{tab:negative}\\
+\begin{table*}[tp]
+  \caption{Important negative results and their implications.}\label{tab:negative}
+  \begin{tabularx}{\textwidth}{@{}p{0.27\textwidth}p{0.22\textwidth}Y@{}}
   \toprule
   Direction & Result & Conclusion \\
   \midrule
-  \endfirsthead
-  \toprule
-  Direction & Result & Conclusion \\
-  \midrule
-  \endhead
   CKTile KSPLIT=2/4 & Approximately 25/22 tok/s or lower & Split-K reduction and CTA pressure do not suit BS1 small-M MoE. \\
   AsyncLL / SDMA Mori & Approximately 20--49 tok/s & The current low-latency transport does not shorten the critical path. \\
   Offline FP4-to-INT8 expansion & Gate 7.23$\rightarrow$10.45 ms & Doubled weight traffic costs more than removing online unpack. \\
@@ -374,7 +372,8 @@ The following observations are historical, shape/configuration-specific results 
   RCCL in place of peer-read AR & TTFT 0.679$\rightarrow$0.711 s & Reduce collective boundaries instead of substituting RCCL. \\
   BF16 down partial & Approximately 0.8\% micro gain with broad value changes & Insufficient benefit; retain FP32 partials. \\
   \bottomrule
-\end{longtable}
+  \end{tabularx}
+\end{table*}
 
 \section{Serving, memory, and agent integration}
 
@@ -397,25 +396,27 @@ curl http://127.0.0.1:30021/v1/chat/completions \
 
 \subsection{Historical API and agent integration}
 
-Earlier work implemented OpenAI-compatible model discovery, streaming chat, a separate optional system-prompt proxy, and tool-result round trips for DeepSeek Harness\cite{dsh}. Those endpoints were not part of the new performance measurements, and the proxy's availability is not revalidated here. No private host address or persona is needed to reproduce the benchmark.
+Earlier work implemented OpenAI-compatible model discovery, streaming chat, a separate optional system-prompt proxy, and tool-result round trips for DeepSeek Harness~\cite{dsh}. Those endpoints were not part of the new performance measurements, and the proxy's availability is not revalidated here. No private host address or persona is needed to reproduce the benchmark.
 
 The earlier parser configuration was:
 
+\noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
 --tool-call-parser deepseekv4
 --reasoning-parser deepseek-v4
 \end{lstlisting}
+\end{minipage}
 
 Streaming/non-streaming tool-call checks were interface smokes, not throughput or model-quality measurements. Reproduction should use the archived launcher and input manifest rather than infer configuration from an old endpoint example.
 
 \section{Remaining risks and next steps}
 
-\begin{enumerate}[leftmargin=2em]
+\begin{enumerate}
   \item \textbf{Capacity is not occupancy.} Fill the allocated 1M pool with controlled long contexts and verify quality, admission, sustained throughput, and exact memory peaks. Current measurements do not provide this evidence.
   \item \textbf{Numerical coverage.} Preserve deterministic Top-K membership/order, test real nonconstant scale layouts, and separate atomic/reduction-order variation from scheduling-dependent trajectories. Fixed-slot CK stage-2 reduction remains a possible experiment, not a measured gain here.
-  \item \textbf{Cold-shape coverage.} Audit exact-M compilation keys, prewarm supported shapes, and report cold/restart/warm TTFT independently. Do not hide latency outliers inside resident-only speed claims.
+  \item \textbf{Cold-shape coverage.} Audit exact-M compilation keys and prewarm supported shapes. Report cold, restarted, and warm TTFT separately. Do not hide latency outliers inside resident-only speed claims.
   \item \textbf{Indexer work.} Active-query production and elimination of full logits materialization are distinct from the accepted trivial-row and empty-tile skips. A historical M128 query-row partition saved about 9.7 microseconds in projection but required about 37 microseconds for optimized index exchange, so it was not integrated. Long-context opportunities require a new matched profile.
-  \item \textbf{Controlled comparisons.} A matched current TP4/TP8 matrix and a fresh strict-DSpark regression remain unfilled evidence gaps. The current update ran neither; unavailable temporary artifacts are not reconstructed as invented measurements.
+  \item \textbf{Controlled comparisons.} Matched TP4 and TP8 matrices and a fresh strict-DSpark regression remain missing. This update ran neither; unavailable temporary artifacts are not reconstructed as invented measurements.
   \item \textbf{Deployment decision.} The C32 consumer remains opt-in after a small positive screen. Broader request mixtures and context ranges are required before changing a global default. The C1 isolation result is not another kernel optimization.
 \end{enumerate}
 
@@ -423,13 +424,21 @@ Streaming/non-streaming tool-call checks were interface smokes, not throughput o
 
 The expanded study combines historical TP4 correctness recovery with a fresh single-instance TP8 evaluation. The formal native-AR matrix reaches 87.60 output tok/s at C1, 1044.32 at C32, and 1334.24 at C64, with 4.68--5.27k input tok/s on separate 8K prefill waves and a 1M allocated logical pool. Matched ABBA tests isolate two important changes: removing work on empty indexer tiles and restoring a missing C1 specialization. A later consumer-fusion screen adds a small 1.54\% resident gain at C32 without changing the C1 kernel.
 
-The engineering evidence emphasizes stored-format/execution mismatch, small per-expert matrices, redundant work, specialization reachability, and fixed synchronization boundaries. It does not provide a hardware-counter roofline proving a single universal bottleneck. Keeping native AR, strict speculation, approximate targets, HTTP latency, and resident throughput separate is as important as the kernel work itself. The final deliverable is an auditable configuration and evidence archive, not a claim of universal bitwise equivalence or a completed million-token quality benchmark.
+The evidence emphasizes the mismatch between stored precision and execution formats, small expert matrices, redundant work, specialization reachability, and fixed synchronization boundaries. It does not provide a hardware-counter roofline proving a single universal bottleneck. Keeping native AR, strict speculation, approximate targets, HTTP latency, and resident throughput separate is as important as the kernel work itself. The final deliverable is an auditable configuration and evidence archive, not a claim of universal bitwise equivalence or a completed million-token quality benchmark.
+
+\bibliography{references}
 
 \appendix
 
 \section{Key checkpoints}
 
-\begin{longtable}{@{}p{0.20\textwidth}p{0.72\textwidth}@{}}
+Table~\ref{tab:checkpoints} lists implementation and evidence revisions.
+Dates and protocol boundaries are recorded in the corresponding experiment ledgers.
+
+\begin{table*}[tp]
+  \caption{Implementation and evidence checkpoints.}
+  \label{tab:checkpoints}
+  \begin{tabularx}{\textwidth}{@{}p{0.20\textwidth}Y@{}}
   \toprule
   Commit & Content \\
   \midrule
@@ -449,7 +458,8 @@ The engineering evidence emphasizes stored-format/execution mismatch, small per-
   \commit{3d73a75923} & Formal seven-tier native P/D archive and C1 GEMV restoration \\
   \commit{fb2e39fca9} & Default-off native C32 down-consumer pilot and C1 isolation \\
   \bottomrule
-\end{longtable}
+  \end{tabularx}
+\end{table*}
 
 \section{Reproducible report build}
 
@@ -461,75 +471,28 @@ make
 make arxiv
 \end{lstlisting}
 
-The report uses pdfLaTeX with TeX-distributed Helvetica-compatible Type 1 fonts. Figures embed Arial and retain only left/bottom spines. Normal compilation does not require Python, Biber, BibTeX, shell escape, host font discovery, or a GPU. Python/Seaborn is needed only to regenerate figures from the frozen data. The source bundle includes all TeX inputs and pre-generated PDF figures, excluding the compiled article and auxiliary files. A local build from the extracted bundle is verified after references stabilize; this is not a claim of testing arXiv's remote service.
+The report follows the supplied PPoPP workshop template's unmodified
+\texttt{acmart} class. Its options are \path{sigplan,10pt,review}. The class
+controls two-column layout, margins, fonts, line numbers, headings and captions;
+no geometry or body-font override is applied. Bibliography formatting uses
+\texttt{ACM-Reference-Format} and BibTeX. Figures embed Arial and retain only
+left/bottom spines. Normal compilation needs neither Python nor a GPU.
+The source bundle contains all TeX inputs, bibliography sources, the generated
+\texttt{main.bbl}, and pre-generated PDF figures. Local compilation of the
+extracted bundle is verified; arXiv's remote service is not tested here.
+The 2024 workshop date is not used as a claim of publication: this is a
+September 2026 technical report using that template, with no submission-page
+limit implied.
 
 \section{Evidence provenance and open gaps}
 
-The report-local \texttt{data/results.json} freezes all three formal rounds per cell, ABBA samples, input/source hashes, and evidence archive identifiers. \texttt{prepare\_report\_data.py} explicitly refreshes that snapshot from repository evidence; normal builds do not access parent directories. Latest formal evidence is under \path{.agents/experiments/dsv4_tp8_revalidation_20260913/}; the consumer pilot is under \path{.agents/experiments/dsv4_tp8_ar_down_consumer_20260914/}. The formal archive contains 278 verified files; the pilot contains 92. Their complete SHA256 values are retained with the report data. These checks protect the recorded artifacts, not unrecorded measurements or the full checkpoint weights.
+The file \path{data/results.json} freezes three rounds per formal cell, ABBA samples, hashes and archive identifiers. The script \path{prepare_report_data.py} refreshes the snapshot from repository evidence; normal builds do not access parent directories. The two evidence directories are:
+\begin{itemize}
+  \item \path{.agents/experiments/dsv4_tp8_revalidation_20260913/}
+  \item \path{.agents/experiments/dsv4_tp8_ar_down_consumer_20260914/}
+\end{itemize}
+The formal archive contains 278 verified files; the pilot contains 92. Complete SHA256 values are retained with the report data. These checks protect recorded artifacts, not unrecorded measurements or full checkpoint weights.
 
 Historical TP4 records and the September 11 DSpark table are ledger evidence with explicitly different protocols. Older temporary full-matrix files were unavailable during this update, so no missing TP4 concurrency cells are filled from memory. Public source excerpts are fixed at repository revision \commit{54b93c45c2}; a source-path list may be longer than the text retained after prompt trimming. Neither source-review prose nor a simple France question measures general code correctness. Dataset-specific performance should not be mistaken for a model-quality benchmark or a matched comparison against another hardware platform.
-
-\begin{thebibliography}{99}
-  \raggedright
-  \bibitem{dsv4card}
-  DeepSeek-AI.
-  \newblock \emph{DeepSeek-V4-Flash Model Card}.
-  \newblock \url{https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash}, 2026.
-
-  \bibitem{amdisa}
-  Advanced Micro Devices, Inc.
-  \newblock \emph{AMD Instinct MI200 CDNA2 Instruction Set Architecture}.
-  \newblock \url{https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi200-cdna2-instruction-set-architecture.pdf}.
-
-  \bibitem{dsv4report}
-  DeepSeek-AI.
-  \newblock \emph{DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence}.
-  \newblock \url{https://arxiv.org/abs/2606.19348}, 2026.
-
-  \bibitem{dspark}
-  X. Cheng et al.
-  \newblock \emph{DSpark: Confidence-Scheduled Speculative Decoding with Semi-Autoregressive Generation}.
-  \newblock \url{https://arxiv.org/abs/2607.05147}, 2026.
-
-  \bibitem{cdna2}
-  Advanced Micro Devices, Inc.
-  \newblock \emph{AMD CDNA 2 Architecture White Paper}.
-  \newblock \url{https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf}.
-
-  \bibitem{sglang}
-  L. Zheng et al.
-  \newblock \emph{SGLang: Efficient Execution of Structured Language Model Programs}.
-  \newblock In \emph{Proceedings of NeurIPS}, 2024. \url{https://arxiv.org/abs/2312.07104}.
-
-  \bibitem{vllm}
-  W. Kwon et al.
-  \newblock \emph{Efficient Memory Management for Large Language Model Serving with PagedAttention}.
-  \newblock In \emph{Proceedings of SOSP}, 2023. \url{https://arxiv.org/abs/2309.06180}.
-
-  \bibitem{dsv3}
-  DeepSeek-AI.
-  \newblock \emph{DeepSeek-V3 Technical Report}.
-  \newblock \url{https://arxiv.org/abs/2412.19437}, 2024.
-
-  \bibitem{megablocks}
-  T. Gale et al.
-  \newblock \emph{MegaBlocks: Efficient Sparse Training with Mixture-of-Experts}.
-  \newblock In \emph{Proceedings of MLSys}, 2023. \url{https://arxiv.org/abs/2211.15841}.
-
-  \bibitem{ck}
-  AMD ROCm.
-  \newblock \emph{Composable Kernel}.
-  \newblock \url{https://github.com/ROCm/composable_kernel}.
-
-  \bibitem{aiter}
-  AMD ROCm.
-  \newblock \emph{AIter: AI Tensor Engine for ROCm}.
-  \newblock \url{https://github.com/ROCm/aiter}.
-
-  \bibitem{dsh}
-  DeepSeek-AI.
-  \newblock \emph{DeepSeek Harness}.
-  \newblock \url{https://github.com/deepseek-ai/deepseek-harness}.
-\end{thebibliography}
 
 \end{document}

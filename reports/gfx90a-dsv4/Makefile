@@ -10,7 +10,7 @@ TEX_INPUTS := $(wildcard sections/*.tex generated/*.tex)
 
 all: $(REPORT).pdf
 
-$(REPORT).pdf: $(REPORT).tex $(TEX_INPUTS) $(FIGURES)
+$(REPORT).pdf: $(REPORT).tex $(TEX_INPUTS) $(FIGURES) references.bib
 	latexmk -pdf -interaction=nonstopmode -halt-on-error $(REPORT).tex
 
 # Ordinary builds consume committed figures; arXiv never runs Python.

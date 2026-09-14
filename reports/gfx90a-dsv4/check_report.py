@@ -62,7 +62,7 @@ def check(root=ROOT, compiled=False):
     contents = '\n'.join((root / p).read_text() for p in tex)
     cited = {key.strip() for keys in re.findall(r'\\cite\w*\{([^}]+)\}', contents)
              for key in keys.split(',')}
-    bibkeys = re.findall(r'\\bibitem\{([^}]+)\}', contents)
+    bibkeys = re.findall(r'@\w+\s*\{\s*([^,\s]+)', (root / 'references.bib').read_text())
     if cited - set(bibkeys):
         raise ValueError(f'Undefined citation keys: {cited - set(bibkeys)}')
     if len(bibkeys) != len(set(bibkeys)):
@@ -74,6 +74,14 @@ def check(root=ROOT, compiled=False):
         raise ValueError(f'Missing/duplicate labels: {refs - set(labels)}')
     if 'fontspec' in contents or '\\setmainfont' in contents:
         raise ValueError('Unexpected host font dependency')
+    if r'\documentclass[sigplan,10pt,review]{acmart}' not in contents:
+        raise ValueError('Document no longer follows the supplied PPoPP class/options')
+    if r'\author{Siming HUANG}' not in contents or r'\institution{HKUST(GZ)}' not in contents:
+        raise ValueError('Author/affiliation differs from the requested metadata')
+    if re.search(r'\\usepackage(?:\[[^\]]*\])?\{(?:geometry|helvet|fontspec|fancyhdr)\}', contents):
+        raise ValueError('Do not override ACM typography or geometry')
+    if r'\bibliographystyle{ACM-Reference-Format}' not in contents:
+        raise ValueError('Missing ACM bibliography style')
     data = json.loads((root / 'data/results.json').read_text())
     if [r['concurrency'] for r in data['matrix']] != [1, 2, 4, 8, 16, 32, 64]:
         raise ValueError('Formal concurrency matrix is incomplete')
@@ -99,7 +107,7 @@ def check(root=ROOT, compiled=False):
         check_log(root)
     print(f'PASS: {len(tex)} TeX inputs, {len(figures)} figures, {len(cited)} cited keys; '
           'seven three-round P/D cells and independent ABBA summaries' +
-          ('; final TeX log clean.' if compiled else '.'))
+          ('; reference/font/overflow checks passed.' if compiled else '.'))
 
 
 if __name__ == '__main__':

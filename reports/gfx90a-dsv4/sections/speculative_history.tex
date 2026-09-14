@@ -28,7 +28,7 @@ TP-synchronized draft/accept decisions, a 1M logical pool, and gamma three.
 It used 32 real-code requests, 512 outputs with \texttt{ignore\_eos}, and
 chunk 2304. Four measured resident windows per family gave:
 
-\begin{table}[htbp]
+\begin{table*}[tp]
   \centering
   \caption{Historical full-target DSpark only; not a current AR comparison.
   Acceptance and throughput are reported in their original trial scope.}
@@ -42,7 +42,7 @@ chunk 2304. Four measured resident windows per family gave:
     Fusion + FP16 mixing & 1142.26 & 2.698 & +6.44\% \\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{table*}
 
 FP32 mixing was selected historically. The FP16--FP32 mean gap of about
 1.31\% was smaller than the observed FP16-family range of 2.5\%, their ranges
@@ -51,13 +51,14 @@ larger component perturbation and the trial's single observed semantic
 degeneration. These observations motivate the conservative choice, not a
 statistical proof that either rounding variant is universally safer.
 
-\begin{figure}[htbp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=.90\textwidth]{figures/strict_dspark_history.pdf}
   \caption{Historical strict DSpark family means with the ledger's rounded
   observed min/max ranges, not confidence intervals. Native AR, natural EOS,
   and the September 14 C32 pilot are deliberately not plotted on this axis.}
-\end{figure}
+  \Description{Historical strict DSpark means are 1073.16 for control, 1127.48 for FP32 fusion, and 1142.26 for FP16 fusion; intervals are rounded observed ranges, not confidence intervals.}
+\end{figure*}
 
 \subsection{Acceptance, timing, and drift}
 

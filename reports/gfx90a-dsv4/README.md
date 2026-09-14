@@ -1,17 +1,30 @@
-# DeepSeek-V4-Flash on MI250: technical report v0.3
+# DeepSeek-V4-Flash on MI250: PPoPP-template edition
 
 English report, updated September 14, 2026. The principal new result is the
 single-instance TP8 native-AR matrix (C1/2/4/8/16/32/64), with separate prefill,
 resident-decode, and whole-wave HTTP metrics. Historical TP4, strict DSpark,
 approximate-target DSpark, and the new opt-in C32 consumer pilot are explicitly
 separated. No new GPU measurements were performed to produce this report.
+Author: **Siming HUANG**, **HKUST(GZ)** (Guangzhou, China). No email or ORCID
+was supplied, so neither is invented.
 
 ## Build the paper
 
-Use **pdfLaTeX**, not XeLaTeX. Body text uses TeX-distributed Type 1 Helvetica;
-the pre-generated Seaborn figures embed Arial. This avoids the earlier arXiv
-`fontspec`/system-font failure. References use `thebibliography` inside `main.tex`:
-there is no BibTeX/Biber, shell escape, or external style file.
+Use **pdfLaTeX**, not XeLaTeX. The document uses the supplied template's exact
+`\documentclass[sigplan,10pt,review]{acmart}` and topmatter policy. ACM controls
+the two-column layout, 10pt body font, margins, review line numbers, headings,
+and captions. There are no body-font, geometry, or page-style overrides. Figures
+retain embedded Arial and only left/bottom spines.
+
+References now use **BibTeX + ACM-Reference-Format**, from `references.bib`.
+`latexmk` runs BibTeX automatically. No shell escape, Biber, or fontspec is needed.
+The 2024 event's metadata is replaced with a September 2026 technical-report
+identifier; using its template is not a claim of acceptance/publication at
+PPoPP'24. The full report is retained; no workshop page-limit compliance is claimed.
+The class can warn that final ACM-reference/CCS topmatter is mandatory for long
+papers: these are expected with the supplied review template's disabled topmatter,
+not unresolved citations. A camera-ready submission would require the venue's
+actual metadata and final topmatter policy; neither is fabricated here.
 
 ```bash
 cd reports/gfx90a-dsv4
@@ -31,18 +44,38 @@ is local verification, not a claim that arXiv's remote build was tested.
 
 For arXiv, upload **the source archive**, not `main.pdf`. Select **pdfLaTeX**;
 the pre-generated figure PDFs are included. The archive excludes the compiled
-article, auxiliary files, raw benchmark responses, plotting dependencies, and
-Python scripts. The small frozen numerical snapshot is included for provenance.
+article, disposable auxiliary files, raw benchmark responses, plotting dependencies,
+and Python scripts. It includes `references.bib` and the generated **`main.bbl`**,
+so ordinary pdfLaTeX passes can use the precompiled bibliography. Standard
+`acmart` and `ACM-Reference-Format` are required from TeX Live, not modified or
+substituted by local classes. The frozen numerical snapshot is also included.
 
 Typical Ubuntu TeX dependencies (install only if `make check` reports missing):
 
 ```bash
 sudo apt-get install --no-install-recommends \
-  texlive-latex-extra texlive-pictures texlive-fonts-recommended latexmk
+  texlive-publishers texlive-fonts-extra texlive-plain-generic \
+  texlive-latex-extra texlive-pictures latexmk
 ```
 
 No environment creation or package installation is part of the build. Use the
 existing conda environment; `PYTHON=/path/to/python make check` overrides Python.
+
+On this host the user installed publishers/font packages. A missing `binhex.tex`
+dependency of newtxmath was copied unmodified from the matching Ubuntu
+`texlive-plain-generic` package into the user's TeX tree; the package installation
+above is the regular system-wide alternative.
+
+## Supplied template provenance
+
+Input: `../Differentiable_Programming_Workshop_at_PPoPP_24_Template.zip`.
+SHA256: `8ae9f4a69be3ad1aaffd151e6827c506de9f1122cb9ee08188dd1713b45d7da7`.
+It contains `main.tex` and a sample `bibfile.bib`, not a custom class.
+Its class/options, `printfolios=true,printccs=false,printacmref=false`,
+`setcopyright{none}`, and ACM bibliography style are preserved. Placeholder
+authors, email, ORCID, unrelated CCS, sample reference, and 2024 conference
+claims are not copied. The template ZIP is preserved as supplied and is not a
+build dependency of the updated report.
 
 ## Regenerate data and figures
 

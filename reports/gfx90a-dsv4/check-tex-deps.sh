@@ -3,7 +3,7 @@ set -euo pipefail
 
 missing=0
 
-for command_name in pdflatex latexmk kpsewhich; do
+for command_name in pdflatex bibtex latexmk kpsewhich; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
     echo "missing command: ${command_name}"
     missing=1
@@ -12,11 +12,10 @@ done
 
 if command -v kpsewhich >/dev/null 2>&1; then
   for tex_file in \
-    article.cls fontenc.sty helvet.sty courier.sty geometry.sty \
-    amsmath.sty amssymb.sty booktabs.sty longtable.sty tabularx.sty \
-    array.sty multirow.sty graphicx.sty xcolor.sty enumitem.sty \
-    fancyhdr.sty listings.sty upquote.sty caption.sty tikz.sty \
-    hyperref.sty cleveref.sty phvr8t.tfm pcrr8t.tfm; do
+    acmart.cls ACM-Reference-Format.bst libertine.sty zi4.sty newtxmath.sty \
+    binhex.tex fontenc.sty amsmath.sty booktabs.sty tabularx.sty \
+    graphicx.sty xcolor.sty listings.sty upquote.sty subcaption.sty \
+    tikz.sty hyperref.sty cleveref.sty xurl.sty; do
     if [[ -z "$(kpsewhich "${tex_file}")" ]]; then
       echo "missing TeX file: ${tex_file}"
       missing=1
@@ -38,4 +37,4 @@ if (( missing )); then
   exit 1
 fi
 
-echo "pdfLaTeX commands, packages, and TeX-distributed fonts are available."
+echo "PPoPP/acmart, BibTeX, and template-default font dependencies are available."
