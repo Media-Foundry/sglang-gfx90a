@@ -11,9 +11,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--stable-qkv', action='store_true')
 parser.add_argument('--stable-wqb', action='store_true')
 parser.add_argument('--stable-wob', action='store_true')
+parser.add_argument('--stable-shared', action='store_true')
+parser.add_argument('--run-name')
 args = parser.parse_args()
 assert not args.stable_wqb or args.stable_qkv
 assert not args.stable_wob or args.stable_wqb
+assert not args.stable_shared or args.stable_wob
 source = root / "layer1-prepare" / "prepare-summary.json"
 summary = json.loads(source.read_text())
 record = next(r for r in summary["comparisons"]["A1-B1"]
@@ -22,7 +25,9 @@ positions = sorted(set(record["changed_rows"]) | {0, 511, 640, 2047, 4095, 8191}
 assert len(record["changed_rows"]) == 147
 subprocess.run([
     sys.executable, str(root / "run.py"), "--run-name",
-    ("layer0-stable-qkv-wqb-wob" if args.stable_wob else
+    (args.run_name if args.run_name else
+     "layer0-stable-qkv-wqb-wob-shared" if args.stable_shared else
+     "layer0-stable-qkv-wqb-wob" if args.stable_wob else
      "layer0-stable-qkv-wqb" if args.stable_wqb else
      "layer0-stable-qkv" if args.stable_qkv else "layer0-changed-rows"),
     "--rank", "-1", "--short", "--fp32-attn-ar", "--stable-woa", "--fp32-ffn-ar",
@@ -31,4 +36,5 @@ subprocess.run([
     *(["--stable-qkv"] if args.stable_qkv else []),
     *(["--stable-wqb"] if args.stable_wqb else []),
     *(["--stable-wob"] if args.stable_wob else []),
+    *(["--stable-shared"] if args.stable_shared else []),
 ], check=True)

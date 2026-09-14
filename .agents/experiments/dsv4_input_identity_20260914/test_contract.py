@@ -17,6 +17,26 @@ from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
 
 
 class Contract(unittest.TestCase):
+    def test_shared_guard_and_forward_batch_scope(self):
+        from sglang.kernels.ops.debug.dsv4_prefill_shared import shared
+        with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE':'0'}):
+            self.assertFalse(enabled_for(None,None,None,None,
+                             flag='SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE'))
+        with self.assertRaises(ValueError):
+            shared(torch.empty(32,4096),torch.empty(512,4096),torch.empty(4096,256),10.)
+        source=Path(__file__).resolve().parents[3]/'python/sglang/srt/models/deepseek_v2.py'
+        tree=ast.parse(source.read_text())
+        callers=[]
+        for node in ast.walk(tree):
+            if isinstance(node,ast.FunctionDef):
+                for call in ast.walk(node):
+                    if (isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute)
+                            and call.func.attr=='_forward_shared_experts'
+                            and any(k.arg=='forward_batch' for k in call.keywords)):
+                        callers.append(node.name)
+        # ast.walk also visits the nested SBO hook from its owning method.
+        self.assertEqual(callers,['forward_normal']*3+['_pre_combine_hook'])
+
     def test_stable_wob_disabled_and_geometry_contract(self):
         source=Path(__file__).resolve().parents[3]/'python/sglang/srt/models/deepseek_v4.py'
         tree=ast.parse(source.read_text())

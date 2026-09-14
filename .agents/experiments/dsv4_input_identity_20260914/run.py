@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--stable-qkv',action='store_true')
     parser.add_argument('--stable-wqb',action='store_true')
     parser.add_argument('--stable-wob',action='store_true')
+    parser.add_argument('--stable-shared',action='store_true')
     parser.add_argument('--stage-layer',type=int,default=0)
     parser.add_argument('--skip-weight-dumps',action='store_true')
     parser.add_argument('--sample-positions',default='0,511,2047,4095,8191')
@@ -63,6 +64,7 @@ def main():
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE={int(args.stable_qkv)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE={int(args.stable_wqb)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE={int(args.stable_wob)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE={int(args.stable_shared)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_STAGE_SKIP_WEIGHTS={int(args.skip_weight_dumps)}\n'
     launch=(old/'start-ar-matrix.sh').read_text().replace(
         'exec bash scripts/rocm_dsv4_flash.sh serve',flags+'exec bash scripts/rocm_dsv4_flash.sh serve')
@@ -70,6 +72,15 @@ def main():
     state=life.start('INPUT-IDENTITY',0)
     try:
         life.ready(state)
+        if args.stable_shared:
+            env=life.owned(state).environ()
+            assert env.get('SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE')=='1'
+            paths=('python/sglang/srt/models/deepseek_v2.py',
+                   'python/sglang/kernels/ops/debug/dsv4_prefill_shared.py')
+            life.save('shared-runtime-contract.json',dict(
+                flag=env['SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE'],
+                pythonpath=env.get('PYTHONPATH'),
+                sources={p:hashlib.sha256((REPO/p).read_bytes()).hexdigest() for p in paths}))
         from transformers import AutoTokenizer
         tokenizer=AutoTokenizer.from_pretrained('/home/pc/models/modelscope',local_files_only=True)
         canonical=list(range(16));changed=canonical.copy()
@@ -109,6 +120,8 @@ def main():
                 hashes=[digest(r['prompt_token_ids']) for r in normalized]))
             life.save('identity.json',evidence)
             print('INPUT ECHO OK',name,16,flush=True)
+            if name=='warmup' and args.stable_shared:
+                assert 'DSV4 diagnostic stable shared selected' in Path(state['log']).read_text(), 'Shared selector did not execute; inspect scope log before further requests'
         life.save('complete.json',dict(waves=[j[0] for j in jobs],diagnostic_only=True))
     finally:
         life.stop(state)

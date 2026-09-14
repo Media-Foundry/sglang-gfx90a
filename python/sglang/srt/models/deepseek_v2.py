@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import contextmanager, nullcontext
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -1581,6 +1582,7 @@ class DeepseekV2MoE(nn.Module):
                     hidden_states,
                     gemm_output_zero_allocator,
                     pre_quant_input=pre_quant_input,
+                    forward_batch=forward_batch,
                 )
             mark(17)
             # router_logits: (num_tokens, n_experts)
@@ -1644,7 +1646,8 @@ class DeepseekV2MoE(nn.Module):
                 self.alt_stream.wait_stream(torch.cuda.current_stream())
                 with torch.cuda.stream(self.alt_stream):
                     shared_output = self._forward_shared_experts(
-                        hidden_states, gemm_output_zero_allocator
+                        hidden_states, gemm_output_zero_allocator,
+                        forward_batch=forward_batch,
                     )
 
                 pre_combine_hook_handle.remove()
@@ -1705,6 +1708,7 @@ class DeepseekV2MoE(nn.Module):
                 hidden_states,
                 gemm_output_zero_allocator,
                 pre_quant_input=pre_quant_input,
+                forward_batch=forward_batch,
             )
         mark(21)
 
@@ -2055,8 +2059,32 @@ class DeepseekV2MoE(nn.Module):
         gemm_output_zero_allocator: BumpAllocator = None,
         pre_quant_input: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         replicated_input: bool = False,
+        forward_batch: Optional[ForwardBatch] = None,
     ):
         if (hidden_states.shape[0] > 0) and (self.num_fused_shared_experts == 0):
+            if (os.getenv("SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE", "0") == "1"
+                    and hidden_states.shape[0] >= 8192
+                    and not getattr(self, "_stable_shared_scope_logged", False)):
+                logging.getLogger(__name__).info(
+                    "DSV4 stable shared scope: M=%s tp=%s dsv4=%s batch=%s file=%s",
+                    hidden_states.shape[0], self.tp_size, self.gate.is_deepseek_v4,
+                    None if forward_batch is None else forward_batch.forward_mode, __file__)
+                self._stable_shared_scope_logged = True
+            if (forward_batch is not None and self.gate.is_deepseek_v4
+                    and os.getenv("SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE", "0") == "1"):
+                from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+                if enabled_for(forward_batch, hidden_states.device, hidden_states.shape[0],
+                               self.tp_size, flag="SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE"):
+                    from sglang.kernels.ops.debug.dsv4_prefill_shared import shared
+
+                    g,d=self.shared_experts.gate_up_proj,self.shared_experts.down_proj
+                    if (pre_quant_input is not None or g.tp_size != 8 or d.tp_size != 8
+                            or d.reduce_results or g.bias is not None or d.bias is not None
+                            or not all(getattr(p,"_use_cached_block_fp8_bf16_weight",False)
+                                       for p in (g,d))):
+                        raise ValueError("Stable shared requires unquantized input and cached BF16 TP8 projections")
+                    return shared(hidden_states,g.weight,d.weight,self.shared_experts.swiglu_limit)
             if self._mori_shared_expert_tp and not replicated_input:
                 hidden_states = tensor_model_parallel_all_gather(
                     hidden_states, dim=0
