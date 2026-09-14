@@ -2,7 +2,9 @@
 
 A preserves the launcher legacy batch1/FP16 split-K path. B suppresses only
 legacy admission in an active large-prefill scope. R uses existing batch2
-FP32 dispatch as a reference. This does not modify production code or weights.
+FP32 dispatch (20 Sinkhorn iterations); R8 aligns only its Sinkhorn iteration
+selection with batch1 (8). B/R8 must be exact. R remains a diagnostic.
+This does not modify production code or weights.
 Run only after the service experiment stops; timings are not E2E throughput.
 """
 import argparse
@@ -67,7 +69,13 @@ assert seed.ndim==3 and seed.shape[1:]==(4,4096) and seed.dtype==torch.bfloat16
 assert fn.shape==(24,16384) and scale.shape==(3,) and base.shape==(24,) and norm.shape==(4096,)
 fn16=fn.half().contiguous()
 original_admitted=mhc._mhc_fusion_admitted
+original_tp_group=mhc.get_tp_group
+original_symmetric=mhc.is_allocation_symmetric
+original_sinkhorn=mhc.hc_split_sinkhorn
 result=dict(status='running',scope=__doc__,settings=settings,results=[],
+    driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    large_prefill_sinkhorn_iterations=dict(A=8,B=8,R=20,R8=8),
+    allocation_scope='Single-GCD component with symmetric allocation disabled in all arms; not a TP8 collective/mempool benchmark.',
     captured_sha256={str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in paths.values()},
     source_sha256={name:hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in (
         'python/sglang/kernels/ops/layernorm/mhc.py',
@@ -114,20 +122,35 @@ for m in args.sizes:
             if arm=='B' and scope and _mix_reuse.get():return False
             return original_admitted(bs)
         mhc._mhc_fusion_admitted=admitted
+        # The boundary launches no collective, but evaluates get_tp_group()
+        # even for a disabled symmetric-allocation context. Match existing
+        # single-GCD MHC oracles without pretending to initialize TP8.
+        mhc.get_tp_group=lambda:None
+        mhc.is_allocation_symmetric=lambda:False
+        def aligned_sinkhorn(mixes,hc_scale,hc_base,hc_mult=4,sinkhorn_iters=20,
+                             eps=1e-6,gfx90a_global_batch_size=None):
+            return original_sinkhorn(mixes,hc_scale,hc_base,hc_mult,sinkhorn_iters,eps,1)
+        if arm=='R8' and scope:mhc.hc_split_sinkhorn=aligned_sinkhorn
         try:
             return mhc.mhc_fused_post_pre(x,residual,post,comb,fn,scale,base,
                 # The model-level argument is20; the gfx90a path uses the
                 # existing environment override8 internally in both arms.
                 1e-6,1e-6,1e-6,2.,20,norm_weight=norm,norm_eps=1e-6,
-                global_batch_size=2 if arm=='R' and scope else 1,fn_fp16=fn16)
+                global_batch_size=2 if arm in ('R','R8') and scope else 1,fn_fp16=fn16)
         finally:
             mhc._mhc_fusion_admitted=original_admitted
+            mhc.get_tp_group=original_tp_group
+            mhc.is_allocation_symmetric=original_symmetric
+            mhc.hc_split_sinkhorn=original_sinkhorn
             _post_reuse.reset(post_token)
             _mix_reuse.reset(mix_token)
     for _ in range(3):
-        for arm in ('A','B','R'):call(arm)
-    a,b,r=call('A'),call('B'),call('R')
-    assert exact(b,r),'Proposed priority differs from existing FP32 reference'
+        for arm in ('A','B','R','R8'):call(arm)
+    a,b,r,r8=call('A'),call('B'),call('R'),call('R8')
+    result['last_reference_check']=dict(m=m,matched8=errors(b,r8),batch2_20=errors(b,r))
+    save()
+    assert exact(b,r8),'Proposed priority differs from matched-iteration FP32 reference'
+    reference_20_difference=errors(b,r)
     if not scope:assert exact(a,b),'Small-M legacy behavior changed'
     initial=errors(a,b)
     assert all(x['finite'] for x in initial)
@@ -145,8 +168,8 @@ for m in args.sizes:
         residual.mul_(torch.empty(m,1,1,device='cuda',dtype=torch.bfloat16).uniform_(.97,1.03))
         x.normal_(std=.1);post.normal_(std=.01)
         comb.copy_(torch.eye(4,device='cuda')[None,:,:]+torch.randn_like(comb)*.01)
-        a,b,r=call('A'),call('B'),call('R')
-        assert exact(b,r),(m,mutation,'FP32 reference')
+        a,b,r8=call('A'),call('B'),call('R8')
+        assert exact(b,r8),(m,mutation,'matched-iteration FP32 reference')
         if not scope:assert exact(a,b),(m,mutation,'small M')
         differences=errors(a,b)
         assert all(x['finite'] for x in differences),(m,mutation,'non-finite A/B')
@@ -158,10 +181,11 @@ for m in args.sizes:
     assert exact(original,[t[inverse] for t in permuted]),'Candidate row permutation'
     item=dict(m=m,active_large_prefill=scope,reference_exact=True,mutations=args.mutations,
               row_permutation_exact=True,legacy_difference=initial,
+              batch2_20_iteration_difference=reference_20_difference,
               mutation_differences=mutation_differences,replay_stability=stability,samples_ms=samples,
               median_ms={k:median(v) for k,v in samples.items()})
     item['speedup']=item['median_ms']['A']/item['median_ms']['B']
     result['results'].append(item);save();print(json.dumps(item),flush=True)
-    del residual,x,post,comb,a,b,r,original,permuted,order,inverse
+    del residual,x,post,comb,a,b,r,r8,original,permuted,order,inverse
     torch.cuda.empty_cache()
 result['status']='complete';save()

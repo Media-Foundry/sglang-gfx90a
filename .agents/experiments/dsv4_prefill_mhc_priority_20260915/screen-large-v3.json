@@ -1,0 +1,1239 @@
+{
+  "status": "complete",
+  "scope": "Whole MHC boundary screen using captured residual/Fn and synthetic post inputs.\n\nA preserves the launcher legacy batch1/FP16 split-K path. B suppresses only\nlegacy admission in an active large-prefill scope. R uses existing batch2\nFP32 dispatch (20 Sinkhorn iterations); R8 aligns only its Sinkhorn iteration\nselection with batch1 (8). B/R8 must be exact. R remains a diagnostic.\nThis does not modify production code or weights.\nRun only after the service experiment stops; timings are not E2E throughput.\n",
+  "settings": {
+    "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+    "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+    "SGLANG_DSV4_GFX90A_MHC_BLOCK_K": "1024",
+    "SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY": "1",
+    "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+    "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+    "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+    "SGLANG_DSV4_GFX90A_BF16_MHC_DOT": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+    "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+    "SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION": "0"
+  },
+  "results": [
+    {
+      "m": 32767,
+      "active_large_prefill": true,
+      "reference_exact": true,
+      "mutations": 10,
+      "row_permutation_exact": true,
+      "legacy_difference": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 1.800060272216797e-05,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 6.321072578430176e-05,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        }
+      ],
+      "batch2_20_iteration_difference": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.16722455620765686,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "mutation_differences": [
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8775463104248047e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.684660911560059e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8715858459472656e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.833672523498535e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.895427703857422e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.732344627380371e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.901388168334961e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.651878356933594e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8835067749023438e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.654858589172363e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.9073486328125e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.726384162902832e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.648898124694824e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.768107414245605e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.895427703857422e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.666779518127441e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8835067749023438e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.690621376037598e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ]
+      ],
+      "replay_stability": {
+        "A": {
+          "replays": 6,
+          "exact_replays": 6,
+          "comparisons": [
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ]
+          ]
+        },
+        "B": {
+          "replays": 6,
+          "exact_replays": 6,
+          "comparisons": [
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ]
+          ]
+        }
+      },
+      "samples_ms": {
+        "A": [
+          11.929220581054688,
+          11.931813049316407,
+          11.925955963134765,
+          11.970020294189453,
+          11.921987915039063,
+          11.929540252685547
+        ],
+        "B": [
+          13.27130126953125,
+          13.275396728515625,
+          13.254692077636719,
+          13.258436584472657,
+          13.270500183105469,
+          13.249156188964843
+        ]
+      },
+      "median_ms": {
+        "A": 11.929380416870117,
+        "B": 13.264468383789062
+      },
+      "speedup": 0.8993485507077993
+    },
+    {
+      "m": 32768,
+      "active_large_prefill": true,
+      "reference_exact": true,
+      "mutations": 10,
+      "row_permutation_exact": true,
+      "legacy_difference": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 1.800060272216797e-05,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 6.321072578430176e-05,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        }
+      ],
+      "batch2_20_iteration_difference": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.16722455620765686,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "mutation_differences": [
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8835067749023438e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.684660911560059e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.687641143798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.663799285888672e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.771087646484375e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8835067749023438e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.684660911560059e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.901388168334961e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.654858589172363e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.67870044708252e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.901388168334961e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.708502769470215e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8894672393798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.687641143798828e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ],
+        [
+          {
+            "bits_exact": true,
+            "max_abs": 0.0,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 1.8835067749023438e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 6.708502769470215e-05,
+            "finite": true
+          },
+          {
+            "bits_exact": false,
+            "max_abs": 0.0078125,
+            "finite": true
+          }
+        ]
+      ],
+      "replay_stability": {
+        "A": {
+          "replays": 6,
+          "exact_replays": 6,
+          "comparisons": [
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ]
+          ]
+        },
+        "B": {
+          "replays": 6,
+          "exact_replays": 6,
+          "comparisons": [
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ],
+            [
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              },
+              {
+                "bits_exact": true,
+                "max_abs": 0.0,
+                "finite": true
+              }
+            ]
+          ]
+        }
+      },
+      "samples_ms": {
+        "A": [
+          11.9573486328125,
+          13.450021362304687,
+          11.995620727539062,
+          11.962308502197265,
+          11.96480484008789,
+          11.966244506835938
+        ],
+        "B": [
+          13.276036071777344,
+          13.271812438964844,
+          13.275685119628907,
+          13.284100341796876,
+          13.284420776367188,
+          13.289381408691407
+        ]
+      },
+      "median_ms": {
+        "A": 11.965524673461914,
+        "B": 13.28006820678711
+      },
+      "speedup": 0.9010137965516347
+    }
+  ],
+  "driver_sha256": "693a3083b752db1e902b204d16a3960902b499d04b2ed9a0ac0a93d2f957c50c",
+  "large_prefill_sinkhorn_iterations": {
+    "A": 8,
+    "B": 8,
+    "R": 20,
+    "R8": 8
+  },
+  "allocation_scope": "Single-GCD component with symmetric allocation disabled in all arms; not a TP8 collective/mempool benchmark.",
+  "captured_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_scale.pt": "b74ac7c4104b1ee46eb736aca4d7fc30fd7dc151dac1702aee07baf86c358b84",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_base.pt": "25d45adca4e6bcc9e3175a079d7f945a746bafc7a015f9b48b79f8ae8e2405c9",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_norm_weight.pt": "3c7cb027fd29d56a5a507193a017e5f4ce1efb821cc1916e3a645cd4c5c67b93"
+  },
+  "source_sha256": {
+    "python/sglang/kernels/ops/layernorm/mhc.py": "ead7fdb38a6156e53734e856ef047206b55f20333b5856685bb0381ce1090791",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py": "b915c418be6f149253821d4f3d677f04278bfa80cd31e70ad916f76a5f845326",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse8.py": "a3976a71ddae0bc09a55a0bf094c2aadb245549f060a9f7e6ca85fa42f9be72b"
+  },
+  "last_reference_check": {
+    "m": 32768,
+    "matched8": [
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      },
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      },
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      },
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      }
+    ],
+    "batch2_20": [
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      },
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      },
+      {
+        "bits_exact": false,
+        "max_abs": 0.16722455620765686,
+        "finite": true
+      },
+      {
+        "bits_exact": true,
+        "max_abs": 0.0,
+        "finite": true
+      }
+    ]
+  }
+}

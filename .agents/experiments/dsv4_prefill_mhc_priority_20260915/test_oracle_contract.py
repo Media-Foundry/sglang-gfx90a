@@ -5,6 +5,16 @@ import unittest
 
 
 class TestPreparedOracle(unittest.TestCase):
+    def test_reference_alignment_changes_only_sinkhorn_batch_hint(self):
+        tree=ast.parse(Path(__file__).with_name('oracle.py').read_text())
+        fn=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='aligned_sinkhorn')
+        ns=dict(original_sinkhorn=lambda *args:args)
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),'aligned','exec'),ns)
+        inputs=('mix','scale','base',4,20,1e-6,2)
+        result=ns['aligned_sinkhorn'](*inputs)
+        self.assertEqual(result[:-1],inputs[:-1])
+        self.assertEqual(result[-1],1)
+
     def test_replay_check_does_not_compare_workspace_aliases(self):
         tree=ast.parse(Path(__file__).with_name('oracle.py').read_text())
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='replay_stability')
@@ -35,6 +45,10 @@ class TestPreparedOracle(unittest.TestCase):
         body_try=next(n for n in function.body if isinstance(n,ast.Try))
         self.assertIn('mhc._mhc_fusion_admitted = original_admitted',
                       [ast.unparse(n) for n in body_try.finalbody])
+        for restoration in ('mhc.get_tp_group = original_tp_group',
+                            'mhc.is_allocation_symmetric = original_symmetric',
+                            'mhc.hc_split_sinkhorn = original_sinkhorn'):
+            self.assertIn(restoration,[ast.unparse(n) for n in body_try.finalbody])
 
     def test_small_m_and_out_of_scope_keep_legacy(self):
         tree=ast.parse(Path(__file__).with_name('oracle.py').read_text())
