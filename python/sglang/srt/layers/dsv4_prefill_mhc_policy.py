@@ -13,9 +13,19 @@ from functools import wraps
 import torch
 
 ENV = "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS"
+REFINE_ENV = "SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20"
 _config_iters = ContextVar("dsv4_prefill_mhc_config_iters", default=None)
 _logged = set()
 logger = logging.getLogger(__name__)
+
+
+def comb_refine_active(num_tokens: int) -> bool:
+    """Only the scoped full20 large-prefill boundary may split its iterations."""
+    return (
+        os.getenv(REFINE_ENV, "0") == "1"
+        and _config_iters.get() == 20
+        and 8192 <= num_tokens <= 65536
+    )
 
 
 def resolve_sinkhorn_iters(default: int) -> int:

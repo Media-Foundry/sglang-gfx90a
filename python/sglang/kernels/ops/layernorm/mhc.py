@@ -39,8 +39,12 @@ if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
 _prefill_splitk_paths_logged = set()
 
 _prefill_sinkhorn_iters = None
+_prefill_comb_refine_active = None
+_prefill_comb_refine_logged = False
 if os.getenv("SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS", "0") == "1":
     from sglang.srt.layers.dsv4_prefill_mhc_policy import resolve_sinkhorn_iters as _prefill_sinkhorn_iters
+    if os.getenv("SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20", "0") == "1":
+        from sglang.srt.layers.dsv4_prefill_mhc_policy import comb_refine_active as _prefill_comb_refine_active
 
 
 def _log_prefill_splitk_dispatch(path, num_tokens, global_batch_size, weight_dtype):
@@ -757,6 +761,10 @@ def gfx90a_mhc_splitk_fused_tail_triton(
         BLOCK_K=1024,
         num_warps=1,
     )
+    refine_comb = (
+        _prefill_comb_refine_active is not None
+        and _prefill_comb_refine_active(num_tokens)
+    )
     _gfx90a_mhc_splitk_fused_tail_kernel[(num_tokens,)](
         dot_partials,
         rms_partials,
@@ -769,13 +777,21 @@ def gfx90a_mhc_splitk_fused_tail_triton(
         out,
         eps=sinkhorn_eps,
         norm_eps=norm_eps,
-        SINKHORN_ITERS=(
+        SINKHORN_ITERS=8 if refine_comb else (
             _prefill_sinkhorn_iters(envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get())
             if _prefill_sinkhorn_iters is not None
             else envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
         ),
         num_warps=8,
     )
+    if refine_comb:
+        from sglang.kernels.ops.layernorm.gfx90a_mhc_comb_refine import refine_comb20
+
+        refine_comb20(comb, sinkhorn_eps)
+        global _prefill_comb_refine_logged
+        if not _prefill_comb_refine_logged:
+            logger.info("DSV4 TP8 prefill comb-refine20 selected: rows=%d iterations=8+12", num_tokens)
+            _prefill_comb_refine_logged = True
     _log_prefill_splitk_dispatch("fused_tail", num_tokens, global_batch_size, mix_weight.dtype)
     return post, comb, out
 

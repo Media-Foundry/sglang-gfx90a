@@ -13,13 +13,26 @@ from transformers import AutoTokenizer
 root=Path(__file__).resolve().parent;repo=root.parents[2]
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--arm',required=True,choices=('A1','B','A2'))
+p.add_argument('--comb-refine',action='store_true',help='Independent full20 versus exact8+12 trial; separate output root.')
 args=p.parse_args()
 candidate=args.arm=='B'
+policy_root=root
+if args.comb_refine:
+    root=root.parent/'dsv4_prefill_mhc_refine20_service_20260915'
+    root.mkdir(exist_ok=True)
+    checked=json.loads((root.parent/'dsv4_prefill_mhc_refine20_20260915/integrated.json').read_text())
+    assert checked['status']=='complete' and checked['integrated']
+    assert {r['m'] for r in checked['results']}=={1,128,8192,32767,32768,65536}
+    assert all(r['all_outputs_exact'] and r['row_permutation_exact'] and r['graph_replays']==1000
+               and r['graph_mutation_exact'] for r in checked['results'])
+    assert all(r['median_ms']['B'] < .98*r['median_ms']['A'] for r in checked['results'] if r['m']>=8192)
+    assert all(hashlib.sha256(Path(path).read_bytes()).hexdigest()==digest
+               for path,digest in checked['source_sha256'].items()),'Integrated oracle source changed'
 previous=root.parent/'dsv4_c16_query_wide32k_service_20260915'
 assert json.loads((previous/'summary.json').read_text())['throughput_gain_percent']>2
 assert all(json.loads((previous/a/f'P16-wide32k-{a}.stop.json').read_text())['remaining']==[] for a in ('A1','B','A2'))
 for name in ('screen.json','large.json'):
-    component=json.loads((root/name).read_text())
+    component=json.loads((policy_root/name).read_text())
     assert component['status']=='complete'
     assert all(x['reference_exact'] and x['row_permutation_exact'] for x in component['results'])
 out=root/args.arm;out.mkdir(exist_ok=False)
@@ -41,7 +54,8 @@ flags={
     'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE':'8',
     'SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES':'0',
     'SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS':'8',
-    'SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS':str(int(candidate)),
+    'SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS':str(int(args.comb_refine or candidate)),
+    'SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20':str(int(args.comb_refine and candidate)),
 }
 needle='exec bash scripts/rocm_dsv4_flash.sh serve'
 assert base.count(needle)==1
@@ -51,12 +65,16 @@ base=base.replace(needle,'\n'.join(f'export {k}={v}' for k,v in flags.items())+
 paths=set(json.loads((previous/'B/plan.json').read_text())['sources'])
 paths.update(('python/sglang/srt/layers/dsv4_prefill_mhc_policy.py',
               'python/sglang/kernels/ops/layernorm/gfx90a_mhc_post_pre.py'))
+if args.comb_refine:
+    paths.add('python/sglang/kernels/ops/layernorm/gfx90a_mhc_comb_refine.py')
 def hashes():return {p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in sorted(paths)}
 sources=hashes()
 life.save('plan.json',dict(candidate=candidate,flags=flags,sources=sources,
     head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
     input_sha256=hashlib.sha256((out/'inputs.json').read_bytes()).hexdigest(),
-    scope='Only native TP8 ordinary prefill Sinkhorn policy; all arms keep wide query reuse, original checkpoint, 1M KV, legacy FP16 Fn and native AR decode.'))
+    comb_refine_trial=args.comb_refine,
+    driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    scope=('Full20 policy in all arms; only exact comb8+12 split changes.' if args.comb_refine else 'Only native TP8 ordinary prefill Sinkhorn policy changes.')+' All arms keep wide query reuse, original checkpoint, 1M KV, legacy FP16 Fn and native AR decode.'))
 label='P16-mhc20-'+args.arm
 state=life.start(label,0)
 try:
@@ -95,7 +113,10 @@ try:
                 assert any(f'TP{rank}]' in s and 'prefill wide-query-reuse selected:' in s and 'C4_capacity=8192' in s for s in lines)
                 assert any(f'TP{rank}]' in s and 'prefill splitk selected:' in s and 'weight_dtype=torch.float16' in s for s in lines)
                 policy_hit=any(f'TP{rank}]' in s and 'MHC Sinkhorn policy selected: legacy=8 config=20' in s for s in lines)
-                assert policy_hit==candidate,(rank,'policy hit',policy_hit)
+                assert policy_hit==(args.comb_refine or candidate),(rank,'policy hit',policy_hit)
+                if args.comb_refine:
+                    refine_hit=any(f'TP{rank}]' in s and 'prefill comb-refine20 selected:' in s for s in lines)
+                    assert refine_hit==candidate,(rank,'refine hit',refine_hit)
     tokenizer=AutoTokenizer.from_pretrained('/home/pc/models/modelscope',local_files_only=True)
     waves=[]
     for rep in range(2):

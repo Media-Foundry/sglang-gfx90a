@@ -1,0 +1,233 @@
+{
+  "status": "complete",
+  "scope": "PREPARED: full20 boundary versus full8 + comb-only12, after service shutdown.\n\nReuses current production kernels and captured residual/Fn; synthetic post\ninputs. Require every returned tensor bit-exact before accepting any timing.\nOnly physical GPU4, no concurrent service. This is not an E2E result.\n",
+  "settings": {
+    "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+    "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+    "SGLANG_DSV4_GFX90A_MHC_BLOCK_K": "1024",
+    "SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY": "1",
+    "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+    "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+    "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+    "SGLANG_DSV4_GFX90A_BF16_MHC_DOT": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+    "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+    "SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION": "0",
+    "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS": "1",
+    "SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20": "1"
+  },
+  "results": [
+    {
+      "m": 1,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 0.22499710321426392,
+        "B": 0.2275731921195984
+      },
+      "samples_ms": {
+        "A": [
+          0.2537977933883667,
+          0.22493300437927247,
+          0.2304692029953003,
+          0.22480499744415283,
+          0.22458100318908691,
+          0.22506120204925537
+        ],
+        "B": [
+          0.23779740333557128,
+          0.2278451919555664,
+          0.22730119228363038,
+          0.23043720722198485,
+          0.22237300872802734,
+          0.22288498878479004
+        ]
+      }
+    },
+    {
+      "m": 128,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 0.22690110206604003,
+        "B": 0.22726919651031494
+      },
+      "samples_ms": {
+        "A": [
+          0.24755759239196778,
+          0.22624499797821046,
+          0.23251719474792482,
+          0.22246921062469482,
+          0.22403719425201415,
+          0.22755720615386962
+        ],
+        "B": [
+          0.23702940940856934,
+          0.22954120635986328,
+          0.2281651973724365,
+          0.22352519035339355,
+          0.22637319564819336,
+          0.22115700244903563
+        ]
+      }
+    },
+    {
+      "m": 8192,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 3.2643779754638675,
+        "B": 3.078293704986572
+      },
+      "samples_ms": {
+        "A": [
+          3.2695781707763674,
+          3.264522171020508,
+          3.2616741180419924,
+          3.2673061370849608,
+          3.262441635131836,
+          3.2642337799072267
+        ],
+        "B": [
+          3.078053855895996,
+          3.0764537811279298,
+          3.077253532409668,
+          3.0786935806274416,
+          3.0785335540771483,
+          3.0792055130004883
+        ]
+      }
+    },
+    {
+      "m": 32767,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 12.840068054199218,
+        "B": 12.07745819091797
+      },
+      "samples_ms": {
+        "A": [
+          12.836900329589843,
+          12.839396667480468,
+          12.843107604980469,
+          12.903494262695313,
+          12.840739440917968,
+          12.835682678222657
+        ],
+        "B": [
+          12.078034210205079,
+          12.08337860107422,
+          12.080499267578125,
+          12.075058746337891,
+          12.07688217163086,
+          12.076018524169921
+        ]
+      }
+    },
+    {
+      "m": 32768,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 12.940247344970704,
+        "B": 12.175605773925781
+      },
+      "samples_ms": {
+        "A": [
+          12.941191101074219,
+          12.940423583984375,
+          12.944679260253906,
+          12.938438415527344,
+          12.936679077148437,
+          12.940071105957031
+        ],
+        "B": [
+          12.180213928222656,
+          12.175125885009766,
+          12.176085662841796,
+          12.176117706298829,
+          12.174997711181641,
+          12.174069213867188
+        ]
+      }
+    },
+    {
+      "m": 65536,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 1000,
+      "graph_mutation_exact": true,
+      "median_ms": {
+        "A": 25.369091033935547,
+        "B": 23.848752593994142
+      },
+      "samples_ms": {
+        "A": [
+          25.351425170898438,
+          25.368675231933594,
+          25.372515869140624,
+          25.37165069580078,
+          25.366915893554687,
+          25.3695068359375
+        ],
+        "B": [
+          23.840608215332033,
+          23.854080200195312,
+          23.85020751953125,
+          23.848672485351564,
+          23.84883270263672,
+          23.844096374511718
+        ]
+      }
+    }
+  ],
+  "mutate_parameters": false,
+  "integrated": true,
+  "source_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_mhc_refine20_20260915/oracle.py": "fe221667e09c4b0f1de13c1e0b67412de96d7b3fd8068daca6f1a9f52ddfcbd1",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_mhc_refine20_20260915/candidate.py": "67c000ad7100466f13a2bf3db8104d0465b71d308b941bac2ccb6c565c2fb886",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/mhc.py": "786a478362b79f9e1b133b7812bbcb65add36a2440531905e91ffe84dff3159c",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/gfx90a_mhc_comb_refine.py": "9d865e6f4e077b2877877bbc3c2e70e1eccf26e64f031397a31fb5bccff3d435",
+    "/home/pc/Code/sglang/python/sglang/srt/layers/dsv4_prefill_mhc_policy.py": "c5cb46ef9e59409196a888ae3fef6a45abcde8d42556c96c0f790c929a25a991"
+  },
+  "captured_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_scale.pt": "b74ac7c4104b1ee46eb736aca4d7fc30fd7dc151dac1702aee07baf86c358b84",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_base.pt": "25d45adca4e6bcc9e3175a079d7f945a746bafc7a015f9b48b79f8ae8e2405c9",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_norm_weight.pt": "3c7cb027fd29d56a5a507193a017e5f4ce1efb821cc1916e3a645cd4c5c67b93"
+  },
+  "last_check": {
+    "m": 65536,
+    "phase": "graph_input_mutation",
+    "exact": true,
+    "max_abs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

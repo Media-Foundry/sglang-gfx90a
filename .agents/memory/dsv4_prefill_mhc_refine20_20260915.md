@@ -46,3 +46,24 @@ ABBA remain pending. If integrating, require active original-V4 TP8 ordinary
 prefill config20 scope plus large-M guard; do not merely test global env20,
 which could accidentally admit decode or another worker. Preserve small-M
 full20 and all unscoped behavior. Keep experimental default-off until verified.
+
+## Follow-up: stronger inputs and production selector
+
+`parameter-mutations.json`: M1/128/8192,100 mutations each of local fixture
+Fn/scales/base/residual (not checkpoint files), plus1000 graph replays and
+changed-input replay per shape, all byte-exact. No model weights were edited.
+
+Default-off `SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20=1` is now wired only inside
+the existing config20 context and only8192<=M<=65536. AR/draft/TP4/V4.1 and
+small-M remain outside; all small-M scoped prefill still computes full20.
+40 CPU scope/launch tests pass. `integrated.json` checks actual refinement
+call counts (not just equal outputs that might hide fallback), all outputs,
+row permutation and1000 graph+mutation replays for M1/128/8192/32767/32768/65536.
+All pass; integrated full20->refined times at M32768 are12.940247->12.175606ms,
+and M65536 25.369091->23.848753ms. GPU handle82494 exited0.
+
+Independent service ABBA is prepared in
+`.agents/experiments/dsv4_prefill_mhc_refine20_service_20260915/`.
+All arms hold config20,wide-query16,1M KV,32K chunk and original weights fixed;
+only the refinement flag differs. It is not the earlier8-vs20 policy trial.
+No service throughput result for the refinement is established yet.

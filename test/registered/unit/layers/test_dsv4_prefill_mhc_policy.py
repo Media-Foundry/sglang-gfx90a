@@ -106,12 +106,28 @@ def test_splitk_launch_uses_scoped_iters_and_preload_helper_matches():
     for resolver, active, expected in ((None,False,8),(policy.resolve_sinkhorn_iters,False,8),
                                       (policy.resolve_sinkhorn_iters,True,20)):
         ns=dict(envs=NS(SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS=NS(get=lambda:8)),
-                _prefill_sinkhorn_iters=resolver)
+                _prefill_sinkhorn_iters=resolver,refine_comb=False)
         token=policy._config_iters.set(20 if active else None)
         try:
             assert eval(compile(ast.Expression(value),'splitk-iters','eval'),ns)==expected
             exec(compile(ast.Module(body=[get_iters],type_ignores=[]),'native-iters','exec'),ns)
             assert ns['_get_sinkhorn_iters']()==expected
+            ns['refine_comb']=True
+            assert eval(compile(ast.Expression(value),'splitk-refined','eval'),ns)==8
+        finally:
+            policy._config_iters.reset(token)
+
+
+@pytest.mark.parametrize('m,expected',[(0,False),(1,False),(128,False),(8191,False),
+    (8192,True),(32767,True),(32768,True),(65536,True),(65537,False)])
+def test_comb_refinement_requires_scope_and_large_m(m,expected):
+    with patch.dict(os.environ,{policy.REFINE_ENV:'1'}):
+        assert not policy.comb_refine_active(m)
+        token=policy._config_iters.set(20)
+        try:
+            assert policy.comb_refine_active(m)==expected
+            with patch.dict(os.environ,{policy.REFINE_ENV:'0'}):
+                assert not policy.comb_refine_active(m)
         finally:
             policy._config_iters.reset(token)
 
