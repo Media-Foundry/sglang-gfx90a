@@ -74,3 +74,31 @@ distribution needs a fresh compute-versus-index-exchange cost oracle.
 
 Accepted performance remains the separate 32K/64K records (~5.30k/~5.40k),
 not this synchronization-heavy capture run.
+
+## Controlled layer2 core-only replacement: passed sampled boundary checks
+
+`stable-layer2-core-fixed`, fresh PID1104416, completed warmup/A1/B1/A2,
+all64 input-echo and completion-ID/text checks; service stopped, no owned
+processes remained. All8 ranks logged an actual stable core-compressor hit.
+New opt-in `SGLANG_DSV4_DEBUG_PREFILL_CORE_COMPRESSOR_STABLE=1` is limited to
+original V4, layer2 core C4/H512, native TP8/EP1, CP1, M8192..36864.
+Indexer, decode, draft and target-verify do not enter this replacement.
+
+It changes only the core wkv/gate projection to the tested fixed128 tile,
+preserving BF16 rounding before FP32 output. CPU contract tests12/12; integrated
+GPU helper exactly matches the independent component oracle on both captured
+full shapes, including all8192 shifted case15 rows.
+
+Compared by logical request/position, A1/B1 now has zero differences in complete
+core input/projection, all6144 common pooled/cache rows, and every sampled
+layer2 attention/FFN stage across all8 ranks. A1/A2 likewise has zero differences
+in all these stages. Full normalized input/QKV and all-rank uncompressed KV
+remain exact. The untouched indexer projection still has the same4 differences,
+but no sampled downstream difference here. Thus the original first-C4-boundary
+drift was caused by the core projection's row-dependent reduction, not by a
+changed input request or a stale compressed-cache write in this trial.
+
+Full128-token outputs are15/16 equal both within-order and cross-order; changed
+cases are2 for A1/A2 and3 for A1/B1. These are different request groups from the
+captured last forward. This is NOT whole-model determinism, nor proof of all
+uncaptured positions. The helper remains a slower default-off ablation.

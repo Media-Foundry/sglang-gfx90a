@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 
 _dump_compressor_projection = os.getenv("SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP", "0") == "1"
+_stable_core_compressor = os.getenv("SGLANG_DSV4_DEBUG_PREFILL_CORE_COMPRESSOR_STABLE", "0") == "1"
 
 from sglang.kernels.fused_op import BaseFusedOp
 from sglang.kernels.ops.attention.dsv4 import (
@@ -353,6 +354,7 @@ class Compressor(BaseFusedOp):
     ) -> None:
         super().__init__()
         self.layer_id = layer_id
+        self._debug_original_v4 = getattr(config, "model_type", None) == "deepseek_v4"
         self.is_in_indexer = is_in_indexer
         self.dim = config.hidden_size
         self.head_dim = head_dim
@@ -462,7 +464,14 @@ class Compressor(BaseFusedOp):
                     kv_score = projection(self, x, forward_batch, kv_score)
                 return kv_score
 
-        kv_score = self._compute_wkv_gate(x)
+        kv_score = None
+        if _stable_core_compressor:
+            from sglang.kernels.ops.debug.dsv4_prefill_compressor import enabled, project
+
+            if enabled(self, x, forward_batch):
+                kv_score = project(x, self.wkv_gate.weight)
+        if kv_score is None:
+            kv_score = self._compute_wkv_gate(x)
 
         # CUDA path: delegate to backend
         if dsa_use_prefill_cp(forward_batch):

@@ -17,6 +17,27 @@ from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
 
 
 class Contract(unittest.TestCase):
+    def test_core_compressor_scope(self):
+        from sglang.kernels.ops.debug.dsv4_prefill_compressor import enabled, project, FLAG
+        with patch.dict(os.environ,{FLAG:'0'}):
+            self.assertFalse(enabled(None,None,None))
+        comp=SimpleNamespace(_debug_original_v4=True,layer_id=2,is_in_indexer=False,
+                             ratio=4,head_dim=512)
+        parallel=SimpleNamespace(attn_cp_size=1,attn_tp_size=8)
+        x=SimpleNamespace(device='fixture',shape=(32768,4096))
+        with patch.dict(os.environ,{FLAG:'1'}), patch(
+                'sglang.srt.runtime_context.get_parallel',return_value=parallel), patch(
+                'sglang.kernels.ops.debug.dsv4_prefill_attention_ar.enabled_for',return_value=True):
+            self.assertTrue(enabled(comp,x,None))
+            for key,value in [('_debug_original_v4',False),('layer_id',3),('is_in_indexer',True),
+                              ('ratio',128),('head_dim',128)]:
+                with self.subTest(key=key):
+                    self.assertFalse(enabled(SimpleNamespace(**{**vars(comp),key:value}),x,None))
+            parallel.attn_cp_size=2
+            self.assertFalse(enabled(comp,x,None))
+        with self.assertRaises(ValueError):
+            project(torch.empty(32,4096),torch.empty(2048,4096))
+
     def test_compressor_capture_preserves_values(self):
         from sglang.kernels.ops.debug import dsv4_compressor_dump as module
         x=torch.zeros(4,8);w=torch.ones(8,8);y=torch.ones(4,8)

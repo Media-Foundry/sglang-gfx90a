@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--stable-wob',action='store_true')
     parser.add_argument('--stable-shared',action='store_true')
     parser.add_argument('--compressor-dump',action='store_true')
+    parser.add_argument('--stable-core-compressor',action='store_true')
     parser.add_argument('--stage-layer',type=int,default=0)
     parser.add_argument('--skip-weight-dumps',action='store_true')
     parser.add_argument('--sample-positions',default='0,511,2047,4095,8191')
@@ -68,6 +69,7 @@ def main():
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE={int(args.stable_wob)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE={int(args.stable_shared)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP={int(args.compressor_dump)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_PREFILL_CORE_COMPRESSOR_STABLE={int(args.stable_core_compressor)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_STAGE_SKIP_WEIGHTS={int(args.skip_weight_dumps)}\n'
     launch=(old/'start-ar-matrix.sh').read_text().replace(
         'exec bash scripts/rocm_dsv4_flash.sh serve',flags+'exec bash scripts/rocm_dsv4_flash.sh serve')
@@ -75,6 +77,13 @@ def main():
     state=life.start('INPUT-IDENTITY',0)
     try:
         life.ready(state)
+        if args.stable_core_compressor:
+            env=life.owned(state).environ()
+            assert env.get('SGLANG_DSV4_DEBUG_PREFILL_CORE_COMPRESSOR_STABLE')=='1'
+            paths=('python/sglang/srt/layers/attention/dsv4/compressor.py',
+                   'python/sglang/kernels/ops/debug/dsv4_prefill_compressor.py')
+            life.save('stable-compressor-runtime-contract.json',dict(
+                sources={p:hashlib.sha256((REPO/p).read_bytes()).hexdigest() for p in paths}))
         if args.compressor_dump:
             env=life.owned(state).environ()
             assert env.get('SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP')=='1'
@@ -132,6 +141,8 @@ def main():
                 hashes=[digest(r['prompt_token_ids']) for r in normalized]))
             life.save('identity.json',evidence)
             print('INPUT ECHO OK',name,16,flush=True)
+            if name=='warmup' and args.stable_core_compressor:
+                assert 'DSV4 diagnostic stable core compressor selected' in Path(state['log']).read_text(), 'Core compressor selector did not execute'
             if name=='warmup' and args.stable_shared:
                 assert 'DSV4 diagnostic stable shared selected' in Path(state['log']).read_text(), 'Shared selector did not execute; inspect scope log before further requests'
             if name=='warmup' and args.compressor_dump:
