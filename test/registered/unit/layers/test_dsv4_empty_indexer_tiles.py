@@ -12,6 +12,22 @@ from unittest.mock import patch
 
 
 class TestEmptyIndexerTiles(unittest.TestCase):
+    def test_query_group_default_and_launch_contract(self):
+        root=Path(__file__).resolve().parents[4]
+        tree=ast.parse((root/'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py').read_text())
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='prefill_query_reuse4')
+        defaults=dict(zip((a.arg for a in fn.args.kwonlyargs),fn.args.kw_defaults))
+        self.assertEqual(ast.literal_eval(defaults['query_group_size']),4)
+        launch=next(n for n in ast.walk(fn) if isinstance(n,ast.Call)
+                    and isinstance(n.func,ast.Subscript) and isinstance(n.func.value,ast.Name)
+                    and n.func.value.id=='reuse')
+        self.assertEqual(ast.unparse(launch.args[10]),'query_group_size')
+        self.assertEqual(ast.unparse(launch.func.slice.elts[0]),'triton.cdiv(m, query_group_size)')
+        groups=next(n for n in ast.walk(fn) if isinstance(n,ast.Compare)
+                    and isinstance(n.left,ast.Name) and n.left.id=='query_group_size')
+        self.assertIsInstance(groups.ops[0],ast.In)
+        self.assertEqual(ast.literal_eval(groups.comparators[0]),(4,8,16))
+
     def test_query_reuse_hit_log_identifies_actual_rank(self):
         root=Path(__file__).resolve().parents[4]
         tree=ast.parse((root/'python/sglang/srt/layers/attention/dsv4/indexer.py').read_text())
@@ -26,9 +42,10 @@ class TestEmptyIndexerTiles(unittest.TestCase):
             with redirect_stdout(out):
                 eval(expression,dict(get_parallel=lambda:NS(tp_rank=rank),
                                      q=NS(shape=(32767,1,64,128)),
-                                     indexer_metadata=NS(max_c4_seq_len=2048)))
+                                     indexer_metadata=NS(max_c4_seq_len=2048),query_group_size=16))
             self.assertIn(f'TP{rank}]',out.getvalue())
             self.assertIn('prefill query-reuse4 selected: rows=32767 C4_capacity=2048',out.getvalue())
+            self.assertIn('query_group=16',out.getvalue())
 
     def setUp(self):
         root = Path(__file__).resolve().parents[4]

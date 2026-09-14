@@ -72,7 +72,8 @@ def reuse(q,cache,w,lens,pages,out,M:tl.constexpr,W:tl.constexpr,NP:tl.constexpr
 
 
 def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
-                        block_s, preshuffle_tile, dot_fp16, fp8_fnuz):
+                        block_s, preshuffle_tile, dot_fp16, fp8_fnuz,
+                        query_group_size=4):
     """Return None for unsupported contracts; never repack query/cache tensors."""
     m = q.shape[0]
     dtype = torch.float8_e4m3fnuz if fp8_fnuz else torch.float8_e4m3fn
@@ -94,12 +95,13 @@ def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
         and "gfx90a" in torch.cuda.get_device_properties(q.device).gcnArchName
         and 512 <= width <= 2048 and block_s == 16
         and preshuffle_tile in (0, 8, 16)
+        and query_group_size in (4, 8, 16)
     ):
         return None
     out = torch.empty((m, width), dtype=torch.float32, device=q.device)
-    reuse[(triton.cdiv(m, 4), triton.cdiv(width, block_s))](
+    reuse[(triton.cdiv(m, query_group_size), triton.cdiv(width, block_s))](
         q.view(torch.uint8), cache.view(torch.uint8), weights, lengths, pages,
-        out, m, width, pages.shape[1], pages.stride(0), 4, block_s, preshuffle_tile,
+        out, m, width, pages.shape[1], pages.stride(0), query_group_size, block_s, preshuffle_tile,
         tl.float16 if dot_fp16 else tl.bfloat16,
         tl.float8e4b8 if fp8_fnuz else tl.float8e4nv, num_warps=4,
     )

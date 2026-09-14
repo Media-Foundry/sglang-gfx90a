@@ -1,0 +1,187 @@
+{
+  "status": "complete",
+  "bq": 16,
+  "runtime": true,
+  "scope": "Compare the accepted query4 chain against query8/16, without service edits.\n\nReuse the integrated fixture, including strided mixed-page M17 and Top-K checks.\nThe Python wrapper keeps its existing name; only the test-local launch proxy\nchanges BQ and grid in arm B. Arm A calls the saved production query4 wrapper.\n",
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 10,
+      "fixed_graph_replays": 10,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4975.624847412109
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4099.148941040039
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4088.0767822265625
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4976.744842529297
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4972.104644775391
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4093.7408447265625
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4085.517120361328
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4973.512649536133
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4970.280838012695
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4099.2767333984375
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4087.148666381836
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4972.104644775391
+        }
+      ],
+      "medians_us": {
+        "A": 4972.808647155762,
+        "B": 4090.9088134765625
+      },
+      "stage_speedup": 1.2155755295190112
+    },
+    {
+      "batch": 32768,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 4,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 10,
+      "fixed_graph_replays": 10,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 19926.69219970703
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16416.372680664062
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16422.45330810547
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 19917.349243164062
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 19916.644287109375
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16409.07745361328
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16411.892700195312
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 19911.58905029297
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 19908.612060546875
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16420.277404785156
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16408.30841064453
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 19911.268615722656
+        }
+      ],
+      "medians_us": {
+        "A": 19914.116668701172,
+        "B": 16414.132690429688
+      },
+      "stage_speedup": 1.2132299064642118
+    }
+  ],
+  "source_sha256": "50f9df007c2cb8cc4edd8814b164450ab6970db069384d1da146d890123b33dc",
+  "fp8_dtype": "torch.float8_e4m3fn",
+  "preshuffle": true,
+  "resources": [
+    {
+      "bq": 16,
+      "m": 8192,
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    }
+  ],
+  "ragged_mixed_page_mutations_exact": 10,
+  "ragged_page_table_stride": [
+    13,
+    1
+  ],
+  "control_bq": 4,
+  "candidate_bq": 16,
+  "driver_sha256": "5773e85d12343a2d06b13f53ca5fd483144263e9ef615fcb11ca62ff988d4567",
+  "production_kernel_sha256": "bffb36063bf0c774a02b0abf1847273dd39759baa74c4292fbb012a3aa8512fd"
+}
