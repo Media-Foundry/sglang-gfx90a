@@ -1,0 +1,14 @@
+{
+  "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": {
+    "bytes": 16404,
+    "sha256": "6e8eb74c37d473fdeabc90e512011bbd3844b86650c46bb15f92a46e8585ddef"
+  },
+  "python/sglang/kernels/ops/moe/gfx90a_ck_fixed_slot.py": {
+    "bytes": 2359,
+    "sha256": "fdcf9e671d358370675d30485ee4e03aeab124789c69da52adb062e200e0e89c"
+  },
+  "python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_ck_fixed_slot.cuh": {
+    "bytes": 2950,
+    "sha256": "74a488feb71e36e120f6c2c8ad64fba2a1d90df3273b08517f5929787ca19069"
+  }
+}

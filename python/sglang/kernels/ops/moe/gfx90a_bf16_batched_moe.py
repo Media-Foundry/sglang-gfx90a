@@ -314,6 +314,18 @@ def gfx90a_bf16_ck_moe(
             sorted_weights=None, quant_type=aiter.QuantType.No,
             activation=ActivationType.Dsv4Silu, use_non_temporal_load=False,
         ):
+            if os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT", "0") == "1":
+                from sglang.kernels.ops.moe.gfx90a_ck_fixed_slot import (
+                    ck_fixed_slot_stage2,
+                )
+
+                return ck_fixed_slot_stage2(
+                    module.ck_moe_stage2, inter_states, stage_w1, stage_w2,
+                    sorted_token_ids, sorted_expert_ids, num_valid_ids,
+                    stage_out, topk, stage2_kernel, w2_scale, a2_scale,
+                    block_m, sorted_weights, quant_type.value,
+                    ActivationType.Gelu.value, use_non_temporal_load,
+                )
             accum = torch.zeros_like(stage_out, dtype=torch.float32)
             module.ck_moe_stage2(
                 inter_states, stage_w1, stage_w2, sorted_token_ids,

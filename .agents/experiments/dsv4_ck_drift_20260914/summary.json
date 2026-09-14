@@ -1,0 +1,3772 @@
+{
+  "atomic": {
+    "controlled_batch_repeats": {
+      "1-2": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 15,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.02645869553089142
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "1-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 16,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "2-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 15,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.02645869553089142
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      }
+    },
+    "concurrent_repeat_exact": 5,
+    "prefill_rates": [
+      5299.820832625206,
+      5296.657399243565,
+      5291.931265290327
+    ],
+    "france": "The capital of France is **Paris**.",
+    "controlled_forward_entry_groups": [
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ]
+    ],
+    "concurrent_groups_inferred_from_ttft": [
+      [
+        [
+          0,
+          4,
+          8,
+          12
+        ],
+        [
+          2,
+          13,
+          14,
+          15
+        ],
+        [
+          3,
+          6,
+          9,
+          10
+        ],
+        [
+          1,
+          5,
+          7,
+          11
+        ]
+      ],
+      [
+        [
+          0,
+          3,
+          7,
+          13
+        ],
+        [
+          1,
+          2,
+          4,
+          8
+        ],
+        [
+          5,
+          6,
+          9,
+          10
+        ],
+        [
+          11,
+          12,
+          14,
+          15
+        ]
+      ]
+    ]
+  },
+  "fixed": {
+    "controlled_batch_repeats": {
+      "1-2": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 16,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "1-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 16,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "2-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 16,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      }
+    },
+    "concurrent_repeat_exact": 5,
+    "prefill_rates": [
+      5101.005283931861,
+      5101.907217956575,
+      5102.620677442581
+    ],
+    "france": "The capital of France is **Paris**.",
+    "controlled_forward_entry_groups": [
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ]
+    ],
+    "concurrent_groups_inferred_from_ttft": [
+      [
+        [
+          0,
+          3,
+          5,
+          7
+        ],
+        [
+          6,
+          8,
+          10,
+          12
+        ],
+        [
+          1,
+          4,
+          13,
+          15
+        ],
+        [
+          2,
+          9,
+          11,
+          14
+        ]
+      ],
+      [
+        [
+          1,
+          3,
+          4,
+          15
+        ],
+        [
+          0,
+          5,
+          6,
+          9
+        ],
+        [
+          7,
+          8,
+          10,
+          14
+        ],
+        [
+          2,
+          11,
+          12,
+          13
+        ]
+      ]
+    ]
+  },
+  "cross_path_first_wave": {
+    "exact": 0,
+    "requests": 16,
+    "shared_prefix_logprobs_exact": 0,
+    "rows": [
+      {
+        "request": 0,
+        "exact": false,
+        "first_split": 28,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.2833874821662903,
+        "left_top5": [
+          [
+            -1.2795145511627197,
+            3932,
+            null
+          ],
+          [
+            -1.2795145511627197,
+            610,
+            null
+          ],
+          [
+            -2.2795145511627197,
+            42627,
+            null
+          ],
+          [
+            -2.5295145511627197,
+            18278,
+            null
+          ],
+          [
+            -3.2795145511627197,
+            30738,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -1.0582921504974365,
+            3932,
+            null
+          ],
+          [
+            -1.3082921504974365,
+            610,
+            null
+          ],
+          [
+            -2.5582921504974365,
+            42627,
+            null
+          ],
+          [
+            -3.0582921504974365,
+            30738,
+            null
+          ],
+          [
+            -3.0582921504974365,
+            18278,
+            null
+          ]
+        ],
+        "right_margin": 0.25
+      },
+      {
+        "request": 1,
+        "exact": false,
+        "first_split": 106,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.25368720293045044,
+        "left_top5": [
+          [
+            -0.803917407989502,
+            455,
+            null
+          ],
+          [
+            -0.803917407989502,
+            120217,
+            null
+          ],
+          [
+            -2.303917407989502,
+            3608,
+            null
+          ],
+          [
+            -6.053917407989502,
+            49112,
+            null
+          ],
+          [
+            -7.303917407989502,
+            22539,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.6748344898223877,
+            120217,
+            null
+          ],
+          [
+            -0.9248344898223877,
+            455,
+            null
+          ],
+          [
+            -2.4248344898223877,
+            3608,
+            null
+          ],
+          [
+            -5.924834251403809,
+            49112,
+            null
+          ],
+          [
+            -7.299834251403809,
+            22539,
+            null
+          ]
+        ],
+        "right_margin": 0.25
+      },
+      {
+        "request": 2,
+        "exact": false,
+        "first_split": 10,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.030311722308397293,
+        "left_top5": [
+          [
+            -0.8510468602180481,
+            14,
+            null
+          ],
+          [
+            -0.8510468602180481,
+            9963,
+            null
+          ],
+          [
+            -2.1010468006134033,
+            37437,
+            null
+          ],
+          [
+            -4.351047039031982,
+            4181,
+            null
+          ],
+          [
+            -5.351047039031982,
+            4688,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.7532231211662292,
+            9963,
+            null
+          ],
+          [
+            -1.003223180770874,
+            14,
+            null
+          ],
+          [
+            -2.003223180770874,
+            37437,
+            null
+          ],
+          [
+            -4.253222942352295,
+            4181,
+            null
+          ],
+          [
+            -5.003222942352295,
+            4688,
+            null
+          ]
+        ],
+        "right_margin": 0.2500000596046448
+      },
+      {
+        "request": 3,
+        "exact": false,
+        "first_split": 44,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.21465858817100525,
+        "left_top5": [
+          [
+            -1.1278107166290283,
+            1341,
+            null
+          ],
+          [
+            -1.3778107166290283,
+            43524,
+            null
+          ],
+          [
+            -1.3778107166290283,
+            30784,
+            null
+          ],
+          [
+            -2.3778107166290283,
+            612,
+            null
+          ],
+          [
+            -3.6278107166290283,
+            62034,
+            null
+          ]
+        ],
+        "left_margin": 0.25,
+        "right_top5": [
+          [
+            -1.1566994190216064,
+            30784,
+            null
+          ],
+          [
+            -1.4066994190216064,
+            43524,
+            null
+          ],
+          [
+            -1.4066994190216064,
+            1341,
+            null
+          ],
+          [
+            -2.1566994190216064,
+            612,
+            null
+          ],
+          [
+            -3.6566994190216064,
+            62034,
+            null
+          ]
+        ],
+        "right_margin": 0.25
+      },
+      {
+        "request": 4,
+        "exact": false,
+        "first_split": 39,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.3459683358669281,
+        "left_top5": [
+          [
+            -0.8435336947441101,
+            23595,
+            null
+          ],
+          [
+            -0.8435336947441101,
+            26024,
+            null
+          ],
+          [
+            -2.843533754348755,
+            9075,
+            null
+          ],
+          [
+            -3.843533754348755,
+            1791,
+            null
+          ],
+          [
+            -4.093533515930176,
+            223,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.6143445372581482,
+            26024,
+            null
+          ],
+          [
+            -1.114344596862793,
+            23595,
+            null
+          ],
+          [
+            -2.864344596862793,
+            9075,
+            null
+          ],
+          [
+            -3.864344596862793,
+            1791,
+            null
+          ],
+          [
+            -4.114344596862793,
+            223,
+            null
+          ]
+        ],
+        "right_margin": 0.5000000596046448
+      },
+      {
+        "request": 5,
+        "exact": false,
+        "first_split": 48,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.1325511336326599,
+        "left_top5": [
+          [
+            -1.1146154403686523,
+            7226,
+            null
+          ],
+          [
+            -1.3646154403686523,
+            362,
+            null
+          ],
+          [
+            -1.8646154403686523,
+            588,
+            null
+          ],
+          [
+            -2.8646154403686523,
+            32388,
+            null
+          ],
+          [
+            -2.8646154403686523,
+            10045,
+            null
+          ]
+        ],
+        "left_margin": 0.25,
+        "right_top5": [
+          [
+            -1.244105577468872,
+            362,
+            null
+          ],
+          [
+            -1.244105577468872,
+            7226,
+            null
+          ],
+          [
+            -1.744105577468872,
+            588,
+            null
+          ],
+          [
+            -2.869105577468872,
+            32388,
+            null
+          ],
+          [
+            -2.994105577468872,
+            10045,
+            null
+          ]
+        ],
+        "right_margin": 0.0
+      },
+      {
+        "request": 6,
+        "exact": false,
+        "first_split": 13,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.08745187520980835,
+        "left_top5": [
+          [
+            -0.6138121485710144,
+            721,
+            null
+          ],
+          [
+            -0.8638121485710144,
+            56,
+            null
+          ],
+          [
+            -3.363812208175659,
+            13582,
+            null
+          ],
+          [
+            -6.36381196975708,
+            374,
+            null
+          ],
+          [
+            -7.11381196975708,
+            11547,
+            null
+          ]
+        ],
+        "left_margin": 0.25,
+        "right_top5": [
+          [
+            -0.7153872847557068,
+            56,
+            null
+          ],
+          [
+            -0.7153872847557068,
+            721,
+            null
+          ],
+          [
+            -3.9653873443603516,
+            13582,
+            null
+          ],
+          [
+            -5.965387344360352,
+            374,
+            null
+          ],
+          [
+            -7.715387344360352,
+            11547,
+            null
+          ]
+        ],
+        "right_margin": 0.0
+      },
+      {
+        "request": 7,
+        "exact": false,
+        "first_split": 90,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.22031190991401672,
+        "left_top5": [
+          [
+            -0.7981353402137756,
+            513,
+            null
+          ],
+          [
+            -0.7981353402137756,
+            16893,
+            null
+          ],
+          [
+            -3.048135280609131,
+            790,
+            null
+          ],
+          [
+            -4.173135280609131,
+            1812,
+            null
+          ],
+          [
+            -5.173135280609131,
+            5566,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.676559329032898,
+            16893,
+            null
+          ],
+          [
+            -0.926559329032898,
+            513,
+            null
+          ],
+          [
+            -3.1765594482421875,
+            790,
+            null
+          ],
+          [
+            -4.0515594482421875,
+            1812,
+            null
+          ],
+          [
+            -4.9265594482421875,
+            5566,
+            null
+          ]
+        ],
+        "right_margin": 0.25
+      },
+      {
+        "request": 8,
+        "exact": false,
+        "first_split": 106,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.28182584047317505,
+        "left_top5": [
+          [
+            -0.9878098368644714,
+            270,
+            null
+          ],
+          [
+            -0.9878098368644714,
+            6464,
+            null
+          ],
+          [
+            -2.487809896469116,
+            9533,
+            null
+          ],
+          [
+            -2.487809896469116,
+            3608,
+            null
+          ],
+          [
+            -3.362809896469116,
+            3080,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.8499549031257629,
+            6464,
+            null
+          ],
+          [
+            -1.0999548435211182,
+            270,
+            null
+          ],
+          [
+            -2.599954843521118,
+            9533,
+            null
+          ],
+          [
+            -2.724954843521118,
+            3608,
+            null
+          ],
+          [
+            -3.224954843521118,
+            3080,
+            null
+          ]
+        ],
+        "right_margin": 0.24999994039535522
+      },
+      {
+        "request": 9,
+        "exact": false,
+        "first_split": 41,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.17450502514839172,
+        "left_top5": [
+          [
+            -1.3576695919036865,
+            671,
+            null
+          ],
+          [
+            -1.3576695919036865,
+            125497,
+            null
+          ],
+          [
+            -2.3576695919036865,
+            25717,
+            null
+          ],
+          [
+            -2.3576695919036865,
+            9038,
+            null
+          ],
+          [
+            -2.6076695919036865,
+            53,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -1.0245307683944702,
+            125497,
+            null
+          ],
+          [
+            -1.5245307683944702,
+            671,
+            null
+          ],
+          [
+            -2.5245308876037598,
+            25717,
+            null
+          ],
+          [
+            -2.5245308876037598,
+            9038,
+            null
+          ],
+          [
+            -2.5245308876037598,
+            53,
+            null
+          ]
+        ],
+        "right_margin": 0.5
+      },
+      {
+        "request": 10,
+        "exact": false,
+        "first_split": 63,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.10353830456733704,
+        "left_top5": [
+          [
+            -1.2972568273544312,
+            41081,
+            null
+          ],
+          [
+            -1.5472568273544312,
+            90738,
+            null
+          ],
+          [
+            -1.7972568273544312,
+            18569,
+            null
+          ],
+          [
+            -2.2972569465637207,
+            63719,
+            null
+          ],
+          [
+            -3.0472569465637207,
+            48457,
+            null
+          ]
+        ],
+        "left_margin": 0.25,
+        "right_top5": [
+          [
+            -1.4844985008239746,
+            90738,
+            null
+          ],
+          [
+            -1.4844985008239746,
+            41081,
+            null
+          ],
+          [
+            -1.4844985008239746,
+            18569,
+            null
+          ],
+          [
+            -2.4844985008239746,
+            63719,
+            null
+          ],
+          [
+            -3.2344985008239746,
+            48457,
+            null
+          ]
+        ],
+        "right_margin": 0.0
+      },
+      {
+        "request": 11,
+        "exact": false,
+        "first_split": 55,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.32069626450538635,
+        "left_top5": [
+          [
+            -2.4074714183807373,
+            17565,
+            null
+          ],
+          [
+            -2.4074714183807373,
+            10996,
+            null
+          ],
+          [
+            -2.4074714183807373,
+            5126,
+            null
+          ],
+          [
+            -2.6574714183807373,
+            21170,
+            null
+          ],
+          [
+            -2.6574714183807373,
+            4314,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -2.4003796577453613,
+            17565,
+            null
+          ],
+          [
+            -2.4003796577453613,
+            10996,
+            null
+          ],
+          [
+            -2.6503796577453613,
+            21170,
+            null
+          ],
+          [
+            -2.6503796577453613,
+            5126,
+            null
+          ],
+          [
+            -2.6503796577453613,
+            4314,
+            null
+          ]
+        ],
+        "right_margin": 0.0
+      },
+      {
+        "request": 12,
+        "exact": false,
+        "first_split": 16,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.511939525604248,
+        "left_top5": [
+          [
+            -0.6241514682769775,
+            41626,
+            null
+          ],
+          [
+            -1.1241514682769775,
+            4688,
+            null
+          ],
+          [
+            -2.3741514682769775,
+            3275,
+            null
+          ],
+          [
+            -3.3741514682769775,
+            78797,
+            null
+          ],
+          [
+            -4.874151229858398,
+            23809,
+            null
+          ]
+        ],
+        "left_margin": 0.5,
+        "right_top5": [
+          [
+            -0.641690731048584,
+            4688,
+            null
+          ],
+          [
+            -1.141690731048584,
+            41626,
+            null
+          ],
+          [
+            -2.141690731048584,
+            3275,
+            null
+          ],
+          [
+            -3.891690731048584,
+            78797,
+            null
+          ],
+          [
+            -4.391690731048584,
+            23809,
+            null
+          ]
+        ],
+        "right_margin": 0.5
+      },
+      {
+        "request": 13,
+        "exact": false,
+        "first_split": 32,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.14350497722625732,
+        "left_top5": [
+          [
+            -1.168990969657898,
+            2740,
+            null
+          ],
+          [
+            -1.293990969657898,
+            12175,
+            null
+          ],
+          [
+            -1.293990969657898,
+            1699,
+            null
+          ],
+          [
+            -3.4189910888671875,
+            4868,
+            null
+          ],
+          [
+            -3.6689910888671875,
+            11536,
+            null
+          ]
+        ],
+        "left_margin": 0.125,
+        "right_top5": [
+          [
+            -0.9795273542404175,
+            1699,
+            null
+          ],
+          [
+            -1.3545273542404175,
+            12175,
+            null
+          ],
+          [
+            -1.3545273542404175,
+            2740,
+            null
+          ],
+          [
+            -3.854527473449707,
+            17363,
+            null
+          ],
+          [
+            -3.979527473449707,
+            4868,
+            null
+          ]
+        ],
+        "right_margin": 0.375
+      },
+      {
+        "request": 14,
+        "exact": false,
+        "first_split": 50,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.15288615226745605,
+        "left_top5": [
+          [
+            -0.8016806244850159,
+            3673,
+            null
+          ],
+          [
+            -0.8016806244850159,
+            666,
+            null
+          ],
+          [
+            -2.676680564880371,
+            18586,
+            null
+          ],
+          [
+            -4.301680564880371,
+            13510,
+            null
+          ],
+          [
+            -5.051680564880371,
+            418,
+            null
+          ]
+        ],
+        "left_margin": 0.0,
+        "right_top5": [
+          [
+            -0.6855717301368713,
+            3673,
+            null
+          ],
+          [
+            -0.9355717301368713,
+            666,
+            null
+          ],
+          [
+            -2.6855716705322266,
+            18586,
+            null
+          ],
+          [
+            -4.185571670532227,
+            13510,
+            null
+          ],
+          [
+            -5.060571670532227,
+            418,
+            null
+          ]
+        ],
+        "right_margin": 0.25
+      },
+      {
+        "request": 15,
+        "exact": false,
+        "first_split": 115,
+        "shared_prefix_logprobs_exact": false,
+        "shared_prefix_max_abs_logprob_delta": 0.2602583169937134,
+        "left_top5": [
+          [
+            -0.5886272192001343,
+            43151,
+            null
+          ],
+          [
+            -0.8386272192001343,
+            852,
+            null
+          ],
+          [
+            -5.588627338409424,
+            35204,
+            null
+          ],
+          [
+            -5.713627338409424,
+            18670,
+            null
+          ],
+          [
+            -6.213627338409424,
+            6470,
+            null
+          ]
+        ],
+        "left_margin": 0.25,
+        "right_top5": [
+          [
+            -0.7038221955299377,
+            852,
+            null
+          ],
+          [
+            -0.7038221955299377,
+            43151,
+            null
+          ],
+          [
+            -5.828822135925293,
+            35204,
+            null
+          ],
+          [
+            -5.953822135925293,
+            18670,
+            null
+          ],
+          [
+            -6.578822135925293,
+            3608,
+            null
+          ]
+        ],
+        "right_margin": 0.0
+      }
+    ]
+  },
+  "performance": {
+    "atomic_median": 5296.657399243565,
+    "fixed_median": 5101.907217956575,
+    "change_pct": -3.67685063630514,
+    "scope": "Diagnostic A/B, not a performance-acceptance ABBA."
+  },
+  "matched_logprob_control": {
+    "batched_pairs": {
+      "1-2": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 14,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.12224441766738892
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.080598384141922
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "1-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 14,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.17464327812194824
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.12224441766738892
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      },
+      "2-3": {
+        "exact": 16,
+        "requests": 16,
+        "shared_prefix_logprobs_exact": 14,
+        "rows": [
+          {
+            "request": 0,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 1,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 2,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 3,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.17464327812194824
+          },
+          {
+            "request": 4,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 5,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 6,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 7,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 8,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 9,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 10,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 11,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 12,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 13,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          },
+          {
+            "request": 14,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": false,
+            "shared_prefix_max_abs_logprob_delta": 0.080598384141922
+          },
+          {
+            "request": 15,
+            "exact": true,
+            "first_split": null,
+            "shared_prefix_logprobs_exact": true,
+            "shared_prefix_max_abs_logprob_delta": 0.0
+          }
+        ]
+      }
+    },
+    "split_pair": {
+      "exact": 3,
+      "requests": 16,
+      "shared_prefix_logprobs_exact": 1,
+      "rows": [
+        {
+          "request": 0,
+          "exact": true,
+          "first_split": null,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.13495102524757385
+        },
+        {
+          "request": 1,
+          "exact": true,
+          "first_split": null,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.22927892208099365
+        },
+        {
+          "request": 2,
+          "exact": false,
+          "first_split": 15,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.022239863872528076,
+          "left_top5": [
+            [
+              -0.7369765639305115,
+              3168,
+              null
+            ],
+            [
+              -0.7369765639305115,
+              6490,
+              null
+            ],
+            [
+              -3.7369766235351562,
+              2619,
+              null
+            ],
+            [
+              -4.486976623535156,
+              67078,
+              null
+            ],
+            [
+              -5.236976623535156,
+              3283,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.5213600993156433,
+              6490,
+              null
+            ],
+            [
+              -1.021360158920288,
+              3168,
+              null
+            ],
+            [
+              -3.521360158920288,
+              2619,
+              null
+            ],
+            [
+              -4.771359920501709,
+              67078,
+              null
+            ],
+            [
+              -5.271359920501709,
+              3283,
+              null
+            ]
+          ],
+          "right_margin": 0.5000000596046448
+        },
+        {
+          "request": 3,
+          "exact": false,
+          "first_split": 19,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.1821461319923401,
+          "left_top5": [
+            [
+              -0.7069886326789856,
+              16,
+              null
+            ],
+            [
+              -0.7069886326789856,
+              979,
+              null
+            ],
+            [
+              -4.45698881149292,
+              339,
+              null
+            ],
+            [
+              -6.20698881149292,
+              14,
+              null
+            ],
+            [
+              -9.956988334655762,
+              10792,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.5834898352622986,
+              979,
+              null
+            ],
+            [
+              -0.8334898352622986,
+              16,
+              null
+            ],
+            [
+              -5.083489894866943,
+              339,
+              null
+            ],
+            [
+              -6.708489894866943,
+              14,
+              null
+            ],
+            [
+              -9.958489418029785,
+              10792,
+              null
+            ]
+          ],
+          "right_margin": 0.25
+        },
+        {
+          "request": 4,
+          "exact": false,
+          "first_split": 39,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.13772708177566528,
+          "left_top5": [
+            [
+              -0.8435336947441101,
+              23595,
+              null
+            ],
+            [
+              -0.8435336947441101,
+              26024,
+              null
+            ],
+            [
+              -2.843533754348755,
+              9075,
+              null
+            ],
+            [
+              -3.843533754348755,
+              1791,
+              null
+            ],
+            [
+              -4.093533515930176,
+              223,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.7468637824058533,
+              26024,
+              null
+            ],
+            [
+              -0.9968637824058533,
+              23595,
+              null
+            ],
+            [
+              -2.746863842010498,
+              9075,
+              null
+            ],
+            [
+              -3.746863842010498,
+              1791,
+              null
+            ],
+            [
+              -3.996863842010498,
+              223,
+              null
+            ]
+          ],
+          "right_margin": 0.25
+        },
+        {
+          "request": 5,
+          "exact": false,
+          "first_split": 3,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.003668505698442459,
+          "left_top5": [
+            [
+              -0.4305141866207123,
+              327,
+              null
+            ],
+            [
+              -1.1805142164230347,
+              420,
+              null
+            ],
+            [
+              -3.930514097213745,
+              4688,
+              null
+            ],
+            [
+              -5.180514335632324,
+              4181,
+              null
+            ],
+            [
+              -5.430514335632324,
+              14325,
+              null
+            ]
+          ],
+          "left_margin": 0.7500000298023224,
+          "right_top5": [
+            [
+              -0.4566778838634491,
+              420,
+              null
+            ],
+            [
+              -1.2066779136657715,
+              327,
+              null
+            ],
+            [
+              -3.4566779136657715,
+              4688,
+              null
+            ],
+            [
+              -4.8316779136657715,
+              50594,
+              null
+            ],
+            [
+              -4.8316779136657715,
+              14325,
+              null
+            ]
+          ],
+          "right_margin": 0.7500000298023224
+        },
+        {
+          "request": 6,
+          "exact": false,
+          "first_split": 55,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.2585430145263672,
+          "left_top5": [
+            [
+              -1.108739972114563,
+              8739,
+              null
+            ],
+            [
+              -1.108739972114563,
+              342,
+              null
+            ],
+            [
+              -1.108739972114563,
+              270,
+              null
+            ],
+            [
+              -4.858739852905273,
+              13523,
+              null
+            ],
+            [
+              -6.858739852905273,
+              2619,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.9504587054252625,
+              8739,
+              null
+            ],
+            [
+              -1.2004587650299072,
+              342,
+              null
+            ],
+            [
+              -1.2004587650299072,
+              270,
+              null
+            ],
+            [
+              -4.700458526611328,
+              13523,
+              null
+            ],
+            [
+              -6.825458526611328,
+              2619,
+              null
+            ]
+          ],
+          "right_margin": 0.2500000596046448
+        },
+        {
+          "request": 7,
+          "exact": false,
+          "first_split": 35,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.3103829026222229,
+          "left_top5": [
+            [
+              -0.9964768886566162,
+              3283,
+              null
+            ],
+            [
+              -0.9964768886566162,
+              5452,
+              null
+            ],
+            [
+              -1.9964768886566162,
+              3549,
+              null
+            ],
+            [
+              -3.496476888656616,
+              4181,
+              null
+            ],
+            [
+              -3.871476888656616,
+              7723,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.8091822266578674,
+              5452,
+              null
+            ],
+            [
+              -1.1841821670532227,
+              3283,
+              null
+            ],
+            [
+              -1.9341821670532227,
+              3549,
+              null
+            ],
+            [
+              -3.8091821670532227,
+              4181,
+              null
+            ],
+            [
+              -4.184182167053223,
+              7723,
+              null
+            ]
+          ],
+          "right_margin": 0.3749999403953552
+        },
+        {
+          "request": 8,
+          "exact": false,
+          "first_split": 72,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.38989806175231934,
+          "left_top5": [
+            [
+              -0.9063021540641785,
+              411,
+              null
+            ],
+            [
+              -0.9063021540641785,
+              260,
+              null
+            ],
+            [
+              -1.6563022136688232,
+              3608,
+              null
+            ],
+            [
+              -7.781301975250244,
+              1137,
+              null
+            ],
+            [
+              -8.156302452087402,
+              710,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.8130576610565186,
+              411,
+              null
+            ],
+            [
+              -1.0630576610565186,
+              260,
+              null
+            ],
+            [
+              -1.5630576610565186,
+              3608,
+              null
+            ],
+            [
+              -7.313057899475098,
+              1137,
+              null
+            ],
+            [
+              -7.813057899475098,
+              710,
+              null
+            ]
+          ],
+          "right_margin": 0.25
+        },
+        {
+          "request": 9,
+          "exact": true,
+          "first_split": null,
+          "shared_prefix_logprobs_exact": true,
+          "shared_prefix_max_abs_logprob_delta": 0.0
+        },
+        {
+          "request": 10,
+          "exact": false,
+          "first_split": 47,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.10754457116127014,
+          "left_top5": [
+            [
+              -0.6634243130683899,
+              4181,
+              null
+            ],
+            [
+              -0.9134243130683899,
+              1662,
+              null
+            ],
+            [
+              -3.538424253463745,
+              7006,
+              null
+            ],
+            [
+              -3.663424253463745,
+              3608,
+              null
+            ],
+            [
+              -4.538424491882324,
+              3047,
+              null
+            ]
+          ],
+          "left_margin": 0.25,
+          "right_top5": [
+            [
+              -0.7854874730110168,
+              1662,
+              null
+            ],
+            [
+              -0.7854874730110168,
+              4181,
+              null
+            ],
+            [
+              -3.410487413406372,
+              7006,
+              null
+            ],
+            [
+              -3.660487413406372,
+              3608,
+              null
+            ],
+            [
+              -4.535487651824951,
+              3047,
+              null
+            ]
+          ],
+          "right_margin": 0.0
+        },
+        {
+          "request": 11,
+          "exact": false,
+          "first_split": 9,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.08197739720344543,
+          "left_top5": [
+            [
+              -0.6497302055358887,
+              4688,
+              null
+            ],
+            [
+              -0.8997302055358887,
+              4181,
+              null
+            ],
+            [
+              -3.1497302055358887,
+              37437,
+              null
+            ],
+            [
+              -3.6497302055358887,
+              9963,
+              null
+            ],
+            [
+              -6.399730205535889,
+              4245,
+              null
+            ]
+          ],
+          "left_margin": 0.25,
+          "right_top5": [
+            [
+              -0.7492522597312927,
+              4688,
+              null
+            ],
+            [
+              -0.7492522597312927,
+              4181,
+              null
+            ],
+            [
+              -3.2492523193359375,
+              37437,
+              null
+            ],
+            [
+              -4.2492523193359375,
+              9963,
+              null
+            ],
+            [
+              -6.8742523193359375,
+              4245,
+              null
+            ]
+          ],
+          "right_margin": 0.0
+        },
+        {
+          "request": 12,
+          "exact": false,
+          "first_split": 44,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.14179223775863647,
+          "left_top5": [
+            [
+              -0.8134692311286926,
+              21559,
+              null
+            ],
+            [
+              -0.8134692311286926,
+              42310,
+              null
+            ],
+            [
+              -3.063469171524048,
+              15791,
+              null
+            ],
+            [
+              -3.813469171524048,
+              16770,
+              null
+            ],
+            [
+              -4.313469409942627,
+              2919,
+              null
+            ]
+          ],
+          "left_margin": 0.0,
+          "right_top5": [
+            [
+              -0.705410897731781,
+              42310,
+              null
+            ],
+            [
+              -0.955410897731781,
+              21559,
+              null
+            ],
+            [
+              -2.955410957336426,
+              15791,
+              null
+            ],
+            [
+              -3.705410957336426,
+              16770,
+              null
+            ],
+            [
+              -4.455410957336426,
+              2919,
+              null
+            ]
+          ],
+          "right_margin": 0.25
+        },
+        {
+          "request": 13,
+          "exact": false,
+          "first_split": 32,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.12858492136001587,
+          "left_top5": [
+            [
+              -0.8242347836494446,
+              12175,
+              null
+            ],
+            [
+              -1.4492347240447998,
+              2740,
+              null
+            ],
+            [
+              -1.5742347240447998,
+              1699,
+              null
+            ],
+            [
+              -3.6992347240448,
+              17363,
+              null
+            ],
+            [
+              -3.6992347240448,
+              4868,
+              null
+            ]
+          ],
+          "left_margin": 0.6249999403953552,
+          "right_top5": [
+            [
+              -1.1681476831436157,
+              2740,
+              null
+            ],
+            [
+              -1.1681476831436157,
+              12175,
+              null
+            ],
+            [
+              -1.4181476831436157,
+              1699,
+              null
+            ],
+            [
+              -3.668147563934326,
+              11536,
+              null
+            ],
+            [
+              -3.668147563934326,
+              4868,
+              null
+            ]
+          ],
+          "right_margin": 0.0
+        },
+        {
+          "request": 14,
+          "exact": false,
+          "first_split": 50,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.08491247892379761,
+          "left_top5": [
+            [
+              -0.6732067465782166,
+              3673,
+              null
+            ],
+            [
+              -0.9232067465782166,
+              666,
+              null
+            ],
+            [
+              -2.7982068061828613,
+              18586,
+              null
+            ],
+            [
+              -4.423206806182861,
+              13510,
+              null
+            ],
+            [
+              -5.048206806182861,
+              418,
+              null
+            ]
+          ],
+          "left_margin": 0.25,
+          "right_top5": [
+            [
+              -0.8010110259056091,
+              3673,
+              null
+            ],
+            [
+              -0.8010110259056091,
+              666,
+              null
+            ],
+            [
+              -2.676011085510254,
+              18586,
+              null
+            ],
+            [
+              -4.301011085510254,
+              13510,
+              null
+            ],
+            [
+              -5.051011085510254,
+              418,
+              null
+            ]
+          ],
+          "right_margin": 0.0
+        },
+        {
+          "request": 15,
+          "exact": false,
+          "first_split": 115,
+          "shared_prefix_logprobs_exact": false,
+          "shared_prefix_max_abs_logprob_delta": 0.13128846883773804,
+          "left_top5": [
+            [
+              -0.5881957411766052,
+              43151,
+              null
+            ],
+            [
+              -0.8381957411766052,
+              852,
+              null
+            ],
+            [
+              -5.58819580078125,
+              35204,
+              null
+            ],
+            [
+              -5.83819580078125,
+              18670,
+              null
+            ],
+            [
+              -6.33819580078125,
+              6470,
+              null
+            ]
+          ],
+          "left_margin": 0.25,
+          "right_top5": [
+            [
+              -0.7046725749969482,
+              852,
+              null
+            ],
+            [
+              -0.7046725749969482,
+              43151,
+              null
+            ],
+            [
+              -5.704672813415527,
+              35204,
+              null
+            ],
+            [
+              -5.954672813415527,
+              18670,
+              null
+            ],
+            [
+              -6.329672813415527,
+              6470,
+              null
+            ]
+          ],
+          "right_margin": 0.0
+        }
+      ]
+    },
+    "batched_groups": [
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11
+        ],
+        [
+          12,
+          13,
+          14,
+          15
+        ]
+      ]
+    ],
+    "split_groups": [
+      [
+        [
+          2,
+          7,
+          13,
+          15
+        ],
+        [
+          0,
+          1,
+          11,
+          14
+        ],
+        [
+          3,
+          4,
+          6,
+          10
+        ],
+        [
+          5,
+          8,
+          9,
+          12
+        ]
+      ],
+      [
+        [
+          1,
+          6,
+          10,
+          14
+        ],
+        [
+          2,
+          7,
+          9,
+          13
+        ],
+        [
+          3,
+          5,
+          8,
+          12
+        ],
+        [
+          0,
+          4,
+          11,
+          15
+        ]
+      ]
+    ],
+    "scope": "Both submission protocols request output logprobs/top5 with identical sampling settings."
+  },
+  "artifact_manifest": {
+    "README.md": {
+      "bytes": 8333,
+      "sha256": "bc2364ead2b53ed4872a54d69bfb8d39279f0b8ed001e33cbcd077fe655d6b91"
+    },
+    "analyze.py": {
+      "bytes": 5240,
+      "sha256": "237cd9881f605eb6546356122d8df52992e8a906de676c6acba59b9b95aadbdb"
+    },
+    "final-gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "m32768-balanced.json": {
+      "bytes": 9725,
+      "sha256": "43d4202422bcd67e7200835708510a6d65250425d99e1fa93adf50e4d77a602b"
+    },
+    "m32768-balanced.log": {
+      "bytes": 11273,
+      "sha256": "6aea7160170506771778c93cf9467e22c677534b35c0fb15c5c271fab0dac556"
+    },
+    "m32768-permutation.json": {
+      "bytes": 10100,
+      "sha256": "d12fda713c75683b190360ad3f46c55e0c5e101dfbb02fe29f74bef7441b515d"
+    },
+    "m32768-permutation.log": {
+      "bytes": 11727,
+      "sha256": "1773b2713d323234362466cc23b59c5daf04e867f7701f1b02265b4d96cbde9e"
+    },
+    "m32768-random-fused.json": {
+      "bytes": 9897,
+      "sha256": "c520c1d2817c4291da707d7ceae48c16fb6eb2fa633b9adadc5a1fec317545a1"
+    },
+    "m32768-random-fused.log": {
+      "bytes": 11445,
+      "sha256": "3f4865475f0e77b04438adeaa4e121d91709b8e5ec7b85e654ae0a7476a23f34"
+    },
+    "m32768-skewed.json": {
+      "bytes": 9724,
+      "sha256": "71f8c9280187142a44b7f4a8494bf2f321c569961284f0faac150441bb380d15"
+    },
+    "m32768-skewed.log": {
+      "bytes": 11272,
+      "sha256": "0c6bf49152469d2fcb3afd2a28b75bacc67d71f631dd0ec585f9996b3739635f"
+    },
+    "m8192-bitwise.json": {
+      "bytes": 10793,
+      "sha256": "fc1f9de1d81ea74da80b047200735b7837514927a7e376b771d865334edce7ba"
+    },
+    "m8192-bitwise.log": {
+      "bytes": 12417,
+      "sha256": "0b64cc40ad400ad66ed383e16779b33e1822ddacbe4bd40eed2887bdeeaa51e7"
+    },
+    "m8192-random-fused.json": {
+      "bytes": 10528,
+      "sha256": "7c094db8d5f747c5d9602675ea54241fbcbce3a13c9f8e7aa45e2571c3204f46"
+    },
+    "m8192-random-fused.log": {
+      "bytes": 12073,
+      "sha256": "c62143fce3490a7be36c3c9ab9021242557e1a78210a1fb2e0e5962531889bb6"
+    },
+    "m8192.json": {
+      "bytes": 7008,
+      "sha256": "cd6930d91a0a7f02702fc5f661f12d7d66ab1229200e4d08f8601ea934cb5222"
+    },
+    "m8192.log": {
+      "bytes": 8553,
+      "sha256": "022f38ce495a90f0c3765c98d5e9d70ec91b51e86d7e31001188e692e1de8650"
+    },
+    "pack.py": {
+      "bytes": 2715,
+      "sha256": "9db3edaaa9d4a17cac0bd01eff34d07da47769a8eb00551f2704bd0047c1718c"
+    },
+    "service.py": {
+      "bytes": 6123,
+      "sha256": "d44e7d10ca271a50012e4b648cc4fcfc350a921d9e5dc529eb99354e8c568221"
+    },
+    "source-contract.json": {
+      "bytes": 519,
+      "sha256": "3dc41297a0c5d952cf91d638bc15b0d5a1d895c9fcbf1aca0df4ee07cb470ab9"
+    },
+    "stage2_oracle.py": {
+      "bytes": 10974,
+      "sha256": "5f9ce0e2b401b00d943645fa13b0f574dc96f35495b337edb47987c913da4708"
+    },
+    "atomic/CK-DRIFT-atomic-after-stop.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "atomic/CK-DRIFT-atomic-before-start.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "atomic/CK-DRIFT-atomic-ready.gpu.json": {
+      "bytes": 141899,
+      "sha256": "7a29fc7799ab8001ca7299eaa63913ecf751cd4b1410cb305578bb77f0c5c26c"
+    },
+    "atomic/CK-DRIFT-atomic.server-info.json": {
+      "bytes": 41997,
+      "sha256": "60bfbac3c0f05f1fb9a616782054046c682a031e7a8030fa2d46d22f6e438e24"
+    },
+    "atomic/CK-DRIFT-atomic.service.log": {
+      "bytes": 454102,
+      "sha256": "e0287bceb5977ce19777e4456e83c949b519084d095cbdbb7f12ad589c3c43be"
+    },
+    "atomic/CK-DRIFT-atomic.source.patch": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "atomic/CK-DRIFT-atomic.state.json": {
+      "bytes": 2803,
+      "sha256": "78ef8765e68c0d1d8859a5cbf7d05791a1c30af45218b4588d78cb7d59bad466"
+    },
+    "atomic/CK-DRIFT-atomic.stop.json": {
+      "bytes": 69,
+      "sha256": "55cad99be9a974baed59713cac94ee73893b399e2050f20a0773507d2e24bb56"
+    },
+    "atomic/France.json": {
+      "bytes": 1051,
+      "sha256": "d95cad9e521fcbb65e7c185c3bc6155d1920b9a4e53a9ed9958bf6f6b9312150"
+    },
+    "atomic/batch-0-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "8cd477f63c4c875d1f1e1b6130f7951ab8077e52ce41e15fcb5ec37088e91294"
+    },
+    "atomic/batch-0.json": {
+      "bytes": 27665,
+      "sha256": "fa6fb2f927074b7cb90da5ed83659c54034ec85f79c1ad6f4bbba280fee3a239"
+    },
+    "atomic/batch-1-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "3ed4da9c11639f9e2f67e1cf921be3045de22fdd4fd690497dcb9ecb978849be"
+    },
+    "atomic/batch-1.json": {
+      "bytes": 1184792,
+      "sha256": "4a611717359eb3771d99b1c6f1e9131e8237219a0c366ad8ca9d423a9faa4528"
+    },
+    "atomic/batch-2-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "4a2c48305aa0ac47bcd6f723e8816158f9abedf20c6da2769c051639e751808a"
+    },
+    "atomic/batch-2.json": {
+      "bytes": 1184813,
+      "sha256": "ae34057e1b3a32f7ee4f8ddcb9eac7abe8149045ad62c547663b71486b03233f"
+    },
+    "atomic/batch-3-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "6992648e43139ddf8e641c8f1baa6f1960e3d6bedaf268b49f1d757d6b9ecd99"
+    },
+    "atomic/batch-3.json": {
+      "bytes": 1184824,
+      "sha256": "afb063c31ae76dc9bc44daeaa12e755caee44e4bac3c04fd2ca9f11dc1b85976"
+    },
+    "atomic/batch-progress.json": {
+      "bytes": 302,
+      "sha256": "1429b65158ac1d97a2091ed22ad22a437344bcf1552e9abb57940cf53ab63534"
+    },
+    "atomic/complete.json": {
+      "bytes": 385,
+      "sha256": "95c14a60bc2bde2a093860094645fa832cc8102a9ba1c1cc17dcacf742d9396d"
+    },
+    "atomic/concurrent-quality-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "b11a8306ad80e65143bd6e6579874105d455928f9dbf7688fd6537163a99218f"
+    },
+    "atomic/concurrent-quality.client.log": {
+      "bytes": 134430,
+      "sha256": "f81a05d4261b33cb3ce577fd546d88cc70e08139eee4a62a1b325fb41e9d3a6c"
+    },
+    "atomic/concurrent-quality.json": {
+      "bytes": 92008,
+      "sha256": "de4407637e06ca0704e4aa20299281b04359708144e17593fe82d0bd39bc1858"
+    },
+    "atomic/inputs.json": {
+      "bytes": 2351619,
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    "atomic/prefill-before.gpu.json": {
+      "bytes": 141899,
+      "sha256": "6992648e43139ddf8e641c8f1baa6f1960e3d6bedaf268b49f1d757d6b9ecd99"
+    },
+    "atomic/prefill.client.log": {
+      "bytes": 22808,
+      "sha256": "a9a3bd4acc761e57f57bcdd36ea9eceae54a02f21195635e2620a971421aa8b2"
+    },
+    "atomic/prefill.json": {
+      "bytes": 14937,
+      "sha256": "8f83690052203310e286773d64c2693a2cf50b57f6986b102600a579797d078d"
+    },
+    "atomic/start-ar-matrix.sh": {
+      "bytes": 1782,
+      "sha256": "8e6856d9fe543d860521cfd966e6093259d6ad00b952db460d645c595265be33"
+    },
+    "fixed/CK-DRIFT-fixed-after-stop.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "fixed/CK-DRIFT-fixed-before-start.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "fixed/CK-DRIFT-fixed-ready.gpu.json": {
+      "bytes": 141907,
+      "sha256": "cc6715d564c374e2bfdda3edaeb5b7c6752f9269f57a215674ca2c4baad3f15a"
+    },
+    "fixed/CK-DRIFT-fixed.server-info.json": {
+      "bytes": 42000,
+      "sha256": "3eecb83f5eeb2aba7caa42320cc2765781d31937c9c36fc3155134eb67a0132c"
+    },
+    "fixed/CK-DRIFT-fixed.service.log": {
+      "bytes": 455023,
+      "sha256": "2139c6f5f5bdaad2fa07b38964b523198fb55992179493bd3574874481fa428c"
+    },
+    "fixed/CK-DRIFT-fixed.source.patch": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fixed/CK-DRIFT-fixed.state.json": {
+      "bytes": 2797,
+      "sha256": "def1683b95e7ca5bd9a877338f3a7fcb094abf212ca32556cc235e79ab487292"
+    },
+    "fixed/CK-DRIFT-fixed.stop.json": {
+      "bytes": 68,
+      "sha256": "cc4d714303617d13b3133fac37be010d0b160e5a23c4c4f5e10b401797384e72"
+    },
+    "fixed/France.json": {
+      "bytes": 1056,
+      "sha256": "b475033cdb9c402a0d1712c723719c43c6f41958dd64b6e79e373fc8cdf0368e"
+    },
+    "fixed/batch-0-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "31f9b836c23f3fe987fa01fc4e232a46ce3c1b2f19d3fec849e217233c9b726a"
+    },
+    "fixed/batch-0.json": {
+      "bytes": 27675,
+      "sha256": "eb4c66550ee766262aa0bbf9128c69ca8702d9f5d76e8eecfed50f06a8dcda06"
+    },
+    "fixed/batch-1-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "85f61db98e3d65fed17798d171ae9ab1ef6ed8ac50d01bc9d8309905463237fb"
+    },
+    "fixed/batch-1.json": {
+      "bytes": 1182172,
+      "sha256": "3f31bab100c4b77b2da51c16d3e6e97fff6520012083accc56dbcde551619722"
+    },
+    "fixed/batch-2-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "9ff8ee4594c9f525a809b19308807927687412e804051e45c8f93ad9e0ee018b"
+    },
+    "fixed/batch-2.json": {
+      "bytes": 1182168,
+      "sha256": "02a77cf72443090f12948b2ebc6fa03757365b8e9a335b1a065d5212c8f8a488"
+    },
+    "fixed/batch-3-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "b555de5cd7169f0e72c3cf768811260affbc6173278034d53055637233299383"
+    },
+    "fixed/batch-3.json": {
+      "bytes": 1182147,
+      "sha256": "9440c1b9b57fc58b9b2eb041415b3cdfad6312d78be108ce86e94b6f2f5327ce"
+    },
+    "fixed/batch-progress.json": {
+      "bytes": 302,
+      "sha256": "fbea4853ef488329a87842298bb6ee55469ed90eedccc9c47a924e83dcaa2117"
+    },
+    "fixed/complete.json": {
+      "bytes": 384,
+      "sha256": "e331671ea7f3b638ccee90b8c1c12a1288c8e5d88c35c5bd580d206965a5df4d"
+    },
+    "fixed/concurrent-quality-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "7acdb2990b2c45fefdd2d906ab007f16621c26f13845bfbc40de0361a6a67f42"
+    },
+    "fixed/concurrent-quality.client.log": {
+      "bytes": 134599,
+      "sha256": "9240cd5f3111f9e5941a56a2cf5b6cd9b3852277453bc6d0d322e46dbd6221a4"
+    },
+    "fixed/concurrent-quality.json": {
+      "bytes": 92092,
+      "sha256": "da60570aa5e3d6598ff2b2be09ba9a8f68aa2fd0085ac71a93944ac2ae22d824"
+    },
+    "fixed/inputs.json": {
+      "bytes": 2351619,
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    "fixed/prefill-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "b555de5cd7169f0e72c3cf768811260affbc6173278034d53055637233299383"
+    },
+    "fixed/prefill.client.log": {
+      "bytes": 22779,
+      "sha256": "646406c0bc40ae1b31375d3149118d3d9e04652112ab0f07e890b4e4c6f2b8f0"
+    },
+    "fixed/prefill.json": {
+      "bytes": 14922,
+      "sha256": "8f7f6bf99ad4cdcc651a80f7c8d39076b163009b8da85490c037ff8dc2f4b17a"
+    },
+    "fixed/start-ar-matrix.sh": {
+      "bytes": 1782,
+      "sha256": "cbb90653b878b5c4e06128584418193a0ca49e3d56e208aabe7fa638e9616345"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched-after-stop.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched-before-start.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched-ready.gpu.json": {
+      "bytes": 141907,
+      "sha256": "b2ca15337c0dfb3e0623ef3ac0e0aafdf964d631e9c4b5d9cb808baad3cf7484"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched.server-info.json": {
+      "bytes": 41998,
+      "sha256": "0573daf2bca164e05cdd3ce2b34f697f39941736ccf52cd2232cf6ce97ac32f1"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched.service.log": {
+      "bytes": 447057,
+      "sha256": "b2286014fbbfc839a9154f5897978818abcd262e3598af7c824cf24d647fdc12"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched.source.patch": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched.state.json": {
+      "bytes": 2843,
+      "sha256": "3ded21e9e5769cc9785992b82d53ab20778c22c3ea929ff860a7978520be3f98"
+    },
+    "atomic-matched/CK-DRIFT-atomic-matched.stop.json": {
+      "bytes": 69,
+      "sha256": "97ef531f5c3f6e317abfe23e1fbf5a639d790dec3ea665d301bc132dd1495d53"
+    },
+    "atomic-matched/France.json": {
+      "bytes": 1055,
+      "sha256": "0246313ef4ccede70891f9d20dbcb04b526f3cf355db7a9963c48c5c4798ed1f"
+    },
+    "atomic-matched/batch-0-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "82f7ec3a2c24414afcdbeaba9c409e72d82fc5df3ec3c9eefc6ae3a28059a384"
+    },
+    "atomic-matched/batch-0.json": {
+      "bytes": 27690,
+      "sha256": "727903e883e1d63b08f7ae5ada757715cc652b60452c24520354c1dbb8b0685c"
+    },
+    "atomic-matched/batch-1-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "3f758612636d4d14a4e482a520490211afaa42e66023f04a1c84456751717304"
+    },
+    "atomic-matched/batch-1.json": {
+      "bytes": 1184676,
+      "sha256": "98fef962ab34171046929cc8360ff498d89f3bfa92d42a427aabe008db1d76a5"
+    },
+    "atomic-matched/batch-2-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "2de6c30070e12e5070ca2cdbc8f00ef2d0993a21c54b3f88809d729532479168"
+    },
+    "atomic-matched/batch-2.json": {
+      "bytes": 1184824,
+      "sha256": "9268ffc98aae1a0494f0421066fa5f35892a3bff43c9750aff93f9f2113196f2"
+    },
+    "atomic-matched/batch-3-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "ba21b9d21cc9368ea518941210dd0db8d63d37a00b642ffde847d15b2edd6b3f"
+    },
+    "atomic-matched/batch-3.json": {
+      "bytes": 1184670,
+      "sha256": "62e6017c8231fb823320d8c9fe3176bdeda3807a0eeb59cb783df6ea5ae9c09a"
+    },
+    "atomic-matched/batch-progress.json": {
+      "bytes": 304,
+      "sha256": "df921a96ca5c1d637b14153091daf0cbac41def45a9250f28a7e9b8d59eeb825"
+    },
+    "atomic-matched/complete.json": {
+      "bytes": 411,
+      "sha256": "3c1d2197529ae1efcdbe928a38fce405bdff14aab3fe0f5b87e2c0d395e8de92"
+    },
+    "atomic-matched/inputs.json": {
+      "bytes": 2351619,
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    "atomic-matched/split-lp-0-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "ba21b9d21cc9368ea518941210dd0db8d63d37a00b642ffde847d15b2edd6b3f"
+    },
+    "atomic-matched/split-lp-0.json": {
+      "bytes": 1183519,
+      "sha256": "0c3813e8b08e75ad9f512b35234bf3df8a9d111aaf507b2e2d7ffa9707268a1b"
+    },
+    "atomic-matched/split-lp-1-before.gpu.json": {
+      "bytes": 141907,
+      "sha256": "f1650364055a604a2bc757d2314fcb90d8450993004752cd2c2d17c10950f34b"
+    },
+    "atomic-matched/split-lp-1.json": {
+      "bytes": 1184687,
+      "sha256": "fe72c89837a147d8427d186ccd7e7edee7e7a45f2f7fff3bb8e93d19106f9497"
+    },
+    "atomic-matched/start-ar-matrix.sh": {
+      "bytes": 1782,
+      "sha256": "8e6856d9fe543d860521cfd966e6093259d6ad00b952db460d645c595265be33"
+    }
+  }
+}
