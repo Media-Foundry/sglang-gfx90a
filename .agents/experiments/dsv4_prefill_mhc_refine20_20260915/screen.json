@@ -1,0 +1,138 @@
+{
+  "status": "complete",
+  "scope": "PREPARED: full20 boundary versus full8 + comb-only12, after service shutdown.\n\nReuses current production kernels and captured residual/Fn; synthetic post\ninputs. Require every returned tensor bit-exact before accepting any timing.\nOnly physical GPU4, no concurrent service. This is not an E2E result.\n",
+  "settings": {
+    "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+    "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+    "SGLANG_DSV4_GFX90A_MHC_BLOCK_K": "1024",
+    "SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY": "1",
+    "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+    "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+    "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+    "SGLANG_DSV4_GFX90A_BF16_MHC_DOT": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+    "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+    "SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION": "0",
+    "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS": "0"
+  },
+  "results": [
+    {
+      "m": 1,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 0,
+      "graph_mutation_exact": null,
+      "median_ms": {
+        "A": 0.2136562943458557,
+        "B": 0.23671319484710693
+      },
+      "samples_ms": {
+        "A": [
+          0.24112939834594727,
+          0.21572060585021974,
+          0.2107922077178955,
+          0.21552839279174804,
+          0.2114962100982666,
+          0.2117841958999634
+        ],
+        "B": [
+          0.24215359687805177,
+          0.23783318996429442,
+          0.24068140983581543,
+          0.23328919410705568,
+          0.23223319053649902,
+          0.23559319972991943
+        ]
+      }
+    },
+    {
+      "m": 128,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 0,
+      "graph_mutation_exact": null,
+      "median_ms": {
+        "A": 0.21824859380722045,
+        "B": 0.23688919544219972
+      },
+      "samples_ms": {
+        "A": [
+          0.2591141939163208,
+          0.2174165964126587,
+          0.21908059120178222,
+          0.21978459358215333,
+          0.21421639919281005,
+          0.21728839874267578
+        ],
+        "B": [
+          0.2434014081954956,
+          0.2435296058654785,
+          0.23719320297241211,
+          0.23309719562530518,
+          0.2365851879119873,
+          0.23328919410705568
+        ]
+      }
+    },
+    {
+      "m": 8192,
+      "mutations": 10,
+      "all_outputs_exact": true,
+      "row_permutation_exact": true,
+      "graph_replays": 0,
+      "graph_mutation_exact": null,
+      "median_ms": {
+        "A": 3.2386707305908207,
+        "B": 3.0523756980896
+      },
+      "samples_ms": {
+        "A": [
+          3.2427513122558596,
+          3.238270950317383,
+          3.2382068634033203,
+          3.2380786895751954,
+          3.240062713623047,
+          3.239070510864258
+        ],
+        "B": [
+          3.052439880371094,
+          3.0563758850097655,
+          3.0522476196289063,
+          3.0523115158081056,
+          3.0519914627075195,
+          3.0525033950805662
+        ]
+      }
+    }
+  ],
+  "source_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_mhc_refine20_20260915/oracle.py": "d93f83b7be0c126c6b0470a28f8867332b2f0f3d5d9aa7baf2110006ce6b9f37",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_mhc_refine20_20260915/candidate.py": "67c000ad7100466f13a2bf3db8104d0465b71d308b941bac2ccb6c565c2fb886",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/mhc.py": "07cb1697c22331a50135d91f5df59f563bf81ff5ac2384966c12eea36edb3517"
+  },
+  "captured_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_scale.pt": "b74ac7c4104b1ee46eb736aca4d7fc30fd7dc151dac1702aee07baf86c358b84",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_base.pt": "25d45adca4e6bcc9e3175a079d7f945a746bafc7a015f9b48b79f8ae8e2405c9",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_norm_weight.pt": "3c7cb027fd29d56a5a507193a017e5f4ce1efb821cc1916e3a645cd4c5c67b93"
+  },
+  "last_check": {
+    "m": 8192,
+    "phase": "row_permutation",
+    "exact": true,
+    "max_abs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

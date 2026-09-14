@@ -1,7 +1,9 @@
-# Prepared comb-only continuation oracle (not GPU-tested)
+# Comb-only continuation oracle (component tested; not production-wired)
 
-Do not run while the config20 TP8 service ABBA owns the GPUs. This is not
-wired into production, and no speed or bitwise claim has been established.
+Do not run while a TP8 service owns the GPUs. This is not wired into
+production. `screen.json` and `full.json` now record exact component results:
+large M is5.7–5.9% lower complete-boundary latency than full20, small M loses.
+See `.agents/memory/dsv4_prefill_mhc_refine20_20260915.md` for scope and limits.
 
 The current split-K tail does initial Sinkhorn normalization followed by
 `ITERS-1` row/column normalization pairs, writes FP32 comb, then computes
@@ -45,7 +47,8 @@ The first screen is allocating eager full-boundary timing only. Row permutation
 checks are now included for every shape. If promising, run ragged M32767 and
 M32768 and use `--graph-replays 1000` before any service integration. This flag
 also tests a replay after changing inputs to detect stale graph output; zero
-replays are recorded as untested, not as a graph correctness pass. These new
-checks have only been syntax-checked, not executed on a GPU yet.
+replays are recorded as untested, not as a graph correctness pass. The extended
+run has passed25 mutations, row permutation,1000 graph replays and changed-input
+replay per shape at M128/8192/32767/32768.
 Captured residual/Fn are local prerequisites; post inputs
 are synthetic. This is not a fresh complete model trace or an accuracy oracle.
