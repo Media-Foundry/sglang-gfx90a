@@ -1,0 +1,370 @@
+{
+  "status": "complete",
+  "bq": 4,
+  "runtime": true,
+  "scope": "Exact-M query16 versus runtime-M query16; no production source changes.\n\nReuses the integrated score/Top-K mutation fixture. Compiler assembly hashes\nare grouped by all non-M metadata to verify reuse across row counts.\n",
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 100,
+      "fixed_graph_replays": 100,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4133.012008666992
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4111.571884155273
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4096.723556518555
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4121.844100952148
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4105.395889282227
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4106.867980957031
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4098.675918579102
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4118.740081787109
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4109.428024291992
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4102.228164672852
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4091.476058959961
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4128.884506225586
+        }
+      ],
+      "medians_us": {
+        "A": 4120.292091369629,
+        "B": 4100.452041625977
+      },
+      "stage_speedup": 1.0048385030582592
+    },
+    {
+      "batch": 32768,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 4,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 100,
+      "fixed_graph_replays": 100,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 16298.576354980469
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16309.68017578125
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16308.592224121094
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 16293.583679199219
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 16272.207641601562
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16302.383422851562
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16323.2177734375
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 16284.239196777344
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 16279.536437988281
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16315.473937988281
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16309.553527832031
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 16297.039794921875
+        }
+      ],
+      "medians_us": {
+        "A": 16288.911437988281,
+        "B": 16309.61685180664
+      },
+      "stage_speedup": 0.9987304782199058
+    },
+    {
+      "batch": 65536,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 8,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 100,
+      "fixed_graph_replays": 100,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 32412.680053710938
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 32434.280395507812
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 32425.064086914062
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 32404.104614257812
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 32412.136840820312
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 32426.632690429688
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 32417.034912109375
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 32412.106323242188
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 32402.090454101562
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 32427.880859375
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 32415.46630859375
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 32404.202270507812
+        }
+      ],
+      "medians_us": {
+        "A": 32408.154296875,
+        "B": 32425.848388671875
+      },
+      "stage_speedup": 0.9994543213924649
+    }
+  ],
+  "source_sha256": "50f9df007c2cb8cc4edd8814b164450ab6970db069384d1da146d890123b33dc",
+  "fp8_dtype": "torch.float8_e4m3fn",
+  "preshuffle": true,
+  "resources": [],
+  "ragged_mixed_page_mutations_exact": 100,
+  "ragged_page_table_stride": [
+    13,
+    1
+  ],
+  "irregular_same_metadata": [
+    {
+      "m": 32766,
+      "mutations": 100,
+      "all_exact": true
+    },
+    {
+      "m": 32767,
+      "mutations": 100,
+      "all_exact": true
+    },
+    {
+      "m": 65535,
+      "mutations": 100,
+      "all_exact": true
+    }
+  ],
+  "control_bq": 16,
+  "candidate_bq": 16,
+  "runtime_m": true,
+  "compiler_records": [
+    {
+      "m": 8192,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32768,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 65536,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 17,
+      "width": 577,
+      "pages": 10,
+      "page_stride": 13,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "2024a81ea0e6d2304f89dfa149d87223afe097c6900429abf96cd6e98d51dd71",
+      "regs": 63,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32766,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32767,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 65535,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    }
+  ],
+  "same_large_shape_binary": true,
+  "driver_sha256": "621ad1ce4fe53fed17195346078fd7ef624af7c7ec10296c888fde019f766f5e",
+  "candidate_sha256": "3a517906502a7c20c9fd1be3a556e17fde653d0c9c06bf2b4a1350c0e2eda609"
+}

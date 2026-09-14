@@ -2,9 +2,10 @@
 
 ## Status
 
-Integrated component passes; 4-vs16 service ABBA is running. Production still
-defaults to query-group4 and the accepted E2E checkpoint remains **6773.27 input
-tok/s**. No new E2E improvement is claimed yet.
+Integrated component and 4-vs16 service ABBA completed. Warm throughput is
+**6778.9666 -> 6877.4848 input tok/s (+1.4533%)**. Production still defaults
+to query-group4: the first candidate wave exposed substantial exact-M JIT
+latency, so group16 stays opt-in until runtime-M integration is validated.
 
 Previous goal turn was progress: complete query4 ABBA, +4.5222%, default-profile
 selection, raw evidence archive and fork/main push at8d40d5d799. This follow-up
@@ -70,7 +71,7 @@ argument contract, launcher and marker tests: **23 passed,31 subtests**, one
 unrelated pytest asyncio_mode configuration warning. The API default is tested
 as4, not implicitly changed to16 by integration.
 
-## Ongoing service experiment
+## Service experiment
 
 Directory `.agents/experiments/dsv4_c16_indexer_qgroup16_20260915/`.
 Fresh A1 -> B1/B2 -> A2; three timed waves per leg and one excluded warmup per
@@ -88,3 +89,48 @@ Input identity has been verified in preceding runs, but whole-model drift
 remains open. Last query4 ABBA had a case5 variant only in the first control's
 second wave after57 common tokens. Neither current local exactness nor that
 observation alone localizes every projection/CK-atomic/arrival-order difference.
+
+## Completed warm ABBA and quality
+
+| Leg | Input tok/s per wave | Median |
+|---|---|---:|
+| A1 |6775.986 /6780.516 /6769.239|6775.986|
+| B1 |6883.553 /6883.689 /6870.274|6883.553|
+| B2 |6871.417 /6880.472 /6869.888|6871.417|
+| A2 |6782.232 /6781.947 /6775.844|6781.947|
+
+Mean leg medians **6778.9666 -> 6877.4848 (+1.4533%)**. Mean of leg
+median-request TTFT **12.17626 -> 12.00617 s (-1.3969%)**. Whole-wave medians
+A1/A2 19.34316/19.32616 s, B1/B2 19.04089/19.07452 s. All four legs have
+twelve four-request/M32768 logged forwards, immutable source hashes and
+identical input manifests. All eight ranks log the requested group4 or16.
+
+All96 quality input echoes match, zero prefix hits, completion128 and ID/text
+consistency pass; all France probes answer Paris. A1 and B each repeat16/16,
+and every A1/B quality-wave pairing matches16/16. B also matches the previously
+inspected query4 experiment's B first wave16/16 on identical inputs.
+
+A2 repeats15/16. Only case8 differs: A1/B versus A2 first diverges after40
+common tokens (2019/666), and A2's own two waves first differ after98 tokens
+(21860/108348). The changed excerpts are alternative explanations of distributed
+memory helpers, not an observed repetition collapse. These are control-side
+variants with exact input IDs; no global deterministic-model claim is made.
+
+All services completed and stopped, with empty owned child lists; AMD-SMI
+confirmed all GPUs empty before the follow-up single-GCD experiment.
+Evidence archive:88 files, 2,355,942 bytes; SHA256
+`4ef392fa3df1247c8afad6b03f906361fb98846b1b57d9f0f445e05012610de5`.
+
+## Cold-shape issue: why group16 is not the default yet
+
+Candidate warmup was3348.396 input tok/s, about39.14s for the131069-token wave,
+versus about19.06s warm. Logs explicitly report serving-time compilation of
+Triton `reuse` in two bursts, at02:36:05 and02:36:19, with slowest-rank durations
+8.77s and9.33s. Do not sum all eight ranks' durations: these are concurrent
+rank reports, not144s of sequential service delay.
+
+`M` is a constexpr in both `reuse` and its `emit` helper, although it only
+controls bounds. Distinct exact row counts can therefore compile distinct
+variants. This is an engineering latency problem independent of the +1.45%
+steady-state benefit. Keep group4 as the default while testing a runtime-M
+candidate with `do_not_specialize=['M']`; change no score arithmetic.

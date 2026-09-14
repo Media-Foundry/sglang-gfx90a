@@ -1,0 +1,393 @@
+{
+  "status": "complete",
+  "bq": 4,
+  "runtime": true,
+  "scope": "Exact-M query16 versus runtime-M query16; no production source changes.\n\nReuses the integrated score/Top-K mutation fixture. Compiler assembly hashes\nare grouped by all non-M metadata to verify reuse across row counts.\n",
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4104.420471191406
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4107.2998046875
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4096.675872802734
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 4118.436050415039
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4103.204727172852
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4107.331848144531
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4100.420379638672
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 4126.084136962891
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4099.4598388671875
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4112.707901000977
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4098.915863037109
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 4108.868026733398
+        }
+      ],
+      "medians_us": {
+        "A": 4106.644248962402,
+        "B": 4103.860092163086
+      },
+      "stage_speedup": 1.0006784239074409
+    },
+    {
+      "batch": 32768,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 4,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 16298.036193847656
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16319.827270507812
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 16332.53173828125
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 16289.556884765625
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 16287.059020996094
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16317.971801757812
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 16310.835266113281
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 16289.781188964844
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 16281.684875488281
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16325.811767578125
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 16305.619812011719
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 16289.813232421875
+        }
+      ],
+      "medians_us": {
+        "A": 16289.669036865234,
+        "B": 16318.899536132812
+      },
+      "stage_speedup": 0.9982087947043943
+    },
+    {
+      "batch": 65536,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 8,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 32433.035278320312
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 32436.236572265625
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 32444.5556640625
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 32432.65380859375
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 32430.670166015625
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 32457.003784179688
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 32450.155639648438
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 32451.40380859375
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 32429.037475585938
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 32461.163330078125
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 32439.083862304688
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 32445.516967773438
+        }
+      ],
+      "medians_us": {
+        "A": 32432.84454345703,
+        "B": 32447.35565185547
+      },
+      "stage_speedup": 0.9995527799382441
+    }
+  ],
+  "source_sha256": "50f9df007c2cb8cc4edd8814b164450ab6970db069384d1da146d890123b33dc",
+  "fp8_dtype": "torch.float8_e4m3fn",
+  "preshuffle": true,
+  "resources": [],
+  "ragged_mixed_page_mutations_exact": 3,
+  "ragged_page_table_stride": [
+    13,
+    1
+  ],
+  "irregular_same_metadata": [
+    {
+      "m": 32766,
+      "mutations": 3,
+      "all_exact": true
+    },
+    {
+      "m": 32767,
+      "mutations": 3,
+      "all_exact": true
+    },
+    {
+      "m": 65535,
+      "mutations": 3,
+      "all_exact": true
+    }
+  ],
+  "control_bq": 16,
+  "candidate_bq": 16,
+  "runtime_m": true,
+  "compiler_records": [
+    {
+      "m": 8192,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32768,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 65536,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 17,
+      "width": 577,
+      "pages": 10,
+      "page_stride": 13,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "2024a81ea0e6d2304f89dfa149d87223afe097c6900429abf96cd6e98d51dd71",
+      "hsaco_sha256": "9e1407d672d9e7bb39c2e7cd5589034073beb4840811b432edb995e8692f8dd4",
+      "compiled_object_id": 134531318577536,
+      "cache_hash": "287072d2b2f3399037a8c041befc7c8444db83b04ff418244e81dbd505e1d20e",
+      "regs": 63,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32766,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 32767,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    },
+    {
+      "m": 65535,
+      "width": 2048,
+      "pages": 32,
+      "page_stride": 32,
+      "group": 16,
+      "block_s": 16,
+      "shuffle": 16,
+      "amdgcn_sha256": "62fbe647a65b7bd0a7ede75e59c219bf646b0865ff6113041c20513e0324681c",
+      "hsaco_sha256": "5a36b06175940b27d52bed0762627aec3665330f005cfe9e536ad46aa263bd7c",
+      "compiled_object_id": 134531323501488,
+      "cache_hash": "c1f3f7d98823fee34df57cd7b8fb9f7cadc780bcfc6aa34e8c467f4abf915aa9",
+      "regs": 64,
+      "spills": 0,
+      "lds": 8192
+    }
+  ],
+  "same_large_shape_binary": true,
+  "same_large_shape_cached_object": true,
+  "same_large_shape_hsaco": true,
+  "driver_sha256": "006fd00b9ba484124c6f20a6d8e6962a7d5d8cfa8f6db4be1a7fdb3d35f50bbb",
+  "candidate_sha256": "3a517906502a7c20c9fd1be3a556e17fde653d0c9c06bf2b4a1350c0e2eda609"
+}
