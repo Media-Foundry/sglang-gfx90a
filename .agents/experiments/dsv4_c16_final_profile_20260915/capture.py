@@ -13,22 +13,50 @@ repo = root.parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--source-arm', choices=('A1', 'B', 'A2'), default='B')
 p.add_argument('--label', default='capture')
+p.add_argument('--current-mix8', action='store_true',
+               help='Profile current sources with the accepted mix8 configuration; not historical-checkout reproduction.')
+p.add_argument('--validate-only', action='store_true',
+               help='Validate source plans and input manifest without creating files or starting a service.')
 args = p.parse_args()
 assert re.fullmatch(r'[A-Za-z0-9-]+', args.label)
-trial = root.parent / 'dsv4_c16_indexer_runtime_service_20260915'
+trial = root.parent / ('dsv4_c16_premix8_service_20260915' if args.current_mix8
+                       else 'dsv4_c16_indexer_runtime_service_20260915')
+if args.current_mix8:
+    assert args.source_arm == 'B' and args.label not in ('capture', 'capture-v2')
 summary = json.loads((trial / 'summary.json').read_text())
 assert summary['identical_timed_forward_shape_counts']
 assert [leg['name'] for leg in summary['legs']] == ['A1', 'B1', 'B2', 'A2']
 source = trial / args.source_arm
 plan = json.loads((source / 'plan.json').read_text())
+historical_plan = json.loads(json.dumps(plan))
 assert (source / 'complete.json').exists()
-assert json.loads((source / f'P16-qrunm-{args.source_arm}.stop.json').read_text())['remaining'] == []
+stop_prefix = 'P16-mix8' if args.current_mix8 else 'P16-qrunm'
+assert json.loads((source / f'{stop_prefix}-{args.source_arm}.stop.json').read_text())['remaining'] == []
 assert plan['query_group_size'] == 16
 assert plan['runtime_m'] == (args.source_arm == 'B')
 if args.source_arm == 'B':
     assert summary['throughput_gain_percent'] > -1, 'Review runtime-M regression before profiling'
-for name, digest in plan['sources'].items():
-    assert hashlib.sha256((repo / name).read_bytes()).hexdigest() == digest, name
+source_differences = {}
+if args.current_mix8:
+    assert plan['mix_group_size'] == 8
+    paths = set(plan['sources']) | {
+        'python/sglang/srt/layers/dsv4_prefill_mhc_policy.py',
+        'python/sglang/kernels/ops/layernorm/gfx90a_mhc_post_pre.py'}
+    current = {name: hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in sorted(paths)}
+    source_differences = {name: {'historical':plan['sources'].get(name),'current':digest}
+                          for name,digest in current.items() if plan['sources'].get(name)!=digest}
+    plan['sources'] = current
+else:
+    for name, digest in plan['sources'].items():
+        assert hashlib.sha256((repo / name).read_bytes()).hexdigest() == digest, name
+if args.validate_only:
+    manifest = json.loads((source/'inputs.json').read_text())
+    assert len(manifest['requests']) == 16
+    assert sum(len(r['input_ids']) for r in manifest['requests']) == 131069
+    print(json.dumps(dict(validation_only=True,current_mix8=args.current_mix8,
+                         sources=plan['sources'],source_differences=source_differences,
+                         input_tokens=131069),indent=2))
+    raise SystemExit(0)
 
 out = root / args.label
 out.mkdir(exist_ok=False)
@@ -44,6 +72,13 @@ flags = (f'export SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR={directory}\n'
          'export SGLANG_DSV4_GFX90A_REALTIME_TRACE_GRAPH_ONLY=0\n'
          'export SGLANG_DSV4_GFX90A_REALTIME_TRACE_LOG_EVERY=0\n'
          'unset SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES\n')
+if args.current_mix8:
+    flags += ('export SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE=8\n'
+              'export SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE=16\n'
+              'export SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M=1\n'
+              'export SGLANG_DSV4_C4_PREFILL_QUERY_WIDE=0\n'
+              'export SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS=0\n'
+              'export SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS=8\n')
 needle = 'exec bash scripts/rocm_dsv4_flash.sh serve'
 assert launcher.count(needle) == 1
 launcher = launcher.replace(needle, flags + needle)
@@ -57,6 +92,8 @@ marker_sources = {name: hashlib.sha256((repo/name).read_bytes()).hexdigest() for
     'python/sglang/kernels/ops/debug/gfx90a_realtime_marker.py',
     'python/sglang/kernels/jit/csrc/debug/gfx90a_realtime_marker.cuh')}
 life.save('plan.json', dict(diagnostic_only=True, source_arm=args.source_arm,
+    current_mix8=args.current_mix8, historical_source_plan=historical_plan,
+    source_differences=source_differences,
     source_plan=plan, marker_sources=marker_sources,
     driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     input_sha256=hashlib.sha256((out/'inputs.json').read_bytes()).hexdigest()))
@@ -71,6 +108,11 @@ try:
     assert env['SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M'] == str(int(plan['runtime_m']))
     assert env['SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR'] == str(directory)
     assert not env.get('SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES')
+    if args.current_mix8:
+        assert env['SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE']=='8'
+        assert env['SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS']=='0'
+        assert env['SGLANG_DSV4_C4_PREFILL_QUERY_WIDE']=='0'
+        assert env['SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS']=='8'
     info = json.loads((out/'P16-markers-B.server-info.json').read_text())
     assert info['tp_size'] == 8 and info['ep_size'] == 1
     assert info['model_path'] == '/home/pc/models/modelscope'
@@ -110,7 +152,12 @@ try:
             request_wall_s=wall, diagnostic_only=True))
         print('MARKER WAVE', name, frames, wall, flush=True)
         if name == 'warmup':
-            check_paths(Path(state['log']).read_text(), plan['runtime_m'])
+            log_text=Path(state['log']).read_text()
+            check_paths(log_text, plan['runtime_m'])
+            if args.current_mix8:
+                for rank in range(8):
+                    assert any(f'TP{rank}]' in line and 'prefill mix-reuse4 selected:' in line
+                               and 'group=8' in line for line in log_text.splitlines()),rank
     life.save('complete.json', dict(input_echo_exact=64, frames=128, diagnostic_only=True))
 finally:
     life.stop(state)
