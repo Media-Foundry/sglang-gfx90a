@@ -1,0 +1,171 @@
+{
+  "status": "complete",
+  "bq": 4,
+  "runtime": true,
+  "scope": "Isolated multi-query K reuse; no production dispatch edits.\n\nReuse the existing empty-tile fixture and logical/physical Top-K checks, but\ncompare against the CURRENT nonempty control, not its superseded rectangular\ndot implementation. Synthetic 8K causal requests, not a real-service capture.\n",
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 100,
+      "fixed_graph_replays": 100,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 7952.454376220703
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4997.696685791016
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 4997.568893432617
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 7947.142028808594
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 7948.902130126953
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 5003.64875793457
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 4996.448516845703
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 7950.8544921875
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 7951.8463134765625
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4997.248840332031
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 4996.512603759766
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 7945.798492431641
+        }
+      ],
+      "medians_us": {
+        "A": 7949.878311157227,
+        "B": 4997.408866882324
+      },
+      "stage_speedup": 1.590800057173794
+    },
+    {
+      "batch": 32768,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 4,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 100,
+      "fixed_graph_replays": 100,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 31709.918212890625
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 19935.842895507812
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 19940.2587890625
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 31711.993408203125
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 31719.772338867188
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 19936.00311279297
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 19932.48291015625
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 31712.4755859375
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 31709.500122070312
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 19934.754943847656
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 19931.138610839844
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 31715.390014648438
+        }
+      ],
+      "medians_us": {
+        "A": 31712.234497070312,
+        "B": 19935.298919677734
+      },
+      "stage_speedup": 1.590757912627425
+    }
+  ],
+  "source_sha256": "ef4e796ff3d37da19c2563730e98506d5846d8bb8ce81ea5f4be8f489fcd9470",
+  "fp8_dtype": "torch.float8_e4m3fn",
+  "preshuffle": true,
+  "resources": [],
+  "ragged_mixed_page_mutations_exact": 100
+}

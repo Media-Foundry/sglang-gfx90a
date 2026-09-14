@@ -16,18 +16,50 @@ class TestEmptyIndexerTiles(unittest.TestCase):
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'C4IndexerBackendMixin')
         method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_use_c4_empty_decode_tiles')
         prefill = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_use_c4_empty_prefill_tiles')
+        query_reuse = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_use_c4_prefill_query_reuse')
         wrapper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fp8_paged_mqa_logits_torch')
         self.mode = Enum('Mode', 'DECODE EXTEND TARGET_VERIFY IDLE DRAFT_EXTEND')
         self.flag = False
         self.hip = self.gfx90a = True
+        self.capturing = False
+        self.ps = NS(tp_size=8,attn_tp_size=8,moe_ep_size=1,attn_cp_size=1,pp_size=1)
         self.namespace = dict(
             envs=NS(SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP=NS(get=lambda: self.flag)),
             is_hip=lambda: self.hip, is_gfx90a_supported=lambda: self.gfx90a,
-            ForwardMode=self.mode, torch=NS(Tensor=object), Any=object, os=os)
-        exec(compile(ast.Module(body=[method, prefill, wrapper], type_ignores=[]), '<indexer contract>', 'exec'), self.namespace)
+            get_parallel=lambda:self.ps,
+            ForwardMode=self.mode, torch=NS(Tensor=object,cuda=NS(is_current_stream_capturing=lambda:self.capturing)), Any=object, os=os)
+        exec(compile(ast.Module(body=[method, prefill, query_reuse, wrapper], type_ignores=[]), '<indexer contract>', 'exec'), self.namespace)
         self.backend = NS(token_to_kv_pool=NS(_unified_kv=True), is_draft_worker=False,
                           is_dspark_target=False, mtp_enabled=False,
                           dsa_topk_backend=NS(is_sgl_kernel=lambda:True))
+        self.backend._use_c4_empty_prefill_tiles=lambda fb,idx:self.namespace['_use_c4_empty_prefill_tiles'](self.backend,fb,idx)
+
+    def test_query_reuse_requires_native_tp8_prefill_and_explicit_opt_in(self):
+        idx=NS(compressor=NS(_debug_original_v4=True),index_topk=512)
+        fb=NS(forward_mode=self.mode.EXTEND)
+        def call(rows=32768):
+            return self.namespace['_use_c4_prefill_query_reuse'](self.backend,fb,idx,rows)
+        flags=dict(SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4='1',
+                   SGLANG_DSV4_C4_TRIVIAL_LOGITS_SKIP='1',
+                   SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP='1',
+                   SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER='3')
+        with patch.dict(os.environ,flags):
+            self.assertTrue(call())
+            for flag in flags:
+                with patch.dict(os.environ,{flag:'0'}):self.assertFalse(call())
+            for rows in (0,128,8191,65537):self.assertFalse(call(rows))
+            for rows in (8192,32767,65536):self.assertTrue(call(rows))
+            for mode in self.mode:
+                fb.forward_mode=mode
+                self.assertEqual(call(),mode==self.mode.EXTEND)
+            fb.forward_mode=self.mode.EXTEND
+            for name,value in [('tp_size',4),('attn_tp_size',4),('moe_ep_size',2),('attn_cp_size',2),('pp_size',2)]:
+                old=getattr(self.ps,name);setattr(self.ps,name,value)
+                self.assertFalse(call());setattr(self.ps,name,old)
+            self.capturing=True;self.assertFalse(call());self.capturing=False
+            fb.tbo_parent_token_range=(0,32768);self.assertFalse(call())
+            fb.tbo_parent_token_range=None
+            fb._original_forward_mode=self.mode.TARGET_VERIFY;self.assertFalse(call())
 
     def test_prefill_is_independent_and_fail_closed(self):
         indexer=NS(compressor=NS(_debug_original_v4=True),index_topk=512)

@@ -1,0 +1,93 @@
+{
+  "status": "complete",
+  "bq": 2,
+  "scope": "Isolated multi-query K reuse; no production dispatch edits.\n\nReuse the existing empty-tile fixture and logical/physical Top-K checks, but\ncompare against the CURRENT nonempty control, not its superseded rectangular\ndot implementation. Synthetic 8K causal requests, not a real-service capture.\n",
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 7937.711334228516
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 6096.277236938477
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 6101.941680908203
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 7951.888275146484
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 7952.655792236328
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 6102.485656738281
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 6105.269622802734
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 7956.751251220703
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 7955.6640625
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 6111.82975769043
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "stage_us": 6106.261444091797
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "stage_us": 7955.438995361328
+        }
+      ],
+      "medians_us": {
+        "A": 7954.047393798828,
+        "B": 6103.877639770508
+      },
+      "stage_speedup": 1.3031138340607173
+    }
+  ],
+  "resources": [
+    {
+      "regs": 63,
+      "spills": 0,
+      "lds": 8192
+    }
+  ]
+}

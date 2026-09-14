@@ -81,6 +81,7 @@ _arange_cache = {}
 _fp8_paged_mqa_logits_debug_logged = False
 _c4_empty_tiles_debug_logged = False
 _c4_empty_prefill_debug_logged = False
+_c4_query_reuse_debug_logged = False
 _c4_trivial_logits_debug_logged = False
 
 
@@ -898,6 +899,23 @@ class C4IndexerBackendMixin:
             and os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "3") in ("2", "3")
         )
 
+    def _use_c4_prefill_query_reuse(self, forward_batch, c4_indexer, rows) -> bool:
+        if not (
+            os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4", "0") == "1"
+            and os.getenv("SGLANG_DSV4_C4_TRIVIAL_LOGITS_SKIP", "0") == "1"
+            and self._use_c4_empty_prefill_tiles(forward_batch, c4_indexer)
+            and 8192 <= rows <= 65536
+            and getattr(forward_batch, "tbo_parent_token_range", None) is None
+            and getattr(forward_batch, "_original_forward_mode", None) is None
+        ):
+            return False
+        ps = get_parallel()
+        return (
+            ps.tp_size == ps.attn_tp_size == 8
+            and ps.moe_ep_size == ps.attn_cp_size == ps.pp_size == 1
+            and not torch.cuda.is_current_stream_capturing()
+        )
+
     @staticmethod
     def _should_skip_c4_indexer_logits(
         c4_indexer: "C4Indexer",
@@ -1392,17 +1410,39 @@ class C4IndexerBackendMixin:
                             flush=True,
                         )
                         _c4_empty_prefill_debug_logged = True
-                logits = fn(
-                    q,
-                    c4_indexer_kv_cache,
-                    weights,
-                    _c4sl,
-                    page_table,
-                    indexer_metadata.deep_gemm_metadata,
-                    indexer_metadata.max_c4_seq_len,
-                    False,
-                    **logits_kwargs,
-                )
+                logits = None
+                if (
+                    fn is fp8_paged_mqa_logits_torch
+                    and self._use_c4_prefill_query_reuse(forward_batch, c4_indexer, q.shape[0])
+                ):
+                    from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_query_reuse import prefill_query_reuse4
+
+                    logits = prefill_query_reuse4(
+                        q, c4_indexer_kv_cache, weights, _c4sl, page_table,
+                        indexer_metadata.max_c4_seq_len,
+                        block_s=envs.SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S.get(),
+                        preshuffle_tile=(INDEXER_K_CACHE_PRESHUFFLE_TILE
+                            if aiter_can_use_preshuffle_paged_mqa() else 0),
+                        dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(),
+                        fp8_fnuz=is_fp8_fnuz(),
+                    )
+                    global _c4_query_reuse_debug_logged
+                    if logits is not None and not _c4_query_reuse_debug_logged:
+                        print(f"[DSV4 indexer] prefill query-reuse4 selected: rows={q.shape[0]} "
+                              f"C4_capacity={indexer_metadata.max_c4_seq_len}", flush=True)
+                        _c4_query_reuse_debug_logged = True
+                if logits is None:
+                    logits = fn(
+                        q,
+                        c4_indexer_kv_cache,
+                        weights,
+                        _c4sl,
+                        page_table,
+                        indexer_metadata.deep_gemm_metadata,
+                        indexer_metadata.max_c4_seq_len,
+                        False,
+                        **logits_kwargs,
+                    )
 
         if _prefill_detail_mark is not None:
             _prefill_detail_mark(53, "indexer_logits_done", absolute=True)
