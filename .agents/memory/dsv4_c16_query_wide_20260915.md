@@ -108,3 +108,33 @@ Serving gates still outstanding: actual wide-backend hits, unchanged input
 IDs and full KV selection,1M pool retained, real prefix-hit metadata, long
 output comparison and same-input ABBA. Do not merely remove width guard or
 claim the component's1.9x as E2E gain. No model weights/precision changed.
+
+## In-progress16K service: control A1 completed
+
+A1 warmup5361.7672 input tok/s; timed5654.7166/5655.0734/5654.8707,
+median5654.8707. All24 timed forwards reported2 requests/M32768; no serving
+Triton compile warnings. France returned Paris. Service stopped with no
+remaining owned workers; candidate B is running, A2 not yet measured.
+These are partial results, not a completed ABBA or a candidate speed claim.
+
+Control A1's two128-token quality waves have32/32 exact full input echoes,
+but only10/16 complete token sequences repeat. First divergence positions
+(zero-based) are case3:1, case4:92, case8:19, case11:0, case13:32, case15:53.
+All16 quality prefill forwards also report2 requests/M32768, so there is no
+observed change in this coarse M histogram. This does not prove identical
+row placement, physical pages, kernels' arrival order or atomic order.
+Manually inspected cases3/8/11 remain coherent and discuss the corresponding
+allocation/distributed-helper/FP8-scale excerpts; this is not a proof of
+semantic accuracy. Do not attribute future A/B text differences to query
+reuse without considering this control drift floor.
+
+Prepared `bench_prefix.py` (not yet sent to the GPU service) for mixed
+0/25/50/75-percent, page-aligned priming of exact real input-ID prefixes.
+It keeps full requests unchanged, records actual cached counts and both
+full-input/newly-computed-token rates, and excludes priming time explicitly.
+It requires positive hits for primed rows and preserves raw responses before
+assertions. Four CPU contract tests passed, including changed-input, wrong
+request ID, bad cache count and empty-output rejection. A32K plan-only run
+was generated; real cache/API behavior remains to be validated after the
+current zero-prefix sweep. No additional requests were sent concurrently
+with the timed service experiment.
