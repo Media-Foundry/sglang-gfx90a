@@ -19,7 +19,11 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
 \usepackage[nameinlink,noabbrev]{cleveref}
-\hypersetup{pdfauthor={Siming HUANG}}
+\hypersetup{
+  pdfauthor={Siming HUANG},
+  pdfsubject={Correctness recovery and inference performance engineering for DeepSeek-V4-Flash on AMD gfx90a},
+  pdfkeywords={LLM inference, mixture of experts, AMD MI250, tensor parallelism, quantization, correctness}
+}
 
 \definecolor{mfblue}{HTML}{2F5D8C}
 \definecolor{mfteal}{HTML}{2A8C82}
@@ -64,7 +68,11 @@ We report the enablement, correctness recovery, and performance engineering of D
 \keywords{LLM inference, mixture of experts, AMD MI250, tensor parallelism,
   quantization, correctness, speculative decoding}
 \maketitle
-\hypersetup{pdfauthor={Siming HUANG}}
+\hypersetup{
+  pdfauthor={Siming HUANG},
+  pdfsubject={Correctness recovery and inference performance engineering for DeepSeek-V4-Flash on AMD gfx90a},
+  pdfkeywords={LLM inference, mixture of experts, AMD MI250, tensor parallelism, quantization, correctness}
+}
 
 \section{Executive summary}
 
@@ -493,7 +501,11 @@ limit implied.
 
 \section{Evidence provenance and open gaps}
 
-The file \path{data/results.json} freezes three rounds per formal cell, ABBA samples, hashes and archive identifiers. The script \path{prepare_report_data.py} refreshes the snapshot from repository evidence; normal builds do not access parent directories. The two evidence directories are:
+In the companion repository, \path{data/results.json} freezes three rounds per
+formal cell, ABBA samples, hashes, and archive identifiers. The script
+\path{prepare_report_data.py} refreshes that snapshot from repository evidence;
+normal report builds do not access parent directories. The two repository
+evidence directories are:
 \begin{itemize}
   \item \path{.agents/experiments/dsv4_tp8_revalidation_20260913/}
   \item \path{.agents/experiments/dsv4_tp8_ar_down_consumer_20260914/}
