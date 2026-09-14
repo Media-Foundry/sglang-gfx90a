@@ -17,6 +17,22 @@ from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
 
 
 class Contract(unittest.TestCase):
+    def test_stable_wob_disabled_and_geometry_contract(self):
+        source=Path(__file__).resolve().parents[3]/'python/sglang/srt/models/deepseek_v4.py'
+        tree=ast.parse(source.read_text())
+        methods=[n.name for n in ast.walk(tree) if isinstance(n,ast.FunctionDef)
+                 and any(isinstance(c,ast.Constant) and c.value=='SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE'
+                         for c in ast.walk(n))]
+        self.assertEqual(methods,['forward'])
+        with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE':'0'}):
+            self.assertFalse(enabled_for(None,None,None,None,
+                             flag='SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE'))
+        from sglang.kernels.ops.debug.dsv4_prefill_wqb import project
+        with self.assertRaises(ValueError):
+            project(torch.empty(32,1024),torch.empty(4096,1024),projection_name='wo_b')
+        with self.assertRaises(ValueError):
+            project(None,None,projection_name='unknown')
+
     def test_stable_wqb_wiring_is_normal_prepare_only(self):
         source=Path(__file__).resolve().parents[3]/'python/sglang/srt/models/deepseek_v4.py'
         tree=ast.parse(source.read_text())

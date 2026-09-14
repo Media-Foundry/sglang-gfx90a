@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--prepare-dump',action='store_true')
     parser.add_argument('--stable-qkv',action='store_true')
     parser.add_argument('--stable-wqb',action='store_true')
+    parser.add_argument('--stable-wob',action='store_true')
     parser.add_argument('--stage-layer',type=int,default=0)
     parser.add_argument('--skip-weight-dumps',action='store_true')
     parser.add_argument('--sample-positions',default='0,511,2047,4095,8191')
@@ -61,6 +62,7 @@ def main():
     flags += f'export SGLANG_DSV4_DEBUG_PREPARE_DUMP={int(args.prepare_dump)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE={int(args.stable_qkv)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE={int(args.stable_wqb)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE={int(args.stable_wob)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_STAGE_SKIP_WEIGHTS={int(args.skip_weight_dumps)}\n'
     launch=(old/'start-ar-matrix.sh').read_text().replace(
         'exec bash scripts/rocm_dsv4_flash.sh serve',flags+'exec bash scripts/rocm_dsv4_flash.sh serve')

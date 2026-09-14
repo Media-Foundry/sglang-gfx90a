@@ -2379,6 +2379,14 @@ class MQALayer(MqaAttentionBase):
             fp32_prefill_attn_ar = enabled_for(
                 forward_batch, o.device, o.shape[0], self.attn_tp_size
             )
+        stable_prefill_wob = False
+        if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE", "0") == "1":
+            from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+            stable_prefill_wob = enabled_for(
+                forward_batch, o.device, o.shape[0], self.attn_tp_size,
+                flag="SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE",
+            )
         if tp8_hidden_shard_output:
             if self.attn_tp_size != 8 or get_tp_group().world_size != 8:
                 raise RuntimeError("TP8 hidden-shard attention requires TP=attnTP=8")
@@ -2396,8 +2404,17 @@ class MQALayer(MqaAttentionBase):
                     "deferred attention reduction requires attn TP == global TP"
                 )
             o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
-        elif debug_attn or fp32_prefill_attn_ar:
-            o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
+        elif debug_attn or fp32_prefill_attn_ar or stable_prefill_wob:
+            if stable_prefill_wob:
+                from sglang.kernels.ops.debug.dsv4_prefill_wqb import project
+
+                if (self.wo_b.bias is not None or not getattr(
+                    self.wo_b, "_use_cached_block_fp8_bf16_weight", False
+                )):
+                    raise ValueError("Stable wo_b requires cached BF16 weight and no bias")
+                o = project(o.flatten(1), self.wo_b.weight, projection_name="wo_b")
+            else:
+                o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
             dump_attn("wo_b_partial", o)
             if self.wo_b.reduce_results and self.wo_b.tp_size > 1:
                 if fp32_prefill_attn_ar:
