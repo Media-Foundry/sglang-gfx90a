@@ -281,16 +281,23 @@ class TestEmptyIndexerTiles(unittest.TestCase):
     def test_query_reuse_launcher_requires_both_profiles_and_preserves_override(self):
         self._check_prefill_launcher_flag('SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4')
 
-    def _check_prefill_launcher_flag(self, flag):
+    def test_query_runtime_launcher_requires_both_profiles_and_preserves_override(self):
+        self._check_prefill_launcher_flag('SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M')
+
+    def test_query_group_launcher_requires_both_profiles_and_preserves_override(self):
+        self._check_prefill_launcher_flag('SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE',
+                                         default='16', override_off='4', override_on='8')
+
+    def _check_prefill_launcher_flag(self, flag, default='1', override_off='0', override_on='1'):
         root = Path(__file__).resolve().parents[4]
         source = (root/'scripts/rocm_dsv4_flash.sh').read_text()
         start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
         end = source.index('\nfi\n', start)+4
         block = source[start:end]
         for tp_profile,prefill,tp,ep,a2a,override,expected in (
-            ('1','1','8','1','none',None,'1'),
-            ('1','1','8','1','none','0','0'),
-            ('1','1','8','1','none','1','1'),
+            ('1','1','8','1','none',None,default),
+            ('1','1','8','1','none',override_off,override_off),
+            ('1','1','8','1','none',override_on,override_on),
             ('1','0','8','1','none',None,'unset'),
             ('0','1','8','1','none',None,'unset'),
             ('1','1','4','1','none',None,'unset'),

@@ -122,6 +122,11 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
       # Per-row exact C4 K reuse; M8K..64K, width <=2048, native TP8 only.
       # C16 x8K / 1M KV ABBA: 6480.22 -> 6773.27 input tok/s.
       export SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4="${SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4:-1}"
+      # Query16 ABBA: +1.45% over query4; runtime-M retains ~6878 input tok/s
+      # and reuses one compiled variant across irregular M on all eight ranks.
+      # Explicit group4/8 or runtime0 remain available; other profiles unchanged.
+      export SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE="${SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE:-16}"
+      export SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M="${SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M:-1}"
     fi
   fi
 fi
