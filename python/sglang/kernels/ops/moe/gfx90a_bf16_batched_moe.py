@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 
 import torch
 
 from sglang.kernels.jit.utils import cache_once, load_jit, make_cpp_args
+
+
+_large_prefill_logged = set()
+
+
+def bf16_ck_prefill_max_rows(intermediate_size: int) -> int:
+    """Keep the TP4 bound; opt in to a TP8-only capacity trial."""
+    if intermediate_size == 256 and os.getenv("SGLANG_DSV4_DEBUG_TP8_CK_64K", "0") == "1":
+        return 65536
+    return 36864
 
 
 @cache_once
@@ -182,8 +193,9 @@ def gfx90a_bf16_ck_moe(
     ):
         raise ValueError("BF16 CK MoE requires TP4/TP8 DSV4 raw FP4 weight/scale shapes")
     m = hidden.shape[0]
-    if m < 8192 or m > 36864:
-        raise ValueError("BF16 CK MoE oracle is restricted to 8192 <= M <= 36864")
+    max_rows = bf16_ck_prefill_max_rows(i)
+    if m < 8192 or m > max_rows:
+        raise ValueError(f"BF16 CK MoE oracle is restricted to 8192 <= M <= {max_rows}")
     if hidden.shape != (m, h) or topk_ids.shape != (m, t):
         raise ValueError("BF16 CK MoE oracle requires H4096/Top-6")
     if scales_shuffled:
@@ -191,6 +203,12 @@ def gfx90a_bf16_ck_moe(
         s2 = _logical_a16w4_scales(s2, e, h, i // 32, gate_up=False)
     device_index = hidden.device.index
     key = device_index if device_index is not None else torch.cuda.current_device()
+    if m > 36864 and (key, m) not in _large_prefill_logged:
+        logging.getLogger(__name__).info(
+            "DSV4 experimental TP8 CK large-prefill selected: M=%d I=%d device=%d",
+            m, i, key,
+        )
+        _large_prefill_logged.add((key, m))
     workspace = _ck_weight_workspaces.get(key)
     if workspace is None or (
         tuple(workspace[0].shape) != (e, 2 * i, h)

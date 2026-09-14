@@ -516,10 +516,22 @@ class AiterRunnerCore(MoeRunnerCore):
                 gfx90a_fp4_expert_gate_up,
             )
 
+            bf16_ck_max_rows = 36864
+            if (
+                envs.SGLANG_DSV4_GFX90A_BF16_CK_PREFILL.get()
+                and runner_input.hidden_states.shape[0] > bf16_ck_max_rows
+            ):
+                from sglang.kernels.ops.moe.gfx90a_bf16_batched_moe import (
+                    bf16_ck_prefill_max_rows,
+                )
+
+                bf16_ck_max_rows = bf16_ck_prefill_max_rows(
+                    quant_info.w13_weight.shape[1] // 2
+                )
             if (
                 envs.SGLANG_DSV4_GFX90A_BF16_CK_PREFILL.get()
                 and runner_input.hidden_states.ndim == 2
-                and 8192 <= runner_input.hidden_states.shape[0] <= 36864
+                and 8192 <= runner_input.hidden_states.shape[0] <= bf16_ck_max_rows
                 and runner_input.hidden_states.shape[1] == 4096
                 and quant_info.expert_mask is None
                 and runner_input.num_local_tokens is None
