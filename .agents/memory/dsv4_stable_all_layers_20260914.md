@@ -67,3 +67,40 @@ SHA256 `421b261ca0adcc2d374de85551eaa2e4d29177c4b8b0f723de74b5f69237b562`.
 Complete128-token output matches remain14/16 for both A1/A2 and A1/B1.
 Tensor dumps stay local; the archive contains input/output witnesses, logs,
 launch configuration, summaries and the router-membership audit.
+
+## Completed layer2 complete-input follow-up
+
+`stable-layer2-prepare` completed warmup/A1/B1/A2 and stopped its owned service
+(PID1075741). All64 input echoes and completion-ID/text checks passed.
+Across corresponding retained requests, both A1/A2 and A1/B1 have zero
+differences in the complete rank0 normalized input/QKV and every rank's
+complete uncompressed KV tensors. Sampled Q before/after normalization/RoPE
+also agrees on all8 ranks. This closes the upstream-input sampling hole for
+the corresponding requests at the entrance to this layer.
+
+Expanded samples show rank0 attention-core differences for case15 already
+at **position3** (12 BF16 elements, max0.001953125), and all later sampled
+positions except0. Position3 is where the first C4 compression group becomes
+available under intended causal semantics. It precedes SWA128 and nontrivial
+Top512 boundaries. This points to the C4 attention path for the next audit,
+not to query production or different request text.
+
+Important limit: `prepare_full_kv` is a **pre-cache** tensor. This run has not
+compared actual packed/quantized cache storage, compressed KV, compressor
+projections, or logical/physical attention indices. Therefore it does not
+prove a specific compressor or cache-address defect, nor exonerate cache
+packing. Same-order complete outputs match13/16; cross-order14/16.
+
+Source inspection identifies another un-stabilized projection:
+`Compressor._compute_wkv_gate -> linear_bf16_fp32`; the current AIter BF16
+branch calls `tgemm.mm(..., otype=x.dtype).float()`, retaining BF16 rounding
+before promotion. The previously added local stability selectors do not
+cover this operation. Its row sensitivity must be tested on real layer2
+inputs, not assumed from the other projections. The legacy generic row-stable
+selector also has a M<=4096 guard, so it does not cover this C16 M32768 case.
+
+Layer2 evidence: `stable-layer2-prepare-evidence.tar.gz`,34 files,3,520,514 bytes,
+SHA256 `03491d0878612043103f3c81f41d5b6f8095376ec2dccfbb79dfba6263b35d81`.
+The packager validates full-input/KV agreement and actual sampled divergence.
+No new production code, default flag or performance claim is part of this
+follow-up. All8 GCDs were verified idle after the owned service exited.
