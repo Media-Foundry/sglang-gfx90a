@@ -95,3 +95,22 @@ scope, while preserving C1 AR and speculative paths. Do not attribute all
 same-configuration16K drift to this mechanism: those admissions use a different
 request-count regime, and reduction/row-placement effects remain independently
 documented. Full32K throughput and quality results are still pending.
+
+## Retry A1 timing and prepared next oracle
+
+Retry A1 warmup4515.0753, timed4608.3169/4608.1182/4608.9918 input tok/s;
+median4608.3169. These are control-only figures, not an ABBA gain. First two
+wave durations113.7695/113.7744s. Long quality checks are underway; no B/A2
+result is claimed at this checkpoint. First32K control excerpts were manually
+inspected for coherence/topic/repetition, not verified as factual code reviews.
+
+Prepared `.agents/experiments/dsv4_prefill_mhc_priority_20260915/oracle.py`
+for after this service sweep. It compares an allocating full MHC boundary:
+legacy batch1/FP16 split-K versus large-prefill FP32 reuse8 priority, with
+existing batch2 FP32 dispatch as reference. Captured residual/Fn/scale/base/
+norm weights plus synthetic post/comb inputs are used, not fresh32K captures.
+M1 must remain byte-exact; B must equal the FP32 reference and survive input
+mutation/row permutation. No GPU execution or performance result yet.
+Syntax/help and two CPU contract tests passed. The model-level sinkhorn arg
+is20 (required by the gfx90a dispatcher), while both arms retain the existing
+internal env override8. No production selector or numerical path was changed.
