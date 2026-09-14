@@ -54,4 +54,3 @@ def premix_reuse4(residual, fn, rms_partials, rms_eps):
         residual, fn, rms_partials, out, m, 4, float(rms_eps), num_warps=1
     )
     return out
-

@@ -26,7 +26,8 @@ After acceptance, the new flag defaults to1 only in the launcher's combined
 TP8 multi-request and prefill-throughput profile (TP8/EP1/no-A2A). Explicit0
 is preserved. The ABBA used explicit0/1 before that default-line change;
 there is no separate claim of a post-default new-process performance run.
-Arithmetic source is unchanged from the measured manifest.
+Arithmetic is unchanged from the measured manifest; the kernel file's trailing
+blank line was removed after measurement, with no code changes.
 
 ## Arithmetic and scope
 
