@@ -40,6 +40,14 @@ def verify_response(response, ids, expected_id, max_cached):
     return cached
 
 
+def validate_cache_pattern(cached, planned, expected=None):
+    assert len(cached)==len(planned)==16
+    assert all(type(c) is int and 0<=c<=p and (c>0 if p else c==0)
+               for c,p in zip(cached,planned,strict=True))
+    if expected is not None:
+        assert cached==expected, 'Actual cache-hit pattern changed; do not combine incomparable timing waves'
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--inputs',type=Path,required=True)
@@ -47,12 +55,23 @@ def main():
     p.add_argument('--rounds',type=int,default=3)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--plan-only',action='store_true')
+    p.add_argument('--cache-reference',type=Path,
+                   help='Completed control result; require the same input manifest and actual cache-hit vector.')
     args=p.parse_args()
     assert args.rounds>0 and not args.output.exists()
     manifest=json.loads(args.inputs.read_text())
     plan=make_plan(manifest)
     result=dict(status='planned',input_sha256=hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
                 plan=plan,rounds=[],scope=__doc__)
+    expected_cache=None
+    if args.cache_reference:
+        reference=json.loads(args.cache_reference.read_text())
+        assert reference['status']=='complete' and reference['rounds']
+        assert reference['input_sha256']==result['input_sha256']
+        expected_cache=reference['rounds'][0]['cached_tokens']
+        for row in reference['rounds']:
+            validate_cache_pattern(row['cached_tokens'],[r['prefix_tokens'] for r in plan],expected_cache)
+        result['cache_reference_sha256']=hashlib.sha256(args.cache_reference.read_bytes()).hexdigest()
     def save():args.output.write_text(json.dumps(result,indent=2)+'\n')
     save()
     if args.plan_only:return
@@ -98,8 +117,10 @@ def main():
             response['cached_tokens']=verify_response(response['response'],item['input_ids'],
                                                       response['rid'],item['prefix_tokens'])
         cached=[r['cached_tokens'] for r in responses]
-        # A zero-hit run is not accepted as a mixed-prefix test.
-        assert all(cached[i]>0 for i in range(16) if plan[i]['prefix_tokens'])
+        # Neither zero hits nor a changing cache workload may masquerade as
+        # a kernel speed difference. Raw responses were saved before this gate.
+        validate_cache_pattern(cached,[r['prefix_tokens'] for r in plan],expected_cache)
+        expected_cache=cached
         wall=max(r['first'] for r in responses)-min(r['begin'] for r in responses)
         total=sum(len(r['input_ids']) for r in plan)
         computed=total-sum(cached)

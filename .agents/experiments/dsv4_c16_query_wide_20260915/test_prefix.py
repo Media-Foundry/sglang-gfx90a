@@ -1,5 +1,5 @@
 import unittest
-from bench_prefix import make_plan, verify_response
+from bench_prefix import make_plan, verify_response, validate_cache_pattern
 
 
 class PrefixContract(unittest.TestCase):
@@ -27,6 +27,16 @@ class PrefixContract(unittest.TestCase):
         response=dict(prompt_token_ids=[1],output_ids=[],
                       meta_info=dict(id='case',prompt_tokens=1,completion_tokens=1,cached_tokens=0))
         with self.assertRaises(AssertionError):verify_response(response,[1],'case',0)
+
+    def test_changing_prefix_hits_are_not_a_speedup(self):
+        planned=[0,4096,8192,12288]*4
+        validate_cache_pattern(planned,planned,planned)
+        partial=[0,3840,7936,12032]*4
+        validate_cache_pattern(partial,planned,partial)
+        with self.assertRaises(AssertionError):validate_cache_pattern(partial,planned,planned)
+        with self.assertRaises(AssertionError):validate_cache_pattern([0]*16,planned)
+        with self.assertRaises(AssertionError):validate_cache_pattern([True]+planned[1:],planned)
+        with self.assertRaises(AssertionError):validate_cache_pattern(planned[:-1],planned)
 
 
 if __name__=='__main__':unittest.main()
