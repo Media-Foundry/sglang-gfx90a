@@ -29,11 +29,13 @@ def main():
     parser.add_argument('--stable-wqb',action='store_true')
     parser.add_argument('--stable-wob',action='store_true')
     parser.add_argument('--stable-shared',action='store_true')
+    parser.add_argument('--compressor-dump',action='store_true')
     parser.add_argument('--stage-layer',type=int,default=0)
     parser.add_argument('--skip-weight-dumps',action='store_true')
     parser.add_argument('--sample-positions',default='0,511,2047,4095,8191')
     parser.add_argument('--baseline-dir',type=Path)
     args=parser.parse_args()
+    assert not args.compressor_dump or (args.prepare_dump and args.stage_layer>=0)
     assert all(int(v)>=0 for v in args.sample_positions.split(','))
     if args.run_name:
         assert '/' not in args.run_name and args.run_name not in ('.','..')
@@ -65,6 +67,7 @@ def main():
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE={int(args.stable_wqb)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE={int(args.stable_wob)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE={int(args.stable_shared)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP={int(args.compressor_dump)}\n'
     flags += f'export SGLANG_DSV4_DEBUG_STAGE_SKIP_WEIGHTS={int(args.skip_weight_dumps)}\n'
     launch=(old/'start-ar-matrix.sh').read_text().replace(
         'exec bash scripts/rocm_dsv4_flash.sh serve',flags+'exec bash scripts/rocm_dsv4_flash.sh serve')
@@ -72,6 +75,15 @@ def main():
     state=life.start('INPUT-IDENTITY',0)
     try:
         life.ready(state)
+        if args.compressor_dump:
+            env=life.owned(state).environ()
+            assert env.get('SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP')=='1'
+            paths=('python/sglang/srt/layers/attention/dsv4/compressor.py',
+                   'python/sglang/srt/layers/attention/dsv4/compressor_v2.py',
+                   'python/sglang/kernels/ops/debug/dsv4_compressor_dump.py')
+            life.save('compressor-runtime-contract.json',dict(
+                flag=env['SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP'],
+                sources={p:hashlib.sha256((REPO/p).read_bytes()).hexdigest() for p in paths}))
         if args.stable_shared:
             env=life.owned(state).environ()
             assert env.get('SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE')=='1'
@@ -122,6 +134,10 @@ def main():
             print('INPUT ECHO OK',name,16,flush=True)
             if name=='warmup' and args.stable_shared:
                 assert 'DSV4 diagnostic stable shared selected' in Path(state['log']).read_text(), 'Shared selector did not execute; inspect scope log before further requests'
+            if name=='warmup' and args.compressor_dump:
+                for suffix in ('input','weight','projection','result','locations'):
+                    p=ROOT/f'trace-{name}'/f'layer_{args.stage_layer}_rank_0_prepare_compressor_core_{suffix}.pt'
+                    assert p.exists(),f'Missing actual compressor witness: {p}'
         life.save('complete.json',dict(waves=[j[0] for j in jobs],diagnostic_only=True))
     finally:
         life.stop(state)

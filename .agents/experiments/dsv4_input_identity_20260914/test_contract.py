@@ -17,6 +17,40 @@ from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
 
 
 class Contract(unittest.TestCase):
+    def test_compressor_capture_preserves_values(self):
+        from sglang.kernels.ops.debug import dsv4_compressor_dump as module
+        x=torch.zeros(4,8);w=torch.ones(8,8);y=torch.ones(4,8)
+        comp=SimpleNamespace(is_in_indexer=False,wkv_gate=SimpleNamespace(weight=w))
+        with patch.object(module,'_dump',return_value=None):
+            self.assertIs(module.projection(comp,x,None,y),y)
+        seen=[]
+        with patch.object(module,'_dump',return_value=lambda n,v,**k:seen.append((n,v,k))):
+            self.assertIs(module.projection(comp,x,None,y),y)
+        self.assertEqual([n for n,_,_ in seen],[f'prepare_compressor_core_{s}' for s in
+                         ('input','weight','projection')])
+        self.assertTrue(all(k==dict(full=True,rank0_only=True) for _,_,k in seen))
+
+    def test_compressor_cache_capture_uses_plan_locations(self):
+        from sglang.kernels.ops.debug import dsv4_compressor_dump as module
+        raw=torch.tensor([[0,0],[0,65538]],dtype=torch.int32)
+        class Plan:
+            is_decode=False
+            def __getitem__(self,i):
+                assert i==1
+                return raw
+        cache=torch.arange(3*512).reshape(3,512).bfloat16()
+        seen={}
+        locations=torch.zeros(65539,dtype=torch.int64)
+        locations[0]=2
+        locations[2]=0  # A stale uint16 mask would select the wrong row.
+        locations[65538]=1
+        with patch('sglang.srt.runtime_context.get_parallel',return_value=SimpleNamespace(attn_tp_rank=0)), patch.object(
+                module,'_dump',return_value=lambda n,v,**k:seen.update({n:v.clone()})):
+            module.storage(SimpleNamespace(is_in_indexer=False),None,torch.zeros(2,512),
+                           cache.view(torch.uint8),locations,Plan(),bf16_store=True)
+        self.assertTrue(torch.equal(seen['prepare_compressor_core_result'],cache[[2,1]]))
+        self.assertEqual(seen['prepare_compressor_core_locations'].tolist(),[2,1])
+
     def test_shared_guard_and_forward_batch_scope(self):
         from sglang.kernels.ops.debug.dsv4_prefill_shared import shared
         with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE':'0'}):

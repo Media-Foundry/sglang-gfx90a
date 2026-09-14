@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, List, Literal, Optional, TypeAlias, Union, cast
 
 import torch
@@ -26,6 +27,7 @@ CompressMetadata: TypeAlias = Union[CompressorDecodePlan, CompressorPrefillPlan]
 FusedCompressMetadata: TypeAlias = CompressMetadata
 
 _is_hip = is_hip_runtime()
+_dump_compressor = os.getenv("SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP", "0") == "1"
 
 
 def _use_online_compress(compress_ratio: int) -> bool:
@@ -156,6 +158,7 @@ class CompressorBackendMixin:
         out_loc: torch.Tensor,
         use_fp4_indexer: bool = False,
         bf16_store: bool = False,
+        debug_context=None,
     ) -> None:
         assert compress_ratio == 4 or compress_ratio == 128
         assert rotate == is_indexer == (head_dim == 128)
@@ -198,6 +201,11 @@ class CompressorBackendMixin:
             use_fp4=use_fp4_indexer,
             bf16_store=bf16_store,
         )
+        if debug_context is not None:
+            from sglang.kernels.ops.debug.dsv4_compressor_dump import storage
+
+            storage(*debug_context, kv_compressed, kv_cache, out_loc, plan,
+                    bf16_store=bf16_store)
 
     def forward_unified(
         self,
@@ -256,6 +264,7 @@ class CompressorBackendMixin:
             out_loc=out_loc,
             use_fp4_indexer=use_fp4_indexer,
             bf16_store=bf16_store,
+            debug_context=(compressor, forward_batch) if _dump_compressor else None,
         )
         online_c128_mtp = getattr(self, "online_c128_mtp", None)
         if online_c128_mtp is not None:

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional, Union
 
 import torch
 import torch.nn as nn
+
+_dump_compressor_projection = os.getenv("SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP", "0") == "1"
 
 from sglang.kernels.fused_op import BaseFusedOp
 from sglang.kernels.ops.attention.dsv4 import (
@@ -442,13 +445,22 @@ class Compressor(BaseFusedOp):
         if precomputed is not None:
             kv_score = precomputed.pop(self._pending_key(), None)
             if kv_score is not None:
+                if _dump_compressor_projection:
+                    from sglang.kernels.ops.debug.dsv4_compressor_dump import projection
+
+                    kv_score = projection(self, x, forward_batch, kv_score)
                 return kv_score
 
         if _is_hip:
             pending = getattr(forward_batch, "_cp_pending_gathers", None)
             handle = pending.pop(self._pending_key(), None) if pending else None
             if handle is not None:
-                return cp_all_gather_rerange_finish(handle)
+                kv_score = cp_all_gather_rerange_finish(handle)
+                if _dump_compressor_projection:
+                    from sglang.kernels.ops.debug.dsv4_compressor_dump import projection
+
+                    kv_score = projection(self, x, forward_batch, kv_score)
+                return kv_score
 
         kv_score = self._compute_wkv_gate(x)
 
@@ -459,6 +471,10 @@ class Compressor(BaseFusedOp):
                 forward_batch,
                 torch.cuda.current_stream(),
             )
+        if _dump_compressor_projection:
+            from sglang.kernels.ops.debug.dsv4_compressor_dump import projection
+
+            kv_score = projection(self, x, forward_batch, kv_score)
         return kv_score
 
     def _compute_wkv_gate(self, x: torch.Tensor) -> torch.Tensor:
