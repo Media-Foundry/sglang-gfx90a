@@ -5,12 +5,16 @@ import importlib.util
 import json
 from pathlib import Path
 import time
+import re
+from path_checks import check_paths
 
 root = Path(__file__).resolve().parent
 repo = root.parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--source-arm', choices=('A1', 'B', 'A2'), default='B')
+p.add_argument('--label', default='capture')
 args = p.parse_args()
+assert re.fullmatch(r'[A-Za-z0-9-]+', args.label)
 trial = root.parent / 'dsv4_c16_indexer_runtime_service_20260915'
 summary = json.loads((trial / 'summary.json').read_text())
 assert summary['identical_timed_forward_shape_counts']
@@ -26,7 +30,7 @@ if args.source_arm == 'B':
 for name, digest in plan['sources'].items():
     assert hashlib.sha256((repo / name).read_bytes()).hexdigest() == digest, name
 
-out = root / 'capture'
+out = root / args.label
 out.mkdir(exist_ok=False)
 directory = out / 'markers'
 directory.mkdir()
@@ -106,14 +110,7 @@ try:
             request_wall_s=wall, diagnostic_only=True))
         print('MARKER WAVE', name, frames, wall, flush=True)
         if name == 'warmup':
-            lines = Path(state['log']).read_text().splitlines()
-            for rank in range(8):
-                for hit in ('prefill empty tiles selected:', 'prefill post-fused4 selected:',
-                            'prefill mix-reuse4 selected:'):
-                    assert any(f'TP{rank}]' in line and hit in line for line in lines), (rank, hit)
-                assert any(f'TP{rank}]' in line and 'prefill query-reuse4 selected' in line
-                    and 'query_group=16' in line and f'runtime_m={int(plan["runtime_m"])}' in line
-                    for line in lines), rank
+            check_paths(Path(state['log']).read_text(), plan['runtime_m'])
     life.save('complete.json', dict(input_echo_exact=64, frames=128, diagnostic_only=True))
 finally:
     life.stop(state)

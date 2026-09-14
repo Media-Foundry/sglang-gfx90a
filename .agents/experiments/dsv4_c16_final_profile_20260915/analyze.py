@@ -6,9 +6,9 @@ import argparse
 import re
 
 p=argparse.ArgumentParser(description=__doc__)
-p.add_argument('--label', default='B')
+p.add_argument('--label', default='capture')
 args=p.parse_args();assert re.fullmatch(r'[A-Za-z0-9-]+',args.label)
-ROOT = Path(__file__).resolve().parent / 'capture'
+ROOT = Path(__file__).resolve().parent / args.label
 NAMES = ['attn_mhc_norm', 'attn_entry_gap', 'attn_prepare', 'sparse_attention',
          'attn_output_projection_collective', 'ffn_mhc_norm', 'moe_collective']
 frames = [json.loads(p.read_text()) for p in sorted((ROOT/'markers').glob('rank-*-frame-*.json'))]

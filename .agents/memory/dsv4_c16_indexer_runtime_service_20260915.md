@@ -91,3 +91,18 @@ group4/runtime-off: the final group16/runtime profile is now being measured
 with asynchronous markers before editing the source-hashed launcher defaults.
 That separate diagnostic is not yet complete. Continue P1 updated stage
 budget, then P2 bounded MHC4->8 screen, then independent long-prefix coverage.
+
+### P1 harness correction after the P0 commit
+
+The first diagnostic `capture/` completed only warmup (32 marker snapshots,
+21.4949s), then my added logger assertion failed: I required `TP0]` on a
+legacy `prefill empty tiles selected` print that has no rank tag. Actual logs
+contain eight such prints, plus rank0..7 query16/runtime-M and both MHC hits.
+This is an agent-created harness error, not a model crash or performance
+result. The service stopped in `finally`; all GPUs were confirmed free.
+
+Preserved the failed directory. The corrected `path_checks.py` checks eight
+legacy observations plus rank-specific consuming-query/MHC hits. Four CPU
+tests reject missing ranks, wrong runtime mode and empty logs; the actual
+failed log passes the corrected contract. `capture-v2` is a fresh full rerun,
+not a splice of the failed warmup. No production model/kernel file changed.
