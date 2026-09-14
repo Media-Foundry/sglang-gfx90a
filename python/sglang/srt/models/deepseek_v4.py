@@ -1908,6 +1908,10 @@ class MQALayer(MqaAttentionBase):
         debug_rank = get_tp_group().rank_in_group
         debug_attn = (
             debug_attn_dir
+            and (
+                os.getenv("SGLANG_DSV4_DEBUG_STAGE_PREFILL_ONLY", "0") != "1"
+                or forward_batch.forward_mode.is_extend_without_speculative()
+            )
             and (debug_attn_layer < 0 or self.layer_id == debug_attn_layer)
             and (debug_attn_rank < 0 or debug_rank == debug_attn_rank)
             and (debug_attn_rows < 0 or positions.numel() == debug_attn_rows)
@@ -1916,9 +1920,16 @@ class MQALayer(MqaAttentionBase):
 
         def dump_attn(name: str, value: torch.Tensor) -> None:
             if debug_attn:
+                from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import (
+                    sampled_stage_value,
+                )
+
                 os.makedirs(debug_attn_dir, exist_ok=True)
                 torch.save(
-                    value.detach().cpu(),
+                    sampled_stage_value(
+                        name, value, positions, debug_attn_dir,
+                        f"layer_{self.layer_id}_rank_{debug_rank}",
+                    ),
                     os.path.join(
                         debug_attn_dir,
                         f"layer_{self.layer_id}_rank_{debug_rank}_{name}.pt",
@@ -2290,6 +2301,13 @@ class MQALayer(MqaAttentionBase):
         dump_attn("wo_a", o)
         mark(30)
 
+        fp32_prefill_attn_ar = False
+        if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32", "0") == "1":
+            from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+            fp32_prefill_attn_ar = enabled_for(
+                forward_batch, o.device, o.shape[0], self.attn_tp_size
+            )
         if tp8_hidden_shard_output:
             if self.attn_tp_size != 8 or get_tp_group().world_size != 8:
                 raise RuntimeError("TP8 hidden-shard attention requires TP=attnTP=8")
@@ -2307,11 +2325,16 @@ class MQALayer(MqaAttentionBase):
                     "deferred attention reduction requires attn TP == global TP"
                 )
             o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
-        elif debug_attn:
+        elif debug_attn or fp32_prefill_attn_ar:
             o, _ = self.wo_b(o.flatten(1), skip_all_reduce=True)
             dump_attn("wo_b_partial", o)
             if self.wo_b.reduce_results and self.wo_b.tp_size > 1:
-                o = tensor_model_parallel_all_reduce(o)
+                if fp32_prefill_attn_ar:
+                    from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import reduce
+
+                    o = reduce(o)
+                else:
+                    o = tensor_model_parallel_all_reduce(o)
         else:
             o, _ = self.wo_b(o.flatten(1))
         dump_attn("wo_b", o)
@@ -3269,6 +3292,10 @@ class DeepseekV4DecoderLayer(nn.Module):
         debug_target_rows = int(os.getenv("SGLANG_DSV4_DEBUG_STAGE_ROWS", "-1"))
         debug_stages = (
             debug_stage_dir
+            and (
+                os.getenv("SGLANG_DSV4_DEBUG_STAGE_PREFILL_ONLY", "0") != "1"
+                or forward_batch.forward_mode.is_extend_without_speculative()
+            )
             and (debug_target_layer < 0 or self.layer_id == debug_target_layer)
             and (debug_target_rank < 0 or get_tp_group().rank_in_group == debug_target_rank)
             and (debug_target_rows < 0 or positions.numel() == debug_target_rows)
@@ -3285,7 +3312,16 @@ class DeepseekV4DecoderLayer(nn.Module):
                     f"layer_{self.layer_id}_rank_{get_tp_group().rank_in_group}_{name}.pt",
                 )
                 if not once or not os.path.exists(path):
-                    torch.save(value.detach().cpu(), path)
+                    from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import (
+                        sampled_stage_value,
+                    )
+
+                    torch.save(
+                        sampled_stage_value(
+                            name, value, positions, debug_stage_dir,
+                            f"layer_{self.layer_id}_rank_{get_tp_group().rank_in_group}",
+                        ), path,
+                    )
 
         dump_stage("hc_attn_fn", self.hc_attn_fn)
         dump_stage("hc_attn_scale", self.hc_attn_scale)
