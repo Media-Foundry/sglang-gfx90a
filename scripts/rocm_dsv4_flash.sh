@@ -113,6 +113,9 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
     # Enable only alongside the large-prefill profile; explicit0 still wins.
     if [[ "${GFX90A_PREFILL_THROUGHPUT_PROFILE:-0}" == "1" ]]; then
       export SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP="${SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP:-1}"
+      # Exact H256/four-wave post-combine reuse. C16 x8K / 1M KV ABBA:
+      # 5569.22 -> 5933.52 input tok/s; native large-prefill scope only.
+      export SGLANG_DSV4_PREFILL_POST_FUSED4="${SGLANG_DSV4_PREFILL_POST_FUSED4:-1}"
     fi
   fi
 fi

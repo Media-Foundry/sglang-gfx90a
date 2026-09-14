@@ -26,6 +26,11 @@ _prefill_detail_mark = None
 if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR"):
     from sglang.kernels.ops.debug.dsv4_prefill_markers import detail_mark as _prefill_detail_mark
 
+_prefill_post_reuse_active = None
+_prefill_post_reuse_logged = False
+if os.getenv("SGLANG_DSV4_PREFILL_POST_FUSED4", "0") == "1":
+    from sglang.srt.layers.dsv4_prefill_experiments import post_reuse_active as _prefill_post_reuse_active
+
 # This module is imported during model-registry discovery. Do not import the real
 # TileLang package here: it loads native CUDA stubs. The proxy below lets
 # module-level @tilelang.jit declarations parse, then imports and applies real
@@ -1075,6 +1080,16 @@ def mhc_post_combine_rms_triton(
         or residual.dtype != torch.bfloat16
     ):
         return None
+    if _prefill_post_reuse_active is not None and _prefill_post_reuse_active():
+        from sglang.kernels.ops.layernorm.gfx90a_mhc_post_fused4 import post_combine_fused4
+
+        candidate = post_combine_fused4(x, residual, post, comb)
+        if candidate is not None:
+            global _prefill_post_reuse_logged
+            if not _prefill_post_reuse_logged:
+                logger.info("DSV4 native TP8 prefill post-fused4 selected: rows=%d", x.shape[0])
+                _prefill_post_reuse_logged = True
+            return candidate
     num_tokens, hidden_size = x.shape
     out = torch.empty_like(residual)
     block_h = 256

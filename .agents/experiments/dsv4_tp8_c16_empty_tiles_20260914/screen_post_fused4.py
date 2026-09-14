@@ -50,7 +50,12 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--large-mutations',type=int,default=3)
 p.add_argument('--sizes',type=int,nargs='+',default=[128,8192,32768])
+p.add_argument('--runtime',action='store_true',help='Test the integrated dispatch and runtime kernel')
 args=p.parse_args();assert not args.output.exists()
+if args.runtime:
+    assert os.environ.get('SGLANG_DSV4_PREFILL_POST_FUSED4')=='1'
+    from sglang.kernels.ops.layernorm.gfx90a_mhc_post_fused4 import _post_combine_fused4 as fused4
+    from sglang.srt.layers.dsv4_prefill_experiments import _post_reuse
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 root=Path(__file__).resolve().parent
 source=root.parent/'dsv4_input_identity_20260914'/'trace-B1'
@@ -68,7 +73,7 @@ fused4[(1,16)](fx,fr,fp,fc,fo,fs,num_warps=4)
 expected=torch.tensor([151,166,181,196],device='cuda',dtype=torch.bfloat16).view(1,4,1).expand_as(fo)
 assert torch.equal(fo,expected)
 assert torch.equal(fs,expected.float().square().view(1,4,16,256).sum(-1).view(1,64))
-result=dict(scope=__doc__,seed_rows=len(seeds[0]),asymmetric_comb_fixture=True,results=[])
+result=dict(scope=__doc__,runtime=args.runtime,seed_rows=len(seeds[0]),asymmetric_comb_fixture=True,results=[])
 for m in args.sizes:
     x,residual,post,comb=[s.repeat(triton.cdiv(m,len(s)),*([1]*(s.ndim-1)))[:m].contiguous() for s in seeds]
     assert x.shape==(m,4096) and residual.shape==(m,4,4096)
@@ -76,6 +81,14 @@ for m in args.sizes:
     out=torch.empty_like(residual);partials=torch.empty((m,64),dtype=torch.float32,device='cuda')
     def control():return mhc_post_combine_rms_triton(x,residual,post,comb)
     def candidate():
+        global out,partials
+        if args.runtime:
+            token=_post_reuse.set(True)
+            try:
+                out,partials=mhc_post_combine_rms_triton(x,residual,post,comb)
+            finally:
+                _post_reuse.reset(token)
+            return out,partials
         fused4[(m,16)](x,residual,post,comb,out,partials,num_warps=4)
         return out,partials
     a,b=control();c,d=candidate()
