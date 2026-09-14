@@ -1,0 +1,245 @@
+{
+  "status": "complete",
+  "scope": "Single-GCD full-boundary oracle for opt-in config20 prefill iterations.\n\nA: current env8, no prefill policy. B: same env8 + prefill config20 scope.\nR: old policy with global env20. Geometry, Fn dtype and input tensors agree.\nB/R must be byte-exact. This is not TP8/E2E or a semantic quality score.\n",
+  "settings": {
+    "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+    "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+    "SGLANG_DSV4_GFX90A_MHC_BLOCK_K": "1024",
+    "SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY": "1",
+    "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+    "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+    "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+    "SGLANG_DSV4_GFX90A_BF16_MHC_DOT": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+    "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+    "SGLANG_DSV4_GFX90A_DSPARK_M128_MHC_FUSION": "0",
+    "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS": "1"
+  },
+  "results": [
+    {
+      "m": 1,
+      "batch": 1,
+      "mutations": 5,
+      "reference_exact": true,
+      "row_permutation_exact": true,
+      "replays_exact": {
+        "A": 10,
+        "B": 10
+      },
+      "initial_A_B_max_abs": [
+        0.0,
+        0.0,
+        0.0153120756149292,
+        0.0
+      ],
+      "median_ms": {
+        "A": 0.2242247939109802,
+        "B": 0.22376090288162231
+      },
+      "samples_ms": {
+        "A": [
+          0.30969719886779784,
+          0.22316880226135255,
+          0.22140901088714598,
+          0.22483279705047607,
+          0.22537679672241212,
+          0.22361679077148439
+        ],
+        "B": [
+          0.23235299587249755,
+          0.23139278888702391,
+          0.22473680973052979,
+          0.22121679782867432,
+          0.22278499603271484,
+          0.2190727949142456
+        ]
+      }
+    },
+    {
+      "m": 128,
+      "batch": 1,
+      "mutations": 5,
+      "reference_exact": true,
+      "row_permutation_exact": true,
+      "replays_exact": {
+        "A": 10,
+        "B": 10
+      },
+      "initial_A_B_max_abs": [
+        0.0,
+        0.0,
+        0.16722920536994934,
+        0.0
+      ],
+      "median_ms": {
+        "A": 0.21982479095458984,
+        "B": 0.222160804271698
+      },
+      "samples_ms": {
+        "A": [
+          0.2504967927932739,
+          0.22147278785705565,
+          0.21763279438018798,
+          0.2254728078842163,
+          0.21817679405212403,
+          0.21548879146575928
+        ],
+        "B": [
+          0.22563300132751465,
+          0.22684879302978517,
+          0.22012879848480224,
+          0.21676878929138182,
+          0.21638479232788085,
+          0.22419281005859376
+        ]
+      }
+    },
+    {
+      "m": 128,
+      "batch": 2,
+      "mutations": 5,
+      "reference_exact": true,
+      "row_permutation_exact": true,
+      "replays_exact": {
+        "A": 10,
+        "B": 10
+      },
+      "initial_A_B_max_abs": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "median_ms": {
+        "A": 0.3245931982994079,
+        "B": 0.3225451946258545
+      },
+      "samples_ms": {
+        "A": [
+          0.35238540172576904,
+          0.324097204208374,
+          0.37395339012145995,
+          0.3250891923904419,
+          0.31526498794555663,
+          0.31356918811798096
+        ],
+        "B": [
+          0.33283319473266604,
+          0.3232971906661987,
+          0.3523214101791382,
+          0.32179319858551025,
+          0.3217609882354736,
+          0.31769700050354005
+        ]
+      }
+    },
+    {
+      "m": 8192,
+      "batch": 1,
+      "mutations": 5,
+      "reference_exact": true,
+      "row_permutation_exact": true,
+      "replays_exact": {
+        "A": 10,
+        "B": 10
+      },
+      "initial_A_B_max_abs": [
+        0.0,
+        0.0,
+        0.16722920536994934,
+        0.0
+      ],
+      "median_ms": {
+        "A": 3.022027015686035,
+        "B": 3.2361080169677736
+      },
+      "samples_ms": {
+        "A": [
+          3.0239471435546874,
+          3.0199792861938475,
+          3.0202991485595705,
+          3.0224430084228517,
+          3.02231502532959,
+          3.0217390060424805
+        ],
+        "B": [
+          3.2372920989990233,
+          3.2371959686279297,
+          3.235403823852539,
+          3.235340118408203,
+          3.235564041137695,
+          3.2366519927978517
+        ]
+      }
+    },
+    {
+      "m": 8192,
+      "batch": 2,
+      "mutations": 5,
+      "reference_exact": true,
+      "row_permutation_exact": true,
+      "replays_exact": {
+        "A": 10,
+        "B": 10
+      },
+      "initial_A_B_max_abs": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "median_ms": {
+        "A": 3.372588348388672,
+        "B": 3.369516372680664
+      },
+      "samples_ms": {
+        "A": [
+          3.3675323486328126,
+          3.3672763824462892,
+          3.367084503173828,
+          3.379596710205078,
+          3.377644348144531,
+          3.379116439819336
+        ],
+        "B": [
+          3.3647483825683593,
+          3.380588912963867,
+          3.3828285217285154,
+          3.3704124450683595,
+          3.3686203002929687,
+          3.367692565917969
+        ]
+      }
+    }
+  ],
+  "driver_sha256": "b15907581107d8d3c3009db3c846bc5f4fa10df4fa85bdc1d49e87919747f709",
+  "captured_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_scale.pt": "b74ac7c4104b1ee46eb736aca4d7fc30fd7dc151dac1702aee07baf86c358b84",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_base.pt": "25d45adca4e6bcc9e3175a079d7f945a746bafc7a015f9b48b79f8ae8e2405c9",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_norm_weight.pt": "3c7cb027fd29d56a5a507193a017e5f4ce1efb821cc1916e3a645cd4c5c67b93"
+  },
+  "source_sha256": {
+    "python/sglang/kernels/ops/layernorm/mhc.py": "07cb1697c22331a50135d91f5df59f563bf81ff5ac2384966c12eea36edb3517",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_post_pre.py": "93f867e341a6bfccdc54a204b951ade106127aeb46573e1da5a3f71662dca3c5",
+    "python/sglang/srt/layers/dsv4_prefill_mhc_policy.py": "3de3bf9c62148de56e85a9107059b3f1300bead32fb2e018957a9d45487964ed",
+    "python/sglang/srt/model_executor/runner/eager_runner.py": "b5d64b723ec3e7e4cdea4b494efbbc6d784f9f3f4a2e7bee9e56459953b5bf75"
+  },
+  "last_reference_check": {
+    "m": 8192,
+    "batch": 2,
+    "matched": true,
+    "max_abs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

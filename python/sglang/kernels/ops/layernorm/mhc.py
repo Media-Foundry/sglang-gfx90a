@@ -38,6 +38,10 @@ if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
 
 _prefill_splitk_paths_logged = set()
 
+_prefill_sinkhorn_iters = None
+if os.getenv("SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS", "0") == "1":
+    from sglang.srt.layers.dsv4_prefill_mhc_policy import resolve_sinkhorn_iters as _prefill_sinkhorn_iters
+
 
 def _log_prefill_splitk_dispatch(path, num_tokens, global_batch_size, weight_dtype):
     """Expose legacy single-request priority without changing its arithmetic."""
@@ -765,7 +769,11 @@ def gfx90a_mhc_splitk_fused_tail_triton(
         out,
         eps=sinkhorn_eps,
         norm_eps=norm_eps,
-        SINKHORN_ITERS=envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get(),
+        SINKHORN_ITERS=(
+            _prefill_sinkhorn_iters(envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get())
+            if _prefill_sinkhorn_iters is not None
+            else envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
+        ),
         num_warps=8,
     )
     _log_prefill_splitk_dispatch("fused_tail", num_tokens, global_batch_size, mix_weight.dtype)
@@ -1594,6 +1602,8 @@ def hc_split_sinkhorn(
                 if gfx90a_global_batch_size == 1
                 else 20
             )
+            if _prefill_sinkhorn_iters is not None:
+                native_iters = _prefill_sinkhorn_iters(native_iters)
             if graph_warmup:
                 preload_gfx90a_mhc_sinkhorn(native_iters)
             else:

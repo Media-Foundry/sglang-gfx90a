@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import os
 
 import torch
 
 from sglang.kernels.jit.utils import cache_once, load_jit
 from sglang.srt.environ import envs
+
+_prefill_sinkhorn_iters = None
+if os.getenv("SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS", "0") == "1":
+    from sglang.srt.layers.dsv4_prefill_mhc_policy import resolve_sinkhorn_iters as _prefill_sinkhorn_iters
 
 if TYPE_CHECKING:
     from tvm_ffi.module import Module
@@ -28,6 +33,8 @@ def _jit_gfx90a_mhc_post_pre_module(iters: int) -> Module:
 
 def _get_sinkhorn_iters() -> int:
     iters = envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get()
+    if _prefill_sinkhorn_iters is not None:
+        iters = _prefill_sinkhorn_iters(iters)
     if iters not in (4, 8, 12, 20):
         raise ValueError(f"unsupported gfx90a MHC Sinkhorn iterations: {iters}")
     return iters
