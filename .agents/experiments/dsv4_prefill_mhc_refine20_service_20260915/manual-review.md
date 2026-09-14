@@ -1,7 +1,8 @@
-# Bounded review in progress: full20 versus exact8+12
+# Completed bounded review: full20 versus exact8+12
 
 This is NOT the preceding legacy8-versus-config20 policy trial. All arms
-here use config20 in ordinary prefill. Candidate and A2 remain unreviewed.
+here use config20 in ordinary prefill. The chronological notes below retain
+their then-pending status; all six quality waves are now reviewed.
 
 ## A1, first quality wave
 
@@ -68,3 +69,24 @@ any drift to the candidate. Final A2 control remains required.
 B finished and its owned process tree stopped. A2 is now loading with
 config20 enabled and comb-refine disabled. No candidate throughput promotion
 has been made while this last control remains outstanding.
+
+## A2 and final bounded verdict
+
+Read all16 A2.0 excerpts, plus the six changed A2.1 excerpts (cases
+6,7,10,11,13,14); the other ten are token-identical to already reviewed text.
+All are coherent and code-topic-related, without obvious looping/garbling.
+Claims of code defects and line numbers remain unverified; these truncated
+128-token excerpts are not a complete-answer accuracy evaluation.
+
+The final analyzer validates96/96 full input echoes, zero cache hits,
+completion counts, tokenizer decoding, all eight rank selectors, matching
+production source and driver hashes, and stopped owned processes. Within-arm
+full-text repeats are A1=10/16, B=8/16, A2=10/16; all have16/16 first-token
+repeat. Thus global drift persists, and this trial cannot attribute its cause
+to the exact local refinement implementation.
+
+Full ABBA center:5482.727661 ->5536.987016 input tok/s (+0.989642%),
+request TTFT -0.972128%. Formal legs contain no recorded slow-compilation
+warnings. This is a gain relative to full20, not relative to legacy8, and
+does not raise the accepted8K checkpoint. Keep the experiment opt-in pending
+a separate decision on the underlying config20 policy.

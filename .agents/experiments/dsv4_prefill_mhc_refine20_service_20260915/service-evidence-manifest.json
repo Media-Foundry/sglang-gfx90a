@@ -1,0 +1,6 @@
+{
+  "files": 96,
+  "bytes": 7708221,
+  "sha256": "0a7680ff02df32b4c44cc17d8ca9ffb59280f76e084336d0fa1ee96744f23cfe",
+  "scope": "Full20 versus exact8+12 implementation C16x32K prefill service ABBA,1M KV; consult summary and manual review, not a global correctness certificate."
+}

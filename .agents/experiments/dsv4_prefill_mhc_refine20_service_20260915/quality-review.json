@@ -1,0 +1,671 @@
+{
+  "bounded_coherence_pass": true,
+  "scope": "Manual coherence/topic/collapse review only. Not complete-answer factual accuracy, global determinism, or proof that iteration policy resolves all observed drift.",
+  "input_echo_exact": 96,
+  "quality": {
+    "A1": {
+      "input_echo_exact": 32,
+      "repeat_exact": 10,
+      "first_token_repeat_exact": 16,
+      "divergences": [
+        {
+          "case": 5,
+          "common_prefix_tokens": 44,
+          "left_token": 201,
+          "right_token": 271
+        },
+        {
+          "case": 6,
+          "common_prefix_tokens": 40,
+          "left_token": 795,
+          "right_token": 7054
+        },
+        {
+          "case": 7,
+          "common_prefix_tokens": 38,
+          "left_token": 3608,
+          "right_token": 710
+        },
+        {
+          "case": 10,
+          "common_prefix_tokens": 51,
+          "left_token": 5381,
+          "right_token": 5671
+        },
+        {
+          "case": 13,
+          "common_prefix_tokens": 3,
+          "left_token": 4181,
+          "right_token": 4688
+        },
+        {
+          "case": 14,
+          "common_prefix_tokens": 26,
+          "left_token": 19107,
+          "right_token": 12361
+        }
+      ]
+    },
+    "B": {
+      "input_echo_exact": 32,
+      "repeat_exact": 8,
+      "first_token_repeat_exact": 16,
+      "divergences": [
+        {
+          "case": 2,
+          "common_prefix_tokens": 41,
+          "left_token": 5671,
+          "right_token": 3608
+        },
+        {
+          "case": 4,
+          "common_prefix_tokens": 46,
+          "left_token": 3608,
+          "right_token": 260
+        },
+        {
+          "case": 5,
+          "common_prefix_tokens": 44,
+          "left_token": 201,
+          "right_token": 271
+        },
+        {
+          "case": 6,
+          "common_prefix_tokens": 13,
+          "left_token": 56,
+          "right_token": 721
+        },
+        {
+          "case": 10,
+          "common_prefix_tokens": 51,
+          "left_token": 5671,
+          "right_token": 5381
+        },
+        {
+          "case": 11,
+          "common_prefix_tokens": 12,
+          "left_token": 588,
+          "right_token": 1309
+        },
+        {
+          "case": 13,
+          "common_prefix_tokens": 3,
+          "left_token": 4181,
+          "right_token": 4688
+        },
+        {
+          "case": 14,
+          "common_prefix_tokens": 26,
+          "left_token": 12361,
+          "right_token": 19107
+        }
+      ]
+    },
+    "A2": {
+      "input_echo_exact": 32,
+      "repeat_exact": 10,
+      "first_token_repeat_exact": 16,
+      "divergences": [
+        {
+          "case": 6,
+          "common_prefix_tokens": 40,
+          "left_token": 671,
+          "right_token": 7054
+        },
+        {
+          "case": 7,
+          "common_prefix_tokens": 38,
+          "left_token": 3608,
+          "right_token": 710
+        },
+        {
+          "case": 10,
+          "common_prefix_tokens": 51,
+          "left_token": 5671,
+          "right_token": 5381
+        },
+        {
+          "case": 11,
+          "common_prefix_tokens": 3,
+          "left_token": 327,
+          "right_token": 47891
+        },
+        {
+          "case": 13,
+          "common_prefix_tokens": 3,
+          "left_token": 4181,
+          "right_token": 4688
+        },
+        {
+          "case": 14,
+          "common_prefix_tokens": 80,
+          "left_token": 5566,
+          "right_token": 716
+        }
+      ]
+    }
+  },
+  "source_sha256": {
+    "A1/quality-0.json": "a4685712106d2bc8f8da51554a67c4f12f5ef6597d29334f0355ea59a54a3f8a",
+    "A1/quality-1.json": "7982a0994d8a62b4f87bd23da10949c8ecbd86ec51a856fdeacc3230f6f911e6",
+    "B/quality-0.json": "c64efb99ceb45041d3e25aced28457fcb1ea17f56463ecb9a573ac23044450e8",
+    "B/quality-1.json": "f2f2620d67c918b8aff7349eebb180224c3c1e86afdaf60875182a2c6933f514",
+    "A2/quality-0.json": "016d54f8022cee08d4e958ccd912a0743f56dbbf499fcb44fb4672973e4398b9",
+    "A2/quality-1.json": "612293bcb0cf2f784b0e727ea01fd74356e3a97dd5cd515b3742920b5e8e95b5"
+  },
+  "candidate_novel_cases": [
+    {
+      "wave": "B.0",
+      "case": 2
+    },
+    {
+      "wave": "B.0",
+      "case": 4
+    },
+    {
+      "wave": "B.1",
+      "case": 6
+    }
+  ],
+  "candidates": [
+    {
+      "wave": "B.0",
+      "case": 0,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic.\n\n## Unsafe Interaction: `--load-format` and `--quantization` combination\n\n### Facts visible in the excerpt:\n\n1. **`load_format` field** (line ~250):\n   - Has choices including `\"bitsandbytes\"` and `\"gguf\"`\n   - The help text explicitly states: `\"bitsandbytes\" will load the weights using bitsandbytes quantization`\n\n2. **`quantization` field** (line ~300):\n   - Has choices including `\"bitsandbytes"
+    },
+    {
+      "wave": "B.0",
+      "case": 1,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang scheduler code, I can see the core scheduling state machine and identify a latency optimization opportunity. Let me analyze the key components:\n\n## Scheduling State Machine Analysis\n\n### States and Transitions (Facts from code):\n\n1. **Request Reception**: `event_loop_normal()` and `event_loop_overlap()` both start by calling `request_receiver.recv_requests()` to get new requests.\n\n2. **Request Processing**: `process_input_requests()` dispatches to handlers like `handle_generate_request()` which validate and add requests to queues.\n\n3. **Queue Management**:\n   - `"
+    },
+    {
+      "wave": "B.0",
+      "case": 2,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 41,
+        "A1.1": 41,
+        "A2.0": 41,
+        "A2.1": 41
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a critical correctness hazard in the `_forward_prepare` method related to the handling of `qkv_a` when using the fused attention preparation path.\n\n## The Hazard\n\nIn `_forward_prepare`, when `fused_attn_prep` is enabled (line ~1050), the code calls `gfx90a_attn_prepare_gemv` which returns `qkv_a` along with precomputed KV scores. However, there's a critical issue with how `qkv_a` is used downstream:\n\n```python\nif"
+    },
+    {
+      "wave": "B.0",
+      "case": 3,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "## Analysis of Allocation Invariants\n\n### Key Invariants Visible in the Excerpt\n\n1. **Slot 0 Padding Invariant** (ReqToTokenPool):\n   - `_alloc_size = size + 1` with slot 0 reserved as padding\n   - `free_slots` initialized to `range(1, self._alloc_size)` - slot 0 never allocated\n   - This prevents cuda-graph padded batches (which default to index 0) from corrupting real data\n\n2. **Generation Counter Invariant** (ReqToTokenPool):\n   - `req_generation` tracks allocation generations"
+    },
+    {
+      "wave": "B.0",
+      "case": 4,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 46,
+        "A1.1": 46,
+        "A2.0": 46,
+        "A2.1": 46
+      },
+      "text": "## Technical Analysis of Weight-Loading Concurrency and Error Propagation\n\n### Facts Visible in the Excerpt\n\n1. **Concurrency Mechanisms**:\n   - `buffered_multi_thread_safetensors_weights_iterator` uses `ThreadPoolExecutor` with configurable `max_workers` (default 8)\n   - `multi_thread_pt_weights_iterator` also uses `ThreadPoolExecutor`\n   - `PreshardedModelLoader._dump_state_to_disk` uses `ThreadPoolExecutor` for hashing\n   - `PreshardedModelLoader._apply_presharded_file` uses `ThreadPoolExecutor`"
+    },
+    {
+      "wave": "B.0",
+      "case": 5,
+      "matching_controls": [
+        "A1.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 44,
+        "A2.0": 44,
+        "A2.1": 44
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend implementation, I can identify the sparse-attention dataflow and its likely bottleneck.\n\n## Sparse-Attention Dataflow Analysis\n\n### Dataflow Overview\nThe sparse attention mechanism works as follows:\n\n1. **Metadata Preparation** (`init_forward_metadata`):\n   - Computes sequence lengths, cumulative lengths, and page tables\n   - Creates `dsa_cache_seqlens_int32` (clipped to `topk`) and `dsa_cu_seqlens_k`\n   - Builds `real_page_table` from the page table\n  "
+    },
+    {
+      "wave": "B.0",
+      "case": 6,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 40,
+        "A1.1": 40,
+        "A2.0": 128,
+        "A2.1": 40
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeekV2 model, I need to analyze the expert and attention dispatch boundaries. Let me examine the key components:\n\n## Expert Dispatch Boundaries\n\nThe expert dispatch is handled through the `DeepseekV2MoE` class, which has several dispatch paths:\n\n1. **Standard dispatch** (`forward_normal`): Used when not using A2A (all-to-all) communication\n2. **DeepEP dispatch** (`forward_deepep`): Used with DeepEP/MegaMOE backends\n3. **Dual-stream dispatch** (`forward_normal_dual_stream"
+    },
+    {
+      "wave": "B.0",
+      "case": 7,
+      "matching_controls": [
+        "A1.0",
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 38,
+        "A2.0": 128,
+        "A2.1": 38
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `filter_batch` method. The issue is in how the method handles the case when `keep_indices` is provided but doesn't include all requests that should be kept.\n\n## Edge Case Analysis\n\nThe `filter_batch` method has a critical flaw in its handling of `keep_indices`:\n\n1. **When `keep_indices` is None**: The method correctly filters based on `finished()` status and `chunked_req_to_exclude`.\n2. **When `keep_indices` is provided**: The"
+    },
+    {
+      "wave": "B.0",
+      "case": 8,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this source excerpt, I can see several distributed helper functions that handle process group operations. The key functions are `broadcast_pyobj`, `point_to_point_pyobj`, and `init_custom_process_group`. Let me analyze the failure handling in these functions and propose improvements.\n\n## Facts Visible in the Excerpt\n\n1. **`broadcast_pyobj`** (lines ~1200-1250):\n   - Uses `dist.broadcast` for both size and data tensors\n   - Has special handling for HIP/ROCm with a barrier after broadcast\n   - Returns `data` on source rank"
+    },
+    {
+      "wave": "B.0",
+      "case": 9,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at the `generate_request` method and the request admission flow, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **`generate_request` is an async generator** that yields responses. It's called for each incoming request.\n2. **The method acquires multiple locks sequentially**:\n   - `async with self.is_pause_cond:` - waits for pause condition\n   - `async with self.model_update_lock.reader_lock:` - acquires reader lock\n3. **Within the model_update_lock**, it performs:\n   - `await self._validate"
+    },
+    {
+      "wave": "B.0",
+      "case": 10,
+      "matching_controls": [
+        "A1.1",
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 51,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 51
+      },
+      "text": "## Backend Selection Analysis\n\n### Facts Visible in Excerpt\n\n1. **Aiter is AMD-specific**: The import block explicitly states \"aiter is AMD specific kernel library\" and the `is_gfx95_supported()` function gates FP8 prefill attention.\n\n2. **Multiple attention paths exist**:\n   - `paged_attention_ragged` for decode (non-unified)\n   - `unified_attention` for decode/verify/draft-extend\n   - `mha_batch_prefill_func` for prefill\n   - `flash_attn_varlen_func` for MLA prefill"
+    },
+    {
+      "wave": "B.0",
+      "case": 11,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 12,
+        "A1.1": 12,
+        "A2.0": 128,
+        "A2.1": 3
+      },
+      "text": "Looking at this SGLang FP8 quantization source, I can identify several critical scale handling issues. Let me audit the most important numerical test and propose fixes.\n\n## Critical Scale Handling Issue\n\nThe most important numerical test is **`cast_e2m1fn_to_e4m3fn`** - specifically the `MAX_OFFSET_BITS = 6` constant and the scale conversion logic. This function converts FP4 (e2m1fn) weights to FP8 (e4m3fn) format, and the scale handling is critical for numerical correctness.\n\n### Technical Analysis\n\nThe function converts FP4 values to FP"
+    },
+    {
+      "wave": "B.0",
+      "case": 12,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "## Eviction Correctness Under Concurrent Prefix Reuse\n\n### Technical Analysis\n\nThe eviction mechanism in `UnifiedRadixCache` must maintain correctness when multiple requests concurrently reuse prefixes. The core challenge is ensuring that eviction never frees KV cache slots that are still being referenced by active requests, while still allowing efficient memory reclamation.\n\n#### Key Mechanisms Visible in the Excerpt\n\n1. **Lock-based Protection**: The `inc_lock_ref`/`dec_lock_ref` mechanism (lines ~350-380) provides reference counting on tree nodes. When a request matches a prefix, it acquires a lock on the last node (`inc_lock"
+    },
+    {
+      "wave": "B.0",
+      "case": 13,
+      "matching_controls": [
+        "A1.0",
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 3,
+        "A2.0": 128,
+        "A2.1": 3
+      },
+      "text": "Looking at this code, I can identify a potential deadlock scenario in the `GroupCoordinator.__init__` method, specifically in the loop that creates process groups. Let me analyze the collective ordering issue:\n\n## Deadlock Scenario Analysis\n\n### The Problem\nIn `GroupCoordinator.__init__`, there's a loop that creates process groups:\n```python\nfor ranks in group_ranks:\n    # ... create device_group and cpu_group\n    device_group = torch.distributed.new_group(...)\n    cpu_group = torch.distributed.new_group(...)\n```\n\nThe issue is that **all ranks must call `new_group"
+    },
+    {
+      "wave": "B.0",
+      "case": 14,
+      "matching_controls": [
+        "A1.1",
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 26,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 80
+      },
+      "text": "Looking at this source excerpt, I can see a complex override resolution system with multiple layers of precedence. The current implementation has three distinct resolution paths:\n\n1. **Constant overrides** (`MODEL_OVERRIDES`): Simple `arch -> {field: value}` mappings\n2. **Exact-match function overrides** (`_MODEL_OVERRIDE_FNS`): Registered via `@register_model_override(arch)`\n3. **Predicate-based overrides** (`_PREDICATE_OVERRIDE_FNS`): Registered via `@register_model_override_predicate(predicate)"
+    },
+    {
+      "wave": "B.0",
+      "case": 15,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang decode handoff code, I can identify a critical backpressure failure mode in the `pop_preallocated` method of `DecodePreallocQueue`. \n\n## Backpressure Failure Mode: Unbounded Queue Growth Under Memory Pressure\n\n### The Problem\n\nThe `pop_preallocated` method has a critical flaw in its memory admission control logic. When the KV cache is under memory pressure, requests can accumulate in the `self.queue` list indefinitely without being preallocated, creating an unbounded backpressure scenario.\n\nHere's the specific failure path:\n\n1. **Queue accumulation**: Requests are added to `"
+    },
+    {
+      "wave": "B.1",
+      "case": 0,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic.\n\n## Unsafe Interaction: `--load-format` and `--quantization` combination\n\n### Facts visible in the excerpt:\n\n1. **`load_format` field** (line ~250):\n   - Has choices including `\"bitsandbytes\"` and `\"gguf\"`\n   - The help text explicitly states: `\"bitsandbytes\" will load the weights using bitsandbytes quantization`\n\n2. **`quantization` field** (line ~300):\n   - Has choices including `\"bitsandbytes"
+    },
+    {
+      "wave": "B.1",
+      "case": 1,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang scheduler code, I can see the core scheduling state machine and identify a latency optimization opportunity. Let me analyze the key components:\n\n## Scheduling State Machine Analysis\n\n### States and Transitions (Facts from code):\n\n1. **Request Reception**: `event_loop_normal()` and `event_loop_overlap()` both start by calling `request_receiver.recv_requests()` to get new requests.\n\n2. **Request Processing**: `process_input_requests()` dispatches to handlers like `handle_generate_request()` which validate and add requests to queues.\n\n3. **Queue Management**:\n   - `"
+    },
+    {
+      "wave": "B.1",
+      "case": 2,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a critical correctness hazard in the `_forward_prepare` method related to the handling of `qkv_a` when using the fused `wqkv_a` projection with the `fused_attn_prep` optimization path.\n\n## The Hazard\n\nIn `_forward_prepare`, when `fused_attn_prep` is enabled (line ~1050), the code calls `gfx90a_attn_prepare_gemv` which returns `qkv_a` along with precomputed KV scores. However, there's a"
+    },
+    {
+      "wave": "B.1",
+      "case": 3,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "## Analysis of Allocation Invariants\n\n### Key Invariants Visible in the Excerpt\n\n1. **Slot 0 Padding Invariant** (ReqToTokenPool):\n   - `_alloc_size = size + 1` with slot 0 reserved as padding\n   - `free_slots` initialized to `range(1, self._alloc_size)` - slot 0 never allocated\n   - This prevents cuda-graph padded batches (which default to index 0) from corrupting real data\n\n2. **Generation Counter Invariant** (ReqToTokenPool):\n   - `req_generation` tracks allocation generations"
+    },
+    {
+      "wave": "B.1",
+      "case": 4,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "## Technical Analysis of Weight-Loading Concurrency and Error Propagation\n\n### Facts Visible in the Excerpt\n\n1. **Concurrency Mechanisms**:\n   - `buffered_multi_thread_safetensors_weights_iterator` uses a `ThreadPoolExecutor` with configurable `max_workers` (default 8)\n   - `multi_thread_pt_weights_iterator` also uses thread pools for `.pt` files\n   - `PreshardedModelLoader._dump_state_to_disk` uses `ThreadPoolExecutor` for hashing tensors\n   - `PreshardedModelLoader._apply_presharded_file`"
+    },
+    {
+      "wave": "B.1",
+      "case": 5,
+      "matching_controls": [
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 44,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend implementation, I can identify the sparse-attention dataflow and its likely bottleneck.\n\n## Sparse-Attention Dataflow Analysis\n\n### Dataflow Overview\n\nThe sparse attention mechanism in this backend follows this pipeline:\n\n1. **Metadata Preparation** (`init_forward_metadata`):\n   - Computes sequence lengths, cumulative lengths, and page tables\n   - Creates `DSAMetadata` with `dsa_cache_seqlens_int32` (clipped to `topk`)\n   - Builds `dsa_cu_seqlens_k` (cumulative"
+    },
+    {
+      "wave": "B.1",
+      "case": 6,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 13,
+        "A1.1": 13,
+        "A2.0": 13,
+        "A2.1": 13
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeek V2 model, I need to analyze the expert and attention dispatch boundaries. Let me examine the key components:\n\n## Expert Dispatch Boundaries\n\nFrom the code, I can identify several expert dispatch mechanisms:\n\n1. **Standard Dispatcher** (in `forward_normal`):\n   - Used when `_enable_a2a_moe` is False\n   - Direct expert computation with `self.experts(hidden_states, topk_output)`\n   - No special dispatch hooks\n\n2. **DeepEP/MegaMOE Dispatcher** (in `forward_dee"
+    },
+    {
+      "wave": "B.1",
+      "case": 7,
+      "matching_controls": [
+        "A1.0",
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 38,
+        "A2.0": 128,
+        "A2.1": 38
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `filter_batch` method. The issue is in how the method handles the case when `keep_indices` is provided but doesn't include all requests that should be kept.\n\n## Edge Case Analysis\n\nThe `filter_batch` method has a critical flaw in its handling of `keep_indices`:\n\n1. **When `keep_indices` is None**: The method correctly filters based on `finished()` status and `chunked_req_to_exclude`.\n2. **When `keep_indices` is provided**: The"
+    },
+    {
+      "wave": "B.1",
+      "case": 8,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this source excerpt, I can see several distributed helper functions that handle process group operations. The key functions are `broadcast_pyobj`, `point_to_point_pyobj`, and `init_custom_process_group`. Let me analyze the failure handling in these functions and propose improvements.\n\n## Facts Visible in the Excerpt\n\n1. **`broadcast_pyobj`** (lines ~1200-1250):\n   - Uses `dist.broadcast` for both size and data tensors\n   - Has special handling for HIP/ROCm with a barrier after broadcast\n   - Returns `data` on source rank"
+    },
+    {
+      "wave": "B.1",
+      "case": 9,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at the `generate_request` method and the request admission flow, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **`generate_request` is an async generator** that yields responses. It's called for each incoming request.\n2. **The method acquires multiple locks sequentially**:\n   - `async with self.is_pause_cond:` - waits for pause condition\n   - `async with self.model_update_lock.reader_lock:` - acquires reader lock\n3. **Within the model_update_lock**, it performs:\n   - `await self._validate"
+    },
+    {
+      "wave": "B.1",
+      "case": 10,
+      "matching_controls": [
+        "A1.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 51,
+        "A2.0": 51,
+        "A2.1": 128
+      },
+      "text": "## Backend Selection Analysis\n\n### Facts Visible in Excerpt\n\n1. **Aiter is AMD-specific**: The import block explicitly states \"aiter is AMD specific kernel library\" and the `is_gfx95_supported()` function gates FP8 prefill features.\n\n2. **Multiple attention paths exist**:\n   - `paged_attention_ragged` for decode (non-unified)\n   - `unified_attention` for decode/verify/draft-extend (Triton-based)\n   - `mha_batch_prefill_func` for prefill (non-unified)\n   - `flash_attn"
+    },
+    {
+      "wave": "B.1",
+      "case": 11,
+      "matching_controls": [
+        "A1.0",
+        "A1.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 12,
+        "A2.1": 3
+      },
+      "text": "Looking at this SGLang FP8 quantization source, I need to audit the scale handling and identify the most important numerical test. Let me analyze the key aspects:\n\n## Scale Handling Audit\n\n### 1. **Block Quantization Scale Initialization** (Critical Issue)\nIn `create_fp8_weight_` (line ~370), for block quantization:\n```python\nscale_init = torch.zeros if scale_dtype == torch.uint8 else torch.empty\nscale = BlockQuantScaleParameter(\n    data=scale_init(\n        (output_size_per_partition + block_n - 1) // block_n,\n        (input_size"
+    },
+    {
+      "wave": "B.1",
+      "case": 12,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "## Eviction Correctness Under Concurrent Prefix Reuse\n\n### Technical Analysis\n\nThe eviction mechanism in `UnifiedRadixCache` must maintain correctness when multiple requests concurrently reuse prefixes. The core challenge is ensuring that eviction never frees KV cache slots that are still being referenced by active requests, while still allowing efficient memory reclamation.\n\n#### Key Mechanisms Visible in the Excerpt\n\n1. **Lock-based Protection**: The `inc_lock_ref`/`dec_lock_ref` mechanism (lines ~350-380) provides reference counting on tree nodes. When a request matches a prefix, it acquires a lock on the last node (`inc_lock"
+    },
+    {
+      "wave": "B.1",
+      "case": 13,
+      "matching_controls": [
+        "A1.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 3,
+        "A1.1": 128,
+        "A2.0": 3,
+        "A2.1": 45
+      },
+      "text": "Looking at this source excerpt, I can identify a potential deadlock scenario in the `GroupCoordinator` initialization, specifically in the `__init__` method where process groups are created.\n\n## Deadlock Scenario Analysis\n\n### Facts from the excerpt:\n\n1. **Group creation order**: In `GroupCoordinator.__init__`, for each group in `group_ranks`, the code creates:\n   - A device group via `torch.distributed.new_group()`\n   - A CPU group via `torch.distributed.new_group()` with Gloo backend\n\n2. **Collective ordering**: The `new_group()`"
+    },
+    {
+      "wave": "B.1",
+      "case": 14,
+      "matching_controls": [
+        "A1.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 26,
+        "A2.0": 26,
+        "A2.1": 26
+      },
+      "text": "Looking at this source excerpt, I can see a complex override resolution system with multiple layers of precedence. The current implementation has three distinct override sources:\n\n1. **Constant overrides** (`MODEL_OVERRIDES`): A simple dict mapping architecture names to field-value dicts\n2. **Exact-match callables** (`_MODEL_OVERRIDE_FNS`): Registered via `@register_model_override(arch)`, keyed by exact architecture name\n3. **Predicate callables** (`_PREDICATE_OVERRIDE_FNS`): Registered via `@register_model_override"
+    },
+    {
+      "wave": "B.1",
+      "case": 15,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang decode handoff code, I can identify a critical backpressure failure mode in the `pop_preallocated` method of `DecodePreallocQueue`. \n\n## Backpressure Failure Mode: Unbounded Queue Growth Under Memory Pressure\n\n### The Problem\n\nThe `pop_preallocated` method has a critical flaw in its memory admission control logic. When the KV cache is under memory pressure, requests can accumulate in the `self.queue` list indefinitely without being preallocated, creating an unbounded backpressure scenario.\n\nHere's the specific failure path:\n\n1. **Queue accumulation**: Requests are added to `"
+    }
+  ]
+}
