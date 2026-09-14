@@ -127,7 +127,7 @@ def main(root):
         formal_compile_warning_free=all(not x['compile_events'] for x in legs),
         all_quality_wave_comparisons=comparisons,timed_first_token_ids=timed,
         identical_scheduler_admission_counts=True,actual_forward_M_equality_proven=False,
-        bounded_coherence_review='pending manual review',
+        bounded_coherence_review='See quality-review.json and manual-review.md; not inferred by this analyzer.',
         scope='Original V4 TP8 C16x32K, zero-prefix input/wave-time; native AR and1M KV. Only opt-in prefill Sinkhorn config20 differs. Not a determinism/accuracy certificate.')
     (root/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result,indent=2))

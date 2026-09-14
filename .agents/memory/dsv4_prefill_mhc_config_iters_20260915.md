@@ -54,7 +54,7 @@ one preexisting pytest unknown `asyncio_mode` warning. These include ordinary
 tail admission, explicit mode/architecture/parallelism exclusions, exception
 and nested-scope restoration, and compiled-argument selector checks.
 
-## Service experiment prepared
+## Service experiment in progress
 
 Directory `.agents/experiments/dsv4_prefill_mhc_config_iters_20260915/`:
 `oracle.py`, `screen.json`, `large.json`, `run.py`, `sweep.py`, `status.py`.
@@ -63,6 +63,17 @@ native AR decode,1M pool and32K budget. The sole flag change is config20
 prefill policy. Each leg has three one-token timing waves; each fresh process
 also has France and two128-token quality waves with full input echoes.
 Actual policy hits and unchanged FP16 Fn must be witnessed on every rank.
+
+Partial readback on September15 (not a completed ABBA): A1 finished with
+three-wave median5542.583721 input tok/s. Candidate B1 finished with
+three-wave median5480.998651 input tok/s (about1.11% lower). B2 has begun;
+final control A2 has not started. Do not report this as an accepted result.
+All eight candidate ranks logged legacy8 -> config20 policy selection;
+candidate France returned Paris. Long candidate outputs remain unreviewed.
+A1 full input echoes passed32/32, but only6/16 full128-token answers repeated
+between its quality waves (15/16 first tokens matched). Thus control itself
+is not deterministic. Manual control inspection found coherent text but
+also unsupported assertions, so it is not an answer-accuracy oracle.
 
 Do not promote the flag until this service comparison, output review and
 cold-shape checks finish. Input equality does not imply repeated output;

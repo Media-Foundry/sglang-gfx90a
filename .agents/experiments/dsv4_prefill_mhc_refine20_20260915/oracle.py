@@ -18,8 +18,10 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--sizes',type=int,nargs='+',default=[1,128,8192,32767,32768])
 p.add_argument('--mutations',type=int,default=10)
+p.add_argument('--graph-replays',type=int,default=0,
+               help='Optional fixed-input graph replays plus one input-mutation replay.')
 args=p.parse_args()
-assert not args.output.exists() and args.mutations>0
+assert not args.output.exists() and args.mutations>0 and args.graph_replays>=0
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 assert all(1<=m<=65536 for m in args.sizes)
 owners=json.loads(subprocess.check_output(['amd-smi','process','--json']))
@@ -86,6 +88,34 @@ for m in args.sizes:
         result['last_check']=dict(m=m,mutation=mutation,exact=exact(a,b),max_abs=delta(a,b));save()
         assert exact(a,b),(m,mutation,'mismatch')
         assert all(torch.isfinite(v).all() for v in b)
+    # Row ownership must not depend on batch order, including ragged M.
+    original_inputs=(residual,x,post,comb)
+    permutation=torch.randperm(m,device='cuda')
+    residual,x,post,comb=(v.index_select(0,permutation) for v in original_inputs)
+    permuted=call('B')
+    expected=tuple(v.index_select(0,permutation) for v in a)
+    result['last_check']=dict(m=m,phase='row_permutation',exact=exact(expected,permuted),
+                              max_abs=delta(expected,permuted));save()
+    assert exact(expected,permuted),(m,'row permutation mismatch')
+    residual,x,post,comb=original_inputs
+    del original_inputs,permutation,permuted,expected
+    if args.graph_replays:
+        graph=torch.cuda.CUDAGraph()
+        torch.cuda.synchronize()
+        with torch.cuda.graph(graph):
+            graph_output=call('B')
+        reference=call('A')
+        for replay in range(args.graph_replays):
+            graph.replay()
+            assert exact(reference,graph_output),(m,'graph replay',replay)
+        # A graph which simply reuses stale output must fail this check.
+        x.normal_(std=.1);post.normal_(std=.01)
+        reference=call('A')
+        graph.replay()
+        result['last_check']=dict(m=m,phase='graph_input_mutation',
+            exact=exact(reference,graph_output),max_abs=delta(reference,graph_output));save()
+        assert exact(reference,graph_output),(m,'graph stale input or mismatch')
+        del graph,graph_output,reference
     samples={'A':[],'B':[]}
     for _ in range(3):
         for arm in ('A','B','B','A'):
@@ -93,7 +123,8 @@ for m in args.sizes:
             start.record()
             for _ in range(5):call(arm)
             end.record();end.synchronize();samples[arm].append(start.elapsed_time(end)/5)
-    item=dict(m=m,mutations=args.mutations,all_outputs_exact=True,
+    item=dict(m=m,mutations=args.mutations,all_outputs_exact=True,row_permutation_exact=True,
+              graph_replays=args.graph_replays,graph_mutation_exact=True if args.graph_replays else None,
               median_ms={k:statistics.median(v) for k,v in samples.items()},samples_ms=samples)
     result['results'].append(item);save();print(json.dumps(item),flush=True)
     del residual,x,post,comb,a,b

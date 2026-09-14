@@ -32,7 +32,11 @@ PYTHONPATH=python:python/sglang/kernels/aot/build/lib.linux-x86_64-cpython-312:p
   --output .agents/experiments/dsv4_prefill_mhc_refine20_20260915/screen.json
 ```
 
-The first screen is allocating eager full-boundary timing only. If promising,
-add ragged/row-permutation/mutation coverage and1000 graph replays before any
-service integration. Captured residual/Fn are local prerequisites; post inputs
+The first screen is allocating eager full-boundary timing only. Row permutation
+checks are now included for every shape. If promising, run ragged M32767 and
+M32768 and use `--graph-replays 1000` before any service integration. This flag
+also tests a replay after changing inputs to detect stale graph output; zero
+replays are recorded as untested, not as a graph correctness pass. These new
+checks have only been syntax-checked, not executed on a GPU yet.
+Captured residual/Fn are local prerequisites; post inputs
 are synthetic. This is not a fresh complete model trace or an accuracy oracle.
