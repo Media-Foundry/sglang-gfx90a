@@ -22,8 +22,14 @@ def main():
     parser.add_argument('--rank',type=int,default=0)
     parser.add_argument('--short',action='store_true')
     parser.add_argument('--fp32-attn-ar',action='store_true')
+    parser.add_argument('--stable-woa',action='store_true')
+    parser.add_argument('--fp32-ffn-ar',action='store_true')
+    parser.add_argument('--stage-layer',type=int,default=0)
+    parser.add_argument('--skip-weight-dumps',action='store_true')
+    parser.add_argument('--sample-positions',default='0,511,2047,4095,8191')
     parser.add_argument('--baseline-dir',type=Path)
     args=parser.parse_args()
+    assert all(int(v)>=0 for v in args.sample_positions.split(','))
     if args.run_name:
         assert '/' not in args.run_name and args.run_name not in ('.','..')
         ROOT=ROOT/args.run_name
@@ -41,12 +47,15 @@ def main():
     trace=ROOT/'trace-current'
     flags=(f'export SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR={trace}\n'
            f'export SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR={trace}\n'
-           f'export SGLANG_DSV4_DEBUG_STAGE_LAYER=0 SGLANG_DSV4_DEBUG_STAGE_RANK={args.rank}\n'
+           f'export SGLANG_DSV4_DEBUG_STAGE_LAYER={args.stage_layer} SGLANG_DSV4_DEBUG_STAGE_RANK={args.rank}\n'
            'export SGLANG_DSV4_DEBUG_STAGE_ROWS=-1 SGLANG_DSV4_DEBUG_STAGE_POSITION=-1\n'
            'export SGLANG_DSV4_DEBUG_STAGE_PREFILL_ONLY=1\n'
-           'export SGLANG_DSV4_DEBUG_STAGE_SAMPLE_POSITIONS=0,511,2047,4095,8191\n'
+           f'export SGLANG_DSV4_DEBUG_STAGE_SAMPLE_POSITIONS={args.sample_positions}\n'
            'export SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT=0\n')
     flags += f'export SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32={int(args.fp32_attn_ar)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_PREFILL_WOA_STABLE={int(args.stable_woa)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_PREFILL_FFN_AR_FP32={int(args.fp32_ffn_ar)}\n'
+    flags += f'export SGLANG_DSV4_DEBUG_STAGE_SKIP_WEIGHTS={int(args.skip_weight_dumps)}\n'
     launch=(old/'start-ar-matrix.sh').read_text().replace(
         'exec bash scripts/rocm_dsv4_flash.sh serve',flags+'exec bash scripts/rocm_dsv4_flash.sh serve')
     (ROOT/'start-ar-matrix.sh').write_text(launch)

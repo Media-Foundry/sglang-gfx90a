@@ -13,9 +13,9 @@ def digest(ids):
     return hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest()
 
 
-def load_trace(name,lookup,rank=0):
+def load_trace(name,lookup,rank=0,layer=0):
     root=ROOT/('trace-'+name)
-    def read(key): return torch.load(root/f'layer_0_rank_{rank}_{key}.pt',weights_only=True)
+    def read(key): return torch.load(root/f'layer_{layer}_rank_{rank}_{key}.pt',weights_only=True)
     ids=read('input_ids').tolist();positions=read('positions').tolist()
     starts=[i for i,p in enumerate(positions) if p==0]
     assert starts and starts[0]==0
@@ -33,8 +33,10 @@ def load_trace(name,lookup,rank=0):
     stages={}
     for stage in ('attn_residual','attn_pre_norm','attn_norm','q','attn_core',
                   'attn_inverse_rope','wo_a','wo_b_partial','wo_b','attn_out',
-                  'ffn_input','ffn_out'):
-        path=root/f'layer_0_rank_{rank}_{stage}.pt'
+                  'ffn_mhc_residual','ffn_mhc_post','ffn_mhc_comb',
+                  'ffn_input','ffn_router_logits','ffn_topk_ids','ffn_topk_weights',
+                  'ffn_routed','ffn_shared','ffn_partial','ffn_out'):
+        path=root/f'layer_{layer}_rank_{rank}_{stage}.pt'
         if path.exists():
             value=torch.load(path,weights_only=True)
             assert value.shape[0]==len(keys),(stage,value.shape,len(keys))

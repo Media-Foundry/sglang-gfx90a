@@ -1,0 +1,26 @@
+{
+  "bytes": 1434873,
+  "sha256": "f43a861dca38fcb645b72c5afc356d9b439c0b6f4ef0f7dc1f2b60729db762e0",
+  "validation": [
+    {
+      "run": "combined-ffn",
+      "arm": "A1",
+      "changed_vs_fp64": 2281
+    },
+    {
+      "run": "combined-ffn",
+      "arm": "B1",
+      "changed_vs_fp64": 1694
+    },
+    {
+      "run": "both-ar-l0",
+      "arm": "A1",
+      "changed_vs_fp64": 0
+    },
+    {
+      "run": "both-ar-l0",
+      "arm": "B1",
+      "changed_vs_fp64": 0
+    }
+  ]
+}

@@ -1922,8 +1922,11 @@ class MQALayer(MqaAttentionBase):
             if debug_attn:
                 from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import (
                     sampled_stage_value,
+                    should_dump_stage,
                 )
 
+                if not should_dump_stage(name):
+                    return
                 os.makedirs(debug_attn_dir, exist_ok=True)
                 torch.save(
                     sampled_stage_value(
@@ -2293,6 +2296,19 @@ class MQALayer(MqaAttentionBase):
                 from sglang.srt.layers.quantization.dsv4_woa_experiment import maybe_woa
 
                 grouped_output = maybe_woa(o, wo_a, forward_batch, self.attn_tp_size)
+            if (
+                grouped_output is None
+                and self.n_local_groups == 1
+                and os.getenv("SGLANG_DSV4_DEBUG_PREFILL_WOA_STABLE", "0") == "1"
+            ):
+                from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+                from sglang.kernels.ops.debug.dsv4_prefill_woa import project
+
+                if enabled_for(
+                    forward_batch, o.device, o.shape[0], self.attn_tp_size,
+                    flag="SGLANG_DSV4_DEBUG_PREFILL_WOA_STABLE",
+                ):
+                    grouped_output = project(o[:, 0], wo_a[0]).unsqueeze(1)
             o = (
                 grouped_output
                 if grouped_output is not None
@@ -3306,6 +3322,10 @@ class DeepseekV4DecoderLayer(nn.Module):
             name: str, value: torch.Tensor, *, once: bool = False
         ) -> None:
             if debug_stages:
+                from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import should_dump_stage
+
+                if not should_dump_stage(name):
+                    return
                 os.makedirs(debug_stage_dir, exist_ok=True)
                 path = os.path.join(
                     debug_stage_dir,
@@ -3629,13 +3649,20 @@ class DeepseekV4DecoderLayer(nn.Module):
             hidden_states = self._token_row_all_gather(hidden_states)
         # Include the fused MHC path in first-divergence diagnostics as well.
         dump_stage("ffn_input", hidden_states)
-        hidden_states = self._run_moe_ffn_dp_sync(
-            hidden_states,
-            forward_batch,
-            input_ids=input_ids,
-            input_ids_global=input_ids_global,
-            defer_tp_shared_output=token_row_owner,
-        )
+        if debug_stages:
+            from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import stage_dump_scope
+
+            moe_debug_scope = stage_dump_scope(self.mlp, dump_stage)
+        else:
+            moe_debug_scope = nullcontext()
+        with moe_debug_scope:
+            hidden_states = self._run_moe_ffn_dp_sync(
+                hidden_states,
+                forward_batch,
+                input_ids=input_ids,
+                input_ids_global=input_ids_global,
+                defer_tp_shared_output=token_row_owner,
+            )
         mark(7)
         dump_stage("ffn_out", hidden_states)
 
@@ -3823,8 +3850,27 @@ class DeepseekV4DecoderLayer(nn.Module):
                 )
             if get_parallel().moe_ep_size != 1 or not get_moe_a2a_backend().is_none():
                 raise RuntimeError("token-row prefill requires EP1 and no A2A")
+        fp32_prefill_ffn_ar = False
+        if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_FFN_AR_FP32", "0") == "1":
+            from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+            fp32_prefill_ffn_ar = enabled_for(
+                forward_batch, hidden_states.device, hidden_states.shape[0],
+                get_parallel().attn_tp_size,
+                flag="SGLANG_DSV4_DEBUG_PREFILL_FFN_AR_FP32",
+            )
+            if fp32_prefill_ffn_ar and (
+                _use_cp or _use_tp_moe_gather or _use_dp_a2a_gather
+                or _use_tp_attn_a2a_scatter or _do_shared_local
+                or _shared_tp_output is not None or defer_tp_shared_output
+                or mlp_reduce_scatter or get_parallel().attn_dp_size != 1
+                or getattr(self.mlp, "_shared_expert_tp1", False)
+                or not get_moe_a2a_backend().is_none()
+            ):
+                raise RuntimeError("FP32 FFN AR diagnostic requires native TP8/EP1 without DP/CP/RS/TP1 shared")
         with get_forward().scoped(
-            mlp_reduce_scatter=mlp_reduce_scatter or defer_tp_shared_output
+            mlp_reduce_scatter=(mlp_reduce_scatter or defer_tp_shared_output
+                                or fp32_prefill_ffn_ar)
         ):
             hidden_states = self.mlp(
                 hidden_states,
@@ -3833,6 +3879,10 @@ class DeepseekV4DecoderLayer(nn.Module):
                 input_ids_global=input_ids_global,
                 skip_shared_experts=_do_shared_local or _shared_tp_output is not None,
             )
+        if fp32_prefill_ffn_ar:
+            from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import reduce
+
+            hidden_states = reduce(hidden_states, label="FFN")
         if _shared_tp_output is not None:
             if _shared_tp_event is not None:
                 torch.cuda.current_stream().wait_event(_shared_tp_event)

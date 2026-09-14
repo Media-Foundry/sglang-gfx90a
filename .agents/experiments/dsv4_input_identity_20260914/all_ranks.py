@@ -13,6 +13,7 @@ def main():
     global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-name', default='all-ranks')
+    parser.add_argument('--layer', type=int, default=0)
     args = parser.parse_args()
     assert '/' not in args.run_name and args.run_name not in ('.', '..')
     ROOT = Path(__file__).resolve().parent / args.run_name
@@ -26,7 +27,7 @@ def main():
     for name in ('A1','B1','A2'):
         data[name]=[];meta[name]=[]
         for rank in range(8):
-            m,d=analyze.load_trace(name,lookup,rank)
+            m,d=analyze.load_trace(name,lookup,rank,args.layer)
             data[name].append(d);meta[name].append(m)
     for rank in range(8):
         comp[rank]=analyze.compare(data['A1'][rank],data['B1'][rank])
@@ -55,6 +56,20 @@ def main():
         reductions.append(item)
     result=dict(metadata=meta,per_rank_comparison=comp,reductions=reductions,
         control_repeat={r:analyze.compare(data['A1'][r],data['A2'][r]) for r in range(8)})
+    if all('ffn_partial' in data[n][r] for n in ('A1','B1') for r in range(8)):
+        ffn=[]
+        for key in common:
+            item=dict(case=key[0],position=key[1],all_rank_partials_unchanged=all(
+                torch.equal(data['A1'][r]['ffn_partial'][key],data['B1'][r]['ffn_partial'][key]) for r in range(8)))
+            for name in ('A1','B1'):
+                values=[data[name][r]['ffn_partial'][key] for r in range(8)]
+                ref=sum(v.double() for v in values).bfloat16()
+                actual=data[name][0]['ffn_out'][key]
+                item[name]=dict(changed_vs_sum=int(torch.count_nonzero(ref!=actual)),
+                    max_abs_vs_sum=float((ref.float()-actual.float()).abs().max()),
+                    all_ranks_agree=all(torch.equal(actual,data[name][r]['ffn_out'][key]) for r in range(8)))
+            ffn.append(item)
+        result['ffn_reductions']=ffn
     old=ROOT.parent.parent/'dsv4_ck_drift_20260914/analyze.py'
     spec=importlib.util.spec_from_file_location('old_analysis',old)
     analysis=importlib.util.module_from_spec(spec);spec.loader.exec_module(analysis)
@@ -63,13 +78,17 @@ def main():
         json.loads((ROOT/f'{b}-by-case.json').read_text()))
         for a,b in [('A1','A2'),('A1','B1')]}
     result['input_identity_exact']=True
-    (ROOT/'all-rank-summary.json').write_text(json.dumps(result,indent=2)+'\n')
+    result['layer']=args.layer
+    filename='all-rank-summary.json' if args.layer==0 else f'all-rank-layer{args.layer}.json'
+    (ROOT/filename).write_text(json.dumps(result,indent=2)+'\n')
     print('all rank partials unchanged',all(r['all_rank_partials_unchanged'] for r in reductions))
     for r,stages in comp.items():
         print(r,{s:(v['exact_rows'],v['rows'],v['max_abs']) for s,v in stages.items()})
     for row in reductions:
         if row['case']==15 and row['position']==0: print('boundary',row)
     print('output exact',{k:v['exact'] for k,v in result['output_comparisons'].items()})
+    for row in result.get('ffn_reductions',[]):
+        if row['case']==15 and row['position']==0:print('FFN boundary',row)
 
 
 if __name__=='__main__':main()

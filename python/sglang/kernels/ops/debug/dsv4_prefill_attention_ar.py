@@ -9,7 +9,7 @@ import os
 import torch
 import torch.distributed as dist
 
-_logged = False
+_logged = set()
 
 
 def eligible(*, enabled, native, extend, hip, arch, tp, attn_tp, ep, rows):
@@ -17,8 +17,8 @@ def eligible(*, enabled, native, extend, hip, arch, tp, attn_tp, ep, rows):
                 and tp == attn_tp == 8 and ep == 1 and 8192 <= rows <= 36864)
 
 
-def enabled_for(batch, device, rows, attn_tp):
-    if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32", "0") != "1":
+def enabled_for(batch, device, rows, attn_tp, *, flag="SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32"):
+    if os.getenv(flag, "0") != "1":
         return False
     from sglang.srt.runtime_context import get_parallel
 
@@ -33,8 +33,7 @@ def enabled_for(batch, device, rows, attn_tp):
         ep=parallel.moe_ep_size, rows=rows)
 
 
-def reduce(input_):
-    global _logged
+def reduce(input_, *, label="attention"):
     from sglang.srt.distributed import get_tp_group
 
     group = get_tp_group()
@@ -46,10 +45,10 @@ def reduce(input_):
     work = input_.float()
     dist.all_reduce(work, group=group.device_group)
     output = work.to(input_.dtype)
-    if not _logged:
+    if label not in _logged:
         logging.getLogger(__name__).info(
-            "DSV4 diagnostic attention AR selected: FP32 process-group sum, "
+            "DSV4 diagnostic %s AR selected: FP32 process-group sum, "
             "M=%d H=4096, temporary=%d bytes; decode/draft excluded",
-            input_.shape[0], work.numel() * work.element_size())
-        _logged = True
+            label, input_.shape[0], work.numel() * work.element_size())
+        _logged.add(label)
     return output

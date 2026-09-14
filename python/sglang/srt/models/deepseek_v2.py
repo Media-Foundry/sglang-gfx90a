@@ -1517,6 +1517,7 @@ class DeepseekV2MoE(nn.Module):
         forward_batch: Optional[ForwardBatch] = None,
     ) -> torch.Tensor:
         realtime_trace = getattr(self, "_gfx90a_realtime_trace", None)
+        debug_dump = getattr(self, "_dsv4_stage_dump", None)
 
         def mark(slot: int) -> None:
             if realtime_trace is not None:
@@ -1621,6 +1622,10 @@ class DeepseekV2MoE(nn.Module):
                 else:
                     topk_output.topk_ids[:, :2].fill_(-1)
             mark(19)
+            if debug_dump is not None:
+                debug_dump("ffn_router_logits", router_logits)
+                debug_dump("ffn_topk_ids", topk_output.topk_ids)
+                debug_dump("ffn_topk_weights", topk_output.topk_weights)
         else:
             pre_quant_input = None
             shared_output = None
@@ -1678,6 +1683,8 @@ class DeepseekV2MoE(nn.Module):
                 ~m128_ragged_anchor_mask[:, None], 0
             )
         mark(20)
+        if debug_dump is not None:
+            debug_dump("ffn_routed", final_hidden_states)
         if (
             not _is_cuda
             and not _is_musa
@@ -1701,6 +1708,9 @@ class DeepseekV2MoE(nn.Module):
             )
         mark(21)
 
+        if debug_dump is not None and shared_output is not None:
+            debug_dump("ffn_shared", shared_output)
+
         final_hidden_states = maybe_fuse_routed_scale_and_shared_add(
             self.experts,
             final_hidden_states,
@@ -1708,6 +1718,9 @@ class DeepseekV2MoE(nn.Module):
             self.routed_scaling_factor,
         )
         mark(22)
+
+        if debug_dump is not None:
+            debug_dump("ffn_partial", final_hidden_states)
 
         mark(23)
         if split_moe_dp:

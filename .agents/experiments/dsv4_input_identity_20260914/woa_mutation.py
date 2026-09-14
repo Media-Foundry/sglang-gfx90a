@@ -13,7 +13,12 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--trace',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--service-kernel',action='store_true')
     args=p.parse_args()
+    if args.service_kernel:
+        from sglang.kernels.ops.debug.dsv4_prefill_woa import project as selected
+    else:
+        selected=lambda x,w:project(x,w,(128,128,128,8))
     assert os.environ.get('HIP_VISIBLE_DEVICES')=='4' and not args.output.exists()
     results=[]
     with safe_open('/home/pc/models/modelscope/model-00002-of-00048.safetensors',framework='pt',device='cpu') as f:
@@ -33,8 +38,11 @@ def main():
             rowb=rowa-[1,2,63,64,65,127,128,129][i%8]
             xa[olda].zero_();xb[oldb].zero_()
             xa[rowa].copy_(source);xb[rowb].copy_(source)
-            ya=project(xa,w,(128,128,128,8))[rowa].clone()
-            yb=project(xb,w,(128,128,128,8))[rowb].clone()
+            ya=selected(xa,w)[rowa].clone()
+            yb=selected(xb,w)[rowb].clone()
+            if args.service_kernel:
+                oracle=project(xa,w,(128,128,128,8))[rowa]
+                assert torch.equal(ya,oracle),(rank,i,'offline kernel mismatch')
             exact=torch.equal(ya,yb)
             assert exact,(rank,i)
             ref=(wd@source.double()).bfloat16()
