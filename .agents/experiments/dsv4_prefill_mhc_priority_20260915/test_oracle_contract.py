@@ -5,6 +5,26 @@ import unittest
 
 
 class TestPreparedOracle(unittest.TestCase):
+    def test_replay_check_does_not_compare_workspace_aliases(self):
+        tree=ast.parse(Path(__file__).with_name('oracle.py').read_text())
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='replay_stability')
+        class Tensor:
+            def __init__(self,value):self.value=value
+            def clone(self):return Tensor(self.value)
+        def errors(a,b):
+            return [dict(bits_exact=x.value==y.value,finite=True)
+                    for x,y in zip(a,b,strict=True)]
+        ns=dict(errors=errors)
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),'replay','exec'),ns)
+        shared=Tensor(0)
+        def drifting_call(arm):
+            shared.value+=1
+            return [shared]
+        result=ns['replay_stability'](drifting_call,'A',3)
+        self.assertEqual(result['exact_replays'],0)
+        stable=ns['replay_stability'](lambda arm:[shared],'B',3)
+        self.assertEqual(stable['exact_replays'],3)
+
     def test_full_boundary_argument_and_no_persistent_patch(self):
         tree=ast.parse(Path(__file__).with_name('oracle.py').read_text())
         call=next(n for n in ast.walk(tree) if isinstance(n,ast.Call)

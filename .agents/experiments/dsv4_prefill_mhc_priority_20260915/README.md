@@ -46,3 +46,10 @@ The script checks GPU ownership before importing torch. Its temporary Python
 admission override is restored in `finally`. Three component ABBA cycles
 measure the allocating full boundary; output residual/post/comb/norm are all
 checked. No result file exists at this preparation checkpoint.
+
+Each arm also has six same-input eager replays (`--replays`), compared against
+a cloned snapshot to avoid a shared-workspace alias hiding drift. Candidate
+replays must be exact; legacy replay differences are recorded separately from
+cross-arm precision differences. Every A/B mutation checks finite outputs and
+records differences, not only the initial fixture. These are component checks,
+not proof of full-model repeatability or graph replay correctness.

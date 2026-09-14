@@ -17,8 +17,9 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--sizes',type=int,nargs='+',default=[1,8192,32767,32768])
 p.add_argument('--mutations',type=int,default=10)
+p.add_argument('--replays',type=int,default=6)
 args=p.parse_args()
-assert not args.output.exists() and args.mutations>0
+assert not args.output.exists() and args.mutations>0 and args.replays>0
 assert all(1<=m<=65536 for m in args.sizes)
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 owners=json.loads(subprocess.check_output(['amd-smi','process','--json']))
@@ -86,6 +87,20 @@ def errors(a,b):
                            finite=bool(torch.isfinite(x).all() and torch.isfinite(y).all())))
     return result
 
+def replay_stability(call, arm, count):
+    # Clone: an implementation may return shared workspace. Comparing two
+    # aliases after replay could otherwise report false determinism.
+    reference=[t.clone() for t in call(arm)]
+    comparisons=[]
+    for _ in range(count):
+        current=call(arm)
+        differences=errors(reference,current)
+        assert all(x['finite'] for x in differences),(arm,'non-finite replay')
+        comparisons.append(differences)
+    return dict(replays=count,
+                exact_replays=sum(all(x['bits_exact'] for x in row) for row in comparisons),
+                comparisons=comparisons)
+
 for m in args.sizes:
     scope=8192<=m<=65536
     residual=seed.repeat(triton.cdiv(m,len(seed)),1,1)[:m].contiguous()
@@ -116,6 +131,8 @@ for m in args.sizes:
     if not scope:assert exact(a,b),'Small-M legacy behavior changed'
     initial=errors(a,b)
     assert all(x['finite'] for x in initial)
+    stability={arm:replay_stability(call,arm,args.replays) for arm in ('A','B')}
+    assert stability['B']['exact_replays']==args.replays,'Candidate is not replay-stable'
     samples={'A':[],'B':[]}
     for _ in range(3):
         for arm in ('A','B','B','A'):
@@ -123,6 +140,7 @@ for m in args.sizes:
             start.record()
             for _ in range(5):call(arm)
             end.record();end.synchronize();samples[arm].append(start.elapsed_time(end)/5)
+    mutation_differences=[]
     for mutation in range(args.mutations):
         residual.mul_(torch.empty(m,1,1,device='cuda',dtype=torch.bfloat16).uniform_(.97,1.03))
         x.normal_(std=.1);post.normal_(std=.01)
@@ -130,14 +148,17 @@ for m in args.sizes:
         a,b,r=call('A'),call('B'),call('R')
         assert exact(b,r),(m,mutation,'FP32 reference')
         if not scope:assert exact(a,b),(m,mutation,'small M')
-        assert all(torch.isfinite(t).all() for t in b)
+        differences=errors(a,b)
+        assert all(x['finite'] for x in differences),(m,mutation,'non-finite A/B')
+        mutation_differences.append(differences)
     original=[t.clone() for t in b]
     order=torch.randperm(m,device='cuda');inverse=torch.argsort(order)
     for t in (residual,x,post,comb):t.copy_(t[order])
     permuted=call('B')
     assert exact(original,[t[inverse] for t in permuted]),'Candidate row permutation'
     item=dict(m=m,active_large_prefill=scope,reference_exact=True,mutations=args.mutations,
-              row_permutation_exact=True,legacy_difference=initial,samples_ms=samples,
+              row_permutation_exact=True,legacy_difference=initial,
+              mutation_differences=mutation_differences,replay_stability=stability,samples_ms=samples,
               median_ms={k:median(v) for k,v in samples.items()})
     item['speedup']=item['median_ms']['A']/item['median_ms']['B']
     result['results'].append(item);save();print(json.dumps(item),flush=True)
