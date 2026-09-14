@@ -1079,8 +1079,16 @@ class MQALayer(MqaAttentionBase):
         positions: torch.Tensor,
         q_out: Optional[torch.Tensor] = None,
         debug_dump=None,
+        stable_projection: bool = False,
     ) -> torch.Tensor:
-        q, _ = self.wq_b(q)
+        if stable_projection:
+            from sglang.kernels.ops.debug.dsv4_prefill_wqb import project
+
+            if self.wq_b.bias is not None:
+                raise ValueError("Stable wq_b diagnostic requires a bias-free projection")
+            q = project(q, self.wq_b.weight)
+        else:
+            q, _ = self.wq_b(q)
         if debug_dump is not None:
             debug_dump("prepare_q_before_norm_rope", q)
         q = q.view(-1, self.n_local_heads, self.head_dim)
@@ -1811,7 +1819,18 @@ class MQALayer(MqaAttentionBase):
             q_lora = self.q_norm(q_lora)
             if prepare_dump is not None:
                 prepare_dump("prepare_q_lora_norm", q_lora)
-            q = self._compute_q_b(q_lora, positions, q_out, debug_dump=prepare_dump)
+            stable_wqb = False
+            if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE", "0") == "1":
+                from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+                stable_wqb = enabled_for(
+                    forward_batch, q_lora.device, q_lora.shape[0], self.attn_tp_size,
+                    flag="SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE",
+                )
+            q = self._compute_q_b(
+                q_lora, positions, q_out, debug_dump=prepare_dump,
+                stable_projection=stable_wqb,
+            )
             if unified:
                 # unified_kv prefill: keep bf16 kv; the backend writes
                 # the ring AFTER attention (2-source path).
