@@ -1,0 +1,6 @@
+{
+  "files": 11,
+  "bytes": 10156,
+  "sha256": "07a13e6b4bb2413b4e00ae157b3c4ec4d5491b28d6a70df5033de9bf1cfdb667",
+  "scope": "Standalone wider logits/Top-K only; production guard unchanged; first screen failed due to ascending tie oracle"
+}
