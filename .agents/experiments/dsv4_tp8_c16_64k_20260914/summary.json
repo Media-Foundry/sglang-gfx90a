@@ -1,0 +1,113 @@
+{
+  "legs": [
+    {
+      "name": "A1",
+      "budget": 32768,
+      "rates": [
+        5296.74996412863,
+        5299.739158111483,
+        5292.375760680123
+      ],
+      "median": 5296.74996412863,
+      "median_wave_s": 24.745174094990944,
+      "median_request_ttft_s": 15.553127218496229,
+      "forward_counts": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ],
+      "forwards": 12
+    },
+    {
+      "name": "B1",
+      "budget": 65536,
+      "rates": [
+        5395.895743957045,
+        5396.590234861177,
+        5394.664971652646
+      ],
+      "median": 5395.895743957045,
+      "median_wave_s": 24.290498967995518,
+      "median_request_ttft_s": 18.3131256324923,
+      "forward_counts": [
+        {
+          "requests": 8,
+          "rows": 65536,
+          "count": 6
+        }
+      ],
+      "forwards": 6
+    },
+    {
+      "name": "B2",
+      "budget": 65536,
+      "rates": [
+        5398.396432058494,
+        5394.960025684174,
+        5391.619103642665
+      ],
+      "median": 5394.960025684174,
+      "median_wave_s": 24.294711986003676,
+      "median_request_ttft_s": 18.319076597996172,
+      "forward_counts": [
+        {
+          "requests": 8,
+          "rows": 65536,
+          "count": 6
+        }
+      ],
+      "forwards": 6
+    },
+    {
+      "name": "A2",
+      "budget": 32768,
+      "rates": [
+        5300.998400286015,
+        5302.08108612407,
+        5300.488065425907
+      ],
+      "median": 5300.998400286015,
+      "median_wave_s": 24.725342303994694,
+      "median_request_ttft_s": 15.552433639997616,
+      "forward_counts": [
+        {
+          "requests": 4,
+          "rows": 32768,
+          "count": 12
+        }
+      ],
+      "forwards": 12
+    }
+  ],
+  "control_mean_leg_median": 5298.8741822073225,
+  "candidate_mean_leg_median": 5395.4278848206095,
+  "throughput_gain_percent": 1.822155033186057,
+  "quality": {
+    "A1": {
+      "input_echo_exact": 32,
+      "repeat_exact": 15
+    },
+    "B": {
+      "input_echo_exact": 32,
+      "repeat_exact": 16
+    },
+    "A2": {
+      "input_echo_exact": 32,
+      "repeat_exact": 15
+    }
+  },
+  "helper_sources": {
+    "A1": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac",
+    "B": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac",
+    "A2": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac"
+  },
+  "mean_leg_median_request_ttft_s": {
+    "A": 15.552780429246923,
+    "B": 18.316101115244237
+  },
+  "request_ttft_change_percent": 17.767374126885404,
+  "input_sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+  "scope": "Original TP8/native AR/C16 x8K batch TTFT throughput, 1M KV; not a whole-model bitwise proof."
+}
