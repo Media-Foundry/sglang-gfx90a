@@ -6,6 +6,7 @@ import os
 import subprocess
 from types import SimpleNamespace as NS
 import unittest
+from unittest.mock import patch
 
 
 class TestEmptyIndexerTiles(unittest.TestCase):
@@ -14,6 +15,7 @@ class TestEmptyIndexerTiles(unittest.TestCase):
         tree = ast.parse((root/'python/sglang/srt/layers/attention/dsv4/indexer.py').read_text())
         cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'C4IndexerBackendMixin')
         method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_use_c4_empty_decode_tiles')
+        prefill = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_use_c4_empty_prefill_tiles')
         wrapper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fp8_paged_mqa_logits_torch')
         self.mode = Enum('Mode', 'DECODE EXTEND TARGET_VERIFY IDLE DRAFT_EXTEND')
         self.flag = False
@@ -21,10 +23,36 @@ class TestEmptyIndexerTiles(unittest.TestCase):
         self.namespace = dict(
             envs=NS(SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP=NS(get=lambda: self.flag)),
             is_hip=lambda: self.hip, is_gfx90a_supported=lambda: self.gfx90a,
-            ForwardMode=self.mode, torch=NS(Tensor=object), Any=object)
-        exec(compile(ast.Module(body=[method, wrapper], type_ignores=[]), '<indexer contract>', 'exec'), self.namespace)
+            ForwardMode=self.mode, torch=NS(Tensor=object), Any=object, os=os)
+        exec(compile(ast.Module(body=[method, prefill, wrapper], type_ignores=[]), '<indexer contract>', 'exec'), self.namespace)
         self.backend = NS(token_to_kv_pool=NS(_unified_kv=True), is_draft_worker=False,
-                          is_dspark_target=False, mtp_enabled=False)
+                          is_dspark_target=False, mtp_enabled=False,
+                          dsa_topk_backend=NS(is_sgl_kernel=lambda:True))
+
+    def test_prefill_is_independent_and_fail_closed(self):
+        indexer=NS(compressor=NS(_debug_original_v4=True),index_topk=512)
+        def call(mode):
+            return self.namespace['_use_c4_empty_prefill_tiles'](self.backend,NS(forward_mode=mode),indexer)
+        flag='SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP'
+        with patch.dict(os.environ,{flag:'0'}):
+            self.assertFalse(call(self.mode.EXTEND))
+        with patch.dict(os.environ,{flag:'1','SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER':'3'}):
+            self.assertTrue(call(self.mode.EXTEND))
+            for mode in self.mode:
+                if mode!=self.mode.EXTEND:self.assertFalse(call(mode))
+            for role in ('is_draft_worker','is_dspark_target','mtp_enabled'):
+                setattr(self.backend,role,True);self.assertFalse(call(self.mode.EXTEND))
+                delattr(self.backend,role);self.assertFalse(call(self.mode.EXTEND))
+                setattr(self.backend,role,False)
+            indexer.compressor._debug_original_v4=False
+            self.assertFalse(call(self.mode.EXTEND))
+            del indexer.compressor._debug_original_v4
+            self.assertFalse(call(self.mode.EXTEND))
+            indexer.compressor._debug_original_v4=True
+            indexer.index_topk=256;self.assertFalse(call(self.mode.EXTEND))
+            indexer.index_topk=512
+            self.backend.token_to_kv_pool._unified_kv=False
+            self.assertFalse(call(self.mode.EXTEND))
 
     def selected(self, mode=None):
         return self.namespace['_use_c4_empty_decode_tiles'](

@@ -76,6 +76,7 @@ IndexerQuery: TypeAlias = Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
 _arange_cache = {}
 _fp8_paged_mqa_logits_debug_logged = False
 _c4_empty_tiles_debug_logged = False
+_c4_empty_prefill_debug_logged = False
 _c4_trivial_logits_debug_logged = False
 
 
@@ -875,6 +876,24 @@ class C4IndexerBackendMixin:
             and getattr(self, "mtp_enabled", True) is False
         )
 
+    def _use_c4_empty_prefill_tiles(self, forward_batch, c4_indexer) -> bool:
+        # Separate from the accepted AR selector: ordinary original-V4 prefill
+        # only. Keep causal lengths, compressor writes and canonical Top-K.
+        return (
+            os.getenv("SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP", "0") == "1"
+            and is_hip()
+            and is_gfx90a_supported()
+            and forward_batch.forward_mode == ForwardMode.EXTEND
+            and bool(getattr(c4_indexer.compressor, "_debug_original_v4", False))
+            and bool(getattr(self.token_to_kv_pool, "_unified_kv", False))
+            and getattr(self, "is_draft_worker", True) is False
+            and getattr(self, "is_dspark_target", True) is False
+            and getattr(self, "mtp_enabled", True) is False
+            and self.dsa_topk_backend.is_sgl_kernel()
+            and c4_indexer.index_topk == 512
+            and os.getenv("SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER", "3") in ("2", "3")
+        )
+
     @staticmethod
     def _should_skip_c4_indexer_logits(
         c4_indexer: "C4Indexer",
@@ -1345,6 +1364,20 @@ class C4IndexerBackendMixin:
                     and self._use_c4_empty_decode_tiles(forward_batch)
                 ):
                     logits_kwargs["skip_empty_tiles"] = True
+                if (
+                    fn is fp8_paged_mqa_logits_torch
+                    and self._use_c4_empty_prefill_tiles(forward_batch, c4_indexer)
+                ):
+                    logits_kwargs["skip_empty_tiles"] = True
+                    global _c4_empty_prefill_debug_logged
+                    if not _c4_empty_prefill_debug_logged:
+                        print(
+                            f"[DSV4 indexer] prefill empty tiles selected: rows={q.shape[0]} "
+                            f"C4_capacity={indexer_metadata.max_c4_seq_len} "
+                            f"BLOCK_S={envs.SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S.get()}",
+                            flush=True,
+                        )
+                        _c4_empty_prefill_debug_logged = True
                 logits = fn(
                     q,
                     c4_indexer_kv_cache,

@@ -63,7 +63,12 @@ def _empty_tile_candidate(
 
 def run_case(batch, width, live_width, skip, args):
     device = 'cuda'
-    pages_n = math.ceil(live_width / 64)
+    prefill = getattr(args, 'prefill', False)
+    request_rows = 8192
+    requests = batch // request_rows if prefill else 1
+    assert not prefill or (batch % request_rows == 0 and live_width == 2048)
+    pages_per_request = math.ceil(live_width / 64)
+    pages_n = pages_per_request * requests
     table_pages = math.ceil(width / 64)
     cache = torch.empty(pages_n, 64 * 132, device=device, dtype=torch.uint8)
     values = torch.randn(pages_n * 64, 128, device=device)
@@ -72,7 +77,13 @@ def run_case(batch, width, live_width, skip, args):
     weights = torch.randn(batch, 64, device=device)
     lengths = torch.full((batch,), live_width, device=device, dtype=torch.int32)
     pages = torch.zeros(batch, table_pages, device=device, dtype=torch.int32)
-    pages[:, :pages_n] = torch.arange(pages_n, device=device, dtype=torch.int32)
+    if prefill:
+        # Synthetic no-prefix C4 causal workload, not a real-service profile.
+        lengths.copy_(((torch.arange(batch,device=device)%request_rows+1)//4).int())
+        owner = torch.arange(batch,device=device)//request_rows
+        pages[:] = owner[:,None]*pages_per_request + torch.arange(table_pages,device=device)[None,:]
+    else:
+        pages[:, :pages_n] = torch.arange(pages_n, device=device, dtype=torch.int32)
     triton_fused_store_indexer(values, cache, locations, 64)
 
     def stage(name):
@@ -137,13 +148,22 @@ def run_case(batch, width, live_width, skip, args):
         values.normal_()
         triton_fused_store_indexer(values, cache, locations, 64)
         lengths.random_(0, live_width+1)
-        pages[:, :pages_n] = torch.randperm(pages_n, device=device, dtype=torch.int32)
+        if prefill:
+            # Keep independent request page sets but change each physical layout.
+            for request in range(requests):
+                pages[request*request_rows:(request+1)*request_rows,:] = (
+                    torch.randperm(pages_per_request,device=device,dtype=torch.int32)
+                    + request*pages_per_request)
+        else:
+            pages[:, :pages_n] = torch.randperm(pages_n, device=device, dtype=torch.int32)
         for graph in graphs.values():
             graph.replay()
         check(('mutation', mutation))
     medians = {name: statistics.median(t['stage_us'] for t in times if t['arm'] == name)
                for name in ('A', 'B')}
     return dict(batch=batch, width=width, live_width=live_width, trivial_topk=skip,
+                workload='synthetic_prefill_causal_8k' if prefill else 'uniform_decode',
+                requests=requests,
                 score_bits_exact=True, logical_and_physical_exact=True,
                 mutations=args.mutations, fixed_graph_replays=args.replays,
                 abba=times, medians_us=medians,
@@ -157,17 +177,21 @@ def main():
     parser.add_argument('--timing-iterations', type=int, default=20)
     parser.add_argument('--abba-cycles', type=int, default=2)
     parser.add_argument('--screen', action='store_true', help='One B64 case first')
+    parser.add_argument('--prefill', action='store_true', help='Synthetic M8192/M32768 C4 causal lengths, with independent KV pages per 8K request')
     parser.add_argument('--production', action='store_true', help='Test public integrated wrapper, not test-only patching')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     assert min(args.mutations, args.replays, args.timing_iterations, args.abba_cycles) > 0
     assert not args.output.exists()
+    assert not args.prefill or (args.production and not args.screen)
     assert torch.version.hip and 'gfx90a' in torch.cuda.get_device_properties(0).gcnArchName
     torch.manual_seed(20260914)
     cases = [(64, 262144, 640, 0)] if args.screen else [
         (1, 262144, 640, 0), (32, 262144, 640, 0), (64, 262144, 640, 0),
         (4, 577, 577, 0), (4, 8192, 8192, 0), (1, 262144, 262144, 0),
         (32, 576, 576, 512)]
+    if args.prefill:
+        cases = [(8192,2048,2048,512),(32768,2048,2048,512)]
     result = dict(status='running', integrated_wrapper=args.production, cases=[])
     for case in cases:
         row = run_case(*case, args)

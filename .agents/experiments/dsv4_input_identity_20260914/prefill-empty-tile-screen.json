@@ -1,0 +1,124 @@
+{
+  "status": "complete",
+  "integrated_wrapper": true,
+  "cases": [
+    {
+      "batch": 8192,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 1,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 11442.25025177002
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 7931.982517242432
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 7930.302143096924
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 11440.250396728516
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 11437.529563903809
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 7928.9422035217285
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 7929.741859436035
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 11436.249732971191
+        }
+      ],
+      "medians_us": {
+        "A": 11438.889980316162,
+        "B": 7930.0220012664795
+      },
+      "stage_speedup": 1.4424789714945674
+    },
+    {
+      "batch": 32768,
+      "width": 2048,
+      "live_width": 2048,
+      "trivial_topk": 512,
+      "workload": "synthetic_prefill_causal_8k",
+      "requests": 4,
+      "score_bits_exact": true,
+      "logical_and_physical_exact": true,
+      "mutations": 3,
+      "fixed_graph_replays": 3,
+      "abba": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 45759.95635986328
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 31712.087631225586
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "stage_us": 31714.008331298828
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "stage_us": 45756.19888305664
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 45728.83987426758
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 31701.847076416016
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "stage_us": 31700.008392333984
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "stage_us": 45724.998474121094
+        }
+      ],
+      "medians_us": {
+        "A": 45742.51937866211,
+        "B": 31706.9673538208
+      },
+      "stage_speedup": 1.442664600124552
+    }
+  ]
+}
