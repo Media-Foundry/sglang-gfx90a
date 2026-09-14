@@ -36,5 +36,19 @@ class TestAnalysis(unittest.TestCase):
         self.assertEqual(16-len(differences),14)
         self.assertEqual(16-sum(x['common_prefix_tokens']==0 for x in differences),15)
 
+    def test_policy_and_implementation_trials_cannot_be_confused(self):
+        for refined in (False,True):
+            for arm in ('A1','B','A2'):
+                plan=dict(comb_refine_trial=refined,flags={
+                    'SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS':str(int(refined or arm=='B')),
+                    'SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20':str(int(refined and arm=='B')),
+                    'SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS':'8',
+                    'SGLANG_DSV4_C4_PREFILL_QUERY_WIDE':'1'})
+                analysis.validate_arm_flags(plan,arm,refined)
+                with self.assertRaises(AssertionError):analysis.validate_arm_flags(plan,arm,not refined)
+                for key in plan['flags']:
+                    broken=copy.deepcopy(plan);broken['flags'][key]='invalid'
+                    with self.assertRaises(AssertionError):analysis.validate_arm_flags(broken,arm,refined)
+
 
 if __name__=='__main__':unittest.main()

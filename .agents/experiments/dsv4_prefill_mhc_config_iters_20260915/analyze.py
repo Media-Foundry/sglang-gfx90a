@@ -42,7 +42,17 @@ def compile_events(log):
                 r"TP(\d+)\] Triton kernel '([^']+)' took ([0-9.]+) s to compile after serving started",log)]
 
 
-def main(root):
+def validate_arm_flags(plan, arm, comb_refine):
+    assert arm in ('A1','B','A2')
+    flags=plan['flags']
+    assert bool(plan.get('comb_refine_trial',False))==comb_refine
+    assert flags['SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS']==str(int(comb_refine or arm=='B'))
+    assert flags.get('SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20','0')==str(int(comb_refine and arm=='B'))
+    assert flags['SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS']=='8'
+    assert flags['SGLANG_DSV4_C4_PREFILL_QUERY_WIDE']=='1'
+
+
+def main(root, comb_refine=False):
     from transformers import AutoTokenizer
     tokenizer=AutoTokenizer.from_pretrained('/home/pc/models/modelscope',local_files_only=True)
     def read(path):return json.loads((root/path).read_text())
@@ -51,7 +61,7 @@ def main(root):
     manifests={a:read(a+'/inputs.json') for a in arms}
     assert manifests['A1']==manifests['B']==manifests['A2']
     assert sum(len(r['input_ids']) for r in manifests['A1']['requests'])==524286
-    sources={};flags={};legs=[];warmups=[];quality={};waves={};timed={};counts=[]
+    sources={};flags={};legs=[];warmups=[];quality={};waves={};timed={};counts=[];driver_hashes=set()
     for arm in arms:
         prefix=f'{arm}/P16-mhc20-{arm}'
         assert read(prefix+'.stop.json')['remaining']==[]
@@ -63,9 +73,8 @@ def main(root):
         assert info['model_path']=='/home/pc/models/modelscope'
         assert 'paris' in read(arm+'/France.json')['text'].lower()
         plan=read(arm+'/plan.json');sources[arm]=plan['sources'];flags[arm]=plan['flags']
-        assert flags[arm]['SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS']==str(int(arm=='B'))
-        assert flags[arm]['SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS']=='8'
-        assert flags[arm]['SGLANG_DSV4_C4_PREFILL_QUERY_WIDE']=='1'
+        driver_hashes.add(plan.get('driver_sha256'))
+        validate_arm_flags(plan,arm,comb_refine)
         raw=(root/(prefix+'.service.log')).read_bytes();text=raw.decode(errors='replace')
         assert 'Scheduler hit an exception' not in text
         assert 'max_total_num_tokens=1048576' in text
@@ -75,7 +84,8 @@ def main(root):
                        'query_group=16' in s and 'runtime_m=1' in s for s in ranklines)
             assert any('prefill splitk selected:' in s and 'path=fused_tail' in s and
                        'batch=1' in s and 'weight_dtype=torch.float16' in s for s in ranklines)
-            assert any('MHC Sinkhorn policy selected: legacy=8 config=20' in s for s in ranklines)==(arm=='B')
+            assert any('MHC Sinkhorn policy selected: legacy=8 config=20' in s for s in ranklines)==(comb_refine or arm=='B')
+            assert any('prefill comb-refine20 selected:' in s for s in ranklines)==(comb_refine and arm=='B')
         for entry in read(arm+'/progress.json'):
             name=entry['leg'];data=read(arm+'/'+name+'.json')
             warm=name=='warmup';rounds=data['rounds'];assert len(rounds)==(1 if warm else 3)
@@ -110,7 +120,10 @@ def main(root):
             first_token_repeat_exact=16-sum(x['common_prefix_tokens']==0 for x in changed),
             divergences=changed)
     assert sources['A1']==sources['B']==sources['A2']
-    other_flags={a:{k:v for k,v in flags[a].items() if k!='SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS'} for a in arms}
+    assert len(driver_hashes)==1
+    if comb_refine:assert None not in driver_hashes
+    changed_flag='SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20' if comb_refine else 'SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS'
+    other_flags={a:{k:v for k,v in flags[a].items() if k!=changed_flag} for a in arms}
     assert other_flags['A1']==other_flags['B']==other_flags['A2']
     assert [x['name'] for x in legs]==['A1','B1','B2','A2']
     assert all(c==counts[0] for c in counts),'Page-rounded admission counts changed; investigate before comparing'
@@ -125,6 +138,7 @@ def main(root):
                     first_token_exact=16-sum(x['common_prefix_tokens']==0 for x in changed),
                     divergences=changed)
     result=dict(legs=legs,warmups=warmups,quality=quality,sources=sources,flags=flags,
+        comb_refine_trial=comb_refine,
         control_mean_leg_median=rates['A'],candidate_mean_leg_median=rates['B'],
         throughput_change_percent=100*(rates['B']/rates['A']-1),
         mean_leg_median_request_ttft_s=ttft,request_ttft_change_percent=100*(ttft['B']/ttft['A']-1),
@@ -132,7 +146,9 @@ def main(root):
         all_quality_wave_comparisons=comparisons,timed_first_token_ids=timed,
         identical_scheduler_admission_counts=True,actual_forward_M_equality_proven=False,
         bounded_coherence_review='See quality-review.json and manual-review.md; not inferred by this analyzer.',
-        scope='Original V4 TP8 C16x32K, zero-prefix input/wave-time; native AR and1M KV. Only opt-in prefill Sinkhorn config20 differs. Not a determinism/accuracy certificate.')
+        scope='Original V4 TP8 C16x32K, zero-prefix input/wave-time; native AR and1M KV. '+
+              ('All arms config20; only exact8+12 comb implementation differs. ' if comb_refine else 'Only opt-in prefill Sinkhorn config20 differs. ')+
+              'Not a determinism/accuracy certificate.')
     (root/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result,indent=2))
 
@@ -140,4 +156,6 @@ def main(root):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root',type=Path,default=Path(__file__).resolve().parent)
-    main(p.parse_args().root)
+    p.add_argument('--comb-refine',action='store_true')
+    args=p.parse_args()
+    main(args.root,args.comb_refine)

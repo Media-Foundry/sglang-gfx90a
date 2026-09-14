@@ -7,8 +7,9 @@ from pathlib import Path
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--confirm-bounded-review',action='store_true',
                help='Only after reading all candidate texts and unique control alternatives.')
+p.add_argument('--root',type=Path,default=Path(__file__).resolve().parent)
 args=p.parse_args()
-root=Path(__file__).resolve().parent
+root=args.root
 summary=json.loads((root/'summary.json').read_text())
 waves={};hashes={}
 for arm in ('A1','B','A2'):

@@ -24,3 +24,20 @@ set -o pipefail
 Default-off until full service ABBA and input/output review. Component
 bit-exactness does not imply globally repeatable model output when other
 batch-sensitive/atomic paths remain.
+
+Read-only status during the run:
+
+```bash
+/home/pc/anaconda3/envs/DS/bin/python \
+ .agents/experiments/dsv4_prefill_mhc_config_iters_20260915/status.py \
+ --root .agents/experiments/dsv4_prefill_mhc_refine20_service_20260915
+```
+
+After all arms finish and stop, run the shared `analyze.py` with this same
+`--root` and **`--comb-refine`**. The flag is required: analyzing this as the
+older8-vs20 policy experiment must fail. The shared `review_quality.py` and
+`package_evidence.py` also accept `--root`. Read all candidate outputs and
+unique controls before passing `--confirm-bounded-review`; prepare a local
+manual-review.md first. Packaging retains the shared driver sources and the
+refinement-specific component evidence. No reviewer should infer a pass from
+missing response IDs, empty outputs, or the absence of an error log alone.

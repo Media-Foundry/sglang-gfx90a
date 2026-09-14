@@ -2,8 +2,11 @@
 import json
 from pathlib import Path
 import psutil
+import argparse
 
-root=Path(__file__).resolve().parent
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--root',type=Path,default=Path(__file__).resolve().parent)
+root=p.parse_args().root
 for arm in ('A1','B','A2'):
     out=root/arm
     path=out/f'P16-mhc20-{arm}.state.json'
@@ -23,6 +26,7 @@ for arm in ('A1','B','A2'):
         env=proc.environ()
         record.update(children=len(proc.children(recursive=True)),
                       config_iters_env=env.get('SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS'),
+                      comb_refine_env=env.get('SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20'),
                       wide_env=env.get('SGLANG_DSV4_C4_PREFILL_QUERY_WIDE'))
     stop=out/f'P16-mhc20-{arm}.stop.json'
     if stop.exists():record['remaining']=json.loads(stop.read_text())['remaining']
