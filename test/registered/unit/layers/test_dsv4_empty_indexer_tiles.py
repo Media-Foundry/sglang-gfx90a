@@ -185,12 +185,17 @@ class TestEmptyIndexerTiles(unittest.TestCase):
                 self.assertEqual(result.stdout, expected)
 
     def test_prefill_launcher_requires_both_profiles_and_preserves_override(self):
+        self._check_prefill_launcher_flag('SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP')
+
+    def test_query_reuse_launcher_requires_both_profiles_and_preserves_override(self):
+        self._check_prefill_launcher_flag('SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4')
+
+    def _check_prefill_launcher_flag(self, flag):
         root = Path(__file__).resolve().parents[4]
         source = (root/'scripts/rocm_dsv4_flash.sh').read_text()
         start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
         end = source.index('\nfi\n', start)+4
         block = source[start:end]
-        flag = 'SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP'
         for tp_profile,prefill,tp,ep,a2a,override,expected in (
             ('1','1','8','1','none',None,'1'),
             ('1','1','8','1','none','0','0'),

@@ -19,6 +19,10 @@ for name in ('bq2.log','bq2-v2.json','bq2-v2.log','bq4.json','bq4.log',
              'bq4-full.json','bq4-full.log','runtime.json','runtime.log',
              'runtime-strided.json','runtime-strided.log'):
     files.append((root.parent/'dsv4_c16_indexer_qreuse_20260915'/name,'component/'+name))
+failed=root.parent/'dsv4_c16_indexer_qreuse_20260915'
+for name in ('B-run.log','sweep.log','B/P16-qreuse4-B.service.log',
+             'B/P16-qreuse4-B.stop.json','B/plan.json','B/progress.json'):
+    files.append((failed/name,'rejected-harness-attempt/'+name))
 assert len({name for _,name in files})==len(files)
 assert all(p.stat().st_size<16*1024*1024 for p,_ in files)
 archive=root/'evidence.tar.gz';assert not archive.exists()
