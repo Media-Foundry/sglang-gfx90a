@@ -1,5 +1,6 @@
 """CPU tests for the opt-in scope and sampled debug input contract."""
 import os
+import ast
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,9 +13,39 @@ from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import eligible, enabled
 from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import (
     sampled_stage_value, should_dump_stage, stage_dump_scope,
 )
+from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
 
 
 class Contract(unittest.TestCase):
+    def test_stable_qkv_wiring_is_normal_prepare_only(self):
+        source=Path(__file__).resolve().parents[3]/'python/sglang/srt/models/deepseek_v4.py'
+        tree=ast.parse(source.read_text())
+        methods=[n.name for n in ast.walk(tree) if isinstance(n,ast.FunctionDef)
+                 and any(isinstance(c,ast.Constant) and c.value=='SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE'
+                         for c in ast.walk(n))]
+        self.assertEqual(methods,['_forward_prepare'])
+        with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE':'0'}):
+            self.assertFalse(enabled_for(None,None,None,None,
+                             flag='SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE'))
+
+    def test_prepare_dump_contract(self):
+        with patch.dict(os.environ, {"SGLANG_DSV4_DEBUG_PREPARE_DUMP": "0"}):
+            self.assertIsNone(make_prepare_dump(None,None,None,None))
+        batch=SimpleNamespace(spec_algorithm=None,forward_mode=SimpleNamespace(
+            is_extend_without_speculative=lambda:True))
+        positions=torch.tensor([0,1,2,0,1,2]);x=torch.arange(24).view(6,4)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {
+                "SGLANG_DSV4_DEBUG_PREPARE_DUMP":"1", "SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR":directory,
+                "SGLANG_DSV4_DEBUG_STAGE_LAYER":"1", "SGLANG_DSV4_DEBUG_STAGE_RANK":"-1",
+                "SGLANG_DSV4_DEBUG_STAGE_SAMPLE_POSITIONS":"0,2"}):
+            self.assertIsNone(make_prepare_dump(0,0,batch,positions))
+            dump=make_prepare_dump(1,0,batch,positions)
+            dump("prepare_q",x);dump("prepare_full_kv",x,full=True)
+            self.assertTrue(torch.equal(torch.load(Path(directory)/'layer_1_rank_0_prepare_q.pt',weights_only=True),x[[0,2,3,5]]))
+            self.assertTrue(torch.equal(torch.load(Path(directory)/'layer_1_rank_0_prepare_full_kv.pt',weights_only=True),x))
+            make_prepare_dump(1,1,batch,positions)("not_saved",x,full=True,rank0_only=True)
+            self.assertFalse((Path(directory)/'layer_1_rank_1_not_saved.pt').exists())
+
     def test_disabled_does_not_touch_gpu_or_batch(self):
         with patch.dict(os.environ, {"SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32": "0"}):
             self.assertFalse(enabled_for(None, None, None, None))

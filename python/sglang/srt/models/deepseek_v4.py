@@ -1078,8 +1078,11 @@ class MQALayer(MqaAttentionBase):
         q: torch.Tensor,
         positions: torch.Tensor,
         q_out: Optional[torch.Tensor] = None,
+        debug_dump=None,
     ) -> torch.Tensor:
         q, _ = self.wq_b(q)
+        if debug_dump is not None:
+            debug_dump("prepare_q_before_norm_rope", q)
         q = q.view(-1, self.n_local_heads, self.head_dim)
         if q_out is None:
             q_out = torch.empty_like(q)
@@ -1555,6 +1558,12 @@ class MQALayer(MqaAttentionBase):
 
                 gfx90a_realtime_marker(realtime_trace, slot)
 
+        prepare_dump = None
+        if os.getenv("SGLANG_DSV4_DEBUG_PREPARE_DUMP", "0") == "1":
+            from sglang.kernels.ops.debug.dsv4_prepare_dump import make_prepare_dump
+
+            prepare_dump = make_prepare_dump(
+                self.layer_id, get_tp_group().rank_in_group, forward_batch, positions)
         mark(8)
         x_linear = x_quant if x_quant is not None else x
         # kv_score depends only on x, so its CP all-gather can start before the
@@ -1608,11 +1617,33 @@ class MQALayer(MqaAttentionBase):
             index_weights_by_layer[self.layer_id] = index_weights
             q_lora = qkv_a[..., : self.q_lora_rank]
         elif self.fuse_wqa_wkv:
-            qkv_a, _ = self.wqkv_a(x_linear)
+            stable_qkv = False
+            if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE", "0") == "1":
+                from sglang.kernels.ops.debug.dsv4_prefill_attention_ar import enabled_for
+
+                stable_qkv = enabled_for(
+                    forward_batch, x_linear.device, x_linear.shape[0], self.attn_tp_size,
+                    flag="SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE",
+                )
+            if stable_qkv:
+                from sglang.kernels.ops.debug.dsv4_prefill_qkv import project
+
+                if self.wqkv_a.bias is not None:
+                    raise ValueError("Stable QKV diagnostic requires a bias-free projection")
+                qkv_a = project(x_linear, self.wqkv_a.weight)
+            else:
+                qkv_a, _ = self.wqkv_a(x_linear)
             q_lora = qkv_a[..., : self.q_lora_rank]
         else:
             q_lora, _ = self.wq_a(x_linear)
         mark(10)
+
+        if prepare_dump is not None:
+            prepare_dump("prepare_full_input", x_linear, full=True, rank0_only=True)
+            if qkv_a is not None:
+                prepare_dump("prepare_qkv_a", qkv_a)
+                prepare_dump("prepare_full_qkv_a", qkv_a, full=True, rank0_only=True)
+            prepare_dump("prepare_q_lora_raw", q_lora)
 
         use_cp = self.dsa_enable_prefill_cp and dsa_use_prefill_cp(forward_batch)
         kv: Optional[torch.Tensor]
@@ -1778,7 +1809,9 @@ class MQALayer(MqaAttentionBase):
                 q_out.copy_(q)
         else:
             q_lora = self.q_norm(q_lora)
-            q = self._compute_q_b(q_lora, positions, q_out)
+            if prepare_dump is not None:
+                prepare_dump("prepare_q_lora_norm", q_lora)
+            q = self._compute_q_b(q_lora, positions, q_out, debug_dump=prepare_dump)
             if unified:
                 # unified_kv prefill: keep bf16 kv; the backend writes
                 # the ring AFTER attention (2-source path).
@@ -1857,6 +1890,9 @@ class MQALayer(MqaAttentionBase):
                 )
                 kv = None
 
+        if prepare_dump is not None and kv is not None:
+            prepare_dump("prepare_kv", kv)
+            prepare_dump("prepare_full_kv", kv, full=True)
         del qkv_a
 
         if self.indexer is not None:

@@ -31,7 +31,9 @@ def load_trace(name,lookup,rank=0,layer=0):
     keys=[row_to_key[row] for row in rows]
     assert len(set(keys))==len(keys)
     stages={}
-    for stage in ('attn_residual','attn_pre_norm','attn_norm','q','attn_core',
+    for stage in ('attn_residual','attn_pre_norm','attn_norm',
+                  'prepare_qkv_a','prepare_q_lora_raw','prepare_q_lora_norm',
+                  'prepare_q_before_norm_rope','prepare_kv','q','attn_core',
                   'attn_inverse_rope','wo_a','wo_b_partial','wo_b','attn_out',
                   'ffn_mhc_residual','ffn_mhc_post','ffn_mhc_comb',
                   'ffn_input','ffn_router_logits','ffn_topk_ids','ffn_topk_weights',
