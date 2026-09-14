@@ -17,7 +17,7 @@ manifests={arm:read(arm+'/inputs.json') for arm in arms}
 assert manifests['A1']==manifests['B']==manifests['A2']
 legs=[];quality={};sources={};shapes=[];outputs={}
 for arm in arms:
-    prefix=arm+'/P16-qreuse4-'+arm
+    prefix=arm+'/P16-qreuse4v2-'+arm
     assert read(prefix+'.stop.json')['remaining']==[]
     info=read(prefix+'.server-info.json')
     assert info['tp_size']==8 and info['ep_size']==1 and info['speculative_algorithm'] is None
@@ -63,7 +63,7 @@ for arm in arms:
     for rep in range(2):
         responses=read(arm+'/quality-'+str(rep)+'.json');assert len(responses)==16
         by_id={r['meta_info']['id']:r for r in responses}
-        rids=[f'qreuse4-{arm}-{rep}-{i}' for i in range(16)];assert set(by_id)==set(rids)
+        rids=[f'qreuse4v2-{arm}-{rep}-{i}' for i in range(16)];assert set(by_id)==set(rids)
         ids=[]
         for req,rid in zip(manifests[arm]['requests'],rids,strict=True):
             response=by_id[rid];assert response['prompt_token_ids']==req['input_ids']

@@ -1428,7 +1428,7 @@ class C4IndexerBackendMixin:
                     )
                     global _c4_query_reuse_debug_logged
                     if logits is not None and not _c4_query_reuse_debug_logged:
-                        print(f"[DSV4 indexer] prefill query-reuse4 selected: rows={q.shape[0]} "
+                        print(f"[TP{get_parallel().tp_rank}] [DSV4 indexer] prefill query-reuse4 selected: rows={q.shape[0]} "
                               f"C4_capacity={indexer_metadata.max_c4_seq_len}", flush=True)
                         _c4_query_reuse_debug_logged = True
                 if logits is None:

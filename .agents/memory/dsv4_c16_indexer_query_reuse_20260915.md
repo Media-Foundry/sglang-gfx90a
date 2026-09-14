@@ -101,3 +101,30 @@ runtime hashes, equal timed shape counts and all quality-wave comparisons.
 Whole-model drift is still open. The preceding MHC experiment had control
 case8 and candidate case4 wording changes, not an input-ID mismatch. This
 candidate's local exactness must not be misreported as global determinism.
+
+## First service attempt: rejected harness error, not a GPU failure
+
+A1 completed at 6482.758 input tok/s, reproduced the preceding checkpoint,
+and repeated all16 quality outputs exactly. B completed only its excluded
+warmup (5426.653 input tok/s); it printed eight query-reuse hits without rank
+prefixes. The harness incorrectly demanded `TP0]` .. `TP7]` in those print
+lines and raised AssertionError immediately after warmup. No formal B wave ran.
+The owned shutdown completed with no remaining children; AMD-SMI reported all
+eight GCDs empty. All first-attempt files remain in the original directory.
+
+Fixed the actual one-time hit message to include `get_parallel().tp_rank`.
+A CPU regression evaluates that source print expression for all eight ranks
+and checks the same strings used by the service verifier. Full CPU suite now
+passes21 tests and23 subtests (one unrelated asyncio_mode warning).
+
+Since indexer.py's source hash changes (logging only), do NOT splice the old A1
+into a supposedly immutable-source ABBA. A completely new A1/B1/B2/A2 attempt
+is running under `.agents/experiments/dsv4_c16_indexer_qreuse_v2_20260915/`.
+The kernel/arithmetic source is unchanged. Production remains default-off.
+
+Read-only cross-cycle input audit (`compare_prior_quality.py`) checked the14
+available completed quality waves before the second attempt. Explicit input
+IDs agree throughout. Two output variants occur for case8 across controls and
+candidates. Case4's second variant occurs only in premix/B/1 in that snapshot;
+the audit does not establish its cause. These are cross-cycle observations,
+not a controlled numerical attribution or a new service performance result.

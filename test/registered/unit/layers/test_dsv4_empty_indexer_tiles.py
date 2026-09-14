@@ -1,8 +1,10 @@
 """CPU-only selector and wrapper contracts; GPU oracle checks score bits."""
 import ast
+from contextlib import redirect_stdout
 from enum import Enum
 from pathlib import Path
 import os
+import io
 import subprocess
 from types import SimpleNamespace as NS
 import unittest
@@ -10,6 +12,24 @@ from unittest.mock import patch
 
 
 class TestEmptyIndexerTiles(unittest.TestCase):
+    def test_query_reuse_hit_log_identifies_actual_rank(self):
+        root=Path(__file__).resolve().parents[4]
+        tree=ast.parse((root/'python/sglang/srt/layers/attention/dsv4/indexer.py').read_text())
+        calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call)
+               and isinstance(n.func,ast.Name) and n.func.id=='print'
+               and any(isinstance(v,ast.Constant) and isinstance(v.value,str)
+                       and 'prefill query-reuse4 selected' in v.value for v in ast.walk(n))]
+        self.assertEqual(len(calls),1)
+        expression=compile(ast.Expression(calls[0]),'<actual query hit log>','eval')
+        for rank in range(8):
+            out=io.StringIO()
+            with redirect_stdout(out):
+                eval(expression,dict(get_parallel=lambda:NS(tp_rank=rank),
+                                     q=NS(shape=(32767,1,64,128)),
+                                     indexer_metadata=NS(max_c4_seq_len=2048)))
+            self.assertIn(f'TP{rank}]',out.getvalue())
+            self.assertIn('prefill query-reuse4 selected: rows=32767 C4_capacity=2048',out.getvalue())
+
     def setUp(self):
         root = Path(__file__).resolve().parents[4]
         tree = ast.parse((root/'python/sglang/srt/layers/attention/dsv4/indexer.py').read_text())
