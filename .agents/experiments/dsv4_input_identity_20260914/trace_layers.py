@@ -3,9 +3,11 @@ import argparse
 import json
 from pathlib import Path
 import analyze
+import torch
 
 
 def main():
+    torch.set_num_threads(4)
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run-name',required=True)
     p.add_argument('--layers',type=int,default=43)
@@ -23,9 +25,15 @@ def main():
             ma,a=analyze.load_trace('A1',lookup,rank,layer)
             mb,b=analyze.load_trace('B1',lookup,rank,layer)
             mc,c=analyze.load_trace('A2',lookup,rank,layer)
+            required={'attn_residual','q','attn_core','wo_a','wo_b_partial','wo_b',
+                      'attn_out','ffn_input','ffn_topk_ids','ffn_topk_weights',
+                      'ffn_routed','ffn_shared','ffn_partial','ffn_out'}
+            for label,stages in (('A1',a),('B1',b),('A2',c)):
+                assert required<=stages.keys(),(layer,rank,label,required-stages.keys())
             metadata.append(dict(rank=rank,A1=ma,B1=mb,A2=mc))
             comparisons[rank]=analyze.compare(a,b)
             controls[rank]=analyze.compare(a,c)
+            assert all(v['rows']>0 for v in (*comparisons[rank].values(),*controls[rank].values()))
         summary={}
         for stage in comparisons[0]:
             rows=[comparisons[r][stage] for r in range(8)]
@@ -38,9 +46,16 @@ def main():
     boundary_stages=('attn_residual','attn_out','ffn_mhc_residual','ffn_mhc_post','ffn_mhc_comb','ffn_input','ffn_out')
     first=next((dict(layer=x['layer'],stage=s,**x['summary'][s]) for x in layers
                 for s in boundary_stages if s in x['summary'] and x['summary'][s]['changed_ranks']),None)
-    result=dict(input_identity_exact=True,sampled_only=True,first_boundary_difference=first,layers=layers)
+    first_control=next((dict(layer=x['layer'],rank=rank,stage=s,
+                            exact_rows=stages[s]['exact_rows'],rows=stages[s]['rows'],
+                            max_abs=stages[s]['max_abs']) for x in layers
+                        for s in boundary_stages for rank,stages in x['control'].items()
+                        if s in stages and stages[s]['exact_rows']!=stages[s]['rows']),None)
+    result=dict(input_identity_exact=True,sampled_only=True,first_boundary_difference=first,
+                first_control_boundary_difference=first_control,layers=layers)
     (root/'all-layer-summary.json').write_text(json.dumps(result,indent=2)+'\n')
     print('FIRST BOUNDARY',first,flush=True)
+    print('FIRST CONTROL BOUNDARY',first_control,flush=True)
 
 
 if __name__=='__main__':main()
