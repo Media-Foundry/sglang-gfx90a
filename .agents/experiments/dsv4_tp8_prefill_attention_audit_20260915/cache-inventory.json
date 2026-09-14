@@ -1,0 +1,48 @@
+{
+  "scope": "Read-only cache/source inventory, NOT evidence of a module loaded by a service.",
+  "artifacts": [
+    {
+      "cache": "/home/pc/.cache/sglang/triton/HD3R2FCVCOAYIPKEFLAZCVX7ZJVB3T6LAHZSN7NBSNZUJEENIDIQ",
+      "heads": 8,
+      "dim": 512,
+      "warps": 1,
+      "launch_shared_bytes": 16384,
+      "next_free_vgpr": 354,
+      "accum_offset": 256,
+      "agpr_count": 98,
+      "static_lds_bytes": 0,
+      "scratch_bytes": 0,
+      "artifact_sha256": {
+        ".json": "c6df6401f50f71cdc5ffced5cf955e66c42919e05e82dec29cd086ceff049c9a",
+        ".ttir": "104474ddb94e8cefead8c6c6d257a041045cfd307892c75a24f0b18193fbb80b",
+        ".amdgcn": "0639297ca12232e6674ddc198a051a17ee163111847c5c366e03c254e007761d",
+        ".hsaco": "c3e289f91768396655dd50357437d8954c46ceef4aa3c0b3a8dcbfa0b6e6eb66"
+      }
+    },
+    {
+      "cache": "/home/pc/.cache/sglang/triton/O6BIY4YIM3E2YLCGFKHBH6KJE7SNEDYBRRDWNE5XOCUMXHMS7FHA",
+      "heads": 8,
+      "dim": 512,
+      "warps": 1,
+      "launch_shared_bytes": 16384,
+      "next_free_vgpr": 354,
+      "accum_offset": 256,
+      "agpr_count": 98,
+      "static_lds_bytes": 0,
+      "scratch_bytes": 0,
+      "artifact_sha256": {
+        ".json": "2df23deb1b793872f7d93562efc20ee04e7fd4e2af1ff7805039ed07551ef561",
+        ".ttir": "57e1b2c6b27f2f01ebfe37d1d4fc761803565a72e2a62d00503d0938bdec13ac",
+        ".amdgcn": "5de4ae5c2be07d301a7a73da0a1baaf707f5c6ff918b669a192ba15d4b4d6c45",
+        ".hsaco": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+      }
+    }
+  ],
+  "resource_caveat": "next_free_vgpr includes the accumulator mapping; do not call it354 ordinary VGPRs or infer occupancy from it alone.",
+  "source_sha256": {
+    "python/sglang/srt/models/deepseek_v4.py": "e5fc64016aad355f983db931a3249b2615153cc03220524ae55d8e9ebdcbf5a8",
+    "python/sglang/srt/layers/attention/deepseek_v4_backend_hip_radix.py": "5d0d21636f34afd4ef6481d4c0c48aa4df8029e57ff25249b9a9b7732f562807",
+    "python/sglang/kernels/ops/attention/dsv4/unified_kv_kernels/runtime.py": "752d05450328d9dbe1d9495fa6608e5974d5f43bbb27ee8199664e0f7800fa25",
+    "python/sglang/kernels/ops/attention/dsv4/unified_kv_kernels/paged_prefill.py": "2d28efd7efe40749d3b55249e49cf43ac98c74acdce78a8e2ee4c4cf542fe441"
+  }
+}
