@@ -1,0 +1,6 @@
+{
+  "files": 93,
+  "bytes": 7694901,
+  "sha256": "50263fc855c78735f3799c6c5b79673d643f013045ce427968b5315ff0fd0ce0",
+  "scope": "Completed C16x32K zero-prefix service ABBA, 1M KV. Inspect summary for drift and performance; not a bitwise-determinism claim."
+}

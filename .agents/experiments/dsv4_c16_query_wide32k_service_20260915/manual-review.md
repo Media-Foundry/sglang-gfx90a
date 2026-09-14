@@ -1,8 +1,8 @@
-# Bounded output review — in progress
+# Bounded output review — completed
 
-This is a manual inspection record, not the final ABBA acceptance. A2 was
-still loading when the candidate review below was recorded. Final analysis
-and the complete control comparison remain required.
+This is a manual inspection record, not a factual accuracy or determinism
+certificate. The candidate review below was recorded while A2 was loading;
+the completed-control review is appended at the end.
 
 ## Candidate waves inspected
 
@@ -61,3 +61,28 @@ to sum. Steady B1/B2 medians are 5545.8868/5545.7144 input tokens/s; the
 warmup rate was 4971.0156. Wide-width prewarming is still an outstanding
 production requirement. Final formal-window compile checks remain in
 `analyze.py`.
+
+## Completed-control review
+
+Both A2 quality waves completed and all services stopped. All 96 input echoes
+match their corresponding explicit manifest IDs; France returned Paris in
+each process. Full 128-token within-process repeats are A1 12/16, B 10/16,
+A2 9/16. First-quality-wave cross-process matches are A1/A2 9/16, A1/B
+11/16, A2/B 12/16. None of these establishes global determinism.
+
+After comparing A2.0 to the four earlier waves, read its new case 6 and 11
+texts. After comparing A2.1 to the five earlier waves, read new case 0, 12,
+and 13 texts. They remain coherent, topic-related, non-collapsing excerpts;
+the factual-accuracy limitation above still applies.
+
+Across all four control waves, 29/32 candidate excerpts have an exact
+completion-token match. The unmatched candidate excerpts are B.0 case13,
+B.1 case3 and B.1 case12, all included in the manual inspection above.
+The bounded coherence/topic/repetition check is accepted; no claim is made
+that every proposed bug exists, that complete answers are validated, or that
+cross-configuration logits/outputs are bitwise equivalent.
+
+Final timing: control mean leg median 4608.180204491811, candidate
+5545.8006044253925 input tokens/s, +20.34686922659055%. All four formal
+legs have no serving-time compilation warning. Default-wide promotion still
+requires the separate mixed-prefix and cold-prewarm checks.
