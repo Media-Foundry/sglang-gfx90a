@@ -28,15 +28,15 @@ def make_plan(manifest, page_size=256):
     return plan
 
 
-def verify_response(response, ids, expected_id, max_cached):
+def verify_response(response, ids, expected_id, max_cached, completion_tokens=1):
     meta=response['meta_info']
     assert meta['id']==expected_id
     assert response['prompt_token_ids']==ids
     assert meta['prompt_tokens']==len(ids)
     cached=meta['cached_tokens']
     assert type(cached) is int and 0<=cached<=max_cached
-    assert meta['completion_tokens']==1
-    assert len(response['output_ids'])==1
+    assert meta['completion_tokens']==completion_tokens
+    assert len(response['output_ids'])==completion_tokens
     return cached
 
 
@@ -53,6 +53,8 @@ def main():
     p.add_argument('--inputs',type=Path,required=True)
     p.add_argument('--base-url',required=True)
     p.add_argument('--rounds',type=int,default=3)
+    p.add_argument('--tokens',type=int,default=1,choices=(1,128),
+                   help='128 is a separate bounded-quality run, not a prefill performance leg.')
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--plan-only',action='store_true')
     p.add_argument('--cache-reference',type=Path,
@@ -62,7 +64,7 @@ def main():
     manifest=json.loads(args.inputs.read_text())
     plan=make_plan(manifest)
     result=dict(status='planned',input_sha256=hashlib.sha256(args.inputs.read_bytes()).hexdigest(),
-                plan=plan,rounds=[],scope=__doc__)
+                plan=plan,rounds=[],completion_tokens=args.tokens,scope=__doc__)
     expected_cache=None
     if args.cache_reference:
         reference=json.loads(args.cache_reference.read_text())
@@ -102,7 +104,7 @@ def main():
             i=item['case'];rid=f'full-{nonce}-{i}'
             payload=dict(input_ids=item['input_ids'],rid=rid,cache_salt=salts[i],
                 return_prompt_token_ids=True,stream=True,
-                sampling_params=dict(temperature=0,max_new_tokens=1,ignore_eos=True,stream_interval=1))
+                sampling_params=dict(temperature=0,max_new_tokens=args.tokens,ignore_eos=True,stream_interval=1))
             barrier.wait()
             response,begin,first,end=post_stream(args.base_url.rstrip('/')+'/generate',payload,1800)
             return dict(case=i,rid=rid,begin=begin,first=first,end=end,response=response)
@@ -115,7 +117,7 @@ def main():
         for item,response in zip(plan,responses,strict=True):
             # The priming call computes only its input, not its generated token.
             response['cached_tokens']=verify_response(response['response'],item['input_ids'],
-                                                      response['rid'],item['prefix_tokens'])
+                                                      response['rid'],item['prefix_tokens'],args.tokens)
         cached=[r['cached_tokens'] for r in responses]
         # Neither zero hits nor a changing cache workload may masquerade as
         # a kernel speed difference. Raw responses were saved before this gate.

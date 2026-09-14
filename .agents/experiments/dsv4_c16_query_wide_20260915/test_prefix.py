@@ -28,6 +28,12 @@ class PrefixContract(unittest.TestCase):
                       meta_info=dict(id='case',prompt_tokens=1,completion_tokens=1,cached_tokens=0))
         with self.assertRaises(AssertionError):verify_response(response,[1],'case',0)
 
+    def test_quality_length_is_explicit(self):
+        response=dict(prompt_token_ids=[1],output_ids=[4]*128,
+                      meta_info=dict(id='case',prompt_tokens=1,completion_tokens=128,cached_tokens=0))
+        self.assertEqual(verify_response(response,[1],'case',0,128),0)
+        with self.assertRaises(AssertionError):verify_response(response,[1],'case',0)
+
     def test_changing_prefix_hits_are_not_a_speedup(self):
         planned=[0,4096,8192,12288]*4
         validate_cache_pattern(planned,planned,planned)
