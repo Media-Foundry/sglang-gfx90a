@@ -36,6 +36,25 @@ _prefill_mix_reuse_logged = False
 if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
     from sglang.srt.layers.dsv4_prefill_experiments import mix_reuse_active as _prefill_mix_reuse_active
 
+_prefill_splitk_paths_logged = set()
+
+
+def _log_prefill_splitk_dispatch(path, num_tokens, global_batch_size, weight_dtype):
+    """Expose legacy single-request priority without changing its arithmetic."""
+    if (
+        path in _prefill_splitk_paths_logged
+        or num_tokens < 8192
+        or _prefill_mix_reuse_active is None
+        or not _prefill_mix_reuse_active()
+    ):
+        return
+    logger.info(
+        "DSV4 native TP8 prefill splitk selected: path=%s rows=%d batch=%s "
+        "weight_dtype=%s; legacy single-request priority bypasses mix-reuse",
+        path, num_tokens, global_batch_size, weight_dtype,
+    )
+    _prefill_splitk_paths_logged.add(path)
+
 # This module is imported during model-registry discovery. Do not import the real
 # TileLang package here: it loads native CUDA stubs. The proxy below lets
 # module-level @tilelang.jit declarations parse, then imports and applies real
@@ -644,6 +663,7 @@ def gfx90a_mhc_pre_mix_splitk_from_partials_triton(
         rms_eps=rms_eps,
         num_warps=1,
     )
+    _log_prefill_splitk_dispatch("premix", num_tokens, global_batch_size, fn.dtype)
     return mixes
 
 
@@ -748,6 +768,7 @@ def gfx90a_mhc_splitk_fused_tail_triton(
         SINKHORN_ITERS=envs.SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS.get(),
         num_warps=8,
     )
+    _log_prefill_splitk_dispatch("fused_tail", num_tokens, global_batch_size, mix_weight.dtype)
     return post, comb, out
 
 

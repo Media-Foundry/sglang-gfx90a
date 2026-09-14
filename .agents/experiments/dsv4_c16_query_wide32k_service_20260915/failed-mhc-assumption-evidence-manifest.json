@@ -1,0 +1,6 @@
+{
+  "files": 19,
+  "bytes": 1228298,
+  "sha256": "9dae50c0874c02bea1b36cfb051c7bee3be19b0719b6f28f1c72214adc40f9a8",
+  "scope": "Failed after completed warmup due to agent harness requiring mix8 despite legacy batch1 split-K priority. No timed ABBA legs. Preserved by renaming; state absolute paths describe the original pre-rename location."
+}

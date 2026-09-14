@@ -26,7 +26,8 @@ Mean of control leg medians5657.480310448183 versus candidate6321.964021214793:
 (-10.4281676 percent). Wave medians A1/A2:46.3566741/46.3139288s;
 B1/B2:41.4604334/41.4698087s.
 
-All four timed legs have24 forwards of2 requests/M32768 (8 forwards/wave),
+All four timed legs have24 scheduler admissions reporting2 requests and32768
+page-rounded new tokens (8 admissions/wave),
 zero cached tokens and no serving-time Triton compile warnings. Source hashes
 for all measured modules are identical across services. All8 candidate ranks
 logged wide-query reuse at rows32768,C4capacity4096,group16,runtime-M1;
@@ -46,7 +47,7 @@ Within-arm complete-output repeat counts: A1=10/16, B=13/16, A2=13/16.
 Across independent controls A1/A2, pairwise matches are10..13/16. A/B matches
 are also10..13/16. These small samples do not establish equivalent distributions
 or identify the cause of every16K drift; they show a substantial control drift
-floor despite identical input IDs. Coarse M histograms are equal but do not
+floor despite identical input IDs. Page-budget histograms are equal but do not
 prove identical row placement, physical pages or atomic/arrival order.
 
 31 of32 candidate excerpts exactly match at least one of the four control
@@ -77,7 +78,7 @@ V4.1 and TP4 cannot enter the outer selector. Existing8K behavior is unchanged.
 
 Directory `.agents/experiments/dsv4_c16_query_wide_service_20260915/`:
 `run.py`, `sweep.py`, `analyze.py`, `review_quality.py`, `package_evidence.py`.
-Analysis checks all legs, hashes, actual shape counts,1M pool, hit logs,
+Analysis checks all legs, hashes, page-rounded admission counts,1M pool, hit logs,
 full input echoes and decoded outputs before writing `summary.json`.
 Review defaults to *not confirmed*; the confirmed artifact records all quality
 file SHA256s and candidate-to-control matches. Evidence archive89 files,
@@ -87,3 +88,18 @@ file SHA256s and candidate-to-control matches. Evidence archive89 files,
 Next: independent C16x32K ABBA using524286 fixed real input tokens, then actual
 mixed-prefix cache checks. Neither is measured in this16K result. The32K driver
 requires this completed summary and bounded output review before starting.
+
+## Accounting clarification discovered during32K follow-up
+
+`PrefillAdder._update_prefill_budget` rounds `extend_input_len` to page_size
+before accumulating `log_input_tokens`; `PrefillStats` and the log formatter
+pass that budget number through. Therefore `#new-token:32768` can describe
+32767 real input rows. Equal counters do not prove identical actual model M
+or row grouping. The originally archived analyzer field
+`identical_timed_forward_shape_counts` should be read only as equal rounded
+admission histograms; the historical archive is preserved, not rewritten.
+
+The throughput remains unchanged: client timing uses262141 actual input IDs,
+not the262144 page-rounded sum. `audit_scheduler_counts.py` executes the
+current rounding method in isolation and records source hashes and both real
+manifests. This narrows the shape-invariance claim, not the measured rate.

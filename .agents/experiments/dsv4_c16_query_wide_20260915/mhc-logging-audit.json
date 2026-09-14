@@ -1,0 +1,9 @@
+{
+  "baseline": "39bc0e1383",
+  "source": "python/sglang/kernels/ops/layernorm/mhc.py",
+  "logging_calls": 2,
+  "non_logging_ast_exact": true,
+  "before_sha256": "e7c1765404a00d86a9d6eb21dbffad0d591ff44aacb9add2a47f009a92ef2c84",
+  "after_sha256": "ead7fdb38a6156e53734e856ef047206b55f20333b5856685bb0381ce1090791",
+  "scope": "No changes to MHC arithmetic, tensor operations, kernel launch parameters, return values or dispatch choices. Added one-time active-prefill logs only; not a GPU numerical experiment."
+}

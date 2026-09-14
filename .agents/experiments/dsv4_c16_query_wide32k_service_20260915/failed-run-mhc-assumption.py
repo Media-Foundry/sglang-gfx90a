@@ -3,7 +3,6 @@ import argparse
 import hashlib
 import importlib.util
 import json
-import re
 from pathlib import Path
 import subprocess
 import sys
@@ -67,7 +66,6 @@ paths=('python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py',
 assert len(paths)==len(set(paths))
 sources={p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in paths}
 life.save('plan.json',dict(candidate=candidate,query_group_size=16,runtime_m=True,mix_group_size=8,wide=bool(candidate),budget=32768,original_weight=True,kv_tokens=1048576,
-    mhc_expectation='legacy single-request split-K; mix8 is configured but preempted',
     input_sha256=hashlib.sha256((out/'inputs.json').read_bytes()).hexdigest(),sources=sources))
 state=life.start('P16-wide32k-'+args.arm,0)
 try:
@@ -113,7 +111,6 @@ try:
         progress.append(record);life.save('progress.json',progress);print('RESULT',record,flush=True)
         if name=='warmup':
             logs=Path(state['log']).read_text()
-            mhc_hits=[]
             if not candidate:
                 assert 'prefill wide-query-reuse selected' not in logs
             for rank in range(8):
@@ -122,16 +119,8 @@ try:
                                and 'C4_capacity=8192' in line
                                and 'query_group=16' in line and 'runtime_m=1' in line
                                for line in logs.splitlines())
-                assert any(f'TP{rank}]' in line and 'prefill splitk selected:' in line
-                           and 'path=fused_tail' in line and 'batch=1' in line
-                           for line in logs.splitlines()), f'Missing actual legacy prefill path on TP{rank}'
-                line=next(line for line in logs.splitlines() if f'TP{rank}]' in line
-                          and 'prefill splitk selected:' in line and 'path=fused_tail' in line)
-                match=re.search(r'path=(\S+) rows=(\d+) batch=(\d+) weight_dtype=(\S+);',line)
-                assert match, line
-                mhc_hits.append(dict(rank=rank,path=match[1],rows=int(match[2]),
-                                     batch=int(match[3]),weight_dtype=match[4]))
-            life.save('mhc-observed.json',mhc_hits)
+                assert any(f'TP{rank}]' in line and 'prefill mix-reuse4 selected' in line
+                           and 'group=8' in line for line in logs.splitlines())
     tokenizer=AutoTokenizer.from_pretrained('/home/pc/models/modelscope',local_files_only=True)
     answers=[]
     for rep in range(2):

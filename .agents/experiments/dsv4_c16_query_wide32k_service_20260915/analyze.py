@@ -15,7 +15,7 @@ arms=('A1','B','A2')
 for arm in arms:assert (root/arm/'complete.json').exists(),f'{arm} incomplete'
 manifests={arm:read(arm+'/inputs.json') for arm in arms}
 assert manifests['A1']==manifests['B']==manifests['A2']
-legs=[];quality={};sources={};shapes=[];outputs={}
+legs=[];quality={};sources={};shapes=[];outputs={};mhc_paths={}
 
 for arm in arms:
     prefix=arm+'/P16-wide32k-'+arm
@@ -27,12 +27,15 @@ for arm in arms:
     assert info['model_path']=='/home/pc/models/modelscope'
     assert 'paris' in read(arm+'/France.json')['text'].lower()
     sources[arm]=read(arm+'/plan.json')['sources']
+    hits=read(arm+'/mhc-observed.json')
+    assert sorted(x['rank'] for x in hits)==list(range(8))
+    mhc_paths[arm]=sorted({(x['path'],x['batch'],x['weight_dtype']) for x in hits})
     raw=(root/(prefix+'.service.log')).read_bytes()
     assert b'Scheduler hit an exception' not in raw
     assert b'max_total_num_tokens=1048576' in raw
     assert raw.count(b'prefill empty tiles selected:')>=8
     assert raw.count(b'prefill post-fused4 selected:')>=8
-    assert raw.count(b'prefill mix-reuse4 selected:')>=8
+    assert raw.count(b'prefill splitk selected:')>=8
     group=16
     runtime_m=1
     assert read(arm+'/plan.json')['query_group_size']==group
@@ -46,8 +49,8 @@ for arm in arms:
                        and 'C4_capacity=8192' in line
                        and f'query_group={group}' in line and f'runtime_m={runtime_m}' in line
                        for line in raw.decode(errors='replace').splitlines())
-        assert any(f'TP{rank}]' in line and 'prefill mix-reuse4 selected' in line
-                   and 'group=8' in line
+        assert any(f'TP{rank}]' in line and 'prefill splitk selected:' in line
+                   and 'path=fused_tail' in line and 'batch=1' in line
                    for line in raw.decode(errors='replace').splitlines())
     assert b'DSV4 diagnostic stable' not in raw
     for progress in read(arm+'/progress.json'):
@@ -74,7 +77,7 @@ for arm in arms:
             serving_compile_events=compiles,all_rounds_compile_warning_free=not compiles,
             median_wave_s=statistics.median(r['prefill_wall_s'] for r in data['rounds']),
             median_request_ttft_s=statistics.median(t for r in data['rounds'] for t in r['request_ttft_s']),
-            forwards=[dict(requests=k[0],rows=k[1],count=v) for k,v in sorted(counts.items())]))
+            scheduler_admissions=[dict(requests=k[0],page_rounded_tokens=k[1],count=v) for k,v in sorted(counts.items())]))
     repeats=[]
     for rep in range(2):
         responses=read(arm+'/quality-'+str(rep)+'.json');assert len(responses)==16
@@ -91,8 +94,9 @@ for arm in arms:
     outputs[arm]=repeats
     quality[arm]=dict(input_echo_exact=32,repeat_exact=sum(a==b for a,b in zip(*repeats,strict=True)))
 assert sources['A1']==sources['B']==sources['A2']
+assert mhc_paths['A1']==mhc_paths['B']==mhc_paths['A2']
 assert [l['name'] for l in legs]==['A1','B1','B2','A2']
-assert all(x==shapes[0] for x in shapes),'Timed admission changed between arms'
+assert all(x==shapes[0] for x in shapes),'Timed page-rounded admission counters changed between arms'
 rates={arm:statistics.mean(l['median'] for l in legs if l['name'].startswith(arm)) for arm in ('A','B')}
 latencies={arm:statistics.mean(l['median_request_ttft_s'] for l in legs if l['name'].startswith(arm)) for arm in ('A','B')}
 comparisons={f'{a}-{b}':sum(x==y for x,y in zip(outputs[a][0],outputs[b][0],strict=True))
@@ -115,7 +119,7 @@ for a,b in [('A1','A2'),('A1','B'),('A2','B')]:
         for j in range(2):
             changed=differences(outputs[a][i],outputs[b][j])
             all_quality_comparisons[f'{a}.{i}-{b}.{j}']=dict(exact=16-len(changed),divergences=changed)
-result=dict(legs=legs,quality=quality,sources=sources,first_quality_wave_cross_arm_exact=comparisons,
+result=dict(legs=legs,quality=quality,sources=sources,mhc_paths=mhc_paths,first_quality_wave_cross_arm_exact=comparisons,
     all_timed_legs_compile_warning_free=all(l['all_rounds_compile_warning_free'] for l in legs),
     first_quality_wave_divergences=divergences,
     within_arm_divergences=within_arm_divergences,
@@ -123,8 +127,9 @@ result=dict(legs=legs,quality=quality,sources=sources,first_quality_wave_cross_a
     control_mean_leg_median=rates['A'],candidate_mean_leg_median=rates['B'],
     throughput_gain_percent=100*(rates['B']/rates['A']-1),
     request_ttft_change_percent=100*(latencies['B']/latencies['A']-1),
-    mean_leg_median_request_ttft_s=latencies,identical_timed_forward_shape_counts=True,
+    mean_leg_median_request_ttft_s=latencies,identical_scheduler_admission_counts=True,
+    actual_forward_M_equality_proven=False,
     input_sha256=hashlib.sha256((root/'A1/inputs.json').read_bytes()).hexdigest(),
-    scope='Original V4 TP8/native AR C16x32K zero-prefix prefill wave throughput,1M KV; medians retain cold-shape rounds when present, inspect compile events before calling these warm results; not proof of whole-model determinism.')
+    scope='Original V4 TP8/native AR C16x32K zero-prefix prefill wave throughput,1M KV; medians retain cold-shape rounds when present, inspect compile events before calling these warm results; scheduler new-token counts are page-rounded budgets, not actual model M; not proof of whole-model determinism.')
 (root/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))
