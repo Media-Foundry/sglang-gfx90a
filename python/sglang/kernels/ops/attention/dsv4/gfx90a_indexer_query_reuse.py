@@ -3,6 +3,8 @@ import torch
 import triton
 import triton.language as tl
 
+_compile_shapes_seen = set()
+
 @triton.jit
 def load_k(cache, page, cols, maxlen, SHUFFLE:tl.constexpr, DOT:tl.constexpr, FP8:tl.constexpr):
     d=tl.arange(0,128)
@@ -73,7 +75,7 @@ def reuse(q,cache,w,lens,pages,out,M:tl.constexpr,W:tl.constexpr,NP:tl.constexpr
 
 def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
                         block_s, preshuffle_tile, dot_fp16, fp8_fnuz,
-                        query_group_size=4):
+                        query_group_size=4, runtime_m=False, trace_rank=None):
     """Return None for unsupported contracts; never repack query/cache tensors."""
     m = q.shape[0]
     dtype = torch.float8_e4m3fnuz if fp8_fnuz else torch.float8_e4m3fn
@@ -99,10 +101,25 @@ def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
     ):
         return None
     out = torch.empty((m, width), dtype=torch.float32, device=q.device)
-    reuse[(triton.cdiv(m, query_group_size), triton.cdiv(width, block_s))](
+    kernel = reuse
+    if runtime_m and query_group_size == 16:
+        from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_runtime_m import reuse_runtime_m
+
+        kernel = reuse_runtime_m
+    compiled = kernel[(triton.cdiv(m, query_group_size), triton.cdiv(width, block_s))](
         q.view(torch.uint8), cache.view(torch.uint8), weights, lengths, pages,
         out, m, width, pages.shape[1], pages.stride(0), query_group_size, block_s, preshuffle_tile,
         tl.float16 if dot_fp16 else tl.bfloat16,
         tl.float8e4b8 if fp8_fnuz else tl.float8e4nv, num_warps=4,
     )
+    if trace_rank is not None and compiled is not None:
+        alignment=tuple(t.data_ptr()%16 for t in tensors)
+        key=(trace_rank,m,width,pages.shape[1],pages.stride(0),query_group_size,runtime_m,alignment)
+        if key not in _compile_shapes_seen:
+            print(f"[TP{trace_rank}] DSV4 indexer compile-shape rows={m} width={width} "
+                  f"pages={pages.shape[1]} page_stride={pages.stride(0)} group={query_group_size} "
+                  f"runtime_m={int(runtime_m and query_group_size == 16)} "
+                  f"align={','.join(map(str,alignment))} "
+                  f"artifact={compiled.hash} object={id(compiled)}",flush=True)
+            _compile_shapes_seen.add(key)
     return out

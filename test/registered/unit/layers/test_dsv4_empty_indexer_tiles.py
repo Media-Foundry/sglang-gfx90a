@@ -1,5 +1,6 @@
 """CPU-only selector and wrapper contracts; GPU oracle checks score bits."""
 import ast
+import copy
 from contextlib import redirect_stdout
 from enum import Enum
 from pathlib import Path
@@ -7,24 +8,96 @@ import os
 import io
 import subprocess
 from types import SimpleNamespace as NS
+from types import ModuleType
+import sys
 import unittest
 from unittest.mock import patch
 
 
 class TestEmptyIndexerTiles(unittest.TestCase):
+    def test_runtime_m_preserves_kernel_arithmetic(self):
+        root=Path(__file__).resolve().parents[4]/'python/sglang/kernels/ops/attention/dsv4'
+        a=ast.parse((root/'gfx90a_indexer_query_reuse.py').read_text())
+        b=ast.parse((root/'gfx90a_indexer_runtime_m.py').read_text())
+        class Normalize(ast.NodeTransformer):
+            def visit_Name(self,node):
+                node.id=node.id.replace('emit_runtime_m','emit').replace('reuse_runtime_m','reuse')
+                return node
+        for name in ('load_k','emit','reuse'):
+            left=copy.deepcopy(next(n for n in a.body if isinstance(n,ast.FunctionDef) and n.name==name))
+            right=copy.deepcopy(next(n for n in b.body if isinstance(n,ast.FunctionDef) and n.name==name+('_runtime_m' if name!='load_k' else '')))
+            if name!='load_k':
+                arg=next(x for x in right.args.args if x.arg=='M')
+                self.assertIsNone(arg.annotation)
+                next(x for x in left.args.args if x.arg=='M').annotation=None
+            if name=='reuse':
+                decorator=right.decorator_list[0]
+                self.assertEqual(ast.literal_eval(next(k.value for k in decorator.keywords if k.arg=='do_not_specialize')),['M'])
+            left.decorator_list=[];right.decorator_list=[];right.name=left.name
+            Normalize().visit(right)
+            self.assertEqual(ast.dump(left,include_attributes=False),ast.dump(right,include_attributes=False))
+
+    def test_runtime_m_wrapper_is_opt_in_and_group16_only(self):
+        root=Path(__file__).resolve().parents[4]
+        tree=ast.parse((root/'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py').read_text())
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='prefill_query_reuse4')
+        calls=[]
+        class Launch:
+            def __init__(self,label):self.label=label
+            def __getitem__(self,grid):
+                def launch(*args,**kw):
+                    calls.append((self.label,grid,args[10]))
+                    return NS(hash='artifact-'+self.label)
+                return launch
+        device=NS(type='cuda')
+        def tensor(shape,dtype):
+            obj=NS(shape=shape,ndim=len(shape),dtype=dtype,device=device,is_contiguous=lambda:True,
+                   element_size=lambda:1,stride=lambda i:32 if i==0 else 1,data_ptr=lambda:0)
+            obj.view=lambda *a:obj
+            return obj
+        x=tensor((8192,1,64,128),'fn');cache=tensor((32,64,1,132),'u8')
+        w=tensor((8192,64),'f32');lens=tensor((8192,),'i32');pages=tensor((8192,32),'i32')
+        result=object()
+        ns=dict(torch=NS(float8_e4m3fnuz='fnuz',float8_e4m3fn='fn',float32='f32',int32='i32',uint8='u8',
+                        version=NS(hip=True),cuda=NS(get_device_properties=lambda _:NS(gcnArchName='gfx90a')),
+                        empty=lambda *a,**k:result),
+                triton=NS(cdiv=lambda a,b:(a+b-1)//b),
+                tl=NS(float16='f16',bfloat16='bf16',float8e4b8='fnuz',float8e4nv='fn'),
+                reuse=Launch('constant'),_compile_shapes_seen=set())
+        module=ModuleType('sglang.kernels.ops.attention.dsv4.gfx90a_indexer_runtime_m')
+        module.reuse_runtime_m=Launch('runtime')
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<current query wrapper>','exec'),ns)
+        with patch.dict(sys.modules,{module.__name__:module}):
+            for group,flag,expected in ((4,False,'constant'),(4,True,'constant'),(8,True,'constant'),
+                                        (16,False,'constant'),(16,True,'runtime')):
+                self.assertIs(ns[fn.name](x,cache,w,lens,pages,2048,block_s=16,preshuffle_tile=16,
+                    dot_fp16=False,fp8_fnuz=False,query_group_size=group,runtime_m=flag),result)
+                self.assertEqual(calls[-1],(expected,((8192+group-1)//group,128),group))
+            out=io.StringIO()
+            with redirect_stdout(out):
+                for _ in range(2):
+                    ns[fn.name](x,cache,w,lens,pages,2048,block_s=16,preshuffle_tile=16,
+                                dot_fp16=False,fp8_fnuz=False,query_group_size=16,runtime_m=True,trace_rank=7)
+            self.assertEqual(out.getvalue().count('compile-shape'),1)
+            self.assertIn('[TP7]',out.getvalue())
+            self.assertIn('runtime_m=1 align=0,0,0,0,0 artifact=artifact-runtime',out.getvalue())
+
     def test_query_group_default_and_launch_contract(self):
         root=Path(__file__).resolve().parents[4]
         tree=ast.parse((root/'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py').read_text())
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='prefill_query_reuse4')
         defaults=dict(zip((a.arg for a in fn.args.kwonlyargs),fn.args.kw_defaults))
         self.assertEqual(ast.literal_eval(defaults['query_group_size']),4)
+        self.assertEqual(ast.literal_eval(defaults['runtime_m']),False)
+        self.assertIsNone(ast.literal_eval(defaults['trace_rank']))
         launch=next(n for n in ast.walk(fn) if isinstance(n,ast.Call)
                     and isinstance(n.func,ast.Subscript) and isinstance(n.func.value,ast.Name)
-                    and n.func.value.id=='reuse')
+                    and n.func.value.id=='kernel')
         self.assertEqual(ast.unparse(launch.args[10]),'query_group_size')
         self.assertEqual(ast.unparse(launch.func.slice.elts[0]),'triton.cdiv(m, query_group_size)')
         groups=next(n for n in ast.walk(fn) if isinstance(n,ast.Compare)
-                    and isinstance(n.left,ast.Name) and n.left.id=='query_group_size')
+                    and isinstance(n.left,ast.Name) and n.left.id=='query_group_size'
+                    and isinstance(n.ops[0],ast.In))
         self.assertIsInstance(groups.ops[0],ast.In)
         self.assertEqual(ast.literal_eval(groups.comparators[0]),(4,8,16))
 
@@ -42,10 +115,11 @@ class TestEmptyIndexerTiles(unittest.TestCase):
             with redirect_stdout(out):
                 eval(expression,dict(get_parallel=lambda:NS(tp_rank=rank),
                                      q=NS(shape=(32767,1,64,128)),
-                                     indexer_metadata=NS(max_c4_seq_len=2048),query_group_size=16))
+                                     indexer_metadata=NS(max_c4_seq_len=2048),query_group_size=16,runtime_m=True))
             self.assertIn(f'TP{rank}]',out.getvalue())
             self.assertIn('prefill query-reuse4 selected: rows=32767 C4_capacity=2048',out.getvalue())
             self.assertIn('query_group=16',out.getvalue())
+            self.assertIn('runtime_m=1',out.getvalue())
 
     def setUp(self):
         root = Path(__file__).resolve().parents[4]

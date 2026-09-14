@@ -1418,6 +1418,8 @@ class C4IndexerBackendMixin:
                     from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_query_reuse import prefill_query_reuse4
 
                     query_group_size = int(os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE", "4"))
+                    runtime_m = (query_group_size == 16 and
+                                 os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M", "0") == "1")
                     logits = prefill_query_reuse4(
                         q, c4_indexer_kv_cache, weights, _c4sl, page_table,
                         indexer_metadata.max_c4_seq_len,
@@ -1427,11 +1429,15 @@ class C4IndexerBackendMixin:
                         dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(),
                         fp8_fnuz=is_fp8_fnuz(),
                         query_group_size=query_group_size,
+                        runtime_m=runtime_m,
+                        trace_rank=(get_parallel().tp_rank if
+                            os.getenv("SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES", "0") == "1" else None),
                     )
                     global _c4_query_reuse_debug_logged
                     if logits is not None and not _c4_query_reuse_debug_logged:
                         print(f"[TP{get_parallel().tp_rank}] [DSV4 indexer] prefill query-reuse4 selected: rows={q.shape[0]} "
-                              f"C4_capacity={indexer_metadata.max_c4_seq_len} query_group={query_group_size}", flush=True)
+                              f"C4_capacity={indexer_metadata.max_c4_seq_len} query_group={query_group_size} "
+                              f"runtime_m={int(runtime_m)}", flush=True)
                         _c4_query_reuse_debug_logged = True
                 if logits is None:
                     logits = fn(

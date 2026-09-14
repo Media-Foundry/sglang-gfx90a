@@ -27,16 +27,22 @@ p.add_argument('--mutations',type=int,default=100)
 p.add_argument('--replays',type=int,default=100)
 p.add_argument('--sizes',type=int,nargs='+',default=[8192,32768,65536])
 p.add_argument('--irregular',action='store_true',help='Also check odd M at the same W/page strides as large prefill')
+p.add_argument('--integrated',action='store_true',help='Use the production wrapper runtime_m keyword and imported kernel')
 a=p.parse_args();assert not a.output.exists()
 fixture_output=a.output.with_suffix('.fixture.json');assert not fixture_output.exists()
 base=prod.prefill_query_reuse4
+if a.integrated:
+    from sglang.kernels.ops.attention.dsv4 import gfx90a_indexer_runtime_m as integrated
+    runtime_kernel=integrated.reuse_runtime_m
+else:
+    runtime_kernel=reuse_runtime_m
 compiled_records={}
 
 class RuntimeKernel:
     def __getitem__(self,grid):
         def launch(*args,**kw):
             assert args[10]==16
-            compiled=reuse_runtime_m[grid](*args,**kw)
+            compiled=runtime_kernel[grid](*args,**kw)
             if compiled is not None:
                 key=tuple(args[6:13])
                 if key not in compiled_records:
@@ -51,6 +57,9 @@ class RuntimeKernel:
         return launch
 
 def candidate(*args,**kwargs):
+    if a.integrated:
+        with patch.object(integrated,'reuse_runtime_m',RuntimeKernel()):
+            return base(*args,query_group_size=16,runtime_m=True,**kwargs)
     with patch.object(prod,'reuse',RuntimeKernel()):
         return base(*args,query_group_size=16,**kwargs)
 
@@ -116,7 +125,7 @@ if a.irregular:
     data['irregular_same_metadata']=extra
 records=list(compiled_records.values())
 large=[r for r in records if r['width']==2048]
-data.update(scope=__doc__,control_bq=16,candidate_bq=16,runtime_m=True,
+data.update(scope=__doc__,integrated_entry=a.integrated,control_bq=16,candidate_bq=16,runtime_m=True,
             compiler_records=records,
             same_large_shape_binary=len({r['amdgcn_sha256'] for r in large})==1,
             same_large_shape_cached_object=len({r['compiled_object_id'] for r in large})==1,
@@ -124,6 +133,8 @@ data.update(scope=__doc__,control_bq=16,candidate_bq=16,runtime_m=True,
                                    and len({r['hsaco_sha256'] for r in large})==1),
             driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             candidate_sha256=hashlib.sha256((root/'candidate.py').read_bytes()).hexdigest())
+if a.integrated:
+    data['integrated_kernel_sha256']=hashlib.sha256(Path(integrated.__file__).read_bytes()).hexdigest()
 a.output.write_text(json.dumps(data,indent=2)+'\n')
 print(json.dumps(dict(binary_reuse=data['same_large_shape_binary'],compiler_records=records,
                      summary=[(r['batch'],r['medians_us'],r['stage_speedup']) for r in data['cases']]),indent=2))
