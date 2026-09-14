@@ -29,3 +29,26 @@ Input echoes32/32 match; full-answer repeat10/16, first-token repeat16/16.
 This contemporaneous full20 control is still not globally deterministic.
 A1 stopped with no remaining owned processes; candidate B has started with
 both config20 and comb-refine enabled. Candidate review remains pending.
+
+## B1 timing-wave input/token check (not long-output review)
+
+The completed A1 and B1 timing manifests are equal. Each has three one-token
+waves with16 zero-cache-hit requests. All A1 internal wave pairs match16/16
+first tokens; all nine A1/B1 wave pairs also match16/16 first tokens.
+This is encouraging for the exact implementation change, but cannot replace
+the pending128-token candidate review or establish global determinism.
+B1 median5537.794461 versus A1 5485.070096 input tok/s; B2/A2 still pending.
+
+## B2 timing and first candidate quality wave
+
+B2's three-wave median is5536.179571 input tok/s. All nine A1/B2 timing-wave
+first-token comparisons also match16/16. The final A2 control remains pending.
+
+Read all16 `B/quality-0.json`128-token excerpts. They are coherent, related to
+the supplied code tasks, and show no obvious repetition collapse or garbling.
+This does not validate the generated claims of bugs or their line references.
+Independent input check:16/16 full echoes match, zero cache hits and128
+completion-token counts. First tokens match16/16 against both A1 quality
+waves. Full excerpts match10/16 and9/16 respectively; cases2,4,6,11 are not
+identical to either A1 wave and have been read as part of the bounded review.
+Candidate second-wave and final-control review are still pending.
