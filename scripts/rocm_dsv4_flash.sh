@@ -116,6 +116,9 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
       # Exact H256/four-wave post-combine reuse. C16 x8K / 1M KV ABBA:
       # 5569.22 -> 5933.52 input tok/s; native large-prefill scope only.
       export SGLANG_DSV4_PREFILL_POST_FUSED4="${SGLANG_DSV4_PREFILL_POST_FUSED4:-1}"
+      # Exact FP32/K1024 pre-mix, four token rows share Fn loads. Same scope:
+      # C16 x8K / 1M KV ABBA: 5937.41 -> 6477.19 input tok/s.
+      export SGLANG_DSV4_PREFILL_MIX_REUSE4="${SGLANG_DSV4_PREFILL_MIX_REUSE4:-1}"
     fi
   fi
 fi

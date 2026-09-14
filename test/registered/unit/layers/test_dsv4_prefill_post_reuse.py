@@ -1,7 +1,10 @@
 import os
+import ast
 from pathlib import Path
 import subprocess
 from types import SimpleNamespace as NS
+from types import ModuleType
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +12,7 @@ import pytest
 from sglang.srt.layers.dsv4_prefill_experiments import (
     POST_REUSE_ENV, instrument_prefill_post_reuse, post_reuse_active,
     post_reuse_eligible,
+    MIX_REUSE_ENV, instrument_prefill_mix_reuse, mix_reuse_active,
 )
 
 
@@ -78,7 +82,63 @@ def test_context_resets_after_exception_and_graph_is_excluded():
     assert seen == [True, False]
 
 
-def test_profile_default_and_explicit_override():
+def test_mix_scope_independent_and_keyword_forward_batch():
+    runner, batch = inputs()
+    seen = []
+    def fn(self, batch):
+        seen.append((post_reuse_active(), mix_reuse_active()))
+        raise RuntimeError("test")
+    with patch.dict(os.environ, {POST_REUSE_ENV: "1", MIX_REUSE_ENV: "1"}), \
+         patch("torch.version.hip", "test"), \
+         patch("torch.cuda.get_device_properties", return_value=NS(gcnArchName="gfx90a")), \
+         patch("torch.cuda.is_current_stream_capturing", return_value=False) as capture:
+        wrapped = instrument_prefill_post_reuse(instrument_prefill_mix_reuse(fn))
+        with pytest.raises(RuntimeError): wrapped(NS(model_runner=runner), forward_batch=batch)
+        assert not post_reuse_active() and not mix_reuse_active()
+        capture.return_value = True
+        with pytest.raises(RuntimeError): wrapped(NS(model_runner=runner), forward_batch=batch)
+        assert not post_reuse_active() and not mix_reuse_active()
+    assert seen == [(True,True), (False,False)]
+    with patch.dict(os.environ, {MIX_REUSE_ENV:"0"}):
+        assert instrument_prefill_mix_reuse(fn) is fn
+
+
+def test_mix_dispatch_preserves_nondefault_k_contract():
+    root = Path(__file__).resolve().parents[4]
+    tree = ast.parse((root/'python/sglang/kernels/ops/layernorm/mhc.py').read_text())
+    node = next(n for n in tree.body if isinstance(n,ast.FunctionDef)
+                and n.name=='gfx90a_mhc_pre_mix_from_partials_triton')
+    calls=[]
+    class Launch:
+        def __getitem__(self, grid):
+            return lambda *a,**kw:calls.append(kw['BLOCK_K'])
+    kernel_module=ModuleType('sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse')
+    candidate=object();fallback=object()
+    kernel_module.premix_reuse4=lambda *a:candidate
+    block_k=1024;enabled=True
+    ns=dict(torch=NS(Tensor=object,version=NS(hip=True),bfloat16='bf16',float32='fp32',
+                     empty=lambda *a,**k:fallback),
+            envs=NS(SGLANG_DSV4_GFX90A_MHC_BLOCK_K=NS(get=lambda:block_k)),
+            _prefill_mix_reuse_active=lambda:enabled,_prefill_mix_reuse_logged=True,
+            _gfx90a_mhc_mix_partials_kernel=Launch())
+    exec(compile(ast.Module(body=[node],type_ignores=[]),'<current mix dispatch>','exec'),ns)
+    x=NS(ndim=3,shape=(8192,4,4096),dtype='bf16',device='cuda',
+         is_contiguous=lambda:True,flatten=lambda *a:None)
+    fn=NS(shape=(24,16384),dtype='fp32',is_contiguous=lambda:True)
+    partials=NS(shape=(8192,64),dtype='fp32',is_contiguous=lambda:True)
+    call=ns['gfx90a_mhc_pre_mix_from_partials_triton']
+    with patch.dict(sys.modules,{kernel_module.__name__:kernel_module}):
+        assert call(x,fn,partials,1e-6) is candidate
+        block_k=2048
+        assert call(x,fn,partials,1e-6) is fallback
+        assert calls==[2048]
+        block_k=1024;enabled=False
+        assert call(x,fn,partials,1e-6) is fallback
+        assert calls==[2048,1024]
+
+
+@pytest.mark.parametrize("flag", [POST_REUSE_ENV, MIX_REUSE_ENV])
+def test_profile_default_and_explicit_override(flag):
     root = Path(__file__).resolve().parents[4]
     source = (root / "scripts/rocm_dsv4_flash.sh").read_text()
     start = source.index('GFX90A_TP8_MULTI_REQUEST_PROFILE="${SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE:-0}"')
@@ -96,8 +156,8 @@ def test_profile_default_and_explicit_override():
         env = dict(PATH=os.environ['PATH'], TP_SIZE=tp, EP_SIZE=ep, MOE_A2A_BACKEND=a2a,
                    SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE=tp_profile,
                    GFX90A_PREFILL_THROUGHPUT_PROFILE=prefill)
-        if override is not None: env[POST_REUSE_ENV] = override
+        if override is not None: env[flag] = override
         result = subprocess.run(['bash','--noprofile','--norc','-c',
-            'set -eu\n'+block+'\nprintf "%s" "${'+POST_REUSE_ENV+'-unset}"'],
+            'set -eu\n'+block+'\nprintf "%s" "${'+flag+'-unset}"'],
             env=env, text=True, capture_output=True, check=True)
         assert result.stdout == expected

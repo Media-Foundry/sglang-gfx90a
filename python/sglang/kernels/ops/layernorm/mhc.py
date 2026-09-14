@@ -31,6 +31,11 @@ _prefill_post_reuse_logged = False
 if os.getenv("SGLANG_DSV4_PREFILL_POST_FUSED4", "0") == "1":
     from sglang.srt.layers.dsv4_prefill_experiments import post_reuse_active as _prefill_post_reuse_active
 
+_prefill_mix_reuse_active = None
+_prefill_mix_reuse_logged = False
+if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
+    from sglang.srt.layers.dsv4_prefill_experiments import mix_reuse_active as _prefill_mix_reuse_active
+
 # This module is imported during model-registry discovery. Do not import the real
 # TileLang package here: it loads native CUDA stubs. The proxy below lets
 # module-level @tilelang.jit declarations parse, then imports and applies real
@@ -517,10 +522,20 @@ def gfx90a_mhc_pre_mix_from_partials_triton(
     ):
         return None
     num_tokens = residual.shape[0]
+    block_k = envs.SGLANG_DSV4_GFX90A_MHC_BLOCK_K.get()
+    if block_k == 1024 and _prefill_mix_reuse_active is not None and _prefill_mix_reuse_active():
+        from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse import premix_reuse4
+
+        candidate = premix_reuse4(residual, fn, rms_partials, rms_eps)
+        if candidate is not None:
+            global _prefill_mix_reuse_logged
+            if not _prefill_mix_reuse_logged:
+                logger.info("DSV4 native TP8 prefill mix-reuse4 selected: rows=%d", num_tokens)
+                _prefill_mix_reuse_logged = True
+            return candidate
     mixes = torch.empty(
         (num_tokens, 1, 24), dtype=torch.float32, device=residual.device
     )
-    block_k = envs.SGLANG_DSV4_GFX90A_MHC_BLOCK_K.get()
     _gfx90a_mhc_mix_partials_kernel[(24, num_tokens)](
         residual.flatten(1),
         fn,

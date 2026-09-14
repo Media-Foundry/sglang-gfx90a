@@ -7,11 +7,17 @@ from functools import wraps
 import torch
 
 POST_REUSE_ENV = "SGLANG_DSV4_PREFILL_POST_FUSED4"
+MIX_REUSE_ENV = "SGLANG_DSV4_PREFILL_MIX_REUSE4"
 _post_reuse = ContextVar("dsv4_prefill_post_fused4", default=False)
+_mix_reuse = ContextVar("dsv4_prefill_mix_reuse4", default=False)
 
 
 def post_reuse_active():
     return _post_reuse.get()
+
+
+def mix_reuse_active():
+    return _mix_reuse.get()
 
 
 def post_reuse_eligible(runner, batch):
@@ -38,7 +44,8 @@ def instrument_prefill_post_reuse(fn):
         return fn
 
     @wraps(fn)
-    def wrapped(self, batch, *args, **kwargs):
+    def wrapped(self, forward_batch, *args, **kwargs):
+        batch = forward_batch
         enabled = post_reuse_eligible(self.model_runner, batch)
         if enabled:
             enabled = (
@@ -54,5 +61,31 @@ def instrument_prefill_post_reuse(fn):
             return fn(self, batch, *args, **kwargs)
         finally:
             _post_reuse.reset(token)
+
+    return wrapped
+
+
+def instrument_prefill_mix_reuse(fn):
+    if os.getenv(MIX_REUSE_ENV, "0") != "1":
+        return fn
+
+    @wraps(fn)
+    def wrapped(self, forward_batch, *args, **kwargs):
+        batch = forward_batch
+        enabled = post_reuse_eligible(self.model_runner, batch)
+        if enabled:
+            enabled = (
+                bool(torch.version.hip)
+                and batch.input_ids.device.type == "cuda"
+                and "gfx90a" in torch.cuda.get_device_properties(
+                    batch.input_ids.device
+                ).gcnArchName
+                and not torch.cuda.is_current_stream_capturing()
+            )
+        token = _mix_reuse.set(enabled)
+        try:
+            return fn(self, batch, *args, **kwargs)
+        finally:
+            _mix_reuse.reset(token)
 
     return wrapped
