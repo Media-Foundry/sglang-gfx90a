@@ -1,7 +1,8 @@
-# Bounded manual review — in progress
+# Bounded manual review — complete
 
 This records observations, not an answer-accuracy or global-determinism pass.
-Final-control review remains pending. Both candidate waves have been read.
+All candidate excerpts and unique control alternatives have been read. The
+chronological notes below retain their original checkpoint descriptions.
 
 ## A1 control
 
@@ -62,3 +63,35 @@ and it clearly does not eliminate drift. Final-control A2 is still required.
 
 Candidate service completed and its owned process tree stopped. Formal leg
 medians are5480.998651 and5480.220425 input tok/s; A2 is now loading.
+
+## A2 control, first quality wave
+
+Read all16 `A2/quality-0.json` excerpts. They remain coherent and on the
+requested code-analysis topics; no obvious looping or garbled output was
+observed. The distributed-helper case discusses the actual helpers. As with
+the other arms, assertions about purported code bugs and line references
+have not been established as fact merely because this model generated them.
+The second A2 quality wave is still pending at this review checkpoint.
+
+## Final A2 wave and bounded verdict
+
+Read all16 A2.1 excerpts, including its four changed answers. They remain
+coherent and topic-related without obvious repetition collapse or garbling.
+A2 full-answer repeat is12/16 and first-token repeat15/16. Divergences occur
+at cases5:18,11:0,12:10,13:126 (zero-based). All96 input echoes across three
+processes are exact, with zero prefix hits,128 completion tokens, and text
+verified against tokenizer decoding. France returned Paris in all arms.
+
+The bounded coherence/topic/no-collapse review passes for this fixture only.
+It is NOT validation of the asserted code defects, full answer accuracy,
+or global determinism. A1 and A2 themselves repeat6/16 and12/16, bracketing
+the candidate9/16; no general determinism improvement is established.
+Across independent controls, full-answer matches range8–11/16. Across any
+control/candidate wave pair they are0/16 (first tokens6–7/16). The config20
+change is therefore not byte-equivalent to legacy8.
+
+Completed ABBA: control5543.610647, candidate5480.609538 input tok/s,
+-1.136463%. All formal waves are compile-warning-free; source hashes and
+all non-policy flags agree. Three service trees stopped with no remaining
+owned processes. Retain config20 as default-off while testing exact ways
+to reduce its cost; do not present it as a throughput or determinism win.

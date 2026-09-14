@@ -1,0 +1,6 @@
+{
+  "files": 91,
+  "bytes": 7699628,
+  "sha256": "b2f7ac670a9584d6f76510ee663376ab6339977e3d6ab8b1bd96a893b5f26c20",
+  "scope": "Full C16x32K config20 prefill service ABBA,1M KV; consult summary and manual review, not a global correctness certificate."
+}
