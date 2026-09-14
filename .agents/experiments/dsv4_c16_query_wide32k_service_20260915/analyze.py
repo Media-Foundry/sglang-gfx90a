@@ -15,7 +15,7 @@ arms=('A1','B','A2')
 for arm in arms:assert (root/arm/'complete.json').exists(),f'{arm} incomplete'
 manifests={arm:read(arm+'/inputs.json') for arm in arms}
 assert manifests['A1']==manifests['B']==manifests['A2']
-legs=[];quality={};sources={};shapes=[];outputs={};mhc_paths={}
+legs=[];quality={};sources={};shapes=[];outputs={};mhc_paths={};timed_tokens={}
 
 for arm in arms:
     prefix=arm+'/P16-wide32k-'+arm
@@ -64,6 +64,7 @@ for arm in arms:
             for ids,text in zip(r['completion_ids'],r['texts'],strict=True):
                 assert len(ids)==1 and tokenizer.decode(ids,skip_special_tokens=False)==text
             assert abs(r['total_prompt_tokens']/r['prefill_wall_s']-r['aggregate_input_tok_s'])<1e-6
+        timed_tokens[name]=[[ids[0] for ids in r['completion_ids']] for r in data['rounds']]
         log=raw[progress['log_start']:progress['log_end']].decode(errors='replace')
         counts=collections.Counter((int(a),int(b)) for a,b in re.findall(
             r'Prefill batch, #new-seq: (\d+), #new-token: (\d+)',log))
@@ -120,6 +121,9 @@ for a,b in [('A1','A2'),('A1','B'),('A2','B')]:
             changed=differences(outputs[a][i],outputs[b][j])
             all_quality_comparisons[f'{a}.{i}-{b}.{j}']=dict(exact=16-len(changed),divergences=changed)
 result=dict(legs=legs,quality=quality,sources=sources,mhc_paths=mhc_paths,first_quality_wave_cross_arm_exact=comparisons,
+    timed_first_token_ids=timed_tokens,
+    timed_first_token_variants_by_case={name:[sorted({row[i] for row in rows}) for i in range(16)]
+                                       for name,rows in timed_tokens.items()},
     all_timed_legs_compile_warning_free=all(l['all_rounds_compile_warning_free'] for l in legs),
     first_quality_wave_divergences=divergences,
     within_arm_divergences=within_arm_divergences,

@@ -9,7 +9,7 @@ summary=json.loads((root/'summary.json').read_text())
 assert [x['name'] for x in summary['legs']]==['A1','B1','B2','A2']
 files=[(root/name,name) for name in ('summary.json','sweep.log','run.py','sweep.py',
                                     'analyze.py','status.py','start-base.sh',
-                                    'review_quality.py','quality-review.json')]
+                                    'review_quality.py','quality-review.json','manual-review.md')]
 for arm in ('A1','B','A2'):
     directory=root/arm
     assert (directory/'complete.json').exists()
