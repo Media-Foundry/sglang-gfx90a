@@ -78,3 +78,20 @@ page-aligned0/25/50/75-percent prefixes. If all planned prefixes hit, it leaves
 recorded; do not infer them from the intended percentages. Current native
 TP8 raw grouped runtime-M covers129..1023, but actual larger tails and the
 indexer/MHC selectors still require execution evidence.
+
+## Retry runtime witness
+
+Retry PID1407476 started and answered France before32K prefill. At05:05:09,
+all8 ranks logged `path=fused_tail rows=32767 batch=1 weight_dtype=torch.float16`.
+Thus the legacy MHC priority and FP16 cached Fn selection are confirmed at
+runtime, not just inferred from launcher defaults. Query-only A/B will preserve
+this existing path in both arms; these32K measurements must explicitly state
+that they do not use the FP32 pre-mix8 path of the16K multi-request forwards.
+This does not change checkpoint files and is not a new precision reduction.
+
+The finding motivates a separate large-prefill priority oracle: compare the
+existing batch1 split-K path with FP32 reuse8 under the actual native-prefill
+scope, while preserving C1 AR and speculative paths. Do not attribute all
+same-configuration16K drift to this mechanism: those admissions use a different
+request-count regime, and reduction/row-placement effects remain independently
+documented. Full32K throughput and quality results are still pending.
