@@ -146,3 +146,18 @@ attribution from these unstable-control results. See manual-review.md.
 B's owned process tree stopped with remaining=[]; A2 PID1527919 was
 birth-verified live and loading. Revalidate before further work. A2 timings,
 quality and final analysis/package are still outstanding; defaults unchanged.
+
+## All formal timing legs complete; A2 quality pending
+
+A2 rates4103.358391/4104.523344/4070.430258, median4103.358391. Complete
+timing ABBA centers: **4100.873765 ->4976.239948 newly-computed tok/s,
++21.345846%**. This is C16x32K mixed0/25/50/75% prefixes, not zero-prefix8K.
+Independently rechecked all12 formal waves:192/192 full input echoes match,
+all actual cached vectors match,328190 newly computed/524286 full inputtokens,
+raw TTFT/rate arithmetic valid, same measured source hashes acrossarms. No
+recorded slow Triton compile warnings in any formal log interval.
+
+A2 remains birth-verified live and is running its two128-token quality waves.
+The full analyzer intentionally still requires all arms complete and stopped.
+Thus performance timing is complete, but acceptance, final quality comparison,
+evidence packaging and default-policy decision are not complete.
