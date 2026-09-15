@@ -119,3 +119,16 @@ numerators, and keeps priming separate. Four synthetic CPU tests reject
 drain-time substitution, missing/nonfinite/reversed timestamps and counting
 cached tokens as newly computed work. These checks pass on all completed
 A1 warm/formal/quality and B warm/B1 waves; no new GPU requests were issued.
+
+## B2 timing complete; candidate quality still running
+
+B2 rates4972.742978/4976.427172/4952.234779, median4972.742978. Both B legs
+are complete, matching cache vectors and raw timestamp accounting. No slow
+Triton compile warnings in either formal interval. Candidate center of the
+two leg medians4976.239948 newly-computed tok/s; final A2 is still required.
+No throughput promotion or candidate quality verdict yet.
+
+Do not compare this remaining-token rate directly to zero-prefix32K throughput:
+the retained queries have longer average visible history after prefix hits.
+This is a workload distinction, not a measured per-stage attribution; a
+mixed-prefix critical-path profile would be needed to quantify the causes.
