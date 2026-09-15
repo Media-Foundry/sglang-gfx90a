@@ -24,6 +24,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+_first_div_probe = None
+if os.getenv("SGLANG_DSV4_DEBUG_FIRST_DIV_DIR"):
+    from sglang.kernels.ops.debug.dsv4_first_divergence import get_probe as _first_div_probe
+
 import sglang.srt.models.deepseek_v2 as deepseek_v2
 from sglang.kernels.ops.attention.dsv4 import (
     fused_norm_rope_inplace,
@@ -1994,6 +1998,11 @@ class MQALayer(MqaAttentionBase):
                     ),
                 )
 
+        if _first_div_probe is not None:
+            probe = _first_div_probe(self.layer_id, forward_batch, positions)
+            if probe is not None:
+                dump_attn = probe
+
         if not get_attn_tp_context().input_scattered and x.shape[0] == 0:
             return x
 
@@ -3415,6 +3424,15 @@ class DeepseekV4DecoderLayer(nn.Module):
                         ), path,
                     )
 
+        first_div = None
+        if _first_div_probe is not None:
+            first_div = _first_div_probe(self.layer_id, forward_batch, positions)
+            if first_div is not None:
+                dump_stage = first_div
+                dump_stage("entry_prev_residual", prev_residual)
+                dump_stage("entry_prev_post", prev_post)
+                dump_stage("entry_prev_comb", prev_comb)
+
         dump_stage("hc_attn_fn", self.hc_attn_fn)
         dump_stage("hc_attn_scale", self.hc_attn_scale)
         dump_stage("hc_attn_base", self.hc_attn_base)
@@ -3428,7 +3446,7 @@ class DeepseekV4DecoderLayer(nn.Module):
         # normalized activation.  Save weights once; the target-position gate
         # selects the desired M32 decode activation without touching production
         # execution when the debug environment is unset.
-        if debug_stages:
+        if debug_stages or first_div is not None:
             attn = self.self_attn
             if getattr(attn, "fuse_wqa_wkv", False):
                 dump_stage("projection_wqkv_a", attn.wqkv_a.weight, once=True)
@@ -3721,7 +3739,7 @@ class DeepseekV4DecoderLayer(nn.Module):
             hidden_states = self._token_row_all_gather(hidden_states)
         # Include the fused MHC path in first-divergence diagnostics as well.
         dump_stage("ffn_input", hidden_states)
-        if debug_stages:
+        if debug_stages or first_div is not None:
             from sglang.kernels.ops.debug.dsv4_sampled_stage_dump import stage_dump_scope
 
             moe_debug_scope = stage_dump_scope(self.mlp, dump_stage)

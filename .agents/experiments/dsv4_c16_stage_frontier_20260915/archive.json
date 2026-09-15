@@ -1,0 +1,7 @@
+{
+  "files": 2938,
+  "bytes": 2876053,
+  "sha256": "65c04cc693780d290d72a4ffd665d9778d954d468ddccdb10758d0ceb19cc215",
+  "tensor_files_local_only": 1840,
+  "note": "Complete stage hashes and analysis included; numeric samples and row hashes retained locally with tensor-manifest SHA256. No performance measurement."
+}
