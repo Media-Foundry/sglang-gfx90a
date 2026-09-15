@@ -138,6 +138,10 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
       # C16 x8K / 1M KV ABBA: 7374.42 -> 7953.96 input tok/s (+7.86%).
       # Runtime excludes AR/spec/draft/CP and unsupported shapes; explicit0 wins.
       export SGLANG_DSV4_C4_PREFILL_QUERY_OWNER="${SGLANG_DSV4_C4_PREFILL_QUERY_OWNER:-1}"
+      # Same two-bank attention/K16 math, one compiler pipeline stage.
+      # Native TP8 C16 x8K / 1M KV ABBA: 7961.92 -> 8384.70 (+5.31%).
+      # Real-call byte equality checked; excludes decode/spec/draft/V4.1/CP.
+      export SGLANG_DSV4_PREFILL_ATTN_STAGE1="${SGLANG_DSV4_PREFILL_ATTN_STAGE1:-1}"
     fi
   fi
 fi

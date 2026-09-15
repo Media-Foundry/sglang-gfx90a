@@ -521,6 +521,7 @@ def prefill(
     kv_indptr_extend: torch.Tensor,
     attn_sink: torch.Tensor,
     softmax_scale: float,
+    num_stages: int | None = None,
 ) -> torch.Tensor:
     return sparse_attn_v4_paged_prefill(
         q,
@@ -532,4 +533,5 @@ def prefill(
         kv_indptr_extend,
         attn_sink,
         softmax_scale,
+        num_stages=num_stages,
     )

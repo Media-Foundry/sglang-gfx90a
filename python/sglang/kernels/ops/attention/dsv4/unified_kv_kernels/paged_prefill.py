@@ -224,7 +224,11 @@ def _sparse_attn_v4_paged_prefill_triton(
     kv_indptr_extend: torch.Tensor,
     attn_sink: torch.Tensor,
     softmax_scale: float,
+    *,
+    num_stages: int | None = None,
 ) -> torch.Tensor:
+    if num_stages not in (None, 1, 2):
+        raise ValueError("Unsupported sparse prefill pipeline stages")
     if not q.is_cuda:
         raise RuntimeError(
             "Triton sparse_attn_v4_paged_prefill requires CUDA/HIP tensors"
@@ -283,6 +287,7 @@ def _sparse_attn_v4_paged_prefill_triton(
         # One wave64 is sufficient for the fixed H16 x D512 program. More
         # waves do not add useful work and only raise scheduling/register cost.
         num_warps=1,
+        **({} if num_stages is None else {"num_stages": num_stages}),
     )
     return out
 
@@ -297,6 +302,8 @@ def sparse_attn_v4_paged_prefill(
     kv_indptr_extend: torch.Tensor,
     attn_sink: torch.Tensor,
     softmax_scale: float,
+    *,
+    num_stages: int | None = None,
 ) -> torch.Tensor:
     """V4 prefill sparse attention over two KV sources (paged unified_kv +
     flat per-fwd kv).
@@ -319,6 +326,8 @@ def sparse_attn_v4_paged_prefill(
       out: [T, H, D] same dtype as q.
     """
     if _HAS_OPUS:
+        if num_stages is not None:
+            raise ValueError("Triton pipeline override cannot be applied to OPUS")
         # OPUS contract differs from the Triton kernel in two ways the Triton
         # path tolerates implicitly:
         #  - it requires a FULLY-contiguous q (it only asserts stride(2)==1 but
@@ -358,4 +367,5 @@ def sparse_attn_v4_paged_prefill(
         kv_indptr_extend,
         attn_sink,
         softmax_scale,
+        num_stages=num_stages,
     )

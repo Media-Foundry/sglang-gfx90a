@@ -1,0 +1,23 @@
+{
+  "status": "accepted_scoped_profile",
+  "control": 7961.922630028286,
+  "candidate": 8384.698465431742,
+  "gain_pct": 5.309971661982282,
+  "original_weights": true,
+  "query_producer": false,
+  "logical_kv_tokens": 1048576,
+  "prefill_chunk": 32768,
+  "formal_input_echoes": 192,
+  "quality_input_echoes": 96,
+  "checked_service_input_echoes": 16,
+  "candidate_output_matches_current_control": 32,
+  "global_drift_solved": false,
+  "post_measurement_changes": {
+    "scripts/rocm_dsv4_flash.sh": {
+      "tested": "95af8777972391cfaff0ead5d49596c21e454006e9273b4bbe90925f83eefb88",
+      "current": "2df825af84604b50cd5b2295645dc8c0eb0eff3aabc40f210d4c3f96c88cbaec"
+    }
+  },
+  "post_measurement_validation": "33 CPU policy/flag/launcher tests passed; bash syntax and diff whitespace checks passed. Only launcher default changed after ABBA, runtime sources unchanged.",
+  "all_gpus_released": true
+}

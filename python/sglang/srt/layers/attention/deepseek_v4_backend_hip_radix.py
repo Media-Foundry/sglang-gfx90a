@@ -703,6 +703,9 @@ class DeepseekV4HipRadixBackend(
     ):
         super().__init__()
         self.device = torch.device(model_runner.device)
+        self._prefill_stage_model_type = getattr(
+            model_runner.model_config.hf_text_config, "model_type", None
+        )
         head_dim = model_runner.model_config.head_dim
         assert (
             head_dim == 512
@@ -2161,7 +2164,28 @@ class DeepseekV4HipRadixBackend(
             pad = T + 1 - kpre_p.shape[0]
             kpre_p = torch.cat([kpre_p, kpre_p[-1:].expand(pad)])
             kext_p = torch.cat([kext_p, kext_p[-1:].expand(pad)])
-        o = runtime.prefill(
+        # Pipeline scheduling only: preserve both streams, K16 and softmax order.
+        # Default-off and native original-V4 large-prefill only; never decode,
+        # target verification, draft, CP or V4.1.
+        stage1 = False
+        if os.getenv("SGLANG_DSV4_PREFILL_ATTN_STAGE1", "0") == "1":
+            from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.prefill_stage_policy import use_stage1
+            from sglang.srt.utils.common import is_gfx90a_supported
+
+            spec = forward_batch.spec_algorithm
+            parallel = get_parallel()
+            stage1 = use_stage1(
+                enabled=True, gfx90a=is_gfx90a_supported(),
+                model_type=self._prefill_stage_model_type,
+                native_extend=forward_batch.forward_mode == ForwardMode.EXTEND,
+                speculative=spec is not None and not spec.is_none(),
+                draft=self.is_draft_worker, tp=parallel.attn_tp_size,
+                cp=parallel.attn_cp_size, dcp=getattr(parallel,"attn_dcp_size",1),
+                pp=getattr(parallel,"pp_size",1), rows=T, heads=q.shape[1],
+                dim=q.shape[2], bf16=q.dtype == torch.bfloat16,
+                capturing=torch.cuda.is_current_stream_capturing(),
+            )
+        prefill_args = dict(
             q=q,
             unified_kv=unified,
             kv_indices_prefix=kpre_i,
@@ -2172,6 +2196,17 @@ class DeepseekV4HipRadixBackend(
             attn_sink=attn_sink,
             softmax_scale=self.softmax_scale,
         )
+        o = runtime.prefill(**prefill_args, num_stages=1 if stage1 else None)
+        if stage1:
+            checking = os.getenv("SGLANG_DSV4_DEBUG_PREFILL_ATTN_STAGE1_CHECK", "0") == "1"
+            if checking:
+                reference = runtime.prefill(**prefill_args)
+                if not torch.equal(o.view(torch.uint8), reference.view(torch.uint8)):
+                    raise RuntimeError("Prefill stages1 output differs from original stages2")
+            if not getattr(core_attn_metadata.unified, "_stage1_logged", False):
+                print(f"[TP{get_parallel().tp_rank}] prefill attention-stage1 selected: "
+                      f"rows={T} heads={q.shape[1]} check={int(checking)}", flush=True)
+                core_attn_metadata.unified._stage1_logged = True
 
         # write this chunk's SWA K into the ring for future chunks / decode
         # only the final-window tokens per request
