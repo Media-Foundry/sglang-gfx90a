@@ -1,0 +1,231 @@
+{
+  "scope": "Post+premix whole boundary screen; repeated real samples, not E2E.",
+  "status": "complete",
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_mhc_two_pass_20260915/screen.py": "8e51e6b9598c35357769e7d74afb566293d2b6712c04fc4f9cb668a2b6a8fe86",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_mhc_two_pass_20260915/candidate.py": "c21a07d729a85786d94793bed6e52a9b8f4eb3a45e837b50068913c7fb79bae2"
+  },
+  "cases": [
+    {
+      "m": 17,
+      "checks": [
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.00031280517578125
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.002777099609375
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 6.103515625e-05
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          0.19280733664830527,
+          0.18592900037765503,
+          0.18299633264541626,
+          0.18512932459513345,
+          0.1843293309211731,
+          0.1834226648012797
+        ],
+        "B": [
+          0.07630166411399841,
+          0.07704833149909973,
+          0.0757153332233429,
+          0.07379566629727681,
+          0.07555533448855083,
+          0.07363566756248474
+        ]
+      },
+      "median_ms": {
+        "A": 0.18472932775815326,
+        "B": 0.07563533385594687
+      },
+      "speedup": 2.4423681147489087,
+      "resources": [
+        {
+          "registers": 42,
+          "spills": 0,
+          "lds": 16
+        }
+      ],
+      "projection_scratch_bytes": 26112
+    },
+    {
+      "m": 128,
+      "checks": [
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.00031280517578125
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.00087738037109375
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.0026092529296875
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          0.2946496605873108,
+          0.27161500851313275,
+          0.27396100759506226,
+          0.2731613318125407,
+          0.26985565821329754,
+          0.26782933870951336
+        ],
+        "B": [
+          0.11453266938527425,
+          0.11362633109092712,
+          0.11426599820454915,
+          0.11250633001327515,
+          0.1150123377641042,
+          0.11463933189709981
+        ]
+      },
+      "median_ms": {
+        "A": 0.27238817016283673,
+        "B": 0.1143993337949117
+      },
+      "speedup": 2.3810293393068003,
+      "resources": [
+        {
+          "registers": 42,
+          "spills": 0,
+          "lds": 16
+        }
+      ],
+      "projection_scratch_bytes": 196608
+    },
+    {
+      "m": 8192,
+      "checks": [
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.00031280517578125
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.0034942626953125
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.0061321258544921875
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          2.3605024019877114,
+          2.3688740730285645,
+          2.354637304941813,
+          2.3625823656717935,
+          2.36055596669515,
+          2.349785010019938
+        ],
+        "B": [
+          4.321687380472819,
+          4.321740468343099,
+          4.32573922475179,
+          4.324832916259766,
+          4.330005327860515,
+          4.323073705037435
+        ]
+      },
+      "median_ms": {
+        "A": 2.3605291843414307,
+        "B": 4.3239533106486
+      },
+      "speedup": 0.5459192120618314,
+      "resources": [
+        {
+          "registers": 42,
+          "spills": 0,
+          "lds": 16
+        }
+      ],
+      "projection_scratch_bytes": 12582912
+    },
+    {
+      "m": 32768,
+      "checks": [
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.00031280517578125
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.005835533142089844
+        },
+        {
+          "residual_exact": false,
+          "squares_exact": false,
+          "mixes_exact": false,
+          "mixes_max_abs": 0.012054443359375
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          8.89808718363444,
+          8.888010025024414,
+          8.876066207885742,
+          8.890409469604492,
+          8.880864461263021,
+          8.885557174682617
+        ],
+        "B": [
+          17.095914204915363,
+          17.077252705891926,
+          17.073679606119793,
+          17.072293599446613,
+          17.071334838867188,
+          17.079386393229168
+        ]
+      },
+      "median_ms": {
+        "A": 8.886783599853516,
+        "B": 17.07546615600586
+      },
+      "speedup": 0.5204416394060092,
+      "resources": [
+        {
+          "registers": 42,
+          "spills": 0,
+          "lds": 16
+        }
+      ],
+      "projection_scratch_bytes": 50331648
+    }
+  ]
+}

@@ -11,6 +11,27 @@ _batch = None
 _callbacks = {}
 
 
+def selected_layers():
+    """Explicit diagnostic coverage; preserve the historical20..24 default."""
+    value = os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_LAYERS')
+    if value is None:
+        return frozenset(range(20, 25))
+    layers = frozenset(int(x.strip()) for x in value.split(','))
+    if not layers or not all(0 <= x < 43 for x in layers):
+        raise ValueError('first-div layer IDs must be in original V4 range0..42')
+    return layers
+
+
+def selected_stages():
+    value = os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_STAGES')
+    if value is None:
+        return None
+    stages = frozenset(x.strip() for x in value.split(','))
+    if not all(x and x.isidentifier() for x in stages):
+        raise ValueError('first-div stages must be nonempty identifiers')
+    return stages
+
+
 def fingerprint(raw, rows=None):
     raw = np.ascontiguousarray(raw)
     flat = memoryview(raw).cast('B') if raw.size else memoryview(b'')
@@ -32,7 +53,7 @@ def get_probe(layer, batch, positions):
     if not directory:
         return None
     from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
-    if not mix_pair_active() or not 20 <= layer <= 24:
+    if not mix_pair_active() or layer not in selected_layers():
         return None
     if torch.cuda.is_current_stream_capturing():
         return None
@@ -65,9 +86,11 @@ def get_probe(layer, batch, positions):
     meta_path=root/(stem+'-metadata.pt');assert not meta_path.exists()
     torch.save(dict(metadata=meta,input_ids=ids,positions=pos),meta_path)
     seen=set();counter=0
+    stages=selected_stages()
 
     def dump(name,value,**_):
         nonlocal counter
+        if stages is not None and name not in stages:return
         if name in seen:return
         seen.add(name);counter+=1
         target=root/(stem+'-'+name+'.json');assert not target.exists()
