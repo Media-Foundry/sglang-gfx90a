@@ -9,8 +9,12 @@ import re
 root = Path(__file__).resolve().parent
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--label',help='Package a new standalone completed capture, without historical failed runs.')
+parser.add_argument('--driver',default='capture.py')
+parser.add_argument('--report',default='current-mix8.md')
 args=parser.parse_args()
 assert args.label is None or re.fullmatch(r'[A-Za-z0-9-]+',args.label)
+assert re.fullmatch(r'[A-Za-z0-9_]+\.py',args.driver)
+assert re.fullmatch(r'[A-Za-z0-9_-]+\.md',args.report)
 accepted = root/(args.label or 'capture-v2')
 assert json.loads((accepted/'complete.json').read_text())['frames'] == 128
 assert json.loads((accepted/'analysis.json').read_text())['snapshots'] == 128
@@ -28,9 +32,9 @@ for directory, label in directories:
         if p.is_file() and p.suffix in ('.json', '.log', '.sh', '.patch'):
             assert p.stat().st_size < 16*1024*1024
             files.append((p, label+'/'+str(p.relative_to(directory))))
-names=['capture.py','analyze.py','path_checks.py','test_path_checks.py','package_evidence.py']
+names=[args.driver,'analyze.py','path_checks.py','test_path_checks.py','package_evidence.py']
 if args.label is None:names+=['capture.log','capture-v2.log','analysis-v2.log']
-else:names+=['current-mix8.md']
+else:names+=[args.report]
 for name in names:
     files.append((root/name, name))
 archive = root/(f'{args.label}-evidence.tar.gz' if args.label else 'evidence.tar.gz')

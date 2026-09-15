@@ -74,6 +74,7 @@ flags = (f'export SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR={directory}\n'
          'unset SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES\n')
 if args.current_mix8:
     flags += ('export SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE=8\n'
+              'export SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS=0\n'
               'export SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE=16\n'
               'export SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M=1\n'
               'export SGLANG_DSV4_C4_PREFILL_QUERY_WIDE=0\n'
@@ -110,6 +111,7 @@ try:
     assert not env.get('SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES')
     if args.current_mix8:
         assert env['SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE']=='8'
+        assert env['SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS']=='0'
         assert env['SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS']=='0'
         assert env['SGLANG_DSV4_C4_PREFILL_QUERY_WIDE']=='0'
         assert env['SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS']=='8'
