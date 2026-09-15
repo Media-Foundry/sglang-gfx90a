@@ -1,6 +1,9 @@
 # Default-off paired-column pre-mix service trial
 
-Status: prepared; no E2E benefit claimed before the completed ABBA and answer review.
+Status: running; no E2E benefit claimed before the completed ABBA and answer review.
+Integration checkpoint: afc913eb48. A1 has started, passed readiness and France.
+The first formal control wave reproduced 6959.45 input tok/s; this is one wave,
+not the completed A1 median. Sweep session 35562 is executing A1/B/A2 serially.
 
 Original V4, TP8/EP1, native AR, original weights, 1,048,576 logical KV,
 32K prefill budget, C16 x approximately 8K fixed public-code inputs (131069 tokens).

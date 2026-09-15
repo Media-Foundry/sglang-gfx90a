@@ -121,6 +121,7 @@ def test_mix_dispatch_preserves_nondefault_k_contract():
                      empty=lambda *a,**k:fallback),
             envs=NS(SGLANG_DSV4_GFX90A_MHC_BLOCK_K=NS(get=lambda:block_k)),
             _prefill_mix_reuse_active=lambda:enabled,_prefill_mix_reuse_logged=True,
+            _prefill_mix_pair_active=None,_prefill_mix_pair_logged=True,
             _gfx90a_mhc_mix_partials_kernel=Launch())
     exec(compile(ast.Module(body=[node],type_ignores=[]),'<current mix dispatch>','exec'),ns)
     x=NS(ndim=3,shape=(8192,4,4096),dtype='bf16',device='cuda',

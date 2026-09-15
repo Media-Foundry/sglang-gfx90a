@@ -17,5 +17,13 @@ negative dispatch; large-M actual MHC caller also passed ten random x/Fn mutatio
 per shape, all FP32 output bits equal, scope contexts restored. These are not
 fresh full-model activation checks or a claim that global service drift is fixed.
 
-Next: fresh A1/B1/B2/A2 C16x8K service trial, 3 formal waves per leg and separate
-answer review. Keep default off until the complete result is accepted.
+Fresh A1/B1/B2/A2 C16x8K service trial has started (sweep session35562), 3 formal
+waves per leg and separate answer review. A1 PID1543098 passed readiness and
+France; first formal wave6959.45 input tok/s. No candidate E2E result yet.
+Keep default off until the complete result is accepted.
+
+Extended CPU regression suite:45 passed, with one unrelated pytest asyncio_mode
+warning. The initial run found the old AST-execution test fixture omitted the new
+module-global pair predicate; adding its default None fixed the fixture without
+altering production code. Three separate client tests pass, checking first-token
+versus drain timing and rejecting wrong input echoes or empty output IDs.
