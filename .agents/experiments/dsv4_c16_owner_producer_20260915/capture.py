@@ -4,9 +4,15 @@ import importlib.util
 import json
 from pathlib import Path
 import time
+import argparse
 
 root=Path(__file__).resolve().parent; repo=root.parents[2]
-out=root/'capture'; out.mkdir(exist_ok=False); data=out/'oracle'
+parser=argparse.ArgumentParser()
+parser.add_argument('--output-name',default='capture')
+parser.add_argument('--producer-blas',choices=['default','cublas'],default='default')
+args=parser.parse_args()
+assert Path(args.output_name).name==args.output_name
+out=root/args.output_name; out.mkdir(exist_ok=False); data=out/'oracle'
 source=root.parent/'dsv4_c16_indexer_owner_service_20260915/B'
 manifest=json.loads((source/'inputs.json').read_text())
 assert len(manifest['requests'])==16 and sum(len(r['input_ids']) for r in manifest['requests'])==131069
@@ -16,6 +22,7 @@ life=importlib.util.module_from_spec(spec);spec.loader.exec_module(life);life.RO
 launcher=(source/'start-ar-matrix.sh').read_text()
 needle='exec bash scripts/rocm_dsv4_flash.sh serve'; assert launcher.count(needle)==1
 flags=(f'export SGLANG_DSV4_DEBUG_OWNER_PRODUCER_DIR={data}\n'
+       f'export SGLANG_DSV4_DEBUG_OWNER_PRODUCER_BLAS={args.producer_blas}\n'
        'unset SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR SGLANG_DSV4_DEBUG_FIRST_DIV_DIR SGLANG_DSV4_DEBUG_INDEXER_OWNER_DIR\n'
        'unset SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR\n'
        'export SGLANG_DSV4_DEBUG_PREFILL_OWNER_CHECK=0\n')

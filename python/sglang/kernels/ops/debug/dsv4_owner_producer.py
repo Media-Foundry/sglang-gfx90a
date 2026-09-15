@@ -25,8 +25,15 @@ def diagnose(*,indexer,batch,x,q_lora,positions,q,weights,cache,lengths,pages,wi
     _done=True
     torch.cuda.synchronize();dist.barrier(group=tp.cpu_group)
     if rank==0:
-        _run(Path(directory),indexer,batch,x,q_lora,positions,q,weights,cache,
-             lengths,pages,width,preshuffle_tile,dot_fp16,fp8_fnuz)
+        previous_blas = torch.backends.cuda.preferred_blas_library()
+        try:
+            _run(Path(directory),indexer,batch,x,q_lora,positions,q,weights,cache,
+                 lengths,pages,width,preshuffle_tile,dot_fp16,fp8_fnuz)
+        finally:
+            # Only this synchronized diagnostic may change process-wide BLAS.
+            # Restore before any production forward resumes, including failures.
+            torch.cuda.synchronize()
+            torch.backends.cuda.preferred_blas_library(previous_blas)
     dist.barrier(group=tp.cpu_group)
 
 
@@ -73,8 +80,22 @@ def _run(root,indexer,batch,x,q_lora,positions,q,weights,cache,lengths,pages,wid
                     input_ids=batch.input_ids.detach().cpu()),path)
     report['inputs_file_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
     qfull,wfull=produce(x,q_lora,positions)
+    original_initial_weights=indexer.compute_weights(x,skip_scale=True)
     report['full_recompute']=dict(q=delta(q,qfull),weights=delta(weights,wfull))
     assert not report['full_recompute']['q']['changed_bytes'] and not report['full_recompute']['weights']['changed_bytes'],report['full_recompute']
+    probe_blas=os.getenv('SGLANG_DSV4_DEBUG_OWNER_PRODUCER_BLAS','default')
+    assert probe_blas in ('default','cublas')
+    report['probe_blas']=probe_blas
+    if probe_blas!='default':
+        torch.backends.cuda.preferred_blas_library(probe_blas)
+        qfull,wfull=produce(x,q_lora,positions)
+    report['probe_full_vs_production']=dict(q=delta(q,qfull),weights=delta(weights,wfull))
+    raw_full_all=indexer.wq_b(q_lora)[0]
+    raw_weights_all=indexer.compute_weights(x,skip_scale=True)
+    def produce_with_initial(ql,pos,initial):
+        qq,ww=indexer.compute_q(ql,pos,initial)
+        return qq.unsqueeze(1),ww.squeeze(2)
+    qhybrid_full,whybrid_full=produce_with_initial(q_lora,positions,original_initial_weights)
     kw=dict(block_s=16,preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,
             fp8_fnuz=fp8_fnuz,query_group_size=16,runtime_m=True)
     lengths=lengths.reshape(-1)
@@ -83,8 +104,8 @@ def _run(root,indexer,batch,x,q_lora,positions,q,weights,cache,lengths,pages,wid
         ids=torch.from_numpy(rowids).to(x.device);mask=torch.from_numpy(valid).to(x.device).bool()
         pl=lengths.index_select(0,ids)*mask.int();pp=pages.index_select(0,ids)
         xs=x.index_select(0,ids);ql=q_lora.index_select(0,ids);pos=positions.index_select(0,ids)
-        qa,wa=q.index_select(0,ids),weights.index_select(0,ids)
-        raw_full=indexer.wq_b(q_lora)[0].index_select(0,ids)
+        qa,wa=qfull.index_select(0,ids),wfull.index_select(0,ids)
+        raw_full=raw_full_all.index_select(0,ids)
         raw_part=indexer.wq_b(ql)[0]
         qb,wb=produce(xs,ql,pos)
         sa=prefill_query_reuse4(qa,cache,wa,pl,pp,width,**kw)
@@ -95,11 +116,40 @@ def _run(root,indexer,batch,x,q_lora,positions,q,weights,cache,lengths,pages,wid
         topk_transform_512(sa,pl,pp,pa,64,ra);topk_transform_512(sb,pl,pp,pb,64,rb)
         item=dict(owner=owner,rows=len(ids),valid_rows=int(mask.sum()),
             raw_projection=delta(raw_full[mask],raw_part[mask]),
+            raw_weights=delta(raw_weights_all.index_select(0,ids)[mask],indexer.compute_weights(xs,skip_scale=True)[mask]),
             q=delta(qa[mask],qb[mask]),weights=delta(wa[mask],wb[mask]),
             scores=delta(sa[mask],sb[mask]),logical_id_changed=int((ra[mask]!=rb[mask]).sum()),
             physical_id_changed=int((pa[mask]!=pb[mask]).sum()))
         qr,wr=produce(xs,ql,pos)
         item['repeat']=dict(q=delta(qb[mask],qr[mask]),weights=delta(wb[mask],wr[mask]))
+        rev=torch.arange(len(ids)-1,-1,-1,device=x.device)
+        qp,wp=produce(xs.index_select(0,rev),ql.index_select(0,rev),pos.index_select(0,rev))
+        item['row_permutation']=dict(q=delta(qb[mask],qp.index_select(0,rev)[mask]),
+            weights=delta(wb[mask],wp.index_select(0,rev)[mask]))
+        qprod,wprod=q.index_select(0,ids),weights.index_select(0,ids)
+        sprod=prefill_query_reuse4(qprod,cache,wprod,pl,pp,width,**kw)
+        ppout=torch.empty_like(pa);rp=torch.empty_like(ra)
+        topk_transform_512(sprod,pl,pp,ppout,64,rp)
+        item['scores_vs_production']=delta(sprod[mask],sb[mask])
+        item['selection_vs_full']=selection_delta(ra[mask],rb[mask])
+        item['selection_vs_production']=selection_delta(rp[mask],rb[mask])
+        initial_owned=original_initial_weights.index_select(0,ids)
+        qh,wh=produce_with_initial(ql,pos,initial_owned)
+        qha,wha=qhybrid_full.index_select(0,ids),whybrid_full.index_select(0,ids)
+        sha=prefill_query_reuse4(qha,cache,wha,pl,pp,width,**kw)
+        shb=prefill_query_reuse4(qh,cache,wh,pl,pp,width,**kw)
+        pha=torch.empty_like(pa);phb=torch.empty_like(pa);rha=torch.empty_like(ra);rhb=torch.empty_like(ra)
+        topk_transform_512(sha,pl,pp,pha,64,rha);topk_transform_512(shb,pl,pp,phb,64,rhb)
+        qhr,whr=produce_with_initial(ql.index_select(0,rev),pos.index_select(0,rev),initial_owned.index_select(0,rev))
+        item['full_weights_compact_q']=dict(q=delta(qha[mask],qh[mask]),weights=delta(wha[mask],wh[mask]),
+            scores=delta(sha[mask],shb[mask]),selection=selection_delta(rha[mask],rhb[mask]),
+            physical_id_changed=int((pha[mask]!=phb[mask]).sum()),
+            row_permutation=dict(q=delta(qh[mask],qhr.index_select(0,rev)[mask]),
+                weights=delta(wh[mask],whr.index_select(0,rev)[mask])),
+            selection_vs_production=selection_delta(rp[mask],rhb[mask]))
+        torch.save(dict(global_rows=ids.cpu(),valid=mask.cpu(),full_logical_ids=ra.cpu(),
+                        compact_logical_ids=rb.cpu(),production_logical_ids=rp.cpu(),
+                        hybrid_full_ids=rha.cpu(),hybrid_compact_ids=rhb.cpu()),root/f'owner-{owner}-ids.pt')
         report['owners'].append(item)
         (root/'report.json').write_text(json.dumps(report,indent=2)+'\n')
         print('OWNER PRODUCER CHECK',owner,item['q']['changed_bytes'],item['logical_id_changed'],flush=True)
@@ -113,6 +163,34 @@ def _run(root,indexer,batch,x,q_lora,positions,q,weights,cache,lengths,pages,wid
             samples[label].append(measure(fn))
     report['producer_samples_ms']=samples
     report['producer_median_ms']={key:statistics.median(values) for key,values in samples.items()}
+    # Additional ABBA retains a full-M weights projection in the timed cost.
+    def hybrid_call():
+        initial=indexer.compute_weights(x,skip_scale=True)
+        return produce_with_initial(q_lora.index_select(0,ids),positions.index_select(0,ids),initial.index_select(0,ids))
+    # Its timed full weights GEMM uses probe BLAS; production default weights
+    # must be timed separately in an eventual explicit-per-op integration.
+    for _ in range(3):hybrid_call()
+    hybrid_samples={'full':[],'hybrid':[]}
+    for _ in range(3):
+        for label,fn in [('full',full_call),('hybrid',hybrid_call),('hybrid',hybrid_call),('full',full_call)]:
+            hybrid_samples[label].append(measure(fn))
+    report['hybrid_samples_ms']=hybrid_samples
+    report['hybrid_median_ms']={key:statistics.median(values) for key,values in hybrid_samples.items()}
     report['status']='complete'
     (root/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     print('OWNER PRODUCER ORACLE COMPLETE',report['producer_median_ms'],flush=True)
+
+
+def selection_delta(a,b):
+    """Separate ordered-ID changes from actual membership changes (ignore padding)."""
+    import numpy as np
+    aa=a.cpu().numpy();bb=b.cpu().numpy()
+    changed=np.flatnonzero(np.any(aa!=bb,axis=1))
+    removed=added=membership_rows=0
+    for row in changed:
+        av=aa[row][aa[row]>=0];bv=bb[row][bb[row]>=0]
+        nr=len(np.setdiff1d(av,bv));na=len(np.setdiff1d(bv,av))
+        removed+=nr;added+=na;membership_rows+=int(bool(nr or na))
+    return dict(positional_changes=int(np.count_nonzero(aa!=bb)),
+                changed_rows=len(changed),membership_rows=membership_rows,
+                removed=removed,added=added,first_changed_rows=changed[:20].tolist())
