@@ -78,6 +78,7 @@ def main():
     from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_owner import host_plan
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--production', action='store_true')
     args = parser.parse_args()
     assert not args.output.exists()
     root = Path(__file__).resolve().parent
@@ -97,8 +98,13 @@ def main():
     x, w = data['q_lora'].cuda(), weight.cuda()
     part = x.index_select(0, torch.from_numpy(ids).cuda())
     previous = torch.backends.cuda.preferred_blas_library()
-    operator = Linear()
+    if args.production:
+        from sglang.kernels.ops.attention.dsv4.gfx90a_rocblas_linear import Linear as ProductionLinear
+        operator = ProductionLinear()
+    else:
+        operator = Linear()
     results = dict(diagnostic_only=True, library=str(operator.path), shapes=[],
+                   production_wrapper=args.production,
                    source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
     try:
         for xx in (part[:3], part[:17], part, x):

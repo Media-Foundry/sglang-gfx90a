@@ -1,0 +1,35 @@
+{
+  "diagnostic_only": true,
+  "library": "/opt/rocm/core-10.0/lib/librocblas.so.5.6",
+  "shapes": [
+    {
+      "rows": 3,
+      "exact": true,
+      "max_abs": 0.0,
+      "alternate_stream_exact": true
+    },
+    {
+      "rows": 17,
+      "exact": true,
+      "max_abs": 0.0,
+      "alternate_stream_exact": true
+    },
+    {
+      "rows": 3072,
+      "exact": true,
+      "max_abs": 0.0,
+      "alternate_stream_exact": true
+    },
+    {
+      "rows": 32767,
+      "exact": true,
+      "max_abs": 0.0,
+      "alternate_stream_exact": true
+    }
+  ],
+  "production_wrapper": true,
+  "source_sha256": "78bd2163c9ec6c72fed8c53a945bb5a95e62b67940b45435157c4230ce418c77",
+  "graph100_exact": true,
+  "graph_input_mutations_exact": 20,
+  "status": "complete"
+}
