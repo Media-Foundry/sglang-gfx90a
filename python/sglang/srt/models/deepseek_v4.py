@@ -2227,7 +2227,10 @@ class MQALayer(MqaAttentionBase):
                 layer=self.attn_mqa,
                 forward_batch=forward_batch,
                 compress_ratio=self.compress_ratio,
-                attn_sink=self.attn_sink,
+                # Q holds this TP rank's local heads. Unified kernels index
+                # sinks from zero, just like the legacy padded-head path.
+                # Passing the full Parameter would reuse rank0's sink values.
+                attn_sink=attn_sink,
                 save_kv_cache=kv is not None,
                 inverse_rope_freqs=inverse_rope_freqs,
                 inverse_rope_positions=inverse_rope_positions,
