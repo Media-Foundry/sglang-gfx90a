@@ -1,0 +1,107 @@
+{
+  "scope": "Same first-forward rows across two fresh accepted-path processes; no query-owner service path.",
+  "layers": {
+    "2": {
+      "identical_input_metadata": true,
+      "tensors": {
+        "x": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 36864
+        },
+        "q_lora": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 9216
+        },
+        "q": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 73728
+        },
+        "weights": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 576
+        }
+      }
+    },
+    "20": {
+      "identical_input_metadata": true,
+      "tensors": {
+        "x": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 36864
+        },
+        "q_lora": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 9216
+        },
+        "q": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 73728
+        },
+        "weights": {
+          "full_hash_exact": true,
+          "sampled_max_abs": 0.0,
+          "sampled_relative_l2": 0.0,
+          "sampled_mismatch_elements": 0,
+          "sampled_elements": 576
+        }
+      }
+    },
+    "42": {
+      "identical_input_metadata": true,
+      "tensors": {
+        "x": {
+          "full_hash_exact": false,
+          "sampled_max_abs": 0.0087890625,
+          "sampled_relative_l2": 0.004658144433051348,
+          "sampled_mismatch_elements": 3661,
+          "sampled_elements": 36864
+        },
+        "q_lora": {
+          "full_hash_exact": false,
+          "sampled_max_abs": 0.001953125,
+          "sampled_relative_l2": 0.003973798826336861,
+          "sampled_mismatch_elements": 874,
+          "sampled_elements": 9216
+        },
+        "q": {
+          "full_hash_exact": false,
+          "sampled_max_abs": 208.0,
+          "sampled_relative_l2": 0.01487947627902031,
+          "sampled_mismatch_elements": 1674,
+          "sampled_elements": 73728
+        },
+        "weights": {
+          "full_hash_exact": false,
+          "sampled_max_abs": 1.7438069335184991e-06,
+          "sampled_relative_l2": 0.0024683771189302206,
+          "sampled_mismatch_elements": 64,
+          "sampled_elements": 576
+        }
+      }
+    }
+  },
+  "first_completion_text_exact": 16,
+  "requests": 16,
+  "limitation": "Sample metrics are not full-tensor error bounds. V1 logical-KV hashes are superseded and NOT compared. No first-divergent operator is identified."
+}

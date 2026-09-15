@@ -22,6 +22,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+_indexer_owner_capture = None
+if os.getenv("SGLANG_DSV4_DEBUG_INDEXER_OWNER_DIR"):
+    from sglang.kernels.ops.debug.dsv4_indexer_owner_capture import capture as _indexer_owner_capture
+
 try:
     import triton
     import triton.language as tl
@@ -1377,6 +1381,17 @@ class C4IndexerBackendMixin:
                 c4_indexer_kv_cache = c4_indexer_kv_cache.view(
                     c4_indexer_kv_cache.shape[0], 64, 1, head_dim_with_sf
                 )
+                if _indexer_owner_capture is not None and not use_fp4_indexer:
+                    _indexer_owner_capture(
+                        layer_id=c4_indexer.layer_id, rank=get_parallel().tp_rank,
+                        batch=forward_batch, x=x, q_lora=q_lora, q=q, weights=weights,
+                        positions=positions, seq_lens=_c4sl, page_table=page_table,
+                        cache=c4_indexer_kv_cache,
+                        preshuffle_tile=(INDEXER_K_CACHE_PRESHUFFLE_TILE
+                            if aiter_can_use_preshuffle_paged_mqa() else 0),
+                        dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(),
+                        fp8_fnuz=is_fp8_fnuz(),
+                    )
                 # Experimental prefill-only optimization. Do not change live
                 # lengths or compressor/cache updates: later queries need keys
                 # produced by rows whose own selection is currently trivial.
