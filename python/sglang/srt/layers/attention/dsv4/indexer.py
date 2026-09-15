@@ -26,6 +26,10 @@ _indexer_owner_capture = None
 if os.getenv("SGLANG_DSV4_DEBUG_INDEXER_OWNER_DIR"):
     from sglang.kernels.ops.debug.dsv4_indexer_owner_capture import capture as _indexer_owner_capture
 
+_owner_producer_oracle = None
+if os.getenv("SGLANG_DSV4_DEBUG_OWNER_PRODUCER_DIR"):
+    from sglang.kernels.ops.debug.dsv4_owner_producer import diagnose as _owner_producer_oracle
+
 try:
     import triton
     import triton.language as tl
@@ -1414,6 +1418,15 @@ class C4IndexerBackendMixin:
                     from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_owner import forward as owner_forward
                     from sglang.srt.distributed.parallel_state import get_tp_group
 
+                    if _owner_producer_oracle is not None:
+                        _owner_producer_oracle(
+                            indexer=c4_indexer, batch=forward_batch, x=x, q_lora=q_lora,
+                            positions=positions, q=q, weights=weights, cache=c4_indexer_kv_cache,
+                            lengths=_c4sl, pages=page_table, width=indexer_metadata.max_c4_seq_len,
+                            preshuffle_tile=(INDEXER_K_CACHE_PRESHUFFLE_TILE
+                                if aiter_can_use_preshuffle_paged_mqa() else 0),
+                            dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(), fp8_fnuz=is_fp8_fnuz(),
+                        )
                     if owner_forward(
                         q=q, cache=c4_indexer_kv_cache, weights=weights, lengths=_c4sl,
                         pages=page_table, width=indexer_metadata.max_c4_seq_len,
