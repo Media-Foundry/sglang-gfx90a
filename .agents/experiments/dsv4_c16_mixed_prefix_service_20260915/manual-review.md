@@ -47,3 +47,16 @@ Independent local-tokenizer verification subsequently checked both A1 waves:
 32/32 exact input echoes and32/32 output-ID decoding equal stored text,128
 completion tokens each, identical planned/actual cache vectors. This check
 does not certify the generated claims as true.
+
+## B quality wave0
+
+Read all16 candidate128-token excerpts. Input echoes16/16 equal the manifest
+and the actual cache vector equals A1/planned values. Text remains coherent
+and related to the code tasks, with no obvious loop/garbling in this bounded
+sample. Case8 discusses `broadcast_pyobj` rather than asserting missing code.
+Case7 quotes the intentional stale-tensor/empty-request comment; its proposed
+bug analysis is truncated and is not independently validated here. None of
+the candidate's other alleged defects/line references are certified true.
+
+B wave1 and both A2 quality waves remain pending. No global-determinism or
+candidate-quality-improvement claim follows from this first candidate wave.
