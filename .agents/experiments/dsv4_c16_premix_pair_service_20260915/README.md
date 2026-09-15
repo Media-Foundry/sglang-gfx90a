@@ -1,9 +1,24 @@
 # Default-off paired-column pre-mix service trial
 
-Status: running; no E2E benefit claimed before the completed ABBA and answer review.
-Integration checkpoint: afc913eb48. A1 has started, passed readiness and France.
-The first formal control wave reproduced 6959.45 input tok/s; this is one wave,
-not the completed A1 median. Sweep session 35562 is executing A1/B/A2 serially.
+Status: completed and accepted for narrowly scoped profile promotion.
+Integration checkpoint: afc913eb48; source digests match across all arms.
+Sweep session35562 exited0; all three owned services stopped with no remaining
+processes, and all eight GPUs were confirmed free.
+
+A1/B1/B2/A2 medians:6959.4535 /7368.9612 /7366.3857 /6964.3819 input tok/s.
+Mean leg medians: **6961.9177 -> 7367.6734 (+5.8282%)**. All192 formal input echoes
+and96 quality echoes matched exact frozen IDs, with zero cache hits. No compile
+or exception lines were recorded in the formal intervals. Both candidate quality
+waves repeat16/16 and match a control output for every case. Control A1 repeats
+15/16; A2 repeats16/16. Read manual-review.md for the bounded-review limitations.
+
+`summary.json` is the timing-closure snapshot before manual review, so its pending
+review label is historical; `quality-review.json` and `manual-review.md` close that
+gate. These results do not establish global numerical determinism. No new kernel
+workspace or weight precision change was introduced. The combined TP8
+multi-request/prefill profile now enables pairing by default, leaving explicit0
+intact. Post-promotion CPU scope/default suite:46 passed; client tests:3 passed;
+bash syntax and diff checks passed. No post-promotion arithmetic change was made.
 
 Original V4, TP8/EP1, native AR, original weights, 1,048,576 logical KV,
 32K prefill budget, C16 x approximately 8K fixed public-code inputs (131069 tokens).

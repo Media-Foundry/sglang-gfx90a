@@ -1,0 +1,577 @@
+{
+  "identical_full_input_manifests": true,
+  "exact_echoes": 96,
+  "actual_cached_tokens": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "candidates": [
+    {
+      "wave": "B.0",
+      "case": 0,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic.\n\n## Unsafe Interaction: `--load-format` and `--quantization` combination\n\n### Facts visible in the excerpt:\n\n1. **`LOAD_FORMAT_CHOICES`** includes `\"expert_pack\"` with a comment stating it's \"intentionally narrow\" and validated only for specific models (DeepSeek-V4-Flash-0731 MXFP4 GGUF and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf).\n\n2. **`"
+    },
+    {
+      "wave": "B.0",
+      "case": 1,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang scheduler source, I can see the main event loop and scheduling state machine. Let me analyze the key components visible in this excerpt:\n\n## Scheduling State Machine Analysis\n\n### Visible State Transitions (Facts from excerpt):\n1. **Initialization State**: The scheduler starts in `is_initializing = True` and transitions to `False` after all components are initialized\n2. **Request Reception**: New requests arrive via `recv_from_tokenizer` IPC channel\n3. **Batch Formation**: The scheduler forms batches using `SchedulePolicy` and `PrefillAdder`\n4. **Forward Pass**:"
+    },
+    {
+      "wave": "B.0",
+      "case": 2,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a significant correctness hazard in the attention mechanism's handling of the `attn_sink` parameter. Let me trace through the critical path and flag the issue.\n\n## Correctness Hazard: `attn_sink` Parameter Sharding Mismatch\n\n### The Issue\n\nIn `MqaAttentionBase.__init__`, the `attn_sink` parameter is created as:\n```python\nself.attn_sink = nn.Parameter(torch.empty(self.n_heads, dtype=torch.float32))\n```\n\nThis creates a parameter with `n_heads"
+    },
+    {
+      "wave": "B.0",
+      "case": 3,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this memory pool implementation, I can identify several critical allocation invariants that need regression testing:\n\n## Key Allocation Invariants\n\n1. **Free slot management**: `free_slots` must always contain exactly the set of indices not currently allocated, with no duplicates or missing entries.\n\n2. **Generation counter**: `req_generation` must increment exactly once per allocation and never decrement.\n\n3. **Padding row protection**: Index 0 is reserved as padding and must never be allocated.\n\n4. **Allocation atomicity**: `alloc_rows` must either allocate all requested rows or none (no partial allocation).\n\n5. **"
+    },
+    {
+      "wave": "B.0",
+      "case": 4,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang model loader code, I can identify several concurrency and error propagation concerns in the weight-loading path. Let me analyze the key issues visible in this excerpt:\n\n## Technical Analysis\n\n### 1. **Concurrency Issues in `_get_weights_iterator`**\n\nThe method has several concurrency-related concerns:\n\n**a) Thread safety of `counter_before_loading_weights`:**\n```python\nif self.counter_before_loading_weights == 0.0:\n    self.counter_before_loading_weights = time.perf_counter()\n```\nThis is a check-then-act pattern"
+    },
+    {
+      "wave": "B.0",
+      "case": 5,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend code, I can identify the sparse-attention dataflow and its likely bottleneck. Let me break this down:\n\n## Sparse-Attention Dataflow\n\nThe dataflow follows this pattern:\n\n1. **Metadata Preparation**: The `DSAMetadata` dataclass holds all precomputed sparse-attention metadata including:\n   - `dsa_cache_seqlens_int32`: Sequence lengths clipped to `topk`\n   - `dsa_cu_seqlens_q/k`: Cumulative sequence lengths for sparse attention\n   - `real_page_table`: Actual page table"
+    },
+    {
+      "wave": "B.0",
+      "case": 6,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeek V2 model, I can identify the expert and attention dispatch boundaries. Let me analyze the key components:\n\n## Expert Dispatch Boundaries\n\nThe expert dispatch is primarily handled through the `DeepseekV2MoE` class, which contains:\n\n1. **MoEGate** - Computes routing logits for expert selection\n2. **TopK** - Selects top-k experts based on routing scores\n3. **TokenDispatcher** - Handles the actual dispatch of tokens to experts\n\nKey observations from the code:\n\n```python\n# Expert count configuration\nnum_exper"
+    },
+    {
+      "wave": "B.0",
+      "case": 7,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `MultimodalInputs.merge()` method. Let me analyze the potential issue:\n\n## Edge Case Analysis\n\nThe `merge()` method in `MultimodalInputs` (lines ~470-510) has a critical issue when merging multimodal inputs from different requests. The method merges `mm_items` and `image_pad_len` by simple concatenation, but there's a subtle bug in how it handles the `mrope_positions` tensor.\n\n**The Bug**: When merging `mrope_positions`, the code"
+    },
+    {
+      "wave": "B.0",
+      "case": 8,
+      "matching_controls": [
+        "A1.0",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 40,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "I'll review the distributed helper failure handling in this SGLang source excerpt and propose a safer contract.\n\n## Facts Visible in the Excerpt\n\n1. **`get_available_gpu_memory` function** (lines ~350-430):\n   - Takes `distributed` and `cpu_group` parameters\n   - When `distributed=True`, performs an `all_reduce` with `ReduceOp.MIN` across the group\n   - Uses `cpu_group` for the all_reduce operation\n   - Returns the minimum available memory across all GPUs in the group\n\n2. **No error handling around the `all"
+    },
+    {
+      "wave": "B.0",
+      "case": 9,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at the `generate_request` method in the TokenizerManager, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **The `generate_request` method** (lines ~470-530) is the main entry point for processing requests.\n2. **The `_init_req_state` method** is called early in the request flow (line ~490).\n3. **The `_send_one_request` method** is called after tokenization (line ~510).\n4. **The `_wait_one_response` method** is called to await the"
+    },
+    {
+      "wave": "B.0",
+      "case": 10,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify several key aspects regarding backend selection and ROCm-specific risks.\n\n## Backend Selection Analysis\n\n### Facts Visible in the Excerpt:\n1. **Aiter is AMD-specific**: The import error message states \"aiter is AMD specific kernel library\"\n2. **Hardware gating**: `_use_fp8_prefill_attn` is gated on `is_gfx95_supported()`, indicating specific GPU architecture requirements\n3. **ROCm-specific kernels**: The backend uses `flash_attn_varlen_func`, `paged_attention_ragged"
+    },
+    {
+      "wave": "B.0",
+      "case": 11,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this FP8 quantization code, I need to audit the scale handling and identify the most important numerical test. Let me analyze the key aspects:\n\n## Scale Handling Audit\n\nThe code shows several critical scale handling patterns:\n\n1. **Block-wise quantization scales** (lines ~400-420): When `block_quant` is true, scales are stored as `BlockQuantScaleParameter` with shape `(output_size_per_partition + block_n - 1) // block_n, (input_size_per_partition + block_k - 1) // block_k`. The initialization uses `torch.finfo(torch.float32)."
+    },
+    {
+      "wave": "B.0",
+      "case": 12,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "I'll analyze the eviction correctness under concurrent prefix reuse in this SGLang unified radix cache implementation.\n\n## Facts Visible in the Excerpt\n\n1. **Eviction is driven by `_evict_components`** which iterates through components and calls `tree_core.evict_device_start/next_node/end` in a loop\n2. **Lock-based protection**: The code has `inc_lock_ref`/`dec_lock_ref` methods that protect nodes from eviction while in use\n3. **Write-back mechanism**: `_evict_device_leaf` can return a `BackupKV` for deferred dem"
+    },
+    {
+      "wave": "B.0",
+      "case": 13,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a potential deadlock scenario in the `GroupCoordinator.__init__` method, specifically in the group creation loop.\n\n## Deadlock Scenario Analysis\n\n### Facts from the excerpt:\n\n1. **Group creation loop**: The `__init__` method iterates over `group_ranks` and creates two process groups per iteration:\n   - `device_group` via `torch.distributed.new_group()`\n   - `cpu_group` via `torch.distributed.new_group()`\n\n2. **Collective ordering**: For each iteration, the code creates the"
+    },
+    {
+      "wave": "B.0",
+      "case": 14,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can see the override resolution system has grown complex with multiple layers of indirection. Let me analyze the key components and identify simplification opportunities.\n\n## Facts Visible in the Excerpt\n\n1. **Three override sources** exist:\n   - `MODEL_OVERRIDES`: constant dict keyed by exact architecture name\n   - `_MODEL_OVERRIDE_FNS`: dict of lists of callables keyed by exact architecture name\n   - `_PREDICATE_OVERRIDE_FNS`: list of (predicate, callable) tuples\n\n2. **"
+    },
+    {
+      "wave": "B.0",
+      "case": 15,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a backpressure failure mode in the decode handoff process. Let me trace through the lifecycle and identify the specific issue.\n\n## Backpressure Failure Mode: Unbounded PreallocQueue Growth\n\n### Facts Visible in the Excerpt:\n\n1. **Queue Structure**: The `DecodePreallocQueue` maintains multiple queues:\n   - `self.queue: List[DecodeRequest]` - requests pending pre-allocation\n   - `self.pending_reqs: List[DecodeRequest]` - requests waiting for DP rank resolution\n   - `self.retracted_queue:"
+    },
+    {
+      "wave": "B.1",
+      "case": 0,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic.\n\n## Unsafe Interaction: `--load-format` and `--quantization` combination\n\n### Facts visible in the excerpt:\n\n1. **`LOAD_FORMAT_CHOICES`** includes `\"expert_pack\"` with a comment stating it's \"intentionally narrow\" and validated only for specific models (DeepSeek-V4-Flash-0731 MXFP4 GGUF and KIMI-K3-MXP4-DERISKED-Q2_K-*.gguf).\n\n2. **`"
+    },
+    {
+      "wave": "B.1",
+      "case": 1,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang scheduler source, I can see the main event loop and scheduling state machine. Let me analyze the key components visible in this excerpt:\n\n## Scheduling State Machine Analysis\n\n### Visible State Transitions (Facts from excerpt):\n1. **Initialization State**: The scheduler starts in `is_initializing = True` and transitions to `False` after all components are initialized\n2. **Request Reception**: New requests arrive via `recv_from_tokenizer` IPC channel\n3. **Batch Formation**: The scheduler forms batches using `SchedulePolicy` and `PrefillAdder`\n4. **Forward Pass**:"
+    },
+    {
+      "wave": "B.1",
+      "case": 2,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a significant correctness hazard in the attention mechanism's handling of the `attn_sink` parameter. Let me trace through the critical path and flag the issue.\n\n## Correctness Hazard: `attn_sink` Parameter Sharding Mismatch\n\n### The Issue\n\nIn `MqaAttentionBase.__init__`, the `attn_sink` parameter is created as:\n```python\nself.attn_sink = nn.Parameter(torch.empty(self.n_heads, dtype=torch.float32))\n```\n\nThis creates a parameter with `n_heads"
+    },
+    {
+      "wave": "B.1",
+      "case": 3,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this memory pool implementation, I can identify several critical allocation invariants that need regression testing:\n\n## Key Allocation Invariants\n\n1. **Free slot management**: `free_slots` must always contain exactly the set of indices not currently allocated, with no duplicates or missing entries.\n\n2. **Generation counter**: `req_generation` must increment exactly once per allocation and never decrement.\n\n3. **Padding row protection**: Index 0 is reserved as padding and must never be allocated.\n\n4. **Allocation atomicity**: `alloc_rows` must either allocate all requested rows or none (no partial allocation).\n\n5. **"
+    },
+    {
+      "wave": "B.1",
+      "case": 4,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang model loader code, I can identify several concurrency and error propagation concerns in the weight-loading path. Let me analyze the key issues visible in this excerpt:\n\n## Technical Analysis\n\n### 1. **Concurrency Issues in `_get_weights_iterator`**\n\nThe method has several concurrency-related concerns:\n\n**a) Thread safety of `counter_before_loading_weights`:**\n```python\nif self.counter_before_loading_weights == 0.0:\n    self.counter_before_loading_weights = time.perf_counter()\n```\nThis is a check-then-act pattern"
+    },
+    {
+      "wave": "B.1",
+      "case": 5,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend code, I can identify the sparse-attention dataflow and its likely bottleneck. Let me break this down:\n\n## Sparse-Attention Dataflow\n\nThe dataflow follows this pattern:\n\n1. **Metadata Preparation**: The `DSAMetadata` dataclass holds all precomputed sparse-attention metadata including:\n   - `dsa_cache_seqlens_int32`: Sequence lengths clipped to `topk`\n   - `dsa_cu_seqlens_q/k`: Cumulative sequence lengths for sparse attention\n   - `real_page_table`: Actual page table"
+    },
+    {
+      "wave": "B.1",
+      "case": 6,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeek V2 model, I can identify the expert and attention dispatch boundaries. Let me analyze the key components:\n\n## Expert Dispatch Boundaries\n\nThe expert dispatch is primarily handled through the `DeepseekV2MoE` class, which contains:\n\n1. **MoEGate** - Computes routing logits for expert selection\n2. **TopK** - Selects top-k experts based on routing scores\n3. **TokenDispatcher** - Handles the actual dispatch of tokens to experts\n\nKey observations from the code:\n\n```python\n# Expert count configuration\nnum_exper"
+    },
+    {
+      "wave": "B.1",
+      "case": 7,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `MultimodalInputs.merge()` method. Let me analyze the potential issue:\n\n## Edge Case Analysis\n\nThe `merge()` method in `MultimodalInputs` (lines ~470-510) has a critical issue when merging multimodal inputs from different requests. The method merges `mm_items` and `image_pad_len` by simple concatenation, but there's a subtle bug in how it handles the `mrope_positions` tensor.\n\n**The Bug**: When merging `mrope_positions`, the code"
+    },
+    {
+      "wave": "B.1",
+      "case": 8,
+      "matching_controls": [
+        "A1.0",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 40,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "I'll review the distributed helper failure handling in this SGLang source excerpt and propose a safer contract.\n\n## Facts Visible in the Excerpt\n\n1. **`get_available_gpu_memory` function** (lines ~350-430):\n   - Takes `distributed` and `cpu_group` parameters\n   - When `distributed=True`, performs an `all_reduce` with `ReduceOp.MIN` across the group\n   - Uses `cpu_group` for the all_reduce operation\n   - Returns the minimum available memory across all GPUs in the group\n\n2. **No error handling around the `all"
+    },
+    {
+      "wave": "B.1",
+      "case": 9,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at the `generate_request` method in the TokenizerManager, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **The `generate_request` method** (lines ~470-530) is the main entry point for processing requests.\n2. **The `_init_req_state` method** is called early in the request flow (line ~490).\n3. **The `_send_one_request` method** is called after tokenization (line ~510).\n4. **The `_wait_one_response` method** is called to await the"
+    },
+    {
+      "wave": "B.1",
+      "case": 10,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify several key aspects regarding backend selection and ROCm-specific risks.\n\n## Backend Selection Analysis\n\n### Facts Visible in the Excerpt:\n1. **Aiter is AMD-specific**: The import error message states \"aiter is AMD specific kernel library\"\n2. **Hardware gating**: `_use_fp8_prefill_attn` is gated on `is_gfx95_supported()`, indicating specific GPU architecture requirements\n3. **ROCm-specific kernels**: The backend uses `flash_attn_varlen_func`, `paged_attention_ragged"
+    },
+    {
+      "wave": "B.1",
+      "case": 11,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this FP8 quantization code, I need to audit the scale handling and identify the most important numerical test. Let me analyze the key aspects:\n\n## Scale Handling Audit\n\nThe code shows several critical scale handling patterns:\n\n1. **Block-wise quantization scales** (lines ~400-420): When `block_quant` is true, scales are stored as `BlockQuantScaleParameter` with shape `(output_size_per_partition + block_n - 1) // block_n, (input_size_per_partition + block_k - 1) // block_k`. The initialization uses `torch.finfo(torch.float32)."
+    },
+    {
+      "wave": "B.1",
+      "case": 12,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "I'll analyze the eviction correctness under concurrent prefix reuse in this SGLang unified radix cache implementation.\n\n## Facts Visible in the Excerpt\n\n1. **Eviction is driven by `_evict_components`** which iterates through components and calls `tree_core.evict_device_start/next_node/end` in a loop\n2. **Lock-based protection**: The code has `inc_lock_ref`/`dec_lock_ref` methods that protect nodes from eviction while in use\n3. **Write-back mechanism**: `_evict_device_leaf` can return a `BackupKV` for deferred dem"
+    },
+    {
+      "wave": "B.1",
+      "case": 13,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a potential deadlock scenario in the `GroupCoordinator.__init__` method, specifically in the group creation loop.\n\n## Deadlock Scenario Analysis\n\n### Facts from the excerpt:\n\n1. **Group creation loop**: The `__init__` method iterates over `group_ranks` and creates two process groups per iteration:\n   - `device_group` via `torch.distributed.new_group()`\n   - `cpu_group` via `torch.distributed.new_group()`\n\n2. **Collective ordering**: For each iteration, the code creates the"
+    },
+    {
+      "wave": "B.1",
+      "case": 14,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can see the override resolution system has grown complex with multiple layers of indirection. Let me analyze the key components and identify simplification opportunities.\n\n## Facts Visible in the Excerpt\n\n1. **Three override sources** exist:\n   - `MODEL_OVERRIDES`: constant dict keyed by exact architecture name\n   - `_MODEL_OVERRIDE_FNS`: dict of lists of callables keyed by exact architecture name\n   - `_PREDICATE_OVERRIDE_FNS`: list of (predicate, callable) tuples\n\n2. **"
+    },
+    {
+      "wave": "B.1",
+      "case": 15,
+      "matching_controls": [
+        "A1.0",
+        "A1.1",
+        "A2.0",
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 128,
+        "A2.1": 128
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a backpressure failure mode in the decode handoff process. Let me trace through the lifecycle and identify the specific issue.\n\n## Backpressure Failure Mode: Unbounded PreallocQueue Growth\n\n### Facts Visible in the Excerpt:\n\n1. **Queue Structure**: The `DecodePreallocQueue` maintains multiple queues:\n   - `self.queue: List[DecodeRequest]` - requests pending pre-allocation\n   - `self.pending_reqs: List[DecodeRequest]` - requests waiting for DP rank resolution\n   - `self.retracted_queue:"
+    }
+  ],
+  "novel_candidate_cases": [],
+  "manual_review_completed": true,
+  "caveat": "Matching IDs and cache counts do not establish numerical state identity. Read manual-review.md separately; generated code-bug claims are not verified.",
+  "sources": {
+    "A1/quality-0.json": "61f311349d8a0ffc0eb24ba222bacd549fa0e3125fe4e66e143fdc5899a1f5e3",
+    "A1/quality-1.json": "b345864c083ffb2ebbdf55b85816ee67800b10e9243af508552a3b587fbe23ee",
+    "B/quality-0.json": "6916724f5bc9d8f5469d2cc8169539d8861513ecb1dcd8d0e1cafeabcab28d86",
+    "B/quality-1.json": "73b2981ebd0a1ae491816232334d0c21374f0de8f63c494590ec172bc1dbdee2",
+    "A2/quality-0.json": "bfdca164665764c3faed32c92a82f6d3bc558bfa3831e0822e3b6376e275c0b7",
+    "A2/quality-1.json": "93d211d0bfbf96f837a7acab16c2a8460084abe5f4ebf21b68d21a3a4045db00"
+  }
+}

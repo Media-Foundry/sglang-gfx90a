@@ -1,0 +1,105 @@
+{
+  "arms": {
+    "A1": {
+      "pair_first_hits": [],
+      "formal_intervals": [
+        {
+          "leg": "A1",
+          "compile_or_exception_log_lines": [],
+          "page_rounded_admissions": [
+            "[2026-09-15 09:02:37 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98301, cuda graph: False, input throughput (token/s): 4836.26",
+            "[2026-09-15 09:02:42 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 6979.81",
+            "[2026-09-15 09:02:46 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7265.94",
+            "[2026-09-15 09:02:51 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6965.92",
+            "[2026-09-15 09:02:56 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 65535, cuda graph: False, input throughput (token/s): 6585.55",
+            "[2026-09-15 09:03:01 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65534, cuda graph: False, input throughput (token/s): 7031.57",
+            "[2026-09-15 09:03:05 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7265.90",
+            "[2026-09-15 09:03:10 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6938.53",
+            "[2026-09-15 09:03:15 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98303, cuda graph: False, input throughput (token/s): 6585.56",
+            "[2026-09-15 09:03:20 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7021.90",
+            "[2026-09-15 09:03:24 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7300.52",
+            "[2026-09-15 09:03:29 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6939.73"
+          ]
+        }
+      ],
+      "service_log_sha256": "086586ecc27aa5407dd45262fcd63739088e4d2e0c0c1f3b67b58c307fd0d1e9"
+    },
+    "B": {
+      "pair_first_hits": [
+        "[2026-09-15 09:06:36 TP0] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP4] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP1] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP2] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP7] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP3] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP5] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2",
+        "[2026-09-15 09:06:36 TP6] DSV4 native TP8 prefill mix-pair selected: rows=32767 group=8 columns=2"
+      ],
+      "formal_intervals": [
+        {
+          "leg": "B1",
+          "compile_or_exception_log_lines": [],
+          "page_rounded_admissions": [
+            "[2026-09-15 09:07:00 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 73725, cuda graph: False, input throughput (token/s): 5080.11",
+            "[2026-09-15 09:07:05 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7381.60",
+            "[2026-09-15 09:07:09 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7767.51",
+            "[2026-09-15 09:07:14 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7349.60",
+            "[2026-09-15 09:07:18 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 73726, cuda graph: False, input throughput (token/s): 6965.78",
+            "[2026-09-15 09:07:23 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7388.29",
+            "[2026-09-15 09:07:27 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7731.79",
+            "[2026-09-15 09:07:31 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7377.88",
+            "[2026-09-15 09:07:36 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98303, cuda graph: False, input throughput (token/s): 6904.37",
+            "[2026-09-15 09:07:41 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7435.52",
+            "[2026-09-15 09:07:45 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7742.89",
+            "[2026-09-15 09:07:49 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7349.80"
+          ]
+        },
+        {
+          "leg": "B2",
+          "compile_or_exception_log_lines": [],
+          "page_rounded_admissions": [
+            "[2026-09-15 09:07:56 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98301, cuda graph: False, input throughput (token/s): 5197.76",
+            "[2026-09-15 09:08:00 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7389.19",
+            "[2026-09-15 09:08:04 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7755.47",
+            "[2026-09-15 09:08:09 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7349.73",
+            "[2026-09-15 09:08:13 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98302, cuda graph: False, input throughput (token/s): 6963.85",
+            "[2026-09-15 09:08:18 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7392.48",
+            "[2026-09-15 09:08:22 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7729.83",
+            "[2026-09-15 09:08:26 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7379.93",
+            "[2026-09-15 09:08:31 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 81919, cuda graph: False, input throughput (token/s): 6902.41",
+            "[2026-09-15 09:08:36 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65534, cuda graph: False, input throughput (token/s): 7433.87",
+            "[2026-09-15 09:08:40 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32767, cuda graph: False, input throughput (token/s): 7714.41",
+            "[2026-09-15 09:08:44 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 7351.48"
+          ]
+        }
+      ],
+      "service_log_sha256": "5fe639077684ca7b88c0e20afc5e56f25eb4301f25464622f5b96c84cd8b1158"
+    },
+    "A2": {
+      "pair_first_hits": [],
+      "formal_intervals": [
+        {
+          "leg": "A2",
+          "compile_or_exception_log_lines": [],
+          "page_rounded_admissions": [
+            "[2026-09-15 09:12:15 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 98302, cuda graph: False, input throughput (token/s): 4835.45",
+            "[2026-09-15 09:12:20 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65534, cuda graph: False, input throughput (token/s): 7033.94",
+            "[2026-09-15 09:12:24 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7274.11",
+            "[2026-09-15 09:12:29 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6970.02",
+            "[2026-09-15 09:12:34 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 90111, cuda graph: False, input throughput (token/s): 6581.75",
+            "[2026-09-15 09:12:39 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65536, cuda graph: False, input throughput (token/s): 6976.49",
+            "[2026-09-15 09:12:43 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7330.72",
+            "[2026-09-15 09:12:48 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6966.93",
+            "[2026-09-15 09:12:53 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 0, #queue-req: 8, #pending-token: 90111, cuda graph: False, input throughput (token/s): 6585.92",
+            "[2026-09-15 09:12:58 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.03, swa token usage: 0.05, #running-req: 4, #queue-req: 4, #pending-token: 65535, cuda graph: False, input throughput (token/s): 7022.72",
+            "[2026-09-15 09:13:02 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 8, #queue-req: 4, #pending-token: 32768, cuda graph: False, input throughput (token/s): 7276.24",
+            "[2026-09-15 09:13:07 TP0] Prefill batch, #new-seq: 4, #new-token: 32768, #cached-token: 0, full token usage: 0.00, swa token usage: 0.00, #running-req: 4, #queue-req: 0, #pending-token: 0, cuda graph: False, input throughput (token/s): 6968.29"
+          ]
+        }
+      ],
+      "service_log_sha256": "074845c663a1941319d05dd4497071c452f7ef7646cbc301e84d70c73d2173f0"
+    }
+  },
+  "scope": "First-hit rows are exact; scheduler token counts are page-rounded, not per-forward exact-M proof.",
+  "launcher_only_flag_difference": "SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS"
+}

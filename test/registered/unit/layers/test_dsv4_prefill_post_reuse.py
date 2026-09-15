@@ -176,7 +176,8 @@ def test_premix8_wrapper_scope_and_fallback():
 
 
 @pytest.mark.parametrize("flag", [POST_REUSE_ENV, MIX_REUSE_ENV,
-                                  'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE'])
+                                  'SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE',
+                                  'SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS'])
 def test_profile_default_and_explicit_override(flag):
     root = Path(__file__).resolve().parents[4]
     source = (root / "scripts/rocm_dsv4_flash.sh").read_text()

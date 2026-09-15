@@ -11,6 +11,12 @@ assert not out.exists(), 'Do not overwrite a completed analysis'
 plans = [json.loads((root/a/'plan.json').read_text()) for a in ('A1', 'B', 'A2')]
 assert all(p['sources'] == plans[0]['sources'] for p in plans)
 assert all(p['input_sha256'] == plans[0]['input_sha256'] for p in plans)
+for arm, plan in zip(('A1', 'B', 'A2'), plans, strict=True):
+    assert plan['candidate'] == plan['pair_columns'] == (arm == 'B')
+    assert plan['budget'] == 32768 and plan['kv_tokens'] == 1048576
+    assert plan['mix_group_size'] == 8 and plan['query_group_size'] == 16
+    assert plan['runtime_m'] and plan['original_weight']
+    assert hashlib.sha256((root/arm/'inputs.json').read_bytes()).hexdigest() == plan['input_sha256']
 results = {}
 quality = {}
 artifact_hashes = {}

@@ -1,0 +1,98 @@
+{
+  "status": "timing_closed_quality_review_pending",
+  "metric": "new input tokens / wave TTFT; zero cache",
+  "legs": {
+    "A1": {
+      "rates": [
+        6959.453523677381,
+        6954.598104776562,
+        6959.68626361795
+      ],
+      "median": 6959.453523677381
+    },
+    "B1": {
+      "rates": [
+        7370.440375912785,
+        7365.805230042307,
+        7368.961175365857
+      ],
+      "median": 7368.961175365857
+    },
+    "B2": {
+      "rates": [
+        7371.358680332385,
+        7366.385685445254,
+        7359.3982167194
+      ],
+      "median": 7366.385685445254
+    },
+    "A2": {
+      "rates": [
+        6965.2107645080105,
+        6961.664931283562,
+        6964.381887992001
+      ],
+      "median": 6964.381887992001
+    }
+  },
+  "control": 6961.91770583469,
+  "candidate": 7367.673430405555,
+  "gain_pct": 5.828217765786081,
+  "formal_input_echoes": 192,
+  "quality": {
+    "A1": {
+      "within_arm_exact_outputs": 15,
+      "within_arm_exact_first_tokens": 16,
+      "manual_semantic_review": "pending; not implied by hashes or France"
+    },
+    "B": {
+      "within_arm_exact_outputs": 16,
+      "within_arm_exact_first_tokens": 16,
+      "manual_semantic_review": "pending; not implied by hashes or France"
+    },
+    "A2": {
+      "within_arm_exact_outputs": 16,
+      "within_arm_exact_first_tokens": 16,
+      "manual_semantic_review": "pending; not implied by hashes or France"
+    }
+  },
+  "artifact_sha256": {
+    "A1/complete.json": "bc9c7cd3224cfe3a9fd65ed7381011bbe65edb3226da4353b21631f3e20ef632",
+    "A1/P16-mix-pair-A1.stop.json": "35179b599a8c834350852cc62e00a1858730aa4ddafe84da9cdcda39a33f00e5",
+    "A1/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "A1/A1.json": "e737f817127e556e11a5128b70955604858633e9193bf2ea223773bd9c6cacc7",
+    "A1/quality-0.json": "61f311349d8a0ffc0eb24ba222bacd549fa0e3125fe4e66e143fdc5899a1f5e3",
+    "A1/quality-1.json": "b345864c083ffb2ebbdf55b85816ee67800b10e9243af508552a3b587fbe23ee",
+    "B/complete.json": "0791573a6c86c882ff7d5a57b1af45fae35c741e0884dddb1136b7d26f0246e6",
+    "B/P16-mix-pair-B.stop.json": "a15145d008d41040208203508b4e0a08745c685fe0bb0a9190590137c0a24645",
+    "B/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "B/B1.json": "66388bf5b56a8e883ada4e2ae4c1419925671206a4e0073e2c8f4aa8586653b7",
+    "B/B2.json": "881af03947236c6c98baacc5bd27214ac7afa2e6806baccc168aca87ac2c8578",
+    "B/quality-0.json": "6916724f5bc9d8f5469d2cc8169539d8861513ecb1dcd8d0e1cafeabcab28d86",
+    "B/quality-1.json": "73b2981ebd0a1ae491816232334d0c21374f0de8f63c494590ec172bc1dbdee2",
+    "A2/complete.json": "718b0fcb3971161aade20a92f99ada485076cd6e3d6c486e1561a94086c3c23d",
+    "A2/P16-mix-pair-A2.stop.json": "a63d0011eb9d375632a649fd4dfdfd9457213595426dfb71e8bc21a33e7c75f4",
+    "A2/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "A2/A2.json": "bb9d5ba4d0bf2da3224fb7f8eb71f317e0f85184b035ccbddefa3973042886ea",
+    "A2/quality-0.json": "bfdca164665764c3faed32c92a82f6d3bc558bfa3831e0822e3b6376e275c0b7",
+    "A2/quality-1.json": "93d211d0bfbf96f837a7acab16c2a8460084abe5f4ebf21b68d21a3a4045db00"
+  },
+  "sources": {
+    ".agents/experiments/dsv4_c16_premix_pair_service_20260915/run.py": "6b80db12ed50d65d4965ac711521b6c93ec1e91698e150c3e66d3b08006b054d",
+    ".agents/experiments/dsv4_c16_premix_pair_service_20260915/client.py": "42e7137fdc506438f5a67757fa0584dcec79393f4741f9b3ff05dbb208e89e8f",
+    ".agents/experiments/dsv4_tp8_ar_down_consumer_20260914/trial.py": "0c832a9b19d7fc4c92127f0af2bd170f29d120ed6fe9a53a0feeb75b4088d87f",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_pair.py": "136207a7d3b80821ff6cea815edcac716af0e291ef34d827b6650651cf815ebb",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py": "9f61f5433abcae3c1030ddc6bf0e038d6d49e8841d886994536f2e9147defe3d",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse8.py": "a3976a71ddae0bc09a55a0bf094c2aadb245549f060a9f7e6ca85fa42f9be72b",
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_runtime_m.py": "3a517906502a7c20c9fd1be3a556e17fde653d0c9c06bf2b4a1350c0e2eda609",
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py": "7995a0aba884e239afa9e9a7c1e352e6adc5bee767c2eeac3cc59539a2115ba0",
+    "python/sglang/kernels/ops/layernorm/mhc.py": "b3648ff201ea939350e7c31d6461ace19230d4d557f9fb7f359eecc463f98bb4",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_post_fused4.py": "04ca9d1fe74098e7cc33a7f595318b54936ab1bbca142c892ff8bfbec47fac3a",
+    "python/sglang/srt/layers/dsv4_prefill_experiments.py": "693e45ba563b591bfdcec9ff7d3cf03dfc38988ad3642df30a242829afe57eb2",
+    "python/sglang/srt/model_executor/runner/eager_runner.py": "b5d64b723ec3e7e4cdea4b494efbbc6d784f9f3f4a2e7bee9e56459953b5bf75",
+    "python/sglang/srt/layers/attention/dsv4/indexer.py": "e7e6a4ab6504e2152b3a75ca668ab6238056c9d631f6e09451947102930763ac",
+    "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac",
+    "scripts/rocm_dsv4_flash.sh": "e4383a5eb3346ccdcd992876c79f069fdb89836ece3265398ca967603f5fe12d"
+  },
+  "default_enabled": false
+}
