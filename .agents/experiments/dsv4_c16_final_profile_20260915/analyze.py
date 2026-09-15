@@ -4,6 +4,7 @@ from pathlib import Path
 from statistics import mean
 import argparse
 import re
+from profile_labels import index_intervals
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--label', default='capture')
@@ -95,14 +96,12 @@ if len(frames[0]['layers'][0]['ticks'])==64:
                         counts[key]=counts.get(key,0)+1
                 if t[48]:
                     assert all(0<t[i]<=t[i+1] for i in range(48,54))
-                    for a,b,name in [(49,50,'index_weights'),(50,51,'index_query'),
-                                     (51,52,'index_compressor'),(52,53,'index_logits_plus_metadata'),
-                                     (53,54,'index_topk_plus_metadata')]:
+                    for a,b,name in index_intervals(f.get('detail_paths',{}),layer['layer']):
                         totals[name]=totals.get(name,0)+(t[b]-t[a])*.04/1000
                         counts[name]=counts.get(name,0)+1
         detail_waves.append(dict(totals_ms=totals,counts=counts,paths=paths))
     assert all(w['counts']==detail_waves[0]['counts'] for w in detail_waves)
-    details=dict(scope='Nested subdivisions, already included in coarse spans. Same selected rank/forward. Metadata/launch/wait costs remain inside call boundaries.',
+    details=dict(scope='Nested subdivisions, already included in coarse spans. Same selected rank/forward. Metadata/launch/wait costs remain inside call boundaries. Owner chain includes packing, logits, Top-K, integer all-gather and reconstruction; owner tail marker is not a separate Top-K measurement.',
                  mean_wave_ms={n:mean(w['totals_ms'][n] for w in detail_waves) for n in detail_waves[0]['totals_ms']},
                  waves=detail_waves)
     (ROOT/'details-analysis.json').write_text(json.dumps(details,indent=2)+'\n')

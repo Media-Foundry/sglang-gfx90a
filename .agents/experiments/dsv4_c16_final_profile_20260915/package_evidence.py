@@ -33,6 +33,7 @@ for directory, label in directories:
             assert p.stat().st_size < 16*1024*1024
             files.append((p, label+'/'+str(p.relative_to(directory))))
 names=[args.driver,'analyze.py','path_checks.py','test_path_checks.py','package_evidence.py']
+names+=['profile_labels.py','test_profile_labels.py']
 if args.label is None:names+=['capture.log','capture-v2.log','analysis-v2.log']
 else:names+=[args.report]
 for name in names:
