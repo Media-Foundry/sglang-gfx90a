@@ -1,0 +1,172 @@
+{
+  "scope": "Original versus clean-rebuilt unique CK and direct-HIP IPC; corrected sinks and H16 on both arms; original V4 TP8 C16x8K",
+  "control_input_tok_s": 8675.78161469333,
+  "candidate_input_tok_s": 8670.72166527029,
+  "gain_pct": -0.05832269238392751,
+  "control_drift_pct": 0.10987612349160347,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 8671.017925511422,
+      "rates": [
+        8671.017925511422,
+        8676.854144546041,
+        8668.5968185041
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 8677.228767912191,
+      "rates": [
+        8680.13244594778,
+        8677.228767912191,
+        8665.583652699686
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 8664.21456262839,
+      "rates": [
+        8663.201121182556,
+        8664.21456262839,
+        8673.481076510763
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 8680.545303875235,
+      "rates": [
+        8679.381281168622,
+        8681.334392184996,
+        8680.545303875235
+      ]
+    }
+  },
+  "original_weights": true,
+  "kv_tokens": 1048576,
+  "prefill_budget": 32768,
+  "attention_exact_comparisons": 1312,
+  "quality": {
+    "A1": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "all_model_batch_invariance_claimed": false,
+  "diagnostic_log_sha256": "085b01ea627bd3eddfdef43806f3f00cc76d55eb8e7ee8e1bce292dbcd0f52cc"
+}

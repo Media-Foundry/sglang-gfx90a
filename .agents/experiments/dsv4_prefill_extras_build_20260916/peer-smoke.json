@@ -1,0 +1,344 @@
+{
+  "status": "complete",
+  "per_rank": [
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ]
+  ],
+  "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_local_sink_20260916/check/capture",
+  "distinct_sink_mutation": true,
+  "explicit_close": true
+}

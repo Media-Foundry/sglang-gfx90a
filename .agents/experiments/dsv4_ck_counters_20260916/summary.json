@@ -1,0 +1,316 @@
+{
+  "scope": "Isolated historical real M32767 W2 input on physical GCD6; not fresh corrected-model routing or service timing",
+  "measurements": {
+    "issue-v3": {
+      "samples": {
+        "unique_ck": [
+          {
+            "ms": 6.889181,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 52494336.0,
+              "SQ_INSTS_VALU": 185427456.0
+            }
+          },
+          {
+            "ms": 6.862771,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 52494336.0,
+              "SQ_INSTS_VALU": 185427456.0
+            }
+          },
+          {
+            "ms": 6.877656,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 52494336.0,
+              "SQ_INSTS_VALU": 185427456.0
+            }
+          }
+        ],
+        "reducer": [
+          {
+            "ms": 3.988692,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 0.0,
+              "SQ_INSTS_VALU": 83896832.0
+            }
+          },
+          {
+            "ms": 3.959882,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 0.0,
+              "SQ_INSTS_VALU": 83896832.0
+            }
+          },
+          {
+            "ms": 3.969165,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "SQ_INSTS_MFMA": 0.0,
+              "SQ_INSTS_VALU": 83896832.0
+            }
+          }
+        ]
+      },
+      "means": {
+        "unique_ck": {
+          "profiled_ms": 6.876536,
+          "counters": {
+            "SQ_INSTS_MFMA": 52494336.0,
+            "SQ_INSTS_VALU": 185427456.0
+          }
+        },
+        "reducer": {
+          "profiled_ms": 3.9725796666666664,
+          "counters": {
+            "SQ_INSTS_MFMA": 0.0,
+            "SQ_INSTS_VALU": 83896832.0
+          }
+        }
+      },
+      "trace_sha256": "529b17897eb4648b6faaf72eb66cc0c7b935df789e03a7963db4a57d618b62be",
+      "counter_sha256": "364a12f50c0d20b738075329f7bc999a77e328178962ca9d7bc35279c23a0515"
+    },
+    "memory": {
+      "samples": {
+        "unique_ck": [
+          {
+            "ms": 6.867893,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 654393.875,
+              "WriteSize": 3143483.5
+            }
+          },
+          {
+            "ms": 6.864692,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 662633.0,
+              "WriteSize": 3143448.875
+            }
+          },
+          {
+            "ms": 6.854609,
+            "vgpr": 112,
+            "acc_vgpr": 64,
+            "lds_bytes": 32768,
+            "scratch_bytes": 0,
+            "grid": [
+              8192,
+              3328,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 653884.875,
+              "WriteSize": 3143499.625
+            }
+          }
+        ],
+        "reducer": [
+          {
+            "ms": 3.963243,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 3145633.875,
+              "WriteSize": 261770.125
+            }
+          },
+          {
+            "ms": 3.966924,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 3145632.5625,
+              "WriteSize": 261777.25
+            }
+          },
+          {
+            "ms": 3.973646,
+            "vgpr": 20,
+            "acc_vgpr": 4,
+            "lds_bytes": 0,
+            "scratch_bytes": 0,
+            "grid": [
+              212992,
+              1,
+              1
+            ],
+            "workgroup": [
+              256,
+              1,
+              1
+            ],
+            "counters": {
+              "FetchSize": 3145632.5625,
+              "WriteSize": 261781.625
+            }
+          }
+        ]
+      },
+      "means": {
+        "unique_ck": {
+          "profiled_ms": 6.862398,
+          "counters": {
+            "FetchSize": 656970.5833333334,
+            "WriteSize": 3143477.3333333335
+          }
+        },
+        "reducer": {
+          "profiled_ms": 3.967937666666667,
+          "counters": {
+            "FetchSize": 3145633.0,
+            "WriteSize": 261776.33333333334
+          }
+        }
+      },
+      "trace_sha256": "4adfd1c06a31f3d165ebd27b8386665eab45f3e26d844fe1d33c103dac000203",
+      "counter_sha256": "2d4723f01d83b219e131505d8dd56f8fb0af7a0626ac1411b95bab0bfbf0bb9d"
+    }
+  },
+  "interpretation": "Unique W2 writes about3GiB partial; reducer reads about3GiB. Weight-fetch savings alone cannot remove these writes/reads. Instruction counts are not utilization percentages.",
+  "profiler_caveat": "SDK substitutes a system-memory intercept queue and does not preserve original priority/CU mask. Durations are diagnostic only.",
+  "earlier_failures": [
+    "Initial mixed SDK plus profiler-injected hipconfig stdout prevented AIter import.",
+    "Isolating version query fixed that; injected rocminfo stdout then broke architecture parsing.",
+    "Explicit GPU_ARCHS=gfx90a plus runtime hardware assertion allowed collection. No fake version/arch query output was used."
+  ]
+}
