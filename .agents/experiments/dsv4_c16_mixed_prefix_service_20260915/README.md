@@ -35,3 +35,17 @@ automatically. A stopped failed arm requires diagnosis and a new named trial.
 Acceptance still needs tokenizer decode, actual rank path hits, timing-log
 inspection, full ABBA comparison and bounded manual review; passing the driver
 alone is not model correctness or global determinism.
+
+After all arms finish and their owned services stop:
+
+```
+python analyze.py
+python review_quality.py
+# Read all candidate outputs and unique controls; update manual-review.md.
+python review_quality.py --confirm-bounded-review
+python package_evidence.py
+```
+
+The confirmation flag attests only to the bounded manual review, not factual
+accuracy. The packager refuses incomplete/unreviewed trials, changed source
+hashes, symlinks and overwrite; run it only after GPU measurements finish.

@@ -87,3 +87,13 @@ The prior config20 trial on zero-prefix32K did not establish global drift
 improvement. A future mixed-prefix config20/refinement check would be a new
 workload test, not an already-proven determinism fix. Do not silently enable
 it inside the current wide-query ABBA; its measured source/config remains frozen.
+
+## Candidate warmup (formal result still pending)
+
+B warmup newly-computed throughput4962.564401 tok/s, wave66.1331468s;
+328190 newly computed tokens, the same cached vector and16/16 identical full
+input echoes versus A1 warmup. All eight ranks log wide-query16/runtime-M1
+selected, with the first-hit C4 capacity4096 during priming. This first-hit
+log is NOT a per-forward proof that every later capacity8192 call hits the
+path. No additional probes or source changes occur during the service trial.
+B1/B2 formal waves and final A2 remain required; do not promote on warmup.
