@@ -1,0 +1,27 @@
+{
+  "fixture_sha256": "4f279a90c08eb56c1a67cd4deee4182857a3fdfcaf5acd17b13b8a0662333fbe",
+  "new_equals_original_ck_bits": true,
+  "global_max_abs": {
+    "new": 0.006536722183227539,
+    "original_ck": 0.006536722183227539,
+    "production_triton": 0.004853725433349609
+  },
+  "failed_element": {
+    "new": -0.06103515625,
+    "original_ck": -0.06103515625,
+    "production_triton": -0.0654296875,
+    "reference": -0.065408855676651
+  },
+  "prefix_lengths": [
+    0,
+    1,
+    17,
+    443
+  ],
+  "extend_lengths": [
+    0,
+    1,
+    113,
+    17
+  ]
+}

@@ -1,0 +1,393 @@
+{
+  "status": "running",
+  "scope": "Two-bank analytic and mutation contracts; not a service speed or logits test.",
+  "cases": [
+    {
+      "case": "empty",
+      "splits": 1,
+      "exact": true,
+      "actual": 0.0,
+      "expected": 0.0
+    },
+    {
+      "case": "empty",
+      "splits": 2,
+      "exact": true,
+      "actual": 0.0,
+      "expected": 0.0
+    },
+    {
+      "case": "prefix",
+      "splits": 1,
+      "exact": true,
+      "actual": 0.5,
+      "expected": 0.5
+    },
+    {
+      "case": "prefix",
+      "splits": 2,
+      "exact": true,
+      "actual": 0.5,
+      "expected": 0.5
+    },
+    {
+      "case": "extend",
+      "splits": 1,
+      "exact": true,
+      "actual": 1.5,
+      "expected": 1.5
+    },
+    {
+      "case": "extend",
+      "splits": 2,
+      "exact": true,
+      "actual": 1.5,
+      "expected": 1.5
+    },
+    {
+      "case": "both_banks",
+      "splits": 1,
+      "exact": true,
+      "actual": 1.3359375,
+      "expected": 1.3359375
+    },
+    {
+      "case": "both_banks",
+      "splits": 2,
+      "exact": true,
+      "actual": 1.3359375,
+      "expected": 1.3359375
+    },
+    {
+      "case": "duplicates",
+      "splits": 1,
+      "exact": true,
+      "actual": 1.25,
+      "expected": 1.25
+    },
+    {
+      "case": "duplicates",
+      "splits": 2,
+      "exact": true,
+      "actual": 1.25,
+      "expected": 1.25
+    },
+    {
+      "case": "invalid",
+      "splits": 1,
+      "exact": true,
+      "actual": 1.5,
+      "expected": 1.5
+    },
+    {
+      "case": "invalid",
+      "splits": 2,
+      "exact": true,
+      "actual": 1.5,
+      "expected": 1.5
+    },
+    {
+      "case": "tile_boundary",
+      "splits": 1,
+      "exact": true,
+      "actual": 2.0,
+      "expected": 2.0
+    },
+    {
+      "case": "tile_boundary",
+      "splits": 2,
+      "exact": true,
+      "actual": 2.0,
+      "expected": 2.0
+    },
+    {
+      "case": "all_invalid",
+      "splits": 1,
+      "exact": true,
+      "actual": 0.0,
+      "expected": 0.0
+    },
+    {
+      "case": "all_invalid",
+      "splits": 2,
+      "exact": true,
+      "actual": 0.0,
+      "expected": 0.0
+    },
+    {
+      "case": "swa",
+      "splits": 1,
+      "exact": true,
+      "actual": 2.984375,
+      "expected": 2.984375
+    },
+    {
+      "case": "swa",
+      "splits": 2,
+      "exact": true,
+      "actual": 2.984375,
+      "expected": 2.984375
+    },
+    {
+      "case": "top512_swa",
+      "splits": 1,
+      "exact": true,
+      "actual": 1.3984375,
+      "expected": 1.3984375
+    },
+    {
+      "case": "top512_swa",
+      "splits": 2,
+      "exact": true,
+      "actual": 1.3984375,
+      "expected": 1.3984375
+    }
+  ],
+  "mutations": [
+    {
+      "mutation": 0,
+      "max_abs": {
+        "1": 0.004535496234893799,
+        "2": 0.004535496234893799
+      }
+    },
+    {
+      "mutation": 1,
+      "max_abs": {
+        "1": 0.0072040557861328125,
+        "2": 0.0072040557861328125
+      }
+    },
+    {
+      "mutation": 2,
+      "max_abs": {
+        "1": 0.005405545234680176,
+        "2": 0.005405545234680176
+      }
+    },
+    {
+      "mutation": 3,
+      "max_abs": {
+        "1": 0.004536151885986328,
+        "2": 0.004536151885986328
+      }
+    },
+    {
+      "mutation": 4,
+      "max_abs": {
+        "1": 0.006062507629394531,
+        "2": 0.006062507629394531
+      }
+    },
+    {
+      "mutation": 5,
+      "max_abs": {
+        "1": 0.005281925201416016,
+        "2": 0.005281925201416016
+      }
+    },
+    {
+      "mutation": 6,
+      "max_abs": {
+        "1": 0.0059051513671875,
+        "2": 0.0059051513671875
+      }
+    },
+    {
+      "mutation": 7,
+      "max_abs": {
+        "1": 0.004133701324462891,
+        "2": 0.004133701324462891
+      }
+    },
+    {
+      "mutation": 8,
+      "max_abs": {
+        "1": 0.004842162132263184,
+        "2": 0.004842162132263184
+      }
+    },
+    {
+      "mutation": 9,
+      "max_abs": {
+        "1": 0.006972670555114746,
+        "2": 0.006972670555114746
+      }
+    },
+    {
+      "mutation": 10,
+      "max_abs": {
+        "1": 0.003839254379272461,
+        "2": 0.003839254379272461
+      }
+    },
+    {
+      "mutation": 11,
+      "max_abs": {
+        "1": 0.004205107688903809,
+        "2": 0.004205107688903809
+      }
+    },
+    {
+      "mutation": 12,
+      "max_abs": {
+        "1": 0.004586696624755859,
+        "2": 0.004586696624755859
+      }
+    },
+    {
+      "mutation": 13,
+      "max_abs": {
+        "1": 0.005423188209533691,
+        "2": 0.005423188209533691
+      }
+    },
+    {
+      "mutation": 14,
+      "max_abs": {
+        "1": 0.0050917863845825195,
+        "2": 0.0050917863845825195
+      }
+    },
+    {
+      "mutation": 15,
+      "max_abs": {
+        "1": 0.0041997432708740234,
+        "2": 0.0041997432708740234
+      }
+    },
+    {
+      "mutation": 16,
+      "max_abs": {
+        "1": 0.0060977935791015625,
+        "2": 0.0060977935791015625
+      }
+    },
+    {
+      "mutation": 17,
+      "max_abs": {
+        "1": 0.005747199058532715,
+        "2": 0.005747199058532715
+      }
+    },
+    {
+      "mutation": 18,
+      "max_abs": {
+        "1": 0.0063759684562683105,
+        "2": 0.0063759684562683105
+      }
+    },
+    {
+      "mutation": 19,
+      "max_abs": {
+        "1": 0.006788730621337891,
+        "2": 0.006788730621337891
+      }
+    },
+    {
+      "mutation": 20,
+      "max_abs": {
+        "1": 0.005638003349304199,
+        "2": 0.005638003349304199
+      }
+    },
+    {
+      "mutation": 21,
+      "max_abs": {
+        "1": 0.005613923072814941,
+        "2": 0.005613923072814941
+      }
+    },
+    {
+      "mutation": 22,
+      "max_abs": {
+        "1": 0.006990671157836914,
+        "2": 0.006990671157836914
+      }
+    },
+    {
+      "mutation": 23,
+      "max_abs": {
+        "1": 0.008466958999633789,
+        "2": 0.008466958999633789
+      }
+    },
+    {
+      "mutation": 24,
+      "max_abs": {
+        "1": 0.0069539546966552734,
+        "2": 0.0069539546966552734
+      }
+    },
+    {
+      "mutation": 25,
+      "max_abs": {
+        "1": 0.005023837089538574,
+        "2": 0.005023837089538574
+      }
+    },
+    {
+      "mutation": 26,
+      "max_abs": {
+        "1": 0.003839254379272461,
+        "2": 0.003839254379272461
+      }
+    },
+    {
+      "mutation": 27,
+      "max_abs": {
+        "1": 0.00596308708190918,
+        "2": 0.00596308708190918
+      }
+    },
+    {
+      "mutation": 28,
+      "max_abs": {
+        "1": 0.0038909912109375,
+        "2": 0.0038909912109375
+      }
+    },
+    {
+      "mutation": 29,
+      "max_abs": {
+        "1": 0.005064606666564941,
+        "2": 0.005064606666564941
+      }
+    },
+    {
+      "mutation": 30,
+      "max_abs": {
+        "1": 0.005136966705322266,
+        "2": 0.005136966705322266
+      }
+    },
+    {
+      "mutation": 31,
+      "max_abs": {
+        "1": 0.003878176212310791,
+        "2": 0.003878176212310791
+      }
+    },
+    {
+      "mutation": 32,
+      "max_abs": {
+        "1": 0.005684494972229004,
+        "2": 0.005684494972229004
+      }
+    },
+    {
+      "mutation": 33,
+      "max_abs": {
+        "1": 0.005824685096740723,
+        "2": 0.005824685096740723
+      }
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/smoke.py": "b0427f66438d6477abc0006acb26ec5ba853e10e0a3e1e99e3c70771a0b7c58b",
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/oracle.py": "6f9e1978e1eec7b3a4c88a1106a9039ace9c9254f9b2ff60b8d6d00aacc59b59",
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/dsv4_prefill_two_source_core.cuh": "5c007f6e777a80d01df4db4f7c7b985019a6fab36dd23810f92f6bf4928581cd",
+    "python/sglang/kernels/jit/csrc/debug/gfx90a_prefill_two_source_ck_oracle.cuh": "18eb450982d01501d3fbc9edc5207ab83d49d852487f2a00c4f9dc827093b23f",
+    "python/sglang/kernels/jit/csrc/deepseek_v4/dsv4_unified_sparse_decode_ck.cuh": "61b0c7c4ca1046e821ef776fb04b043caf3038a53877f36a0c26e662b7131d7b"
+  }
+}
