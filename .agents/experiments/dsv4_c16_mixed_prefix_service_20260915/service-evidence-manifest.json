@@ -1,0 +1,7 @@
+{
+  "files": 105,
+  "bytes": 33655184,
+  "sha256": "687e3e91028c1349e05899842eaf24c86acf7bb6621aec7e82abd8549fd3ade9",
+  "scope": "C16x32K mixed prefix: newly computed input tokens / wave TTFT, priming excluded; not zero-prefix throughput.",
+  "bounded_review_only": true
+}

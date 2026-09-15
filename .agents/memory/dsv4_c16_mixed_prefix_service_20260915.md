@@ -1,4 +1,6 @@
-# Mixed-prefix wide-query service trial: active, no accepted gain yet
+# Mixed-prefix wide-query service trial: completed performance/quality review
+
+Chronological pending notes below are superseded by the final closure section.
 
 Follows the completed zero-prefix wide-C4 C16x16K/32K tests. Original V4,
 TP8/EP1/native AR/no-A2A, original weights,1M logical KV,32768 prefill budget.
@@ -161,3 +163,31 @@ A2 remains birth-verified live and is running its two128-token quality waves.
 The full analyzer intentionally still requires all arms complete and stopped.
 Thus performance timing is complete, but acceptance, final quality comparison,
 evidence packaging and default-policy decision are not complete.
+
+## Final closure
+
+Sweep exited0. A1/B/A2 all completed and their owned process trees stopped;
+amd-smi reported no remaining GPU owners. Full analyzer passed, including
+96/96 quality input echoes, tokenizer decoding, source/config identity,
+1M pool, actual cache quantities and raw timestamp arithmetic. Bounded review
+of all candidate excerpts and unique controls completed. No obvious repetitive
+collapse/garbling, but factual answer limitations are retained in manual-review
+(especially control case8); this is not an accuracy or determinism certificate.
+
+Quality full repeats A1/B/A2=1/0/2 of16, first-token repeats12/16 in each.
+Input IDs and cache counts match; equal cache values are not established.
+The low control repeatability prevents causal drift attribution from whole
+generation comparisons. No claim that wide-query or config20 fixes global drift.
+
+Qualified mixed-prefix performance result:4100.873765 ->4976.239948 newly-
+computed input tok/s, **+21.345846%**, with all12 formal waves cache-matched.
+The accepted8K zero-prefix6959.4558 checkpoint is unchanged. Wide-query stays
+**default-off pending cold-shape closure**, not rolled back;16K/32K zero-prefix
+and this mixed-prefix coverage now have service evidence.
+
+Evidence archive `service-evidence.tar.gz`:105 files,33655184 bytes,
+SHA256 `687e3e91028c1349e05899842eaf24c86acf7bb6621aec7e82abd8549fd3ade9`.
+Includes raw inputs/responses/logs, scripts, critical source snapshots, summary
+and explicit bounded-review record. Final summary and review are in the same
+experiment directory. Only after all services stopped, started the independent
+pre-mix column-pair component on physicalGPU4; no service timing overlap.

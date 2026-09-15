@@ -1,7 +1,8 @@
-# Bounded mixed-prefix review, in progress
+# Completed bounded mixed-prefix review
 
 Only completed output waves explicitly listed below have been read. This is
 not a complete-answer factual-accuracy certificate or global determinism proof.
+Chronological pending notes below are superseded by the final section.
 
 ## A1 quality wave0
 
@@ -89,3 +90,26 @@ and on the code topics, without obvious repetitive collapse or garbling.
 The various purported defects and proposed test names are not validated facts.
 Case8 discusses the supplied helper code; no absence assertion in this wave.
 Second A2 wave remains pending before final review confirmation.
+
+## A2 quality wave1 and final bounded verdict
+
+Read the14 changed A2.1 excerpts; cases4/13 are token-identical to A2.0 already
+read. Text is coherent and code-topic-related without obvious repetition
+collapse/garbling. Case8 repeats the earlier control absence assertion; retain
+the input-based counterexample above. Other bug/race claims are not validated.
+Full-repeat2/16, first-token-repeat12/16. Differences(case:index):
+`0:39,1:0,2:33,3:1,5:3,6:8,7:50,8:0,9:2,10:10,11:19,12:0,14:0,15:2`.
+
+All three owned service trees stopped with remaining=[]; amd-smi reports no
+GPU owners. The full analyzer passed: same original model/TP8/EP1/native AR,
+1M KV/32K budget, matching measured source hashes, exact input IDs/cache
+vectors, raw timing arithmetic, output-token decoding and eight-rank candidate
+path witnesses.96/96 quality input echoes exact. Full repeats A1/B/A2=1/0/2
+of16; first repeats12/16 in each. This does not establish deterministic outputs
+or causal attribution of the drift; control variation is substantial.
+
+Final timing centers4100.873765 ->4976.239948 **newly-computed** tok/s,
++21.345846%. Formal timing intervals have no recorded slow Triton compile
+warnings. This supports a mixed-prefix performance result and bounded no-
+collapse observation, not general factual accuracy or a global correctness
+certificate. Keep wide-query default-off pending cold-shape closure.

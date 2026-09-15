@@ -1,0 +1,524 @@
+{
+  "bounded_review_completed": true,
+  "scope": "Manual coherence/topic/repetition review of128-token excerpts, not factual accuracy or global determinism. Retain observed answer limitations in manual-review.md.",
+  "input_echo_exact": 96,
+  "quality_counts": {
+    "A1": {
+      "input_echo_exact": 32,
+      "full_repeat": 1,
+      "first_repeat": 12
+    },
+    "B": {
+      "input_echo_exact": 32,
+      "full_repeat": 0,
+      "first_repeat": 12
+    },
+    "A2": {
+      "input_echo_exact": 32,
+      "full_repeat": 2,
+      "first_repeat": 12
+    }
+  },
+  "candidate_novel_cases": [
+    {
+      "wave": "B.0",
+      "case": 0
+    },
+    {
+      "wave": "B.0",
+      "case": 1
+    },
+    {
+      "wave": "B.0",
+      "case": 2
+    },
+    {
+      "wave": "B.0",
+      "case": 3
+    },
+    {
+      "wave": "B.0",
+      "case": 4
+    },
+    {
+      "wave": "B.0",
+      "case": 5
+    },
+    {
+      "wave": "B.0",
+      "case": 8
+    },
+    {
+      "wave": "B.0",
+      "case": 9
+    },
+    {
+      "wave": "B.0",
+      "case": 10
+    },
+    {
+      "wave": "B.0",
+      "case": 12
+    },
+    {
+      "wave": "B.0",
+      "case": 13
+    },
+    {
+      "wave": "B.0",
+      "case": 15
+    },
+    {
+      "wave": "B.1",
+      "case": 1
+    },
+    {
+      "wave": "B.1",
+      "case": 2
+    },
+    {
+      "wave": "B.1",
+      "case": 5
+    },
+    {
+      "wave": "B.1",
+      "case": 6
+    },
+    {
+      "wave": "B.1",
+      "case": 7
+    },
+    {
+      "wave": "B.1",
+      "case": 8
+    },
+    {
+      "wave": "B.1",
+      "case": 10
+    },
+    {
+      "wave": "B.1",
+      "case": 11
+    },
+    {
+      "wave": "B.1",
+      "case": 13
+    },
+    {
+      "wave": "B.1",
+      "case": 15
+    }
+  ],
+  "candidates": [
+    {
+      "wave": "B.0",
+      "case": 0,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 21,
+        "A1.1": 51,
+        "A2.0": 21,
+        "A2.1": 21
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic. The issue is in the `ServerArgs` dataclass where `enable_dp_attention` and `enable_dp_lm_head` are defined.\n\n## The Unsafe Interaction\n\n**Facts visible in the excerpt:**\n\n1. `enable_dp_attention` is defined as:\n```python\nenable_dp_attention: A[\n    bool,\n    Arg(\n        help=\"Enabling data parallelism for attention and tensor parallelism for FFN. The dp size should be equal to the tp size. Currently DeepSe"
+    },
+    {
+      "wave": "B.0",
+      "case": 1,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 7,
+        "A2.0": 0,
+        "A2.1": 7
+      },
+      "text": "Looking at this SGLang scheduler source, I can see a complex scheduling state machine that manages request processing, batch formation, and GPU execution. Let me analyze the key components and propose an optimization.\n\n## Scheduling State Machine Analysis\n\n### Visible State Transitions (Facts from code):\n\n1. **Request Intake Phase** (`process_input_requests`):\n   - Receives requests via `request_receiver.recv_requests()`\n   - Dispatches to handlers based on request type\n   - Requests enter `waiting_queue` or disaggregation queues\n\n2. **Batch Formation Phase** (`get_next_batch"
+    },
+    {
+      "wave": "B.0",
+      "case": 2,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 41,
+        "A1.1": 56,
+        "A2.0": 38,
+        "A2.1": 33
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a critical correctness hazard in the `_forward_prepare` method related to the handling of `qkv_a` when using the fused attention preparation path.\n\n## The Hazard\n\nIn `_forward_prepare`, there's a critical issue with the `qkv_a` tensor lifecycle when `fused_attn_prep` is enabled:\n\n```python\nif qkv_a is not None:\n    q_lora = qkv_a[..., : self.q_lora_rank]\nelif fused_attn_prep:\n    qkv_a, core_kv"
+    },
+    {
+      "wave": "B.0",
+      "case": 3,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 1,
+        "A1.1": 1,
+        "A2.0": 1,
+        "A2.1": 10
+      },
+      "text": "## Analysis of Allocation Invariants\n\n### Key Allocation Invariants Visible in the Excerpt\n\n1. **ReqToTokenPool Slot Management**:\n   - Slot 0 is reserved as padding (never allocated to requests)\n   - `free_slots` maintains a list of available slots, initialized to `range(1, size+1)`\n   - `alloc_rows` pops from the tail of `free_slots` (O(1) amortized)\n   - `free_rows` appends to the tail of `free_slots`\n   - Generation counter increments on allocation, zeroed on `clear()`\n\n2"
+    },
+    {
+      "wave": "B.0",
+      "case": 4,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 2,
+        "A1.1": 2,
+        "A2.0": 33,
+        "A2.1": 33
+      },
+      "text": "## Technical Analysis of Weight-Loading Concurrency and Error Propagation\n\n### Facts Visible in the Excerpt\n\n1. **Concurrent Weight Loading**:\n   - `DefaultModelLoader` uses `buffered_multi_thread_safetensors_weights_iterator` with `max_workers` (default 8) for parallel weight loading\n   - `PreshardedModelLoader` uses `ThreadPoolExecutor` for hashing tensors during dump (`_hash_num_threads`, default 8) and verification\n   - `_prefetch_all_checkpoints` is used for background page-cache staging with configurable thread count\n\n"
+    },
+    {
+      "wave": "B.0",
+      "case": 5,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 3,
+        "A2.0": 29,
+        "A2.1": 3
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend implementation, I can identify the sparse-attention dataflow and its likely bottleneck. Let me break this down:\n\n## Sparse-Attention Dataflow\n\nThe dataflow for sparse attention in this backend follows this pattern:\n\n1. **Metadata Preparation** (`init_forward_metadata`):\n   - Computes sequence lengths, cumulative sequence lengths, and page tables\n   - Creates `dsa_cache_seqlens_int32` (clipped to `topk`) and `dsa_seqlens_expanded` (unclipped)\n   - Builds `"
+    },
+    {
+      "wave": "B.0",
+      "case": 6,
+      "matching_controls": [
+        "A1.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 9,
+        "A1.1": 128,
+        "A2.0": 0,
+        "A2.1": 0
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeekV2 model, I need to analyze the expert and attention dispatch boundaries. Let me examine the key components:\n\n## Expert Dispatch Boundaries\n\nThe expert dispatch is handled through the `DeepseekV2MoE` class, which has several dispatch paths:\n\n1. **Standard dispatch** (`forward_normal`): Used when not using A2A (all-to-all) communication\n2. **DeepEP dispatch** (`forward_deepep`): Used with DeepEP/MegaMOE backends\n3. **Dual-stream dispatch** (`forward_normal_dual_stream"
+    },
+    {
+      "wave": "B.0",
+      "case": 7,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 75,
+        "A1.1": 50,
+        "A2.0": 128,
+        "A2.1": 50
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `filter_batch` method. The issue is in how the method handles the case when all requests are filtered out.\n\n## Edge Case Analysis\n\nThe edge case occurs in `filter_batch` when `keep_indices` is empty (all requests are finished or excluded). Looking at the code:\n\n```python\nif keep_indices is None or len(keep_indices) == 0:\n    # Filter out all requests. Stale tensors are left as-is: is_empty()\n    # keys off reqs, so call"
+    },
+    {
+      "wave": "B.0",
+      "case": 8,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 2,
+        "A1.1": 0,
+        "A2.0": 0,
+        "A2.1": 2
+      },
+      "text": "The excerpt shows a `broadcast_pyobj` function that has a critical flaw in its failure handling. Let me analyze the issues and propose a safer contract.\n\n## Facts Visible in the Excerpt\n\n1. **The function signature**: `broadcast_pyobj(data, rank, dist_group=None, src=0, force_cpu_device=True)` - broadcasts Python objects across a distributed group.\n\n2. **The current implementation**:\n   - Uses `dist.broadcast` for both size and data tensors\n   - Has a special HIP/ROCm workaround with `dist.barrier` after broadcast\n   -"
+    },
+    {
+      "wave": "B.0",
+      "case": 9,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 12,
+        "A1.1": 41,
+        "A2.0": 41,
+        "A2.1": 2
+      },
+      "text": "Looking at the `generate_request` method and the request admission flow, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **Sequential tokenization in batch mode**: In `_handle_batch_request`, when `parallel_sample_num == 1` and `_should_use_batch_tokenization` returns `False`, the code tokenizes requests sequentially:\n```python\nfor i in range(batch_size):\n    tmp_obj = obj[i]\n    tokenized_obj = await self._tokenize_one_request(tmp_obj)\n    ...\n    self._send_one"
+    },
+    {
+      "wave": "B.0",
+      "case": 10,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 0,
+        "A2.0": 0,
+        "A2.1": 0
+      },
+      "text": "# AiterAttnBackend Review: Backend Selection and ROCm-Specific Risks\n\n## 1. Backend Selection Analysis\n\n### How the Aiter Backend is Selected\n\nThe Aiter backend is selected through SGLang's attention backend registry system. Based on the code structure, the selection mechanism works as follows:\n\n1. **Device Detection**: The backend is only available on AMD ROCm devices (the import error message explicitly states \"aiter is AMD specific kernel library\").\n\n2. **Architecture Support**: The backend supports multiple attention architectures:\n   - Standard MHA/GQA (non-MLA)\n   - MLA"
+    },
+    {
+      "wave": "B.0",
+      "case": 11,
+      "matching_controls": [
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 3,
+        "A1.1": 0,
+        "A2.0": 19,
+        "A2.1": 128
+      },
+      "text": "Looking at this FP8 quantization code, I can identify several critical scale handling issues. Let me audit the most important numerical test and propose fixes.\n\n## Critical Scale Handling Issue\n\nThe most important numerical test is **`cast_e2m1fn_to_e4m3fn`** - specifically the `MAX_OFFSET_BITS = 6` calculation. This function converts FP4 (e2m1fn) values to FP8 (e4m3fn) by scaling them, and the offset calculation is critical for numerical correctness.\n\n### The Problem\n\nIn `cast_e2m1fn_to_e4m3fn"
+    },
+    {
+      "wave": "B.0",
+      "case": 12,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 10,
+        "A1.1": 10,
+        "A2.0": 10,
+        "A2.1": 0
+      },
+      "text": "# Eviction Correctness Under Concurrent Prefix Reuse\n\n## Analysis of the Excerpt\n\n### Facts Visible in the Excerpt\n\n1. **Eviction is driven by `_evict_components`** which iterates through component types and calls `tree_core.evict_device_start`, `_evict_device_next_node`, and `_evict_device_leaf` in a loop.\n\n2. **Lock-based protection**: The code uses `inc_lock_ref`/`dec_lock_ref` to protect nodes from eviction. The `_evict_device_leaf` method calls `tree_core.evict_device_leaf(node_id"
+    },
+    {
+      "wave": "B.0",
+      "case": 13,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 3,
+        "A1.1": 24,
+        "A2.0": 24,
+        "A2.1": 24
+      },
+      "text": "Looking at this code, I can identify a potential deadlock scenario in the `GroupCoordinator.__init__` method related to the creation of process groups. Let me analyze the collective ordering issue:\n\n## Deadlock Scenario Analysis\n\n### The Problem\nIn `GroupCoordinator.__init__`, when creating process groups, there's a critical ordering issue with the `torch.distributed.new_group()` calls. The code creates **two** process groups sequentially:\n1. `device_group` (using the specified backend, e.g., NCCL)\n2. `cpu_group` (using Gloo backend)\n\nThe deadlock occurs because"
+    },
+    {
+      "wave": "B.0",
+      "case": 14,
+      "matching_controls": [
+        "A1.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 9,
+        "A2.0": 47,
+        "A2.1": 0
+      },
+      "text": "Looking at this source excerpt, I can see the override resolution system has grown complex with multiple layers of indirection. Let me analyze the key components and identify simplification opportunities.\n\n## Facts Visible in the Excerpt\n\n1. **Three override sources** exist:\n   - `MODEL_OVERRIDES`: constant dict keyed by architecture\n   - `_MODEL_OVERRIDE_FNS`: exact-architecture callables\n   - `_PREDICATE_OVERRIDE_FNS`: predicate-keyed callables\n\n2. **Collection order** in `collect_model_override_declarations`:\n   - Constants"
+    },
+    {
+      "wave": "B.0",
+      "case": 15,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 2,
+        "A1.1": 2,
+        "A2.0": 72,
+        "A2.1": 2
+      },
+      "text": "Looking at this SGLang source code, I can identify a critical backpressure failure mode in the decode handoff process. Let me trace through the logic and identify the issue.\n\n## Backpressure Failure Mode: Unbounded Preallocation Queue Growth\n\n### The Problem\n\nIn `DecodePreallocQueue.pop_preallocated()`, there's a critical flaw in how requests are admitted to the preallocation queue. The admission control logic checks available memory and token budgets, but it doesn't properly account for the **transfer queue capacity** as a backpressure mechanism.\n\nHere's the specific issue:\n\n1. **Requests are admitted to"
+    },
+    {
+      "wave": "B.1",
+      "case": 0,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 39,
+        "A1.1": 21,
+        "A2.0": 128,
+        "A2.1": 39
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a critical unsafe interaction in the configuration validation logic.\n\n## Unsafe Interaction: `--load-format` and `--quantization` combination\n\n### Facts visible in the excerpt:\n\n1. **`load_format` field** (line ~250):\n   - Has choices including `\"expert_pack\"` which is described as \"experimental and intentionally narrow\"\n   - The help text states it's \"validated only for DeepSeek-V4-Flash-0731 MXFP4 GGUF (MXFP4 experts, FP8 dense weights) and KIM"
+    },
+    {
+      "wave": "B.1",
+      "case": 1,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 7,
+        "A2.0": 0,
+        "A2.1": 7
+      },
+      "text": "Looking at this SGLang scheduler source, I can see the core scheduling state machine and identify a latency optimization opportunity. Let me analyze the key components:\n\n## Scheduling State Machine Analysis\n\n### Visible State Transitions (Facts from code):\n\n1. **Request Intake**: `process_input_requests()` receives requests and dispatches them via `_request_dispatcher` to handlers like `handle_generate_request()`\n\n2. **Queue Management**: Requests enter either:\n   - `waiting_queue` (normal mode)\n   - `disagg_prefill_bootstrap_queue` (prefill disaggregation)\n   - `disagg"
+    },
+    {
+      "wave": "B.1",
+      "case": 2,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 33,
+        "A1.1": 33,
+        "A2.0": 33,
+        "A2.1": 43
+      },
+      "text": "Looking at this DeepSeek-V4 forward path, I can identify a critical correctness hazard in the `_forward_prepare` method related to the handling of `kv` in the unified KV cache path.\n\n## Correctness Hazard: KV Cache Store Race Condition\n\n### The Issue\n\nIn `_forward_prepare`, when `unified_kv` is enabled and we're in the non-fused path (the `else` branch at line ~890), there's a critical race condition:\n\n```python\nelse:\n    q_lora = self.q_norm(q_lora)\n    q = self._compute_q_b(q_l"
+    },
+    {
+      "wave": "B.1",
+      "case": 3,
+      "matching_controls": [
+        "A1.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 10,
+        "A2.0": 1,
+        "A2.1": 1
+      },
+      "text": "## Detailed Technical Analysis\n\n### Allocation Invariants in the Excerpt\n\nFrom the code, I can identify several critical allocation invariants:\n\n1. **ReqToTokenPool Slot Management**:\n   - Slot 0 is reserved as a padding row (line: `self._alloc_size = size + 1`)\n   - Free slots are tracked in `self.free_slots` starting from index 1\n   - `alloc_rows()` pops from the tail of `free_slots` for O(need_size) efficiency\n   - `free_rows()` extends `free_slots` with returned indices\n   - Generation counter (`"
+    },
+    {
+      "wave": "B.1",
+      "case": 4,
+      "matching_controls": [
+        "A1.0",
+        "A1.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 128,
+        "A1.1": 128,
+        "A2.0": 2,
+        "A2.1": 2
+      },
+      "text": "## Technical Review: Weight-Loading Concurrency and Error Propagation\n\n### Facts Visible in the Excerpt\n\n1. **Concurrency Mechanisms**:\n   - `buffered_multi_thread_safetensors_weights_iterator` uses `max_workers` (default 8) for parallel weight loading\n   - `multi_thread_pt_weights_iterator` also uses `max_workers` for parallel loading\n   - `_prefetch_all_checkpoints` uses `num_threads` for background prefetching\n   - `PreshardedModelLoader._dump_state_to_disk` uses `ThreadPoolExecutor` for has"
+    },
+    {
+      "wave": "B.1",
+      "case": 5,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 3,
+        "A2.0": 14,
+        "A2.1": 3
+      },
+      "text": "Looking at this DSA (DeepSeek Sparse Attention) backend code, I can identify the sparse-attention dataflow and its likely bottleneck. Let me break this down:\n\n## Sparse-Attention Dataflow\n\nThe dataflow for sparse attention in this backend follows this pattern:\n\n1. **Metadata Preparation** (`init_forward_metadata`):\n   - Computes sequence lengths, cumulative sequence lengths, and page tables\n   - Creates `dsa_cache_seqlens_int32` (clipped to `topk`), `dsa_cu_seqlens_k`, and `dsa_seqlens_expanded"
+    },
+    {
+      "wave": "B.1",
+      "case": 6,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 9,
+        "A1.1": 63,
+        "A2.0": 0,
+        "A2.1": 0
+      },
+      "text": "Looking at this SGLang source excerpt for the DeepSeekV2 model, I need to analyze the expert and attention dispatch boundaries. Let me examine the key components:\n\n## Expert Dispatch Boundaries\n\nThe expert dispatch is handled through the `DeepseekV2MoE` class, which has several dispatch paths:\n\n### 1. **Standard Dispatch (non-A2A)**\n- `forward_normal()`: Sequential execution with shared experts computed before routed experts\n- `forward_normal_dual_stream()`: Uses alt_stream for shared expert overlap\n- `forward_cpu()`: CPU-specific path\n\n### 2. **A2"
+    },
+    {
+      "wave": "B.1",
+      "case": 7,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 49,
+        "A1.1": 49,
+        "A2.0": 49,
+        "A2.1": 49
+      },
+      "text": "Looking at this SGLang source excerpt, I can identify a batch-compaction edge case in the `filter_batch` method. The issue is in how the method handles the case when all requests are filtered out.\n\n## Edge Case Analysis\n\n**Facts visible in the excerpt:**\n1. `filter_batch` is called with either `chunked_req_to_exclude` or `keep_indices` parameters\n2. When `keep_indices` is `None`, it computes indices based on `finished()` status and exclusion list\n3. The method calls `strip_beam_tail(self)` at the start"
+    },
+    {
+      "wave": "B.1",
+      "case": 8,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 0,
+        "A2.0": 0,
+        "A2.1": 0
+      },
+      "text": "I'll review the distributed helper failure handling in this SGLang source excerpt, focusing on the `broadcast_pyobj` and `point_to_point_pyobj` functions, and propose a safer contract.\n\n## Facts Visible in the Excerpt\n\n1. **`broadcast_pyobj` function** (lines ~1200-1260):\n   - Uses `torch.distributed.broadcast` for both size and data tensors\n   - Has a special ROCm/HIP barrier workaround\n   - Returns `data` on source rank, `[]` on non-source ranks for empty payloads\n  "
+    },
+    {
+      "wave": "B.1",
+      "case": 9,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 12,
+        "A1.1": 65,
+        "A2.0": 128,
+        "A2.1": 2
+      },
+      "text": "Looking at the `generate_request` method and the request admission flow, I can identify a significant avoidable host serialization issue in the request admission path.\n\n## Facts Visible in the Excerpt\n\n1. **`generate_request` is an async generator** that yields responses. It's called for each incoming request.\n2. **`_init_req_state` is called synchronously** at the start of `generate_request` before any async operations.\n3. **`_tokenize_one_request` is called sequentially** for single requests, and `_handle_batch_request` handles batch requests.\n4. **`_send_one_request"
+    },
+    {
+      "wave": "B.1",
+      "case": 10,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 52,
+        "A1.1": 10,
+        "A2.0": 18,
+        "A2.1": 10
+      },
+      "text": "## Backend Selection Analysis\n\n### Facts Visible in the Excerpt\n\n1. **Aiter is AMD-specific**: The import block explicitly states \"aiter is AMD specific kernel library\" and the `is_gfx95_supported()` function gates FP8 prefill attention.\n\n2. **Backend selection logic**: The `AiterAttnBackend` class extends `AttentionBackend` and is selected based on:\n   - Device type (AMD/ROCm)\n   - Model architecture (MLA vs standard attention)\n   - KV cache layout (vectorized_5d vs NHD)\n   - Sliding window attention support\n  "
+    },
+    {
+      "wave": "B.1",
+      "case": 11,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 9,
+        "A1.1": 0,
+        "A2.0": 3,
+        "A2.1": 3
+      },
+      "text": "Looking at this SGLang FP8 quantization source, I need to audit the scale handling and identify the most important numerical test. Let me analyze the key aspects:\n\n## Scale Handling Audit\n\n### 1. **Block Scale Initialization (Critical Issue)**\nIn `create_fp8_weight_` (line ~350), there's a critical scale initialization:\n```python\nscale_init = torch.zeros if scale_dtype == torch.uint8 else torch.empty\nscale = BlockQuantScaleParameter(\n    data=scale_init(\n        (output_size_per_partition + block_n - 1) // block_n,\n        (input"
+    },
+    {
+      "wave": "B.1",
+      "case": 12,
+      "matching_controls": [
+        "A2.1"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 0,
+        "A2.0": 0,
+        "A2.1": 128
+      },
+      "text": "## Eviction Correctness Under Concurrent Prefix Reuse\n\n### Technical Analysis\n\nThe eviction mechanism in `UnifiedRadixCache` must maintain correctness when multiple requests concurrently reuse prefixes. The core challenge is ensuring that eviction never frees KV cache slots that are still being referenced by active requests, while still allowing efficient memory reclamation.\n\n#### Key Mechanisms Visible in the Excerpt\n\n1. **Lock-based Protection**: The `inc_lock_ref`/`dec_lock_ref` mechanism (lines ~350-380) provides reference counting on tree nodes. When a request matches a prefix, it acquires a lock on the last node (`inc_lock"
+    },
+    {
+      "wave": "B.1",
+      "case": 13,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 3,
+        "A1.1": 66,
+        "A2.0": 117,
+        "A2.1": 117
+      },
+      "text": "Looking at this code, I can identify a potential deadlock scenario in the `GroupCoordinator.__init__` method, specifically in the loop that creates process groups. Let me analyze the collective ordering issue:\n\n## Deadlock Scenario Analysis\n\n### The Problem\nIn `GroupCoordinator.__init__`, there's a loop that creates process groups:\n```python\nfor ranks in group_ranks:\n    # Create device group\n    device_group = torch.distributed.new_group(ranks, backend=torch_distributed_backend, ...)\n    # Create CPU group\n    cpu_group = torch.distributed.new_group"
+    },
+    {
+      "wave": "B.1",
+      "case": 14,
+      "matching_controls": [
+        "A2.0"
+      ],
+      "common_prefix_tokens": {
+        "A1.0": 47,
+        "A1.1": 9,
+        "A2.0": 128,
+        "A2.1": 0
+      },
+      "text": "Looking at this source excerpt, I can see the override resolution system has grown complex with multiple layers of indirection. Let me analyze the key components and identify simplification opportunities.\n\n## Facts Visible in the Excerpt\n\n1. **Three override sources exist**:\n   - `MODEL_OVERRIDES`: constant dict keyed by architecture\n   - `_MODEL_OVERRIDE_FNS`: exact-architecture callables\n   - `_PREDICATE_OVERRIDE_FNS`: predicate-matched callables\n\n2. **Collection order** in `collect_model_override_declarations`:\n   - Constants first"
+    },
+    {
+      "wave": "B.1",
+      "case": 15,
+      "matching_controls": [],
+      "common_prefix_tokens": {
+        "A1.0": 0,
+        "A1.1": 0,
+        "A2.0": 0,
+        "A2.1": 0
+      },
+      "text": "# Backpressure Failure Mode in Decode Handoff\n\n## Facts Visible in the Excerpt\n\n1. **Queue Structure**: The decode server uses a 4-stage pipeline:\n   - `DecodePreallocQueue` (preallocation + handshake)\n   - `DecodeTransferQueue` (KV transfer polling)\n   - `WaitingQueue` (prebuilt batch construction)\n   - `RunningBatch` (actual decoding)\n\n2. **Transfer Queue Polling**: `pop_transferred()` polls all requests in the transfer queue via `_poll_with_metadata_gate()` which calls `poll_and_all_reduce()`.\n\n3."
+    }
+  ],
+  "source_sha256": {
+    "A1/quality.json": "e85cb23f1ffd5a79e1499ba15e2dccca62e213a732f59ae5c8560a0de8742bb3",
+    "B/quality.json": "fd5db69bcd02024c6cf6791f4c95ebb11ea5dd766e68f7b073c6bb314632f5d3",
+    "A2/quality.json": "b84b0c27d529ecb40da2597556771cadf6ffbd846918a57c67a86c8515e549ed"
+  }
+}
