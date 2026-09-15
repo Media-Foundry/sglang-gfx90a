@@ -2203,6 +2203,8 @@ class DeepseekV4HipRadixBackend(
                 reference = runtime.prefill(**prefill_args)
                 if not torch.equal(o.view(torch.uint8), reference.view(torch.uint8)):
                     raise RuntimeError("Prefill stages1 output differs from original stages2")
+                print(f"[TP{get_parallel().tp_rank}] prefill attention-stage1 checked: "
+                      f"layer={layer.layer_id} ratio={compress_ratio} rows={T} exact=1", flush=True)
             if not getattr(core_attn_metadata.unified, "_stage1_logged", False):
                 print(f"[TP{get_parallel().tp_rank}] prefill attention-stage1 selected: "
                       f"rows={T} heads={q.shape[1]} check={int(checking)}", flush=True)
