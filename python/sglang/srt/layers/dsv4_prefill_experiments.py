@@ -8,8 +8,10 @@ import torch
 
 POST_REUSE_ENV = "SGLANG_DSV4_PREFILL_POST_FUSED4"
 MIX_REUSE_ENV = "SGLANG_DSV4_PREFILL_MIX_REUSE4"
+MIX_PAIR_ENV = "SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS"
 _post_reuse = ContextVar("dsv4_prefill_post_fused4", default=False)
 _mix_reuse = ContextVar("dsv4_prefill_mix_reuse4", default=False)
+_mix_pair = ContextVar("dsv4_prefill_mix_pair_columns", default=False)
 
 
 def post_reuse_active():
@@ -18,6 +20,20 @@ def post_reuse_active():
 
 def mix_reuse_active():
     return _mix_reuse.get()
+
+
+def mix_pair_active():
+    return _mix_pair.get()
+
+
+def mix_pair_eligible(runner, batch):
+    # Do not inherit MIXED/DLLM modes admitted by the older reuse predicate.
+    return (
+        post_reuse_eligible(runner, batch)
+        and getattr(batch.forward_mode, "name", None) == "EXTEND"
+        and not getattr(runner, "is_draft_worker", False)
+        and getattr(runner.ps, "attn_dcp_size", 1) == 1
+    )
 
 
 def post_reuse_eligible(runner, batch):
@@ -83,9 +99,14 @@ def instrument_prefill_mix_reuse(fn):
                 and not torch.cuda.is_current_stream_capturing()
             )
         token = _mix_reuse.set(enabled)
+        pair_token = _mix_pair.set(
+            enabled and os.getenv(MIX_PAIR_ENV, "0") == "1"
+            and mix_pair_eligible(self.model_runner, batch)
+        )
         try:
             return fn(self, batch, *args, **kwargs)
         finally:
+            _mix_pair.reset(pair_token)
             _mix_reuse.reset(token)
 
     return wrapped

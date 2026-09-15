@@ -36,7 +36,7 @@ def _premix_reuse_kernel(x,fn,partials,out,M,BM:tl.constexpr,EPS:tl.constexpr=1e
         tl.store(out+(row+3)*24+n,acc3*tl.rsqrt(sq3/16384+EPS),mask=(n<24)&(row+3<M))
 
 
-def premix_reuse4(residual, fn, rms_partials, rms_eps, *, group_size=4):
+def premix_reuse4(residual, fn, rms_partials, rms_eps, *, group_size=4, pair_columns=False):
     m = residual.shape[0]
     tensors = (residual, fn, rms_partials)
     if not (
@@ -51,6 +51,13 @@ def premix_reuse4(residual, fn, rms_partials, rms_eps, *, group_size=4):
         return None
     out = torch.empty((m, 1, 24), dtype=torch.float32, device=residual.device)
     if group_size == 8 and 8192 <= m <= 65536:
+        if pair_columns:
+            from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_pair import premix8_pair
+
+            premix8_pair[(12, triton.cdiv(m, 8))](
+                residual, fn, rms_partials, out, m, float(rms_eps), num_warps=1
+            )
+            return out
         from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse8 import premix8
 
         premix8[(24, triton.cdiv(m, 8))](

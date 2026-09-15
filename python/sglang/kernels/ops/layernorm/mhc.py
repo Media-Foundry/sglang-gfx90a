@@ -33,8 +33,12 @@ if os.getenv("SGLANG_DSV4_PREFILL_POST_FUSED4", "0") == "1":
 
 _prefill_mix_reuse_active = None
 _prefill_mix_reuse_logged = False
+_prefill_mix_pair_active = None
+_prefill_mix_pair_logged = False
 if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
     from sglang.srt.layers.dsv4_prefill_experiments import mix_reuse_active as _prefill_mix_reuse_active
+    if os.getenv("SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS", "0") == "1":
+        from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active as _prefill_mix_pair_active
 
 _prefill_splitk_paths_logged = set()
 
@@ -557,8 +561,19 @@ def gfx90a_mhc_pre_mix_from_partials_triton(
             os.getenv("SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE", "4") == "8"
             and 8192 <= num_tokens <= 65536
         ) else 4
-        candidate = premix_reuse4(residual, fn, rms_partials, rms_eps, group_size=group_size)
+        pair_columns = bool(
+            group_size == 8 and _prefill_mix_pair_active is not None
+            and _prefill_mix_pair_active()
+        )
+        candidate = premix_reuse4(
+            residual, fn, rms_partials, rms_eps,
+            group_size=group_size, pair_columns=pair_columns,
+        )
         if candidate is not None:
+            global _prefill_mix_pair_logged
+            if pair_columns and not _prefill_mix_pair_logged:
+                logger.info("DSV4 native TP8 prefill mix-pair selected: rows=%d group=8 columns=2", num_tokens)
+                _prefill_mix_pair_logged = True
             global _prefill_mix_reuse_logged
             if not _prefill_mix_reuse_logged:
                 logger.info("DSV4 native TP8 prefill mix-reuse4 selected: rows=%d group=%d", num_tokens, group_size)

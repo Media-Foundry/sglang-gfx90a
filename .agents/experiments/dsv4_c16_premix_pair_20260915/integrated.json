@@ -1,0 +1,442 @@
+{
+  "status": "complete",
+  "checks": [
+    {
+      "m": 1,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 1,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 128,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 128,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 8191,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 8191,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 8192,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 8192,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 1
+    },
+    {
+      "m": 8192,
+      "caller_mutations": 10,
+      "bits_exact": true,
+      "pair_launches": 10
+    },
+    {
+      "m": 32767,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 32767,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 1
+    },
+    {
+      "m": 32767,
+      "caller_mutations": 10,
+      "bits_exact": true,
+      "pair_launches": 10
+    },
+    {
+      "m": 32768,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 32768,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 1
+    },
+    {
+      "m": 32768,
+      "caller_mutations": 10,
+      "bits_exact": true,
+      "pair_launches": 10
+    },
+    {
+      "m": 65536,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 65536,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 1
+    },
+    {
+      "m": 65536,
+      "caller_mutations": 10,
+      "bits_exact": true,
+      "pair_launches": 10
+    },
+    {
+      "m": 65537,
+      "group": 4,
+      "bits_exact": true,
+      "pair_launches": 0
+    },
+    {
+      "m": 65537,
+      "group": 8,
+      "bits_exact": true,
+      "pair_launches": 0
+    }
+  ],
+  "sources": {
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_pair.py": "136207a7d3b80821ff6cea815edcac716af0e291ef34d827b6650651cf815ebb",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py": "9f61f5433abcae3c1030ddc6bf0e038d6d49e8841d886994536f2e9147defe3d",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse8.py": "a3976a71ddae0bc09a55a0bf094c2aadb245549f060a9f7e6ca85fa42f9be72b",
+    "python/sglang/kernels/ops/layernorm/mhc.py": "b3648ff201ea939350e7c31d6461ace19230d4d557f9fb7f359eecc463f98bb4",
+    "python/sglang/srt/layers/dsv4_prefill_experiments.py": "693e45ba563b591bfdcec9ff7d3cf03dfc38988ad3642df30a242829afe57eb2"
+  },
+  "launches": [
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 8192,
+      "grid": [
+        12,
+        1024
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32767,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 32768,
+      "grid": [
+        12,
+        4096
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    },
+    {
+      "m": 65536,
+      "grid": [
+        12,
+        8192
+      ]
+    }
+  ]
+}
