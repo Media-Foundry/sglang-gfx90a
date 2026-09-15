@@ -5,6 +5,7 @@ virtual token with a unique FP32 output, followed by a fixed-order HIP sum.
 This uses six times the original FP32 accumulation scratch; default remains off.
 """
 import logging
+import os
 
 import torch
 
@@ -48,9 +49,21 @@ def ck_fixed_slot_stage2(ck_entry, inter, w1, w2, sorted_ids, sorted_experts,
     mod = fixed_slot_module()
     remapped = torch.empty_like(sorted_ids)
     mod.remap(sorted_ids, valid, remapped, m)
-    partial = torch.zeros((m * 6, 4096), device=out.device, dtype=torch.float32)
-    ck_entry(inter.view(m * 6, 1, k), w1, w2, remapped, sorted_experts,
-             valid, partial, 1, kernel_name, None, None, block_m, sorted_weights,
-             quant_type, activation, nt)
+    manifest = os.getenv('SGLANG_DSV4_DEBUG_CK_UNIQUE_MANIFEST')
+    if manifest:
+        from sglang.kernels.ops.debug.dsv4_ck_unique_store import eligible, load_verified
+        from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
+        if not mix_pair_active() or not eligible(m, t, k, block_m, kernel_name):
+            raise ValueError('unique CK experiment requires original-V4 TP8 native large-prefill scope')
+        if sorted_weights is None:
+            raise ValueError('unique CK experiment requires complete routed weights')
+        partial = torch.empty((m * 6, 4096), device=out.device, dtype=torch.float32)
+        load_verified(manifest).stage2(inter.view(m * 6, 1, k), w2, remapped,
+            sorted_experts, valid, sorted_weights, partial)
+    else:
+        partial = torch.zeros((m * 6, 4096), device=out.device, dtype=torch.float32)
+        ck_entry(inter.view(m * 6, 1, k), w1, w2, remapped, sorted_experts,
+                 valid, partial, 1, kernel_name, None, None, block_m, sorted_weights,
+                 quant_type, activation, nt)
     mod.reduce(partial.view(m, 6, 4096), out)
     return out

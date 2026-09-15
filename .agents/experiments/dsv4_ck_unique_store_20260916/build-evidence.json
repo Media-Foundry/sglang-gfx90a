@@ -1,0 +1,38 @@
+{
+  "archive_sha256": "184ba19c79127485cac2d1121a360c7cb7f811724516844a8578080c82cd285c",
+  "binaries_included": false,
+  "files": {
+    "build-15b711a6ba07/command-0.log": {
+      "bytes": 3701,
+      "sha256": "02ddaad642f0e0d143043a98ffc1288b6901e64773b56cf999b0b30a797fe581"
+    },
+    "build-15b711a6ba07/manifest.json": {
+      "bytes": 5377,
+      "sha256": "8fed7f7a8d1169e3e8668d423b4970633b79c555f37ece38c00bfed89125c329"
+    },
+    "build-5fe5f1d3ff25/command-0.log": {
+      "bytes": 1728,
+      "sha256": "4a39af9c4fd0d8994238c4307f4fbf92d5731299cbe7d9175bdba8971c2bc6ed"
+    },
+    "build-5fe5f1d3ff25/command-1.log": {
+      "bytes": 65962,
+      "sha256": "8de0ec9cd450c352e4c6fdfe96d4054cce8537004eff3fbe7bed7f8ee7ae9696"
+    },
+    "build-5fe5f1d3ff25/manifest.json": {
+      "bytes": 5885,
+      "sha256": "88ca5d800c42d175535ee855cd70d4e1a452e505d0e3532c29f9680599a6f916"
+    },
+    "build-ec7a051f9177/command-0.log": {
+      "bytes": 1728,
+      "sha256": "4a39af9c4fd0d8994238c4307f4fbf92d5731299cbe7d9175bdba8971c2bc6ed"
+    },
+    "build-ec7a051f9177/command-1.log": {
+      "bytes": 65962,
+      "sha256": "f8a522683d418443406e69d67cbcc76aa02b9ce6e68f6914fc111a4fab93bb3b"
+    },
+    "build-ec7a051f9177/manifest.json": {
+      "bytes": 5424,
+      "sha256": "3cec46b1dc9e1b90bc80fc28b19171a8722ffbcb5f4736895350e9431166f001"
+    }
+  }
+}

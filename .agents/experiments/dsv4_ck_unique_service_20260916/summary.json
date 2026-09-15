@@ -1,0 +1,60 @@
+{
+  "scope": "TP8 C16x8K original V4, original weights,1M pool, native AR; stages1, query producerOFF",
+  "legs": {
+    "A1": {
+      "median": 8399.05351604505,
+      "rates": [
+        8399.05351604505,
+        8395.353920484942,
+        8402.980603675578
+      ]
+    },
+    "B1": {
+      "median": 8382.156037954504,
+      "rates": [
+        8369.695189133408,
+        8384.895830765247,
+        8382.156037954504
+      ]
+    },
+    "B2": {
+      "median": 8379.820521783378,
+      "rates": [
+        8379.820521783378,
+        8371.69389105441,
+        8381.185624374864
+      ]
+    },
+    "A2": {
+      "median": 8372.178083707933,
+      "rates": [
+        8373.934660294266,
+        8372.178083707933,
+        8371.291061775311
+      ]
+    }
+  },
+  "control_input_tok_s": 8385.615799876492,
+  "candidate_input_tok_s": 8380.988279868941,
+  "change_pct": -0.05518402128105171,
+  "control_arm_drift_pct": -0.3199816775280251,
+  "interpretation": "Throughput parity, not a measured speed gain; deterministic stage2 reference maintained",
+  "repeat_exact": {
+    "A1": 16,
+    "B": 16,
+    "A2": 16
+  },
+  "candidate_vs_control_exact": {
+    "A1": 0,
+    "A2": 0
+  },
+  "source_checks": {
+    "common_paths": 29,
+    "all_equal": true
+  },
+  "caveats": [
+    "A1 process resumed after wall-clock birth guard failure, same PID after warmup",
+    "Client perf_counter timing unchanged; warmup excluded",
+    "One ABBA with3 rounds/leg; not arbitrary batch-independent or cached-decode determinism"
+  ]
+}

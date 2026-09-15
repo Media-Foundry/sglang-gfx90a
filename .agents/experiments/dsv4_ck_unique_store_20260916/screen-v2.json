@@ -1,0 +1,502 @@
+{
+  "diagnostic_only": true,
+  "physical_gcd": 6,
+  "build": {
+    "name": "dsv4_ck_unique_5fe5f1d3ff25",
+    "sources": {
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build.py": "4a437cc7d048059562d4e41bf751c95fe51a0cca14be83634d87a45e7d6dfb53",
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/entry.cu": "f3a2e1c11a4c06d63b0e134262e067530e957eae145807039d7c316e3032177e",
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/overlay/ck/tensor_operation/gpu/device/impl/device_moe_gemm.hpp": "840aa56b41217071eda26b0fff970edcdd0e0276168a75e865b671054dc794bd",
+      "/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include/ck/tensor_operation/gpu/device/impl/device_moe_gemm.hpp": "952290794be360bc36fcbf700b0e316675744cc8a6eb713c4607d820e7190c10",
+      "/home/pc/pytorch/third_party/aiter/csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages_common.cuh": "81c3e3caffb376c1bfdaeffd89df5fd73b49c9046e7d1a569933db1fd540527d",
+      "/home/pc/pytorch/third_party/aiter/aiter/jit/build/module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_/build/build.ninja": "e5c3b8fdb58d738d0594196d72b346014dbb14bf9effc589982827d50df9701e",
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/overlay/ck/tensor_operation/gpu/thread/threadwise_tensor_slice_transfer_v7r3_scatter.hpp": "9a3955c36b07c96bb80f1a12435d3059b621b26b4ebe3c295f4e69117591289a",
+      "/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include/ck/tensor_operation/gpu/thread/threadwise_tensor_slice_transfer_v7r3_scatter.hpp": "5d31c9f03ca6a8bab72a249ddf6a8fd204af4cf612130eef03a025633d753d92"
+    },
+    "commands": [
+      [
+        "/opt/rocm/bin/hipcc",
+        "-I/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/overlay",
+        "-DWITH_HIP",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
+        "-DTORCH_EXTENSION_NAME=dsv4_ck_unique_5fe5f1d3ff25",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/ck_helper",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/library/include",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/include",
+        "-I/home/pc/pytorch/third_party/aiter/aiter/jit/build/module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_/blob",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/ck_gemm_moe_2stages_codegen",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/include/torch",
+        "-I/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/pybind11/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/THC",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/THH",
+        "-isystem",
+        "/opt/rocm/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/TH",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/include/python3.12",
+        "-fPIC",
+        "-std=c++20",
+        "-O3",
+        "-std=c++20",
+        "-fPIC",
+        "-D__HIP_PLATFORM_AMD__=1",
+        "-DUSE_ROCM=1",
+        "-DHIPBLAS_V2",
+        "-DCUDA_HAS_FP16=1",
+        "-D__HIP_NO_HALF_OPERATORS__=1",
+        "-D__HIP_NO_HALF_CONVERSIONS__=1",
+        "-mcmodel=large",
+        "-fno-unique-section-names",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fvisibility=hidden",
+        "-fvisibility-inlines-hidden",
+        "--offload-arch=gfx90a",
+        "-DDLLVM_MAIN_REVISION=554784",
+        "-DLEGACY_HIPBLAS_DIRECT",
+        "-DTORCH_Float4_e2m1fn_x2",
+        "-DUSE_PROF_API=1",
+        "-D__HIP_PLATFORM_AMD__=1",
+        "-D__HIP_PLATFORM_HCC__=1",
+        "-U__HIP_NO_HALF_CONVERSIONS__",
+        "-U__HIP_NO_HALF_OPERATORS__",
+        "-Wno-macro-redefined",
+        "-Wno-missing-template-arg-list-after-template-kw",
+        "-Wno-switch-bool",
+        "-Wno-undefined-func-template",
+        "-Wno-unused-result",
+        "-Wno-vla-cxx-extension",
+        "-fgpu-flush-denormals-to-zero",
+        "-fno-offload-uniform-block",
+        "-mllvm",
+        "--amdgpu-kernarg-preload-count=16",
+        "-mllvm",
+        "--amdgpu-use-amdgpu-trackers=1",
+        "-mllvm",
+        "--lsr-drop-solution=1",
+        "-mllvm",
+        "--misched-prera-direction=bottomup",
+        "-mllvm",
+        "--slp-threshold=-32",
+        "-mllvm",
+        "-amdgpu-early-inline-all=true",
+        "-mllvm",
+        "-amdgpu-function-calls=false",
+        "-mllvm",
+        "-enable-post-misched=0",
+        "-mllvm",
+        "-greedy-reverse-local-assignment=1",
+        "-fno-gpu-rdc",
+        "-c",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/entry.cu",
+        "-o",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-5fe5f1d3ff25/entry.o"
+      ],
+      [
+        "/opt/rocm/bin/hipcc",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-5fe5f1d3ff25/entry.o",
+        "-shared",
+        "-mcmodel=large",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Wl,--gc-sections",
+        "-Wl,--cref",
+        "-L/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/lib",
+        "-lc10",
+        "-lc10_hip",
+        "-ltorch_cpu",
+        "-ltorch_hip",
+        "-ltorch",
+        "-ltorch_python",
+        "-L/opt/rocm/lib",
+        "-lamdhip64",
+        "-o",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-5fe5f1d3ff25/dsv4_ck_unique_5fe5f1d3ff25.so"
+      ]
+    ],
+    "module": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-5fe5f1d3ff25/dsv4_ck_unique_5fe5f1d3ff25.so",
+    "status": "complete",
+    "module_sha256": "2c73f064fbc16b32206d334a44c827a4f255c75611a65ac6ba9034d6f4b6e14d"
+  },
+  "cases": [
+    {
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "m": 8192,
+      "checks": [
+        {
+          "mutation": 0,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 1,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 2,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 3,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 4,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        }
+      ],
+      "poisoned_eager_replays": 30,
+      "unique_ownership_checked": true,
+      "scratch_bytes": 805306368,
+      "abba": {
+        "atomic": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 2.9976373672485352
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.87884578704834
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.8817907333374024
+            },
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 3.00640811920166
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 3.003015327453613
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.8136404037475584
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.8127761840820313
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 2.9937322616577147
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 2.997125434875488
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.87740535736084
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.8769252777099608
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 3.0035272598266602
+            }
+          ],
+          "median_ms": {
+            "atomic": 3.0003263473510744,
+            "unique": 2.8771653175354004
+          },
+          "speedup": 1.042806379273741
+        },
+        "fixed": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 4.468590927124024
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.873916244506836
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.8812788009643553
+            },
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 4.4644935607910154
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 4.467374420166015
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.874428367614746
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.873691940307617
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 4.462284851074219
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 4.462924957275391
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.878589630126953
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.877117156982422
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 4.4614521026611325
+            }
+          ],
+          "median_ms": {
+            "fixed": 4.4637092590332035,
+            "unique": 2.875772762298584
+          },
+          "speedup": 1.552177319972039
+        }
+      }
+    },
+    {
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "m": 32767,
+      "checks": [
+        {
+          "mutation": 0,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 1,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 2,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 3,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 4,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        }
+      ],
+      "poisoned_eager_replays": 30,
+      "unique_ownership_checked": true,
+      "scratch_bytes": 3221127168,
+      "abba": {
+        "atomic": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 10.741142272949219
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 10.688740539550782
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 10.679489898681641
+            },
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 10.7260009765625
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 10.735795593261718
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 10.64591064453125
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 10.641492462158203
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 10.725104522705077
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 10.738741302490235
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 10.689924621582032
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 10.694246673583985
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 10.728081512451173
+            }
+          ],
+          "median_ms": {
+            "atomic": 10.731938552856445,
+            "unique": 10.684115219116212
+          },
+          "speedup": 1.0044761155003894
+        },
+        "fixed": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 16.270661926269533
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 10.666172790527344
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 10.660411071777343
+            },
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 16.266372680664062
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 16.272550964355467
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 10.6586181640625
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 10.67385482788086
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 16.28455352783203
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 16.26061096191406
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 10.661338806152344
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 10.66092300415039
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 16.279623413085936
+            }
+          ],
+          "median_ms": {
+            "fixed": 16.2716064453125,
+            "unique": 10.661130905151367
+          },
+          "speedup": 1.5262551965711442
+        }
+      }
+    }
+  ],
+  "baseline_binary_sha256": "9a8d60c45857823a5582bd3401db3ffc1cb70210d62a3a781b8a68ca967e66ac",
+  "script_sha256": "34e72e36e5e18b230e964e323de3a946948a949e6304d841a04aca0667535c80",
+  "status": "complete"
+}

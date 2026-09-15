@@ -1,0 +1,315 @@
+{
+  "diagnostic_only": true,
+  "physical_gcd": 6,
+  "build": {
+    "name": "dsv4_ck_unique_ec7a051f9177",
+    "sources": {
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build.py": "ef61e80ca3e4dcad591a43b81ee4217be883fac31d7ada139fd9a247a9b6183c",
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/entry.cu": "f3a2e1c11a4c06d63b0e134262e067530e957eae145807039d7c316e3032177e",
+      "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/overlay/ck/tensor_operation/gpu/device/impl/device_moe_gemm.hpp": "840aa56b41217071eda26b0fff970edcdd0e0276168a75e865b671054dc794bd",
+      "/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include/ck/tensor_operation/gpu/device/impl/device_moe_gemm.hpp": "952290794be360bc36fcbf700b0e316675744cc8a6eb713c4607d820e7190c10",
+      "/home/pc/pytorch/third_party/aiter/csrc/ck_gemm_moe_2stages_codegen/gemm_moe_ck2stages_common.cuh": "81c3e3caffb376c1bfdaeffd89df5fd73b49c9046e7d1a569933db1fd540527d",
+      "/home/pc/pytorch/third_party/aiter/aiter/jit/build/module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_/build/build.ninja": "e5c3b8fdb58d738d0594196d72b346014dbb14bf9effc589982827d50df9701e"
+    },
+    "commands": [
+      [
+        "/opt/rocm/bin/hipcc",
+        "-I/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/overlay",
+        "-DWITH_HIP",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
+        "-DTORCH_EXTENSION_NAME=dsv4_ck_unique_ec7a051f9177",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/ck_helper",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include",
+        "-I/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/library/include",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/include",
+        "-I/home/pc/pytorch/third_party/aiter/aiter/jit/build/module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_/blob",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/ck_gemm_moe_2stages_codegen",
+        "-I/home/pc/pytorch/third_party/aiter/csrc/include/torch",
+        "-I/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/pybind11/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/THC",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/THH",
+        "-isystem",
+        "/opt/rocm/include",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/include/TH",
+        "-isystem",
+        "/home/pc/anaconda3/envs/DS/include/python3.12",
+        "-fPIC",
+        "-std=c++20",
+        "-O3",
+        "-std=c++20",
+        "-fPIC",
+        "-D__HIP_PLATFORM_AMD__=1",
+        "-DUSE_ROCM=1",
+        "-DHIPBLAS_V2",
+        "-DCUDA_HAS_FP16=1",
+        "-D__HIP_NO_HALF_OPERATORS__=1",
+        "-D__HIP_NO_HALF_CONVERSIONS__=1",
+        "-mcmodel=large",
+        "-fno-unique-section-names",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fvisibility=hidden",
+        "-fvisibility-inlines-hidden",
+        "--offload-arch=gfx90a",
+        "-DDLLVM_MAIN_REVISION=554784",
+        "-DLEGACY_HIPBLAS_DIRECT",
+        "-DTORCH_Float4_e2m1fn_x2",
+        "-DUSE_PROF_API=1",
+        "-D__HIP_PLATFORM_AMD__=1",
+        "-D__HIP_PLATFORM_HCC__=1",
+        "-U__HIP_NO_HALF_CONVERSIONS__",
+        "-U__HIP_NO_HALF_OPERATORS__",
+        "-Wno-macro-redefined",
+        "-Wno-missing-template-arg-list-after-template-kw",
+        "-Wno-switch-bool",
+        "-Wno-undefined-func-template",
+        "-Wno-unused-result",
+        "-Wno-vla-cxx-extension",
+        "-fgpu-flush-denormals-to-zero",
+        "-fno-offload-uniform-block",
+        "-mllvm",
+        "--amdgpu-kernarg-preload-count=16",
+        "-mllvm",
+        "--amdgpu-use-amdgpu-trackers=1",
+        "-mllvm",
+        "--lsr-drop-solution=1",
+        "-mllvm",
+        "--misched-prera-direction=bottomup",
+        "-mllvm",
+        "--slp-threshold=-32",
+        "-mllvm",
+        "-amdgpu-early-inline-all=true",
+        "-mllvm",
+        "-amdgpu-function-calls=false",
+        "-mllvm",
+        "-enable-post-misched=0",
+        "-mllvm",
+        "-greedy-reverse-local-assignment=1",
+        "-fno-gpu-rdc",
+        "-c",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/entry.cu",
+        "-o",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-ec7a051f9177/entry.o"
+      ],
+      [
+        "/opt/rocm/bin/hipcc",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-ec7a051f9177/entry.o",
+        "-shared",
+        "-mcmodel=large",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-Wl,--gc-sections",
+        "-Wl,--cref",
+        "-L/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/lib",
+        "-lc10",
+        "-lc10_hip",
+        "-ltorch_cpu",
+        "-ltorch_hip",
+        "-ltorch",
+        "-ltorch_python",
+        "-L/opt/rocm/lib",
+        "-lamdhip64",
+        "-o",
+        "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-ec7a051f9177/dsv4_ck_unique_ec7a051f9177.so"
+      ]
+    ],
+    "module": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_unique_store_20260916/build-ec7a051f9177/dsv4_ck_unique_ec7a051f9177.so",
+    "status": "complete",
+    "module_sha256": "6d77b34ba162e5988bd512e0b764f0e74a2de28f3cd35c0422c00dca450197c6"
+  },
+  "cases": [
+    {
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "m": 8192,
+      "checks": [
+        {
+          "mutation": 0,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 1,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 2,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 3,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        },
+        {
+          "mutation": 4,
+          "partial_finite": true,
+          "partial_byte_exact": true,
+          "output_byte_exact": true,
+          "max_abs": 0.0
+        }
+      ],
+      "poisoned_eager_replays": 30,
+      "unique_ownership_checked": true,
+      "scratch_bytes": 805306368,
+      "abba": {
+        "atomic": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 3.006442832946777
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.891310119628906
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.8904781341552734
+            },
+            {
+              "cycle": 0,
+              "arm": "atomic",
+              "ms": 3.0144746780395506
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 3.01293888092041
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.846543312072754
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.847183418273926
+            },
+            {
+              "cycle": 1,
+              "arm": "atomic",
+              "ms": 3.01572265625
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 3.002379035949707
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.897837829589844
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.8981578826904295
+            },
+            {
+              "cycle": 2,
+              "arm": "atomic",
+              "ms": 3.010410499572754
+            }
+          ],
+          "median_ms": {
+            "atomic": 3.011674690246582,
+            "unique": 2.89089412689209
+          },
+          "speedup": 1.0417796564152764
+        },
+        "fixed": {
+          "records": [
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 4.458689498901367
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.8918220520019533
+            },
+            {
+              "cycle": 0,
+              "arm": "unique",
+              "ms": 2.8961418151855467
+            },
+            {
+              "cycle": 0,
+              "arm": "fixed",
+              "ms": 4.458849716186523
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 4.459617614746094
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.8952136993408204
+            },
+            {
+              "cycle": 1,
+              "arm": "unique",
+              "ms": 2.8899019241333006
+            },
+            {
+              "cycle": 1,
+              "arm": "fixed",
+              "ms": 4.459393692016602
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 4.460865020751953
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.8936140060424806
+            },
+            {
+              "cycle": 2,
+              "arm": "unique",
+              "ms": 2.8959497451782226
+            },
+            {
+              "cycle": 2,
+              "arm": "fixed",
+              "ms": 4.459553527832031
+            }
+          ],
+          "median_ms": {
+            "fixed": 4.459473609924316,
+            "unique": 2.8944138526916507
+          },
+          "speedup": 1.5407173392903863
+        }
+      }
+    }
+  ],
+  "baseline_binary_sha256": "9a8d60c45857823a5582bd3401db3ffc1cb70210d62a3a781b8a68ca967e66ac",
+  "script_sha256": "47275e949c2f178ec40918c8b6b63d22374b8e7852166e3ece9f2849f66aa28c"
+}
