@@ -1,0 +1,25 @@
+{
+  "status": "accepted_scoped_profile",
+  "control": 7374.421811455272,
+  "candidate": 7953.956103046012,
+  "gain_pct": 7.858708199882236,
+  "original_weights": true,
+  "logical_kv_tokens": 1048576,
+  "current_control_output_matches": 31,
+  "historical_control_match_for_remaining": true,
+  "historical_sha256": "b345864c083ffb2ebbdf55b85816ee67800b10e9243af508552a3b587fbe23ee",
+  "manual_review_sha256": "a8ab13f54cfb5c30ec9deadb0e8c42b67b552ada7a289a96afb680a223bf13d0",
+  "post_measurement_changes": {
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_owner.py": {
+      "tested": "97a33eb81c5cad0b72efc15ea78858d34233b3962032a66f35c5bf55e6f8a8bf",
+      "current": "76d4767bb7b052830ea262b32be2f33c4347e6061e94effa12b5d08da42d6bd5"
+    },
+    "scripts/rocm_dsv4_flash.sh": {
+      "tested": "72970bc23497b8a343be0e53636c90905a40d363c2212f8406d1a227b50b1201",
+      "current": "95af8777972391cfaff0ead5d49596c21e454006e9273b4bbe90925f83eefb88"
+    }
+  },
+  "post_measurement_validation": "14 CPU tests, bash syntax, AST equivalence except CPU width guard, and eight-rank shape checks passed.",
+  "global_drift_solved": false,
+  "all_gpus_released": true
+}

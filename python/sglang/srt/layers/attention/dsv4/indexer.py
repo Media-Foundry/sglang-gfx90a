@@ -1392,6 +1392,42 @@ class C4IndexerBackendMixin:
                         dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(),
                         fp8_fnuz=is_fp8_fnuz(),
                     )
+                if (
+                    os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_OWNER", "0") == "1"
+                    and fn is fp8_paged_mqa_logits_torch
+                    and not use_fp4_indexer
+                    and not enable_multi_stream
+                    and self._use_c4_prefill_query_reuse(forward_batch, c4_indexer, q.shape[0])
+                    and getattr(get_parallel(), "attn_dcp_size", 1) == 1
+                    and (forward_batch.spec_algorithm is None or forward_batch.spec_algorithm.is_none())
+                    and c4_indexer.compressor.ratio == 4
+                    and indexer_metadata.c4_page_size == 64
+                    and not indexer_metadata.use_prefill_cuda_graph
+                    and not self.debug_use_external_c4_sparse_indices
+                    and self.hisparse_coordinator is None
+                    and get_global_indexer_capturer() is None
+                    and not envs.SGLANG_OPT_USE_TOPK_V2.get()
+                    and envs.SGLANG_DSV4_GFX90A_INDEXER_BLOCK_S.get() == 16
+                    and os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE", "4") == "16"
+                    and os.getenv("SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M", "0") == "1"
+                ):
+                    from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_owner import forward as owner_forward
+                    from sglang.srt.distributed.parallel_state import get_tp_group
+
+                    if owner_forward(
+                        q=q, cache=c4_indexer_kv_cache, weights=weights, lengths=_c4sl,
+                        pages=page_table, width=indexer_metadata.max_c4_seq_len,
+                        output=c4_sparse_page_indices, raw_output=core_metadata.c4_sparse_raw_indices,
+                        batch=forward_batch, metadata=indexer_metadata,
+                        rank=get_parallel().tp_rank, group=get_tp_group().device_group,
+                        preshuffle_tile=(INDEXER_K_CACHE_PRESHUFFLE_TILE
+                            if aiter_can_use_preshuffle_paged_mqa() else 0),
+                        dot_fp16=envs.SGLANG_DSV4_GFX90A_INDEXER_FP16_DOT.get(), fp8_fnuz=is_fp8_fnuz(),
+                    ):
+                        if _prefill_detail_mark is not None:
+                            _prefill_detail_mark(53, "indexer_owner_chain_done", absolute=True)
+                            _prefill_detail_mark(54, "indexer_topk_done", absolute=True)
+                        return
                 # Experimental prefill-only optimization. Do not change live
                 # lengths or compressor/cache updates: later queries need keys
                 # produced by rows whose own selection is currently trivial.

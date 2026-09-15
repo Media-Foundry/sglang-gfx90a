@@ -1,0 +1,96 @@
+{
+  "status": "timing_closed_quality_review_pending",
+  "control": 7374.421811455272,
+  "candidate": 7953.956103046012,
+  "gain_pct": 7.858708199882236,
+  "legs": {
+    "A1": {
+      "rates": [
+        7373.5861943392965,
+        7377.219289891019,
+        7373.8334482381315
+      ],
+      "median": 7373.8334482381315
+    },
+    "B1": {
+      "rates": [
+        7952.034540574266,
+        7957.372277599572,
+        7957.039750244164
+      ],
+      "median": 7957.039750244164
+    },
+    "B2": {
+      "rates": [
+        7955.093031342578,
+        7950.872455847859,
+        7942.312595328036
+      ],
+      "median": 7950.872455847859
+    },
+    "A2": {
+      "rates": [
+        7365.768520929583,
+        7375.010174672413,
+        7376.867979891025
+      ],
+      "median": 7375.010174672413
+    }
+  },
+  "quality": {
+    "A1": {
+      "repeat_exact": 16
+    },
+    "B": {
+      "repeat_exact": 15
+    },
+    "A2": {
+      "repeat_exact": 16
+    }
+  },
+  "formal_input_echoes": 192,
+  "artifact_sha256": {
+    "A1/complete.json": "b0111a7eeb5bacc5bf0131a1320a6f2b3c31b8636ee33b259435461c5805a4c4",
+    "A1/P16-owner-A1.stop.json": "87788f9581f75684df89fb7c47c89b9da224318034c326bc947012a369218c6f",
+    "A1/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "A1/A1.json": "750dad1b3c58962787e6ff39b6f1d31b15db8be30c2d4db2a464e852512e6dc3",
+    "A1/quality-0.json": "9bafafb74191221f9add1679896be46fbe72b4df84a464b42122a7e26034efff",
+    "A1/quality-1.json": "f85a7e3d5d16d7fb6ca443de6f30b1cb587e27de24ded81acfe2566205e2f507",
+    "B/complete.json": "ecfe5c97cf732d5b9417074922b4b63093fc80d4f6f8b8adf06346e32a97482a",
+    "B/P16-owner-B.stop.json": "71e53096cbc25d79cc6ee82bb805b90c95fe4ee697e0dda88d07b8fa3c672c77",
+    "B/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "B/B1.json": "900d08078b8e361af657acb85405e31aa8ff18f5e30f4a20b8496e76d28baf40",
+    "B/B2.json": "05af76a166b3e849d401f91cd9f862d4478d312e9433dc6fb19f240cceb54ad9",
+    "B/quality-0.json": "4595e6efe400ab8a66a615358f58b810f078b2097095db925ab4cc91162ae3f4",
+    "B/quality-1.json": "b2fd42cd1fdfd2c0bc781b0046e57ef23c9819cd1a299c4839dea91fa5ddee7e",
+    "A2/complete.json": "7feabc333d7068b61ac0f7cd416d9fa773492bc357bb15e15de2da99c4124edd",
+    "A2/P16-owner-A2.stop.json": "0b11a52ebd3709ff45ea782ef29b1951db419e5c0e6e9de9eff13aa179642685",
+    "A2/inputs.json": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b",
+    "A2/A2.json": "13ab944f22d81d2838fcb2f43a1d139c274a24b03fe9f9f57435f128c75fdde0",
+    "A2/quality-0.json": "179751c040f2672d0f2717e2b643550e24b3cda84b4fc2477ebbd507f83c0a95",
+    "A2/quality-1.json": "5c157de7ae62e0efd0dc2445336a6c3cf0cf25315a14135e3128903f277f899d"
+  },
+  "sources": {
+    ".agents/experiments/dsv4_c16_indexer_owner_service_20260915/run.py": "e6169f3a10ab24d2ad2b77cce8bae8267153437da5dea9f76606aa42e1389562",
+    ".agents/experiments/dsv4_c16_premix_pair_service_20260915/client.py": "42e7137fdc506438f5a67757fa0584dcec79393f4741f9b3ff05dbb208e89e8f",
+    ".agents/experiments/dsv4_c16_premix_pair_service_20260915/run.py": "6b80db12ed50d65d4965ac711521b6c93ec1e91698e150c3e66d3b08006b054d",
+    ".agents/experiments/dsv4_tp8_ar_down_consumer_20260914/trial.py": "0c832a9b19d7fc4c92127f0af2bd170f29d120ed6fe9a53a0feeb75b4088d87f",
+    "python/sglang/kernels/jit/csrc/deepseek_v4/topk_deterministic_hip.cuh": "30eef666b2ec883d3506ce2c3a7e6b6f5ec711e62148ca9837e578b8ea1a8228",
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_owner.py": "97a33eb81c5cad0b72efc15ea78858d34233b3962032a66f35c5bf55e6f8a8bf",
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_query_reuse.py": "7995a0aba884e239afa9e9a7c1e352e6adc5bee767c2eeac3cc59539a2115ba0",
+    "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_runtime_m.py": "3a517906502a7c20c9fd1be3a556e17fde653d0c9c06bf2b4a1350c0e2eda609",
+    "python/sglang/kernels/ops/attention/dsv4/topk.py": "958999b73f38b74decbd306de79fd510b1f4db58f3c05756c7bbc9efdc819d0c",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_post_fused4.py": "04ca9d1fe74098e7cc33a7f595318b54936ab1bbca142c892ff8bfbec47fac3a",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_pair.py": "136207a7d3b80821ff6cea815edcac716af0e291ef34d827b6650651cf815ebb",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse.py": "9f61f5433abcae3c1030ddc6bf0e038d6d49e8841d886994536f2e9147defe3d",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse8.py": "a3976a71ddae0bc09a55a0bf094c2aadb245549f060a9f7e6ca85fa42f9be72b",
+    "python/sglang/kernels/ops/layernorm/mhc.py": "b3648ff201ea939350e7c31d6461ace19230d4d557f9fb7f359eecc463f98bb4",
+    "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "ddb372743ba34a9b06795884f48aa4a9849ae275c3a1d3d45ec2055538d2d5ac",
+    "python/sglang/srt/distributed/parallel_state.py": "2090a9eb6f02998d2b37e774430c2bec8c5e04a2a92d2cb9cd064af918611546",
+    "python/sglang/srt/layers/attention/dsv4/indexer.py": "f1e2de3b86560eec2619ba5199ede648084147acaf934c0700a299b5847e14d8",
+    "python/sglang/srt/layers/dsv4_prefill_experiments.py": "693e45ba563b591bfdcec9ff7d3cf03dfc38988ad3642df30a242829afe57eb2",
+    "python/sglang/srt/model_executor/runner/eager_runner.py": "b5d64b723ec3e7e4cdea4b494efbbc6d784f9f3f4a2e7bee9e56459953b5bf75",
+    "scripts/rocm_dsv4_flash.sh": "72970bc23497b8a343be0e53636c90905a40d363c2212f8406d1a227b50b1201"
+  },
+  "default_enabled": false
+}

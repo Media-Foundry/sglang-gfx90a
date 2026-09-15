@@ -1,0 +1,116 @@
+{
+  "status": "complete",
+  "scope": "Additional owner ABI/metadata shapes using captured Q/K values, not E2E data.",
+  "ranks": 8,
+  "cases": [
+    {
+      "rows": 8192,
+      "extend": [
+        8192
+      ],
+      "prefix": [
+        0
+      ],
+      "hit": true,
+      "dual_checks_passed": true,
+      "fallback_untouched": false
+    },
+    {
+      "rows": 8193,
+      "extend": [
+        8192,
+        1
+      ],
+      "prefix": [
+        0,
+        4096
+      ],
+      "hit": true,
+      "dual_checks_passed": true,
+      "fallback_untouched": false
+    },
+    {
+      "rows": 12289,
+      "extend": [
+        6144,
+        6145
+      ],
+      "prefix": [
+        0,
+        2047
+      ],
+      "hit": true,
+      "dual_checks_passed": true,
+      "fallback_untouched": false
+    },
+    {
+      "rows": 65536,
+      "extend": [
+        8192,
+        8192,
+        8192,
+        8192,
+        8192,
+        8192,
+        8192,
+        8192
+      ],
+      "prefix": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hit": true,
+      "dual_checks_passed": true,
+      "fallback_untouched": false
+    },
+    {
+      "rows": 8192,
+      "extend": [
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512
+      ],
+      "prefix": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hit": false,
+      "dual_checks_passed": false,
+      "fallback_untouched": true
+    }
+  ],
+  "invalid_truncated_score_width_rejected": true
+}

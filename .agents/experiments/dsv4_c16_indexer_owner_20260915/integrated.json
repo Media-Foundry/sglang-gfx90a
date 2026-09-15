@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "ranks": 8,
+  "mutations": 3,
+  "rows": 32767,
+  "fixture_sha256": "e8af1db41d405970f281f562e03afeaa5945bf3341fd639d7459b1dbe00f2253",
+  "actual_service_helper": true,
+  "cpu_metadata_matches_live_lengths": true,
+  "all_scores_and_topk_exact": true
+}

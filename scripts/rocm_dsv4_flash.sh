@@ -134,6 +134,10 @@ if [[ "${GFX90A_TP8_MULTI_REQUEST_PROFILE}" == "1" ]]; then
       # Explicit group4/8 or runtime0 remain available; other profiles unchanged.
       export SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE="${SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE:-16}"
       export SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M="${SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M:-1}"
+      # Exact query-owner logits/Top-K; full query/compressor remain unchanged.
+      # C16 x8K / 1M KV ABBA: 7374.42 -> 7953.96 input tok/s (+7.86%).
+      # Runtime excludes AR/spec/draft/CP and unsupported shapes; explicit0 wins.
+      export SGLANG_DSV4_C4_PREFILL_QUERY_OWNER="${SGLANG_DSV4_C4_PREFILL_QUERY_OWNER:-1}"
     fi
   fi
 fi
