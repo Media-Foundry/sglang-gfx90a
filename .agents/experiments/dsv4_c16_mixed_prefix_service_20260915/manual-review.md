@@ -60,3 +60,23 @@ the candidate's other alleged defects/line references are certified true.
 
 B wave1 and both A2 quality waves remain pending. No global-determinism or
 candidate-quality-improvement claim follows from this first candidate wave.
+
+## B quality wave1 and completion
+
+Read all16 second-wave excerpts; all differ from B wave0. They are coherent,
+code-topic-related, and show no obvious repetitive collapse/garbling in this
+bounded sample. Several choose different suspected issues (for example case2
+switches to a purported KV-store race), which are not validated repository
+findings. Case8 again discusses supplied distributed helper functions.
+
+Full-repeat0/16, first-token-repeat12/16; compare A1's1/16 and12/16. This is
+not stable generation, nor sufficient evidence for attributing drift to the
+candidate. First divergence indices(case:index):
+`0:21,1:12,2:33,3:1,4:2,5:14,6:63,7:49,8:0,9:41,10:0,11:3,12:0,13:24,14:47,15:0`.
+
+B stopped with remaining owned PIDs=[]; A2 started separately. Final-control
+review and completed ABBA analysis remain required.
+
+Independent local-tokenizer verification of both B waves passes32/32 exact
+input echoes and32/32 output-ID/text equality,128 completion tokens each,
+with the same planned/actual cache vector in each wave.

@@ -132,3 +132,17 @@ Do not compare this remaining-token rate directly to zero-prefix32K throughput:
 the retained queries have longer average visible history after prefix hits.
 This is a workload distinction, not a measured per-stage attribution; a
 mixed-prefix critical-path profile would be needed to quantify the causes.
+
+## Candidate quality complete; A2 loading
+
+Read all32 B quality excerpts, independently verified32/32 input echoes and
+tokenizer decoding,128 output IDs each and identical planned/actual cache
+vectors. No obvious looping/garbling; claimed code defects remain unverified.
+Full-output repeat0/16, first-token repeat12/16, versus A1's1/16 and12/16.
+Both candidate waves discuss the actual distributed helper code in case8.
+Do not infer global determinism, quality improvement, or causal drift
+attribution from these unstable-control results. See manual-review.md.
+
+B's owned process tree stopped with remaining=[]; A2 PID1527919 was
+birth-verified live and loading. Revalidate before further work. A2 timings,
+quality and final analysis/package are still outstanding; defaults unchanged.
