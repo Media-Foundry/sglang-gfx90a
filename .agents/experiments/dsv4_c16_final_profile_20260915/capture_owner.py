@@ -4,11 +4,19 @@ import importlib.util
 import json
 from pathlib import Path
 import time
+import argparse
 
 root=Path(__file__).resolve().parent;repo=root.parents[2]
-source=root.parent/'dsv4_c16_indexer_owner_service_20260915/B'
-accept=json.loads((source.parent/'acceptance.json').read_text())
-assert accept['status']=='accepted_scoped_profile' and accept['candidate']>7900
+parser=argparse.ArgumentParser()
+parser.add_argument('--producer',action='store_true',help='Profile default-off, non-bitwise owner-Q candidate')
+args=parser.parse_args()
+source=root.parent/('dsv4_c16_owner_producer_perf_20260915/B' if args.producer else 'dsv4_c16_indexer_owner_service_20260915/B')
+accept=json.loads((source.parent/('analysis.json' if args.producer else 'acceptance.json')).read_text())
+if args.producer:
+    assert accept['candidate_center']>8200 and accept['formal_echoes']==192
+    assert json.loads((source/'P16-producer-perf-B.stop.json').read_text())['remaining']==[]
+else:
+    assert accept['status']=='accepted_scoped_profile' and accept['candidate']>7900
 historical=json.loads((source/'plan.json').read_text())
 manifest=json.loads((source/'inputs.json').read_text())
 assert len(manifest['requests'])==16 and sum(len(r['input_ids']) for r in manifest['requests'])==131069
@@ -28,7 +36,7 @@ assert set(differences)<={
     'python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py',
     'python/sglang/srt/models/deepseek_v4.py',
     'python/sglang/srt/layers/attention/dsv4/indexer.py'},differences
-out=root/'capture-owner-current';out.mkdir(exist_ok=False)
+out=root/('capture-producer-current' if args.producer else 'capture-owner-current');out.mkdir(exist_ok=False)
 directory=out/'markers';directory.mkdir()
 helper=repo/'.agents/experiments/dsv4_tp8_ar_down_consumer_20260914/trial.py'
 spec=importlib.util.spec_from_file_location('owner_marker_life',helper)
@@ -41,11 +49,13 @@ flags=(f'export SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR={directory}\n'
        'unset SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES\n'
        'unset SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR SGLANG_DSV4_DEBUG_FIRST_DIV_DIR\n'
        'unset SGLANG_DSV4_DEBUG_INDEXER_OWNER_DIR SGLANG_DSV4_DEBUG_STAGE_DUMP_DIR\n'
-       'unset SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR\n')
+       'unset SGLANG_DSV4_DEBUG_ATTN_DUMP_DIR\n'
+       f'export SGLANG_DSV4_C4_PREFILL_QUERY_PRODUCER={int(args.producer)}\n'
+       'export SGLANG_DSV4_DEBUG_OWNER_PRODUCER_CHECK=0\n')
 (out/'start-ar-matrix.sh').write_text(launcher.replace(needle,flags+needle))
 life.save('inputs.json',manifest)
 life.save('plan.json',dict(diagnostic_only=True,accepted_performance=accept,
-    sources=hashes,source_differences=differences,
+    sources=hashes,source_differences=differences,producer_candidate=args.producer,
     input_sha256=hashlib.sha256((source/'inputs.json').read_bytes()).hexdigest()))
 state=life.start('P16-markers-B',0)
 try:
@@ -58,6 +68,8 @@ try:
               'C4_PREFILL_EMPTY_TILE_SKIP':'1','PREFILL_POST_FUSED4':'1',
               'PREFILL_MIX_REUSE4':'1','C4_PREFILL_QUERY_REUSE4':'1',
               'DEBUG_PREFILL_OWNER_CHECK':'0','GFX90A_BF16_CK_FIXED_SLOT':'0'}
+    expected['C4_PREFILL_QUERY_PRODUCER']=str(int(args.producer))
+    expected['DEBUG_OWNER_PRODUCER_CHECK']='0'
     assert all(env['SGLANG_DSV4_'+k]==v for k,v in expected.items())
     assert env['SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR']==str(directory)
     info=json.loads((out/'P16-markers-B.server-info.json').read_text())
@@ -88,7 +100,8 @@ try:
         if wave==0:
             text=Path(state['log']).read_text()
             for rank in range(8):
-                assert any(f'TP{rank}]' in line and 'prefill query-owner selected:' in line and 'width=2048' in line for line in text.splitlines())
+                mode='producer' if args.producer else 'owner'
+                assert any(f'TP{rank}]' in line and f'prefill query-{mode} selected:' in line and 'width=2048' in line for line in text.splitlines())
                 assert any(f'TP{rank}]' in line and 'prefill mix-pair selected:' in line and 'group=8 columns=2' in line for line in text.splitlines())
     life.save('complete.json',dict(input_echo_exact=64,frames=128,diagnostic_only=True))
 finally:life.stop(state)

@@ -1,0 +1,429 @@
+{
+  "scope": "Isolated native two-bank attention pipeline/K-tile screen, not service rates.",
+  "real_capture": false,
+  "rows": 8192,
+  "status": "complete",
+  "results": [
+    {
+      "family": "c128",
+      "candidate": "stages1",
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          1.969868278503418,
+          1.9886844635009766,
+          1.9873723983764648,
+          1.9832443237304687,
+          1.994476318359375,
+          1.9782524108886719
+        ],
+        "B": [
+          1.386984634399414,
+          1.3804566383361816,
+          1.3882647514343263,
+          1.3832085609436036,
+          1.386728572845459,
+          1.3814167976379395
+        ]
+      },
+      "median_ms": {
+        "A": 1.9853083610534668,
+        "B": 1.3849685668945313
+      },
+      "rate_gain_pct": 43.34681728590111,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 376,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 1,
+          "hsaco_sha256": "ca20cfa579b7abdf37decea8acaf89ff2e58ab6a9c788591a457c13127da7221"
+        }
+      }
+    },
+    {
+      "family": "c128",
+      "candidate": "stages2",
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          1.9918201446533204,
+          1.9811643600463866,
+          1.9851001739501952,
+          1.9759801864624023,
+          1.9806201934814454,
+          1.9784761428833009
+        ],
+        "B": [
+          1.9908601760864257,
+          1.9835002899169922,
+          1.9855802536010743,
+          1.9634361267089844,
+          1.9832761764526368,
+          1.9888761520385743
+        ]
+      },
+      "median_ms": {
+        "A": 1.980892276763916,
+        "B": 1.9845402717590332
+      },
+      "rate_gain_pct": -0.18382065846835882,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        }
+      }
+    },
+    {
+      "family": "c128",
+      "candidate": "K32",
+      "checks": [
+        {
+          "bits_exact": false,
+          "max_abs": 0.001953125,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          1.9973564147949219,
+          1.9685562133789063,
+          1.9895164489746093,
+          1.9665401458740235,
+          1.9778043746948242,
+          1.9902521133422852
+        ],
+        "B": [
+          3.5359260559082033,
+          3.530038070678711,
+          3.5369823455810545,
+          3.534101867675781,
+          3.5346778869628905,
+          3.529397964477539
+        ]
+      },
+      "median_ms": {
+        "A": 1.9836604118347168,
+        "B": 3.534389877319336
+      },
+      "rate_gain_pct": -43.875450058180135,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 447,
+          "spills": 0,
+          "lds": 32768,
+          "num_stages": 2,
+          "hsaco_sha256": "52374f01eb083eb479f60d601e3db98e88f765c196f3a8491b99c425a1db2d8f"
+        }
+      }
+    },
+    {
+      "family": "c4_varied",
+      "candidate": "stages1",
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          5.915940856933593,
+          5.93690071105957,
+          5.933636856079102,
+          5.924868774414063,
+          5.926692962646484,
+          5.951204681396485
+        ],
+        "B": [
+          4.210138320922852,
+          4.204826354980469,
+          4.211514282226562,
+          4.209434509277344,
+          4.209305953979492,
+          4.2072898864746096
+        ]
+      },
+      "median_ms": {
+        "A": 5.930164909362793,
+        "B": 4.209370231628418
+      },
+      "rate_gain_pct": 40.8800980442311,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 376,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 1,
+          "hsaco_sha256": "ca20cfa579b7abdf37decea8acaf89ff2e58ab6a9c788591a457c13127da7221"
+        }
+      }
+    },
+    {
+      "family": "c4_varied",
+      "candidate": "stages2",
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          5.919460678100586,
+          5.941028594970703,
+          5.936196899414062,
+          5.923940658569336,
+          5.929636764526367,
+          5.936228942871094
+        ],
+        "B": [
+          5.927364730834961,
+          5.926628875732422,
+          5.930660629272461,
+          5.929540634155273,
+          5.928260803222656,
+          5.932004928588867
+        ]
+      },
+      "median_ms": {
+        "A": 5.932916831970214,
+        "B": 5.928900718688965
+      },
+      "rate_gain_pct": 0.06773790744361019,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        }
+      }
+    },
+    {
+      "family": "c4_varied",
+      "candidate": "K32",
+      "checks": [
+        {
+          "bits_exact": false,
+          "max_abs": 0.001953125,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.001953125,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.00390625,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.001953125,
+          "finite": true
+        },
+        {
+          "bits_exact": false,
+          "max_abs": 0.001953125,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          5.930948638916016,
+          5.917732620239258,
+          5.946820831298828,
+          5.92109260559082,
+          5.911812973022461,
+          5.914564895629883
+        ],
+        "B": [
+          9.423450469970703,
+          9.407674407958984,
+          9.429882049560547,
+          9.411610412597657,
+          9.429210662841797,
+          9.4015625
+        ]
+      },
+      "median_ms": {
+        "A": 5.919412612915039,
+        "B": 9.41753044128418
+      },
+      "rate_gain_pct": -37.144746705932974,
+      "resources": {
+        "A": {
+          "registers": 354,
+          "spills": 0,
+          "lds": 16384,
+          "num_stages": 2,
+          "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+        },
+        "B": {
+          "registers": 447,
+          "spills": 0,
+          "lds": 32768,
+          "num_stages": 2,
+          "hsaco_sha256": "52374f01eb083eb479f60d601e3db98e88f765c196f3a8491b99c425a1db2d8f"
+        }
+      }
+    }
+  ],
+  "source_sha256": "2d28efd7efe40749d3b55249e49cf43ac98c74acdce78a8e2ee4c4cf542fe441"
+}
