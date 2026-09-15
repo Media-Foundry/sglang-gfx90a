@@ -1,7 +1,14 @@
-# Pending independent-column pre-mix screen
+# Independent-column pre-mix component
 
 NOT GPU-tested. Do not run until the mixed-prefix service ABBA releases all
 GPUs. No production selector or measured source changes.
+
+Update: serviceABBA has finished and the component screens below have run;
+the original pending plan is retained for context. See `screen.json` and
+`full.json` plus `.agents/memory/dsv4_c16_premix_pair_20260915.md`.
+M32768 full-component latency7.639->4.989ms,100 random Fn/input mutations,
+row permutation and1000 graph replays exact. SmallM is slower. No production
+integration or E2E result yet.
 
 Current accepted pre-mix8 uses one output column and eight rows per CTA.
 This candidate keeps eight rows and computes two independent output columns,

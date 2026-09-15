@@ -1,0 +1,295 @@
+{
+  "status": "complete",
+  "scope": "Captured layer0 residual/Fn expanded to synthetic occupancy; not fresh service activations or E2E.",
+  "source_sha256": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_premix_pair_20260915/screen.py": "29d44e23f8caf91580268889faeeb641d7a5b876b06696b1a1cb7696d3aa76c5",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_premix_pair_20260915/candidate.py": "f745e0de99c082b2c2f16a19b3c66f9af5aabcbcf60dbf4e4a367e01bb14650b",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_reuse8.py": "a3976a71ddae0bc09a55a0bf094c2aadb245549f060a9f7e6ca85fa42f9be72b"
+  },
+  "results": [
+    {
+      "m": 17,
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          0.11763479709625244,
+          0.11456279754638672,
+          0.11465879678726196,
+          0.11462680101394654,
+          0.11510679721832276,
+          0.11491479873657226
+        ],
+        "B": [
+          0.14083540439605713,
+          0.14073940515518188,
+          0.14019540548324586,
+          0.1392673969268799,
+          0.13990739583969117,
+          0.14035539627075194
+        ]
+      },
+      "row_permutation_exact": true,
+      "median_ms": {
+        "A": 0.11478679776191711,
+        "B": 0.1402754008769989
+      },
+      "speedup_percent": -18.17040119345772,
+      "resources": {
+        "A": {
+          "registers": 51,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "520f6623f380c25ba782762e34587c2770f1737f99cb847f8aa5f19ac95d0422"
+        },
+        "B": {
+          "registers": 78,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "837496728319331a02f5941655c70938c9a9807cccf6bac30652d56b5efb96ed"
+        }
+      },
+      "graph_replay_and_mutation_exact": true
+    },
+    {
+      "m": 128,
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          0.12653100490570068,
+          0.12336299419403077,
+          0.12368299961090087,
+          0.12464300394058228,
+          0.12230700254440308,
+          0.12573119401931762
+        ],
+        "B": [
+          0.14566739797592163,
+          0.14509140253067015,
+          0.14502760171890258,
+          0.14505959749221803,
+          0.14509140253067015,
+          0.14637160301208496
+        ]
+      },
+      "row_permutation_exact": true,
+      "median_ms": {
+        "A": 0.12416300177574158,
+        "B": 0.14509140253067015
+      },
+      "speedup_percent": -14.424287304345707,
+      "resources": {
+        "A": {
+          "registers": 51,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "520f6623f380c25ba782762e34587c2770f1737f99cb847f8aa5f19ac95d0422"
+        },
+        "B": {
+          "registers": 78,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "837496728319331a02f5941655c70938c9a9807cccf6bac30652d56b5efb96ed"
+        }
+      },
+      "graph_replay_and_mutation_exact": true
+    },
+    {
+      "m": 8192,
+      "checks": [
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        },
+        {
+          "bits_exact": true,
+          "max_abs": 0.0,
+          "finite": true
+        }
+      ],
+      "samples_ms": {
+        "A": [
+          1.894125747680664,
+          1.8843975067138672,
+          1.8863815307617187,
+          1.886253547668457,
+          1.8860298156738282,
+          1.8918537139892577
+        ],
+        "B": [
+          1.3776333808898926,
+          1.3815693855285645,
+          1.379777431488037,
+          1.3797134399414062,
+          1.3818256378173828,
+          1.3800013542175293
+        ]
+      },
+      "row_permutation_exact": true,
+      "median_ms": {
+        "A": 1.8863175392150877,
+        "B": 1.3798893928527831
+      },
+      "speedup_percent": 36.70063332506057,
+      "resources": {
+        "A": {
+          "registers": 51,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "520f6623f380c25ba782762e34587c2770f1737f99cb847f8aa5f19ac95d0422"
+        },
+        "B": {
+          "registers": 78,
+          "spills": 0,
+          "lds": 0,
+          "hsaco_sha256": "837496728319331a02f5941655c70938c9a9807cccf6bac30652d56b5efb96ed"
+        }
+      },
+      "graph_replay_and_mutation_exact": true
+    }
+  ]
+}

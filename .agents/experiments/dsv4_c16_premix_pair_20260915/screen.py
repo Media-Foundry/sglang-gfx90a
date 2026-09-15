@@ -11,6 +11,7 @@ p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
 p.add_argument('--sizes',type=int,nargs='+',default=[17,128,8192,32767,32768])
 p.add_argument('--mutations',type=int,default=10)
+p.add_argument('--randomize',action='store_true',help='Vary temporary Fn and activations; never writes checkpoint files.')
 args=p.parse_args();assert not args.output.exists()
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 assert args.mutations>0 and all(0<m<=65536 for m in args.sizes)
@@ -49,7 +50,9 @@ for m in args.sizes:
     def candidate():return premix8_pair[(12,triton.cdiv(m,8))](x,fn,partials,b,m,eps,num_warps=1)
     item=dict(m=m,checks=[],samples_ms={'A':[],'B':[]});result['results'].append(item);save()
     for mutation in range(args.mutations):
-        if mutation:
+        if args.randomize:
+            fn.normal_(std=.01);x.normal_()
+        elif mutation:
             x.mul_(torch.empty((m,1,1),device='cuda',dtype=x.dtype).uniform_(.97,1.03))
         eps=(1e-6,1e-5,1e-8)[mutation%3]
         partials.copy_(x.float().square().reshape(m,64,256).sum(-1))
@@ -66,6 +69,7 @@ for m in args.sizes:
     for _ in range(3):
         for label,call in [('A',control),('B',candidate),('B',candidate),('A',control)]:
             item['samples_ms'][label].append(measure(call))
+    item['randomized']=args.randomize
     item['median_ms']={k:statistics.median(v) for k,v in item['samples_ms'].items()}
     item['speedup_percent']=100*(item['median_ms']['A']/item['median_ms']['B']-1)
     item['resources']={}
