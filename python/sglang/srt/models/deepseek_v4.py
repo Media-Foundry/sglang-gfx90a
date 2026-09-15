@@ -28,6 +28,10 @@ _first_div_probe = None
 if os.getenv("SGLANG_DSV4_DEBUG_FIRST_DIV_DIR"):
     from sglang.kernels.ops.debug.dsv4_first_divergence import get_probe as _first_div_probe
 
+_ck_capture_scope = None
+if os.getenv("SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR"):
+    from sglang.kernels.ops.debug.dsv4_ck_stage_capture import scope as _ck_capture_scope
+
 import sglang.srt.models.deepseek_v2 as deepseek_v2
 from sglang.kernels.ops.attention.dsv4 import (
     fused_norm_rope_inplace,
@@ -3745,6 +3749,8 @@ class DeepseekV4DecoderLayer(nn.Module):
             moe_debug_scope = stage_dump_scope(self.mlp, dump_stage)
         else:
             moe_debug_scope = nullcontext()
+        if _ck_capture_scope is not None:
+            moe_debug_scope = _ck_capture_scope(self.layer_id, forward_batch, moe_debug_scope)
         with moe_debug_scope:
             hidden_states = self._run_moe_ffn_dp_sync(
                 hidden_states,

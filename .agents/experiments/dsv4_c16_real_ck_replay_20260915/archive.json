@@ -1,0 +1,7 @@
+{
+  "files": 39,
+  "bytes": 1439686,
+  "sha256": "8536b58e00d9c7e4bad887d744692633227ddc080388717f00c9f453c6fefc04",
+  "fixture_local_only": "capture-v2/fixture/*.pt; verified file/tensor hashes in fixture/manifest.json",
+  "failed_fixture_local_only": "capture/fixture/*.pt; incomplete, never used for replay"
+}

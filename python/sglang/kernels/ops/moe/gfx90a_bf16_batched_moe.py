@@ -11,6 +11,10 @@ from sglang.kernels.jit.utils import cache_once, load_jit, make_cpp_args
 
 _large_prefill_logged = set()
 
+_capture_current = None
+if os.getenv("SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR"):
+    from sglang.kernels.ops.debug.dsv4_ck_stage_capture import current as _capture_current
+
 
 def bf16_ck_prefill_max_rows(intermediate_size: int) -> int:
     """Keep the TP4 bound; opt in to a TP8-only capacity trial."""
@@ -181,6 +185,13 @@ def gfx90a_bf16_ck_moe(
     scales_shuffled: bool = False,
 ) -> torch.Tensor:
     e, t, h = 256, 6, 4096
+    probe = _capture_current() if _capture_current is not None else None
+    if probe is not None:
+        for name, tensor in (("hidden", hidden), ("topk_ids", topk_ids),
+                ("topk_weights", topk_weights), ("raw_w13", w13),
+                ("raw_s13", s13), ("raw_w2", w2), ("raw_s2", s2)):
+            probe.tensor(name, tensor)
+        probe.info("scales_shuffled", scales_shuffled)
     if w13.ndim != 3 or w13.shape[1] % 2:
         raise ValueError("BF16 CK MoE requires raw packed gate/up weights")
     i = w13.shape[1] // 2
@@ -281,6 +292,12 @@ def gfx90a_bf16_ck_moe(
             "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_"
             "Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16"
         )
+    if probe is not None:
+        assert stage1_kernel and stage2_fp32 and not raw_logical_b_stage1
+        assert os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT", "0") == "0"
+        probe.tensor("weight13", ck_weight13)
+        probe.tensor("weight2", ck_weight2)
+        probe.info("stage1_kernel", stage1_kernel)
     if stage1_kernel:
         import aiter
 
@@ -311,6 +328,8 @@ def gfx90a_bf16_ck_moe(
                 quant_type.value, activation.value, splitk,
                 use_non_temporal_load, None,
             )
+            if probe is not None:
+                probe.tensor("stage1_out", stage_out)
             return stage_out
 
         aiter.ck_moe_stage1_fwd = stage1_override
@@ -332,6 +351,21 @@ def gfx90a_bf16_ck_moe(
             sorted_weights=None, quant_type=aiter.QuantType.No,
             activation=ActivationType.Dsv4Silu, use_non_temporal_load=False,
         ):
+            # AIter caches this callable in MOEMetadata. Resolve diagnostic
+            # ownership at invocation, not from the layer that built the cache.
+            probe = _capture_current() if _capture_current is not None else None
+            if probe is not None:
+                probe.tensor("stage2_input", inter_states)
+                probe.tensor("sorted_token_ids", sorted_token_ids)
+                probe.tensor("sorted_expert_ids", sorted_expert_ids)
+                probe.tensor("num_valid_ids", num_valid_ids)
+                if sorted_weights is not None:
+                    probe.tensor("sorted_weights", sorted_weights)
+                probe.info("stage2_args", dict(topk=int(topk), kernel=stage2_kernel,
+                    block_m=int(block_m), quant_type=quant_type.value,
+                    activation=ActivationType.Gelu.value,
+                    use_non_temporal_load=use_non_temporal_load))
+                assert w2_scale is None and a2_scale is None
             if os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT", "0") == "1":
                 from sglang.kernels.ops.moe.gfx90a_ck_fixed_slot import (
                     ck_fixed_slot_stage2,
@@ -353,6 +387,9 @@ def gfx90a_bf16_ck_moe(
                 use_non_temporal_load,
             )
             stage_out.copy_(accum)
+            if probe is not None:
+                probe.tensor("stage2_accum", accum)
+                probe.tensor("stage2_out", stage_out)
             return stage_out
 
         aiter.ck_moe_stage2_fwd = stage2_dsv4_fp32
