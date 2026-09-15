@@ -1,0 +1,4233 @@
+{
+  "scope": "Four concurrent pairs: peer-load/store H16 with full local Q copy and two RCCL fences versus H8.\n\nSynthetic inputs with identical LOGICAL KV, independently permuted physical\nbanks. No real-model capture or capacity acceptance. Only original per-query\nselections; no shared-index approximation. Uses accepted stages1 in both arms.\n",
+  "status": "complete",
+  "physical_gcds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "cases": [
+    {
+      "family": "c128",
+      "m": 8192,
+      "request_len": 4096,
+      "logical_fixture_hashes": [
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              1.2785265922546387,
+              1.2726387977600098,
+              1.2665267944335938,
+              1.2750707626342774,
+              1.2691187858581543,
+              1.276926612854004
+            ],
+            "B": [
+              1.5996062278747558,
+              1.468793773651123,
+              1.5944864273071289,
+              1.460986042022705,
+              1.6089179992675782,
+              1.4458824157714845
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.291774368286133,
+              1.2689909934997559,
+              1.267134952545166,
+              1.2703667640686036,
+              1.2685110092163085,
+              1.2682869911193848
+            ],
+            "B": [
+              1.589686393737793,
+              1.4435784339904785,
+              1.5948063850402832,
+              1.4562820434570312,
+              1.5964384078979492,
+              1.4611780166625976
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.2745269775390624,
+              1.2650874137878418,
+              1.2645753860473632,
+              1.267519187927246,
+              1.2643832206726073,
+              1.2665273666381835
+            ],
+            "B": [
+              1.5350004196166993,
+              1.4626821517944335,
+              1.5380403518676757,
+              1.478073787689209,
+              1.5775593757629394,
+              1.4514185905456543
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.280126953125,
+              1.2738871574401855,
+              1.2702072143554688,
+              1.2740790367126464,
+              1.2692150115966796,
+              1.2718070030212403
+            ],
+            "B": [
+              1.5449522018432618,
+              1.4562824249267579,
+              1.5434160232543945,
+              1.4534664154052734,
+              1.5627116203308105,
+              1.4612421989440918
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.276587963104248,
+              1.2747320175170898,
+              1.2713401794433594,
+              1.2743481636047362,
+              1.2700922012329101,
+              1.276332187652588
+            ],
+            "B": [
+              1.5785993576049804,
+              1.4796250343322754,
+              1.5616716384887694,
+              1.4506013870239258,
+              1.576711368560791,
+              1.4452896118164062
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.2708281517028808,
+              1.2705719947814942,
+              1.265036392211914,
+              1.2714360237121582,
+              1.265516185760498,
+              1.2698362350463868
+            ],
+            "B": [
+              1.5634635925292968,
+              1.460297203063965,
+              1.562311553955078,
+              1.4532573699951172,
+              1.5524558067321776,
+              1.4662489891052246
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.2751640319824218,
+              1.269564151763916,
+              1.2661403656005858,
+              1.2678361892700196,
+              1.2651803970336915,
+              1.2722521781921388
+            ],
+            "B": [
+              1.5455883979797362,
+              1.4640228271484375,
+              1.529813003540039,
+              1.4589028358459473,
+              1.5680837631225586,
+              1.4468711853027343
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.2806998252868653,
+              1.2708762168884278,
+              1.2707161903381348,
+              1.272060012817383,
+              1.268860149383545,
+              1.272924041748047
+            ],
+            "B": [
+              1.5692997932434083,
+              1.448023223876953,
+              1.5376206398010255,
+              1.4416553497314453,
+              1.5725955963134766,
+              1.4518309593200684
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          1.291774368286133,
+          1.2747320175170898,
+          1.2713401794433594,
+          1.2750707626342774,
+          1.2700922012329101,
+          1.276926612854004
+        ],
+        "B": [
+          1.5996062278747558,
+          1.4796250343322754,
+          1.5948063850402832,
+          1.478073787689209,
+          1.6089179992675782,
+          1.4662489891052246
+        ]
+      },
+      "median_ms": {
+        "A": 1.2749013900756836,
+        "B": 1.5372157096862793
+      },
+      "speedup": 0.8293575078905941,
+      "send_bytes_per_rank": 67108864,
+      "extra_static_buffers_bytes": 134217984,
+      "ipc_offsets": {
+        "q": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        },
+        "o": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        }
+      },
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c4",
+      "m": 8192,
+      "request_len": 4096,
+      "logical_fixture_hashes": [
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              3.7729255676269533,
+              3.771229553222656,
+              3.7687656402587892,
+              3.7768936157226562,
+              3.7729896545410155,
+              3.773117446899414
+            ],
+            "B": [
+              2.766391944885254,
+              2.678074073791504,
+              2.7709676742553713,
+              2.6906177520751955,
+              2.7804073333740233,
+              2.6762821197509767
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.757501983642578,
+              3.7605419158935547,
+              3.752862548828125,
+              3.7623340606689455,
+              3.754110336303711,
+              3.7668777465820313
+            ],
+            "B": [
+              2.7658477783203126,
+              2.6652105331420897,
+              2.774967575073242,
+              2.678010177612305,
+              2.7805675506591796,
+              2.6848260879516603
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.755742645263672,
+              3.7506553649902346,
+              3.748895263671875,
+              3.7496311187744142,
+              3.7454071044921875,
+              3.753759002685547
+            ],
+            "B": [
+              2.7474489212036133,
+              2.687162399291992,
+              2.785848045349121,
+              2.6754188537597656,
+              2.758104705810547,
+              2.6648269653320313
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.771806335449219,
+              3.7671344757080076,
+              3.7629749298095705,
+              3.7697582244873047,
+              3.763550567626953,
+              3.7658222198486326
+            ],
+            "B": [
+              2.7638965606689454,
+              2.6905866622924806,
+              2.7897518157958983,
+              2.670842933654785,
+              2.784183883666992,
+              2.657115364074707
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.7856048583984374,
+              3.780100631713867,
+              3.772261047363281,
+              3.783844757080078,
+              3.7764209747314452,
+              3.7777008056640624
+            ],
+            "B": [
+              2.790004539489746,
+              2.6948699951171875,
+              2.7715087890625,
+              2.6876060485839846,
+              2.788148307800293,
+              2.679254150390625
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.760741424560547,
+              3.758821487426758,
+              3.7561336517333985,
+              3.7594936370849608,
+              3.755685043334961,
+              3.7599735260009766
+            ],
+            "B": [
+              2.792052459716797,
+              2.69189395904541,
+              2.7871883392333983,
+              2.6846940994262694,
+              2.801396369934082,
+              2.691157913208008
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.7697174072265627,
+              3.762070083618164,
+              3.762517547607422,
+              3.7603099822998045,
+              3.758677673339844,
+              3.763381576538086
+            ],
+            "B": [
+              2.825104331970215,
+              2.66558895111084,
+              2.804208755493164,
+              2.656020927429199,
+              2.7816493988037108,
+              2.6583250045776365
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.772565460205078,
+              3.7749656677246093,
+              3.7756057739257813,
+              3.776213455200195,
+              3.7701656341552736,
+              3.7724376678466798
+            ],
+            "B": [
+              2.8305122375488283,
+              2.669268798828125,
+              2.8166885375976562,
+              2.6662607192993164,
+              2.812816619873047,
+              2.658548927307129
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          3.7856048583984374,
+          3.780100631713867,
+          3.7756057739257813,
+          3.783844757080078,
+          3.7764209747314452,
+          3.7777008056640624
+        ],
+        "B": [
+          2.8305122375488283,
+          2.6948699951171875,
+          2.8166885375976562,
+          2.6906177520751955,
+          2.812816619873047,
+          2.691157913208008
+        ]
+      },
+      "median_ms": {
+        "A": 3.7789007186889645,
+        "B": 2.753843307495117
+      },
+      "speedup": 1.3722279362823424,
+      "send_bytes_per_rank": 67108864,
+      "extra_static_buffers_bytes": 134217984,
+      "ipc_offsets": {
+        "q": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        },
+        "o": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        }
+      },
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c128",
+      "m": 32768,
+      "request_len": 8192,
+      "logical_fixture_hashes": [
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              5.4463855743408205,
+              5.376531982421875,
+              5.368275833129883,
+              5.376019668579102,
+              5.368531799316406,
+              5.377843856811523
+            ],
+            "B": [
+              4.427820205688477,
+              4.417292785644531,
+              4.392045593261718,
+              4.218289947509765,
+              4.380685424804687,
+              4.264080810546875
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              7.157989501953125,
+              5.370388031005859,
+              5.344564819335938,
+              5.346516418457031,
+              5.34530029296875,
+              5.344020843505859
+            ],
+            "B": [
+              4.425996398925781,
+              4.43975601196289,
+              4.373837661743164,
+              4.202514266967773,
+              4.351438522338867,
+              4.235249710083008
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.403988265991211,
+              5.341205978393555,
+              5.333654403686523,
+              5.334006500244141,
+              5.330710220336914,
+              5.33746223449707
+            ],
+            "B": [
+              4.430541610717773,
+              5.084668731689453,
+              4.300976943969727,
+              4.260754013061524,
+              4.37054328918457,
+              4.219507217407227
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.435955047607422,
+              5.3624214172363285,
+              5.360149765014649,
+              5.364437103271484,
+              5.358165740966797,
+              5.362613677978516
+            ],
+            "B": [
+              4.447564697265625,
+              5.092444229125976,
+              4.279217147827149,
+              4.2392822265625,
+              4.357615280151367,
+              4.191476058959961
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.456650924682617,
+              5.378060150146484,
+              5.36973991394043,
+              5.373004150390625,
+              5.367948150634765,
+              5.3722999572753904
+            ],
+            "B": [
+              4.3888916015625,
+              4.391675186157227,
+              4.416635131835937,
+              4.200094223022461,
+              4.456250381469727,
+              4.22364616394043
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.426187133789062,
+              5.349612808227539,
+              5.341548919677734,
+              5.344972610473633,
+              5.343660736083985,
+              5.345292663574218
+            ],
+            "B": [
+              4.402811050415039,
+              4.4218193054199215,
+              4.385627746582031,
+              4.190334320068359,
+              4.426587295532227,
+              4.209086227416992
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.432518768310547,
+              5.35517692565918,
+              5.347561264038086,
+              5.352392959594726,
+              5.343497085571289,
+              5.348265075683594
+            ],
+            "B": [
+              4.369764709472657,
+              4.425059127807617,
+              4.400228118896484,
+              4.237064361572266,
+              4.375204849243164,
+              4.2535758972167965
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.445382308959961,
+              5.369352722167969,
+              5.358824920654297,
+              5.369512939453125,
+              5.364264678955078,
+              5.369480895996094
+            ],
+            "B": [
+              4.388227844238282,
+              4.431427001953125,
+              4.367172622680664,
+              4.23194465637207,
+              4.349989700317383,
+              4.234920883178711
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          7.157989501953125,
+          5.378060150146484,
+          5.36973991394043,
+          5.376019668579102,
+          5.368531799316406,
+          5.377843856811523
+        ],
+        "B": [
+          4.447564697265625,
+          5.092444229125976,
+          4.416635131835937,
+          4.260754013061524,
+          4.456250381469727,
+          4.264080810546875
+        ]
+      },
+      "median_ms": {
+        "A": 5.376931762695312,
+        "B": 4.432099914550781
+      },
+      "speedup": 1.213179275368456,
+      "send_bytes_per_rank": 268435456,
+      "extra_static_buffers_bytes": 536871168,
+      "ipc_offsets": {
+        "q": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        },
+        "o": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        }
+      },
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c4",
+      "m": 32768,
+      "request_len": 8192,
+      "logical_fixture_hashes": [
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              16.40373077392578,
+              16.410963439941405,
+              16.414547729492188,
+              16.413970947265625,
+              16.41102752685547,
+              16.40574951171875
+            ],
+            "B": [
+              10.086296844482423,
+              9.91654052734375,
+              9.930397033691406,
+              9.826687622070313,
+              9.94402847290039,
+              9.822624206542969
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.337493896484375,
+              16.3333984375,
+              16.334454345703126,
+              16.32270965576172,
+              16.324855041503906,
+              16.336309814453124
+            ],
+            "B": [
+              10.071097564697265,
+              9.929436492919923,
+              9.921532440185548,
+              9.814752197265625,
+              9.925052642822266,
+              9.836286926269532
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.317593383789063,
+              16.320314025878908,
+              16.31916198730469,
+              16.31983337402344,
+              16.317240905761718,
+              16.323065185546874
+            ],
+            "B": [
+              10.141785430908204,
+              9.943647003173828,
+              9.938558959960938,
+              9.806562042236328,
+              9.943038940429688,
+              9.82400131225586
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.399127197265624,
+              16.389720153808593,
+              16.385015869140624,
+              16.39317626953125,
+              16.383767700195314,
+              16.39653625488281
+            ],
+            "B": [
+              10.115226745605469,
+              9.927103424072266,
+              9.920511627197266,
+              9.812322235107422,
+              9.938719177246094,
+              9.807938385009766
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.433984375,
+              16.429536437988283,
+              16.434783935546875,
+              16.4240966796875,
+              16.423616027832033,
+              16.42272033691406
+            ],
+            "B": [
+              10.110626220703125,
+              9.933796691894532,
+              9.939556884765626,
+              9.840998077392578,
+              9.936804962158202,
+              9.841830444335937
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.348898315429686,
+              16.340257263183595,
+              16.33660888671875,
+              16.337057495117186,
+              16.332801818847656,
+              16.334432983398436
+            ],
+            "B": [
+              10.089826202392578,
+              9.948516845703125,
+              9.938692474365235,
+              9.83776626586914,
+              9.918660736083984,
+              9.867782592773438
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.358387756347657,
+              16.360435485839844,
+              16.356211853027343,
+              16.351251220703126,
+              16.347442626953125,
+              16.350579833984376
+            ],
+            "B": [
+              11.055655670166015,
+              9.82257080078125,
+              9.9282958984375,
+              9.816970825195312,
+              9.907368469238282,
+              9.808491516113282
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.40593719482422,
+              16.40564880371094,
+              16.403025817871093,
+              16.40235290527344,
+              16.403889465332032,
+              16.399249267578124
+            ],
+            "B": [
+              11.023529815673829,
+              9.81985092163086,
+              9.918215942382812,
+              9.835147094726562,
+              9.90877685546875,
+              9.797292327880859
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          16.433984375,
+          16.429536437988283,
+          16.434783935546875,
+          16.4240966796875,
+          16.423616027832033,
+          16.42272033691406
+        ],
+        "B": [
+          11.055655670166015,
+          9.948516845703125,
+          9.939556884765626,
+          9.840998077392578,
+          9.94402847290039,
+          9.867782592773438
+        ]
+      },
+      "median_ms": {
+        "A": 16.426816558837892,
+        "B": 9.941792678833007
+      },
+      "speedup": 1.6522992471782376,
+      "send_bytes_per_rank": 268435456,
+      "extra_static_buffers_bytes": 536871168,
+      "ipc_offsets": {
+        "q": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        },
+        "o": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        }
+      },
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c4",
+      "m": 32767,
+      "request_len": 8192,
+      "logical_fixture_hashes": [
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3",
+        "fc9b9e8ac6ce7c72e62a900d39ae24644ffe9aa12f6266c9a0da82b606aac9a3"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              16.415667724609374,
+              16.48852996826172,
+              16.41387481689453,
+              16.48804931640625,
+              16.40856475830078,
+              16.405812072753907
+            ],
+            "B": [
+              9.95346908569336,
+              9.822783660888671,
+              9.975740051269531,
+              9.886654663085938,
+              9.989275360107422,
+              9.816320037841797
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.339158630371095,
+              16.402069091796875,
+              16.330645751953124,
+              16.41675567626953,
+              16.33605499267578,
+              16.32475891113281
+            ],
+            "B": [
+              9.945340728759765,
+              9.808895874023438,
+              9.964988708496094,
+              9.891550445556641,
+              9.982939910888671,
+              9.816063690185548
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.31868133544922,
+              17.246946716308592,
+              16.325469970703125,
+              16.385626220703124,
+              16.31269989013672,
+              16.32367401123047
+            ],
+            "B": [
+              9.901439666748047,
+              9.823714447021484,
+              9.947937774658204,
+              20.616650390625,
+              9.956959533691407,
+              9.812386322021485
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.39554443359375,
+              16.471029663085936,
+              16.39167175292969,
+              16.49938201904297,
+              16.390583801269532,
+              16.39113006591797
+            ],
+            "B": [
+              9.904544067382812,
+              9.813090515136718,
+              9.934654998779298,
+              20.619050598144533,
+              9.946847534179687,
+              9.797379302978516
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.433024597167968,
+              16.513630676269532,
+              16.42662353515625,
+              16.51830291748047,
+              16.417631530761717,
+              16.427519226074217
+            ],
+            "B": [
+              9.955461120605468,
+              9.842278289794923,
+              9.96442108154297,
+              9.907940673828126,
+              9.97808380126953,
+              9.826630401611329
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.34736022949219,
+              16.421536254882813,
+              16.333921813964842,
+              17.44008026123047,
+              16.340065002441406,
+              16.333216857910156
+            ],
+            "B": [
+              9.947236633300781,
+              9.833830261230469,
+              9.967652893066406,
+              9.9205810546875,
+              9.982948303222656,
+              9.831942749023437
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.356211853027343,
+              16.434895324707032,
+              16.35675506591797,
+              16.43428955078125,
+              16.355667114257812,
+              16.348626708984376
+            ],
+            "B": [
+              9.901544952392578,
+              9.824715423583985,
+              9.935208129882813,
+              9.891977691650391,
+              9.94173583984375,
+              9.817835235595703
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.40984191894531,
+              16.484495544433592,
+              16.408145141601562,
+              16.491984558105468,
+              16.403504943847658,
+              16.40296173095703
+            ],
+            "B": [
+              9.913544464111329,
+              9.809770965576172,
+              9.93808822631836,
+              9.899049377441406,
+              9.939495849609376,
+              9.80423583984375
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "peer": {
+              "hash": "68d75ea5bebf5525b8d9701e73034d17d54f5552045a9e5535824a1d0f7d927b",
+              "registers": 408,
+              "spills": 0,
+              "lds": 16384
+            }
+          },
+          "ipc_offsets": {
+            "q": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            },
+            "o": {
+              "tensor_offset": 64,
+              "storage_offset_bytes": 0
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          16.433024597167968,
+          17.246946716308592,
+          16.42662353515625,
+          17.44008026123047,
+          16.417631530761717,
+          16.427519226074217
+        ],
+        "B": [
+          9.955461120605468,
+          9.842278289794923,
+          9.975740051269531,
+          20.619050598144533,
+          9.989275360107422,
+          9.831942749023437
+        ]
+      },
+      "median_ms": {
+        "A": 16.43027191162109,
+        "B": 9.9656005859375
+      },
+      "speedup": 1.64869861780392,
+      "send_bytes_per_rank": 268435456,
+      "extra_static_buffers_bytes": 536854784,
+      "ipc_offsets": {
+        "q": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        },
+        "o": {
+          "tensor_offset": 64,
+          "storage_offset_bytes": 0
+        }
+      },
+      "sink_exchange_once_outside_timing": true
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_c16_h16_exchange_20260915/peer_tp8.py": "fc870027f9ce3e039a6b9511579937c1d7df7ebc4b1a8ff549c5c51e72bdfb52",
+    ".agents/experiments/dsv4_c16_h16_exchange_20260915/peer_kernel.py": "0129bc12a1a3619ee78a3f459a00fad46401b3159af151f6bb8883049355c79f",
+    "python/sglang/kernels/ops/attention/dsv4/unified_kv_kernels/paged_prefill.py": "c20b9482c7d2f973279158fda8fe724c5f5e5ef938c5b887d3eb35d8cb238898"
+  },
+  "topology": [
+    {
+      "gpu": 0,
+      "bdf": "0000:11:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 1,
+      "bdf": "0000:14:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 2,
+      "bdf": "0000:32:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 3,
+      "bdf": "0000:35:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 4,
+      "bdf": "0000:8e:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 5,
+      "bdf": "0000:93:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 6,
+      "bdf": "0000:ae:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 7,
+      "bdf": "0000:b3:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        }
+      ]
+    }
+  ]
+}

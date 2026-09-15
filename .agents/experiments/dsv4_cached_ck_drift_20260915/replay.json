@@ -1,0 +1,2938 @@
+{
+  "diagnostic_only": true,
+  "physical_gcd": 6,
+  "real_capture": {
+    "layer": 1,
+    "rank": 6,
+    "extend_lens": [
+      8192
+    ],
+    "prefix_lens": [
+      8192
+    ],
+    "environment": {
+      "SGLANG_DSV4_GFX90A_TP8_M32_ATTN_MULTISTREAM": "1",
+      "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_RANK": "6",
+      "SGLANG_DSV4_DEBUG_PREFILL_QKV_STABLE": "0",
+      "SGLANG_DSV4_DEBUG_INDEXER_COMPILE_SHAPES": "0",
+      "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+      "AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS": "1",
+      "SGLANG_DSV4_DEBUG_PREFILL_WOA_STABLE": "0",
+      "SGLANG_DSV4_DEBUG_OWNER_PRODUCER_CHECK": "0",
+      "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+      "SGLANG_DSV4_GFX90A_MHC_FAST_MATH": "0",
+      "SGLANG_DSV4_GFX90A_WAVE64_MHC_PRE_MIX": "1",
+      "SGLANG_DSV4_GFX90A_REPLICATE_EMBEDDING": "0",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_GROUP_SIZE": "16",
+      "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+      "SGLANG_DSV4_GFX90A_WAVE64_FP32_GEMV": "1",
+      "SGLANG_DSV4_DEBUG_PREPARE_DUMP": "0",
+      "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_ASSIGNMENTS": "4",
+      "SGLANG_DSV4_GFX90A_FUSE_ATTN_INVERSE_ROPE": "1",
+      "SGLANG_DSV4_GFX90A_INT8_WEIGHT_GEMV": "0",
+      "SGLANG_DSV4_GFX90A_MORI_SHARED_EXPERT_TP": "1",
+      "SGLANG_DSV4_GFX90A_FP4_LDS_UNPACK": "1",
+      "SGLANG_DSV4_PREFILL_ATTN_STAGE1": "1",
+      "SGLANG_DSV4_GFX90A_FP4_MFMA64_PREFILL": "1",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_RUNTIME_M": "1",
+      "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1": "1",
+      "SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM": "1",
+      "SGLANG_DSV4_DEBUG_PREFILL_FFN_AR_FP32": "0",
+      "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_MAX_BS": "4",
+      "SGLANG_DSV4_GFX90A_AITER_MOE_STAGE2_64THREAD": "0",
+      "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A": "1",
+      "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+      "SGLANG_DSV4_GFX90A_PREFILL_CHUNK_QUEUE_MIN": "2",
+      "SGLANG_DSV4_DEBUG_PREFILL_WOB_STABLE": "0",
+      "SGLANG_DSV4_GFX90A_AR_INDEXER_EMPTY_TILE_SKIP": "1",
+      "SGLANG_DSV4_GFX90A_PREFILL_CHUNK_BASE": "2304",
+      "SGLANG_DSV4_DEBUG_PREFILL_CORE_COMPRESSOR_STABLE": "0",
+      "SGLANG_DSV4_GFX90A_FP4_DIRECT_MOE": "1",
+      "SGLANG_DSV4_INDEXER_MAX_C4_SEQ_LEN": "262144",
+      "SGLANG_DSV4_GFX90A_CANONICAL_INDEXER_ORDER": "3",
+      "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_MIN_PREFIX": "8192",
+      "SGLANG_DSV4_GFX90A_MHC_TP_ONLY_GEOMETRY": "1",
+      "SGLANG_DSV4_DEBUG_PREFILL_SHARED_STABLE": "0",
+      "SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS": "1",
+      "SGLANG_DSV4_GFX90A_DSPARK_TP8_FULL_TARGET_PROFILE": "0",
+      "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_CONSUMER": "0",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_WIDE": "0",
+      "SGLANG_DSV4_DEBUG_PREFILL_ATTN_AR_FP32": "0",
+      "SGLANG_DSV4_GFX90A_QUEUE_AWARE_PREFILL_CHUNK": "0",
+      "SGLANG_DSV4_MORI_ROTATE_SHARED_EXPERT_OWNER": "0",
+      "SGLANG_DSV4_GFX90A_ROUTER_NUM_WARPS": "1",
+      "SGLANG_DSV4_GFX90A_BF16_CK_PREFILL": "1",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_PRODUCER": "0",
+      "SGLANG_DSV4_C4_PREFILL_EMPTY_TILE_SKIP": "1",
+      "SGLANG_DSV4_GFX90A_FUSED_SHARED_GATE_UP": "1",
+      "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+      "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX": "1",
+      "SGLANG_DSV4_DEBUG_COMPRESSOR_DUMP": "0",
+      "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+      "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+      "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_PAIRED_GRAPHS": "0",
+      "SGLANG_DSV4_GFX90A_TOKEN_ROW_MHC_PREFILL": "1",
+      "SGLANG_DSV4_GFX90A_M32_DOWN_CONSUMER": "0",
+      "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_GATE_BLOCKS": "832",
+      "SGLANG_DSV4_GFX90A_TRITON_TOPK_ROUTER": "0",
+      "SGLANG_DSV4_GFX90A_FP4_GROUPED_DECODE_DOWN_BLOCKS": "832",
+      "SGLANG_DSV4_GFX90A_BF16_ATTN_LINEAR": "1",
+      "SGLANG_DSV4_GFX90A_TP8_M32_LEGACY_AR": "1",
+      "SGLANG_DSV4_GFX90A_TP8_BS1_WOA_GEMV": "1",
+      "SGLANG_DSV4_GFX90A_FP4_RUNTIME_M": "1",
+      "SGLANG_DSV4_DEBUG_PREFILL_ATTN_STAGE1_CHECK": "0",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_REUSE4": "1",
+      "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_FIXED_WARMUP": "1",
+      "SGLANG_DSV4_DEBUG_PREFILL_OWNER_CHECK": "0",
+      "SGLANG_DSV4_GFX90A_TP8_MULTI_REQUEST_PROFILE": "1",
+      "SGLANG_DSV4_C4_TRIVIAL_LOGITS_SKIP": "1",
+      "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS": "0",
+      "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32": "1",
+      "SGLANG_DSV4_GFX90A_WAVE64_GROUPED_GEMV": "1",
+      "SGLANG_DSV4_GFX90A_TP4_M32_ATTN_ISSUE_ORDER": "0",
+      "SGLANG_DSV4_GFX90A_DSPARK_TP8_BS32_PROFILE": "0",
+      "SGLANG_DSV4_GFX90A_TP8_M32_DOWN_UNIFORM": "1",
+      "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+      "SGLANG_DSV4_GFX90A_WAVE64_GEMV": "1",
+      "SGLANG_DSV4_GFX90A_M64_DOWN_CONSUMER": "0",
+      "SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT": "0",
+      "SGLANG_DSV4_GFX90A_BF16_SHARED_EXPERT": "0",
+      "SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20": "0",
+      "SGLANG_DSV4_GFX90A_TP8_M32_GATE_PREFETCH": "1",
+      "SGLANG_DSV4_GFX90A_WAVE64_SHARED_GATE_UP": "1",
+      "SGLANG_DSV4_DEBUG_TP8_CK_64K": "0",
+      "SGLANG_DSV4_GFX90A_FP4_GROUPED_PREFILL": "1",
+      "SGLANG_DSV4_GFX90A_TP8_M32_AR_BLOCKS": "4",
+      "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+      "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+      "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+      "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+      "SGLANG_DSV4_GFX90A_NATIVE_GROUPED_ROUTER": "0",
+      "SGLANG_DSV4_GFX90A_PREFILL_THROUGHPUT_PROFILE": "1",
+      "SGLANG_DSV4_C4_PREFILL_QUERY_OWNER": "1",
+      "SGLANG_DSV4_GFX90A_TRITON_MHC_PRE_MIX_A2A_SHADOW_REFERENCE": "0",
+      "SGLANG_DSV4_GFX90A_FP4_MFMA_PREFILL_MAX_ROWS": "16384",
+      "SGLANG_DSV4_GFX90A_AITER_MOE_KSPLIT": "0",
+      "SGLANG_DSV4_DEBUG_PREFILL_WQB_STABLE": "0",
+      "SGLANG_DSV4_GFX90A_FP4_MFMA32_PREFILL": "1",
+      "SGLANG_DSV4_GFX90A_MHC_PRE_MIX_COMPARE_REFERENCE": "0",
+      "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_LAYER": "1",
+      "SGLANG_DSV4_GFX90A_BF16_SHARED_GATE_UP": "1",
+      "SGLANG_DSV4_GFX90A_BF16_SHARED_DOWN": "1"
+    }
+  },
+  "full": [
+    {
+      "iteration": 0,
+      "versus_service": {
+        "stage1_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_input": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "sorted_token_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_expert_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "num_valid_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_weights": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_accum": {
+          "changed_bytes": 7096,
+          "changed_rows": 81,
+          "first_rows": [
+            27,
+            46,
+            95,
+            101,
+            242,
+            255,
+            464,
+            556,
+            629,
+            771,
+            784,
+            852,
+            889,
+            929,
+            1042,
+            1209,
+            1244,
+            1330,
+            1341,
+            1357,
+            1397,
+            1407,
+            1457,
+            1497,
+            1504,
+            1526,
+            1546,
+            1564,
+            1990,
+            2022,
+            2240,
+            2321
+          ],
+          "max_abs": 1.4901161193847656e-08,
+          "relative_l2": 1.4132679471146048e-09,
+          "finite": true
+        },
+        "stage2_out": {
+          "changed_bytes": 1,
+          "changed_rows": 1,
+          "first_rows": [
+            2555
+          ],
+          "max_abs": 1.1920928955078125e-07,
+          "relative_l2": 1.0892302615417293e-09,
+          "finite": true
+        }
+      },
+      "versus_first": {}
+    },
+    {
+      "iteration": 1,
+      "versus_service": {
+        "stage1_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_input": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "sorted_token_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_expert_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "num_valid_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_weights": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_accum": {
+          "changed_bytes": 7180,
+          "changed_rows": 75,
+          "first_rows": [
+            27,
+            46,
+            95,
+            101,
+            242,
+            255,
+            464,
+            556,
+            629,
+            739,
+            742,
+            766,
+            771,
+            784,
+            846,
+            852,
+            889,
+            929,
+            1055,
+            1209,
+            1330,
+            1341,
+            1392,
+            1397,
+            1457,
+            1497,
+            1504,
+            1564,
+            1990,
+            2240,
+            2321,
+            2349
+          ],
+          "max_abs": 1.4901161193847656e-08,
+          "relative_l2": 1.4314175400542695e-09,
+          "finite": true
+        },
+        "stage2_out": {
+          "changed_bytes": 1,
+          "changed_rows": 1,
+          "first_rows": [
+            2555
+          ],
+          "max_abs": 1.1920928955078125e-07,
+          "relative_l2": 1.0892302615417293e-09,
+          "finite": true
+        }
+      },
+      "versus_first": {
+        "stage1_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_input": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "sorted_token_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_expert_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "num_valid_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_weights": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_accum": {
+          "changed_bytes": 7730,
+          "changed_rows": 89,
+          "first_rows": [
+            27,
+            46,
+            95,
+            101,
+            242,
+            255,
+            464,
+            556,
+            629,
+            739,
+            742,
+            766,
+            771,
+            784,
+            846,
+            852,
+            889,
+            929,
+            1042,
+            1055,
+            1209,
+            1244,
+            1330,
+            1341,
+            1357,
+            1392,
+            1397,
+            1407,
+            1457,
+            1497,
+            1504,
+            1526
+          ],
+          "max_abs": 1.4901161193847656e-08,
+          "relative_l2": 1.506148650243233e-09,
+          "finite": true
+        },
+        "stage2_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "versus_service": {
+        "stage1_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_input": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "sorted_token_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_expert_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "num_valid_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_weights": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_accum": {
+          "changed_bytes": 6969,
+          "changed_rows": 79,
+          "first_rows": [
+            27,
+            46,
+            95,
+            101,
+            242,
+            255,
+            455,
+            464,
+            556,
+            629,
+            665,
+            771,
+            784,
+            852,
+            889,
+            929,
+            1209,
+            1330,
+            1341,
+            1357,
+            1392,
+            1397,
+            1407,
+            1457,
+            1497,
+            1504,
+            1564,
+            1990,
+            2240,
+            2321,
+            2349,
+            2393
+          ],
+          "max_abs": 1.4901161193847656e-08,
+          "relative_l2": 1.3336788340367889e-09,
+          "finite": true
+        },
+        "stage2_out": {
+          "changed_bytes": 1,
+          "changed_rows": 1,
+          "first_rows": [
+            3414
+          ],
+          "max_abs": 2.384185791015625e-07,
+          "relative_l2": 2.1784605230834586e-09,
+          "finite": true
+        }
+      },
+      "versus_first": {
+        "stage1_out": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_input": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "sorted_token_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_expert_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "num_valid_ids": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": []
+        },
+        "sorted_weights": {
+          "changed_bytes": 0,
+          "changed_rows": 0,
+          "first_rows": [],
+          "max_abs": 0.0,
+          "relative_l2": 0.0,
+          "finite": true
+        },
+        "stage2_accum": {
+          "changed_bytes": 7557,
+          "changed_rows": 86,
+          "first_rows": [
+            27,
+            46,
+            95,
+            242,
+            255,
+            455,
+            464,
+            556,
+            629,
+            665,
+            771,
+            784,
+            852,
+            889,
+            929,
+            1042,
+            1209,
+            1244,
+            1330,
+            1341,
+            1357,
+            1392,
+            1397,
+            1407,
+            1457,
+            1497,
+            1504,
+            1526,
+            1546,
+            1990,
+            2022,
+            2240
+          ],
+          "max_abs": 1.4901161193847656e-08,
+          "relative_l2": 1.4227232725261274e-09,
+          "finite": true
+        },
+        "stage2_out": {
+          "changed_bytes": 2,
+          "changed_rows": 2,
+          "first_rows": [
+            2555,
+            3414
+          ],
+          "max_abs": 2.384185791015625e-07,
+          "relative_l2": 2.4355930605679532e-09,
+          "finite": true
+        }
+      }
+    }
+  ],
+  "atomic": [
+    {
+      "iteration": 0,
+      "fp32": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      },
+      "versus_service": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 1,
+      "fp32": {
+        "changed_bytes": 6652,
+        "changed_rows": 82,
+        "first_rows": [
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990,
+          2022,
+          2240,
+          2321,
+          2349,
+          2393
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3745666826991965e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-1.pt",
+        "sha256": "4528c337bda4a2beb8b3ba870788df4dab6cec88074e1fc377fcf2c5808bb800"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 2,
+      "fp32": {
+        "changed_bytes": 6440,
+        "changed_rows": 82,
+        "first_rows": [
+          27,
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          739,
+          742,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1246,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3657424080548708e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-2.pt",
+        "sha256": "febde5401d7e861cf352759f6671784e56bf205ea06d974c029d96b6904e9d2c"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 3,
+      "fp32": {
+        "changed_bytes": 5666,
+        "changed_rows": 78,
+        "first_rows": [
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990,
+          2240,
+          2321,
+          2393
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.2870184917801453e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-3.pt",
+        "sha256": "705c37bcad4f532ca16be5dc7860d74450b1c5c046b9eefd4b3a4d7236e7169c"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 4,
+      "fp32": {
+        "changed_bytes": 6800,
+        "changed_rows": 83,
+        "first_rows": [
+          95,
+          101,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          739,
+          742,
+          766,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1305,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990,
+          2115,
+          2240
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.341078581518218e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-4.pt",
+        "sha256": "177cc9aa7a04632351681568400ada2617a36beded36de3284c2ac60dc8d67f1"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 5,
+      "fp32": {
+        "changed_bytes": 6974,
+        "changed_rows": 83,
+        "first_rows": [
+          27,
+          46,
+          95,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          714,
+          739,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1036,
+          1042,
+          1055,
+          1209,
+          1244,
+          1282,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3824074107660067e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-5.pt",
+        "sha256": "365fefd4953ec352733f8d3ffd0efa867a87ffc0e05a0b3484a56686ecca408a"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 6,
+      "fp32": {
+        "changed_bytes": 6174,
+        "changed_rows": 70,
+        "first_rows": [
+          27,
+          95,
+          242,
+          255,
+          464,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990,
+          2022,
+          2240,
+          2321,
+          2393
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.2943166538548212e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-6.pt",
+        "sha256": "a40fda19adc7c61d211a5cb7c499250aed25856ff4c0faddd55d63c9a00e496f"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 7,
+      "fp32": {
+        "changed_bytes": 6814,
+        "changed_rows": 83,
+        "first_rows": [
+          27,
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1246,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.383852032965649e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 8,
+      "fp32": {
+        "changed_bytes": 5991,
+        "changed_rows": 81,
+        "first_rows": [
+          27,
+          46,
+          95,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.2932587223346559e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 9,
+      "fp32": {
+        "changed_bytes": 6213,
+        "changed_rows": 81,
+        "first_rows": [
+          27,
+          95,
+          101,
+          242,
+          255,
+          455,
+          464,
+          467,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3500885964745635e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 3,
+        "changed_rows": 3,
+        "first_rows": [
+          2538,
+          2555,
+          4513
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 1.1153723562529194e-06,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-9.pt",
+        "sha256": "b13205896a81090414ea10c4f3cf4090ea6186171bd963ba17bdaf7725699daa"
+      },
+      "row4513": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          0
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 9.531494288239628e-05,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 10,
+      "fp32": {
+        "changed_bytes": 6475,
+        "changed_rows": 78,
+        "first_rows": [
+          27,
+          46,
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3416582289593748e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-10.pt",
+        "sha256": "ef6abede51f23d9b6907b89cb1b69e623a63bf7479b72f6698f6b2802a1163f2"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 11,
+      "fp32": {
+        "changed_bytes": 6351,
+        "changed_rows": 82,
+        "first_rows": [
+          27,
+          46,
+          95,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          742,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.342158051365061e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-11.pt",
+        "sha256": "bfa0b002c765139aa8f2d684bcf74bc077934627388f0650f9c5731560c9aacc"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 12,
+      "fp32": {
+        "changed_bytes": 5803,
+        "changed_rows": 77,
+        "first_rows": [
+          95,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2022,
+          2214,
+          2240,
+          2321,
+          2349
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.2982972474873122e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2555,
+          3414
+        ],
+        "max_abs": 2.384185791015625e-07,
+        "relative_l2": 2.4355930605679532e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-12.pt",
+        "sha256": "6340f0793e7451846d1958e26e8f57c9d68ba5493935f9663b5dc84e9e5e8303"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 13,
+      "fp32": {
+        "changed_bytes": 6402,
+        "changed_rows": 81,
+        "first_rows": [
+          95,
+          101,
+          167,
+          242,
+          255,
+          455,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2240
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3342787985592963e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          4513
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 1.1153717878187308e-06,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-13.pt",
+        "sha256": "026e952847df4a72cf3490759779c7c195d49a4bbeb51282a3bc1a1e8ea2f284"
+      },
+      "row4513": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          0
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 9.531494288239628e-05,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 14,
+      "fp32": {
+        "changed_bytes": 6428,
+        "changed_rows": 82,
+        "first_rows": [
+          27,
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990,
+          2240
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3191945313906217e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          95
+        ],
+        "max_abs": 4.656612873077393e-10,
+        "relative_l2": 4.25480570914738e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-14.pt",
+        "sha256": "b9d9f1d4ccdcc479d2b824ab6edaeb61f7f73ce13b6a49c380a33576b6ebc2fb"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 15,
+      "fp32": {
+        "changed_bytes": 7106,
+        "changed_rows": 80,
+        "first_rows": [
+          27,
+          95,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2115,
+          2240,
+          2321
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.4456693619990801e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-15.pt",
+        "sha256": "912c826ad3d656af4c7cd0632c756f96d4ed08c225c0d111b4e9034f184762fe"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 16,
+      "fp32": {
+        "changed_bytes": 6244,
+        "changed_rows": 79,
+        "first_rows": [
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1282,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2022
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3313394831016012e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-16.pt",
+        "sha256": "b709fe052399027bbb6e876ce4497348e6dd4266fa48355899ec19bf8a10598f"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 17,
+      "fp32": {
+        "changed_bytes": 5771,
+        "changed_rows": 74,
+        "first_rows": [
+          27,
+          46,
+          95,
+          242,
+          255,
+          464,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990,
+          2240,
+          2321
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.242775438115018e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-17.pt",
+        "sha256": "1ddd6f312ff98e8d900de1348ee555cf131e6b607e856c21bd35a4bd40721b9c"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 18,
+      "fp32": {
+        "changed_bytes": 6311,
+        "changed_rows": 77,
+        "first_rows": [
+          27,
+          46,
+          95,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3118821584612306e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-18.pt",
+        "sha256": "9406d113a27882807b689d9f200e06789699526d1492de4587d2bc80e1031625"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 19,
+      "fp32": {
+        "changed_bytes": 6895,
+        "changed_rows": 84,
+        "first_rows": [
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1282,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3749481553304577e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-19.pt",
+        "sha256": "339286562afeef8de4a53378f3a1232f5bd0a9291a58ab0c40ce8c8672321af3"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 20,
+      "fp32": {
+        "changed_bytes": 6189,
+        "changed_rows": 82,
+        "first_rows": [
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          742,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2022,
+          2240,
+          2321,
+          2349
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.321412312904613e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-20.pt",
+        "sha256": "e4d916d7141320545b511caf84d3668053687fee2cd1b6385bc37acc796f1d44"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 21,
+      "fp32": {
+        "changed_bytes": 6804,
+        "changed_rows": 78,
+        "first_rows": [
+          27,
+          95,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          742,
+          766,
+          771,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2214
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3786589647679648e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 3,
+        "changed_rows": 3,
+        "first_rows": [
+          95,
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.0892718949051527e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-21.pt",
+        "sha256": "bc27dab94dd2c42500d9a1426f4d81154bd37fc7600990f2c6dcd5e08b79bbd3"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 22,
+      "fp32": {
+        "changed_bytes": 6583,
+        "changed_rows": 79,
+        "first_rows": [
+          27,
+          46,
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          852,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1305,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.386554426829889e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-22.pt",
+        "sha256": "0a2672be75598bb7fead2fc0b4add7e52375de094ef0f42ba094abb5561a3e70"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 23,
+      "fp32": {
+        "changed_bytes": 6996,
+        "changed_rows": 82,
+        "first_rows": [
+          27,
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1246,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3292896783312358e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-23.pt",
+        "sha256": "7e21846ae1cc5613d351015a6adbd8ace70fadd4147f1370325f39b4d8ae8866"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 24,
+      "fp32": {
+        "changed_bytes": 6433,
+        "changed_rows": 79,
+        "first_rows": [
+          95,
+          101,
+          242,
+          255,
+          464,
+          467,
+          556,
+          629,
+          665,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2240,
+          2292
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3511622931616785e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 3,
+        "changed_rows": 3,
+        "first_rows": [
+          2538,
+          2555,
+          4513
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 1.1153723562529194e-06,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-24.pt",
+        "sha256": "6a963bda6dc85f8274b20882250349fbe720430e5236837c47abcc68a263c4b1"
+      },
+      "row4513": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          0
+        ],
+        "max_abs": 0.0001220703125,
+        "relative_l2": 9.531494288239628e-05,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 25,
+      "fp32": {
+        "changed_bytes": 6313,
+        "changed_rows": 78,
+        "first_rows": [
+          27,
+          46,
+          95,
+          101,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990,
+          2115,
+          2240
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3220066152896948e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          3414
+        ],
+        "max_abs": 2.384185791015625e-07,
+        "relative_l2": 2.178477176428828e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-25.pt",
+        "sha256": "274d3cf6fd3d9257785f06cdff8bd1927e16a6befdfd79ffad690b37faf3e1e8"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 26,
+      "fp32": {
+        "changed_bytes": 6765,
+        "changed_rows": 75,
+        "first_rows": [
+          27,
+          95,
+          242,
+          255,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1990,
+          2240,
+          2321,
+          2349,
+          2393,
+          2406
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3420878852699047e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          95,
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 9.514035392843567e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-26.pt",
+        "sha256": "0d919b1396531426fb338ccf8eb87c0b6a0ed5ab06ef9f03793c20a099f620d0"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 27,
+      "fp32": {
+        "changed_bytes": 6478,
+        "changed_rows": 78,
+        "first_rows": [
+          95,
+          167,
+          242,
+          255,
+          455,
+          464,
+          467,
+          556,
+          629,
+          739,
+          742,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526,
+          1546,
+          1990
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3728255199296768e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-27.pt",
+        "sha256": "c22363c71aa0983cd975b3a79618efc134a016afd6d36944993524ad253e41f5"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 28,
+      "fp32": {
+        "changed_bytes": 6584,
+        "changed_rows": 82,
+        "first_rows": [
+          27,
+          46,
+          95,
+          101,
+          167,
+          242,
+          255,
+          464,
+          629,
+          739,
+          742,
+          766,
+          771,
+          784,
+          846,
+          852,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1392,
+          1397,
+          1407,
+          1457,
+          1497,
+          1504,
+          1526
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.296350693458237e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 2,
+        "changed_rows": 2,
+        "first_rows": [
+          2538,
+          2555
+        ],
+        "max_abs": 1.1920928955078125e-07,
+        "relative_l2": 1.089263568232468e-09,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-28.pt",
+        "sha256": "22c847abea6406695861d40fb004f92996e4dd78a44b82d871c8a089af887722"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 29,
+      "fp32": {
+        "changed_bytes": 6279,
+        "changed_rows": 72,
+        "first_rows": [
+          95,
+          167,
+          242,
+          255,
+          455,
+          464,
+          556,
+          629,
+          739,
+          766,
+          771,
+          846,
+          889,
+          929,
+          1042,
+          1055,
+          1209,
+          1244,
+          1330,
+          1341,
+          1357,
+          1397,
+          1407,
+          1457,
+          1504,
+          1526,
+          1546,
+          1564,
+          1990,
+          2240,
+          2321,
+          2393
+        ],
+        "max_abs": 1.4901161193847656e-08,
+        "relative_l2": 1.3260629261324652e-09,
+        "finite": true
+      },
+      "bf16": {
+        "changed_bytes": 1,
+        "changed_rows": 1,
+        "first_rows": [
+          2538
+        ],
+        "max_abs": 9.313225746154785e-10,
+        "relative_l2": 8.50961141829476e-12,
+        "finite": true
+      },
+      "changed_values": {
+        "file": "atomic-changed-29.pt",
+        "sha256": "7da79b9d4febf1d0fff7c30819a331b9491e89bd41d435f7dcb94ef61512c558"
+      },
+      "row4513": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    }
+  ],
+  "fixed": [
+    {
+      "iteration": 0,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      },
+      "versus_service": {
+        "changed_bytes": 1433,
+        "changed_rows": 1297,
+        "first_rows": [
+          0,
+          4,
+          11,
+          22,
+          28,
+          29,
+          31,
+          33,
+          36,
+          43,
+          46,
+          65,
+          69,
+          70,
+          73,
+          79,
+          96,
+          97,
+          98,
+          104,
+          112,
+          119,
+          123,
+          126,
+          139,
+          146,
+          153,
+          155,
+          156,
+          157,
+          166,
+          169
+        ],
+        "max_abs": 0.00048828125,
+        "relative_l2": 1.2336864529061131e-05,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 1,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 2,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 3,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 4,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 5,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 6,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 7,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 8,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 9,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 10,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 11,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 12,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 13,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 14,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 15,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 16,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 17,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 18,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 19,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 20,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 21,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 22,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 23,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 24,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 25,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 26,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 27,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 28,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    },
+    {
+      "iteration": 29,
+      "bf16": {
+        "changed_bytes": 0,
+        "changed_rows": 0,
+        "first_rows": [],
+        "max_abs": 0.0,
+        "relative_l2": 0.0,
+        "finite": true
+      }
+    }
+  ],
+  "module": {
+    "path": "/home/pc/pytorch/third_party/aiter/aiter/jit/module_moe_ck2stages_b16_b16_preshuffle_off_f32_silu_no_mulWeightStage2_.so",
+    "sha256": "9a8d60c45857823a5582bd3401db3ffc1cb70210d62a3a781b8a68ca967e66ac"
+  }
+}

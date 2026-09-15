@@ -1,0 +1,142 @@
+{
+  "archive_sha256": "00652fcb78e0c4a64da33b4b88b7f09787024d0c50e54ccc102a4c230030ecbe",
+  "files": {
+    "capture/P16-real-peer-fixture-before-start.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "capture/P16-real-peer-fixture-ready.gpu.json": {
+      "bytes": 142035,
+      "sha256": "016bda71d03a20cc292f09fadc531da5b9b1c65b57301164a7c0e874cfc4785f"
+    },
+    "capture/P16-real-peer-fixture.server-info.json": {
+      "bytes": 41998,
+      "sha256": "7fa67e6ff3dc043f9e055ab73d2483bd11a1eab6f159b7dd5a2698f90f337338"
+    },
+    "capture/P16-real-peer-fixture.service.log": {
+      "bytes": 398743,
+      "sha256": "90e5901b8138af604a8a89fda1943637c369e567898977a2fa56d1ad4fc9119f"
+    },
+    "capture/P16-real-peer-fixture.source.patch": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "capture/P16-real-peer-fixture.state.json": {
+      "bytes": 2840,
+      "sha256": "177f90800b611298f4d7d013425bd7cfd69712757e3e5117f9666b06650c23d0"
+    },
+    "capture/already-exited.json": {
+      "bytes": 72,
+      "sha256": "72687155a0d1f327179254c0c7971af78a0f1f14bda358705a86f54ec30b9272"
+    },
+    "capture/inputs.json": {
+      "bytes": 2351619,
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    "capture/plan.json": {
+      "bytes": 4228,
+      "sha256": "1246a074f4a4e5e13b6f89c7a009c126e2684085c1bf71e3c8013ef523724e2d"
+    },
+    "capture/sent.json": {
+      "bytes": 1551984,
+      "sha256": "4805b249318a0f0ff657b449fa002045250888a0eb7ffe3d7913906e524ad1a0"
+    },
+    "capture/start-ar-matrix.sh": {
+      "bytes": 4226,
+      "sha256": "c7a773e3182f297013dcbd66d07ba7dcdae7330bb3af6ba11c7024bfe0c8fdbd"
+    },
+    "capture-v2/France.json": {
+      "bytes": 1055,
+      "sha256": "8c6ff4e34f31050dd340e86067c1ec1b90237a13154b047fe38c87e4fb34b7de"
+    },
+    "capture-v2/P16-real-peer-fixture-after-stop.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "capture-v2/P16-real-peer-fixture-before-start.gpu.json": {
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    "capture-v2/P16-real-peer-fixture-ready.gpu.json": {
+      "bytes": 142041,
+      "sha256": "d7e92f9e1294f6b00f36ab45937b9de68be957e173cf74f43041b1c8d952207f"
+    },
+    "capture-v2/P16-real-peer-fixture.server-info.json": {
+      "bytes": 41998,
+      "sha256": "877d123cf0e73650bdd3ac4cd203992fae508dd92effd109e5a1db7f12346c82"
+    },
+    "capture-v2/P16-real-peer-fixture.service.log": {
+      "bytes": 420590,
+      "sha256": "0be53e075cede752176fa3be435ae34a42228b61e9e15b83c70db7efb32589b5"
+    },
+    "capture-v2/P16-real-peer-fixture.source.patch": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "capture-v2/P16-real-peer-fixture.state.json": {
+      "bytes": 2847,
+      "sha256": "3f30c3638335f7de5ef0a6fb08334a0ee3271fa5d8bfbeabfc55fe0ad07ebe5c"
+    },
+    "capture-v2/P16-real-peer-fixture.stop.json": {
+      "bytes": 70,
+      "sha256": "d66e7fbd08539bb473d115f27ab77de162006ddef2f8a292dcf4482dd5d5075e"
+    },
+    "capture-v2/complete.json": {
+      "bytes": 56,
+      "sha256": "5e020832fcf1f48d7bb3e8550f6dda98607f39982db7e436230893fc2f1218d5"
+    },
+    "capture-v2/fixture/rank-0.json": {
+      "bytes": 2148,
+      "sha256": "69ab3ebe4966549bc7aa4f707862c6c7bcb3dc87fb867798e7aeea368fd73f18"
+    },
+    "capture-v2/fixture/rank-1.json": {
+      "bytes": 2148,
+      "sha256": "0f689eda6844dc2eaa156363f37bcd75891af5ce7c3ea2ce56f1c2c40ca7ce2f"
+    },
+    "capture-v2/fixture/rank-2.json": {
+      "bytes": 2148,
+      "sha256": "ffe596daf8709aefc05997fc9a37408e484a74ec0a84c1beed741ee16f9ba92c"
+    },
+    "capture-v2/fixture/rank-3.json": {
+      "bytes": 2148,
+      "sha256": "1396a9b7e1d66dd18c9cee84dd31fd57defb004b409deb423cc0ed1c552a806a"
+    },
+    "capture-v2/fixture/rank-4.json": {
+      "bytes": 2148,
+      "sha256": "e6441dd16793a99b87e1f9544c678c80050cd479ac92a635480006a72e68130d"
+    },
+    "capture-v2/fixture/rank-5.json": {
+      "bytes": 2148,
+      "sha256": "a6a3810429624129b3c495dfc2a0db79eadfd3782f2bfaee1b4c439d749885f5"
+    },
+    "capture-v2/fixture/rank-6.json": {
+      "bytes": 2148,
+      "sha256": "c482cf0a06f640bb544e05e711e608a9416d27554a77f8c0b77df457ad5381dd"
+    },
+    "capture-v2/fixture/rank-7.json": {
+      "bytes": 2148,
+      "sha256": "498515894530f6b3e4d2feb7d8f5da8630a998cad177b4a75a7b2256c5cc7b60"
+    },
+    "capture-v2/inputs.json": {
+      "bytes": 2351619,
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    "capture-v2/plan.json": {
+      "bytes": 4228,
+      "sha256": "db186ce385d6e70659fe6b59fdf1da3993edca9bba7e3c6857ad422bbe7b9dfc"
+    },
+    "capture-v2/responses.json": {
+      "bytes": 1566535,
+      "sha256": "7aa1c21f6cf22ff98eaf29f8875d8cc7f0a284dc4c80c85e61391caab975fc51"
+    },
+    "capture-v2/sent.json": {
+      "bytes": 1551984,
+      "sha256": "a1efa78094b9edb168daf093520235c4a576bd8b8636886fda3b43975e1f4127"
+    },
+    "capture-v2/start-ar-matrix.sh": {
+      "bytes": 4229,
+      "sha256": "b5ed079641044e9a2dd174ed8ed0087e11a2db799be77f3166d521d26601c489"
+    }
+  },
+  "tensor_fixtures_included": false
+}

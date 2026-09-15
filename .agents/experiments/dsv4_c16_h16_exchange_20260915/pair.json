@@ -1,0 +1,1592 @@
+{
+  "scope": "Two actual GCDs: full Q exchange+H16 attention+O return versus local H8.\n\nSynthetic inputs with identical LOGICAL KV, independently permuted physical\nbanks. No real-model capture or capacity acceptance. Only original per-query\nselections; no shared-index approximation. Uses accepted stages1 in both arms.\n",
+  "status": "complete",
+  "physical_gcds": [
+    4,
+    5
+  ],
+  "cases": [
+    {
+      "family": "c128",
+      "m": 8192,
+      "request_len": 4096,
+      "logical_fixture_hashes": [
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78",
+        "024fc3ed85dd275486a88a52da671badbde396164114e3b21bfa14f9456d5f78"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              1.2729718208312988,
+              1.272427749633789,
+              1.2685877799987793,
+              1.273836040496826,
+              1.2698997497558593,
+              1.273515796661377
+            ],
+            "B": [
+              2.779315948486328,
+              2.7205007553100584,
+              2.7216209411621093,
+              2.731540870666504,
+              2.737396812438965,
+              2.7340049743652344
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              1.2688119888305665,
+              1.2665719985961914,
+              1.263980007171631,
+              1.2688759803771972,
+              1.2649080276489257,
+              1.2691320419311523
+            ],
+            "B": [
+              2.773556137084961,
+              2.7429645538330076,
+              2.7748361587524415,
+              2.719124984741211,
+              2.762644386291504,
+              2.732788848876953
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          1.2729718208312988,
+          1.272427749633789,
+          1.2685877799987793,
+          1.273836040496826,
+          1.2698997497558593,
+          1.273515796661377
+        ],
+        "B": [
+          2.779315948486328,
+          2.7429645538330076,
+          2.7748361587524415,
+          2.731540870666504,
+          2.762644386291504,
+          2.7340049743652344
+        ]
+      },
+      "median_ms": {
+        "A": 1.272699785232544,
+        "B": 2.752804470062256
+      },
+      "speedup": 0.4623284359908647,
+      "send_bytes_per_rank": 67108864,
+      "extra_static_buffers_bytes": 201326592,
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c4",
+      "m": 8192,
+      "request_len": 4096,
+      "logical_fixture_hashes": [
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5",
+        "098d457312bd190c211d4fe23638293ec4e79dba206702cd7b020ccf214adfd5"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              3.7739242553710937,
+              3.774340057373047,
+              3.774692153930664,
+              3.77728385925293,
+              3.7716846466064453,
+              3.775364303588867
+            ],
+            "B": [
+              4.060927963256836,
+              4.055487442016601,
+              4.077567291259766,
+              4.072768020629883,
+              4.056415939331055,
+              4.026560211181641
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              3.7591087341308596,
+              3.754660797119141,
+              3.7537647247314454,
+              3.756996917724609,
+              3.7495086669921873,
+              3.7571563720703125
+            ],
+            "B": [
+              4.065119934082031,
+              4.017280578613281,
+              4.087135314941406,
+              4.063520050048828,
+              4.0693115234375,
+              4.026623916625977
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          3.7739242553710937,
+          3.774340057373047,
+          3.774692153930664,
+          3.77728385925293,
+          3.7716846466064453,
+          3.775364303588867
+        ],
+        "B": [
+          4.065119934082031,
+          4.055487442016601,
+          4.087135314941406,
+          4.072768020629883,
+          4.0693115234375,
+          4.026623916625977
+        ]
+      },
+      "median_ms": {
+        "A": 3.7745161056518555,
+        "B": 4.067215728759766
+      },
+      "speedup": 0.9280343992972399,
+      "send_bytes_per_rank": 67108864,
+      "extra_static_buffers_bytes": 201326592,
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c128",
+      "m": 32768,
+      "request_len": 8192,
+      "logical_fixture_hashes": [
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf",
+        "4055764207d382685263808f0c64e0691077f89590c812ba64abe5fa26262faf"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              5.3699951171875,
+              5.3610992431640625,
+              5.3643951416015625,
+              5.3694511413574215,
+              5.362283325195312,
+              5.363819122314453
+            ],
+            "B": [
+              9.293036651611327,
+              9.347692108154297,
+              9.350187683105469,
+              9.331724548339844,
+              10.19484634399414,
+              9.295884704589843
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              5.34369125366211,
+              5.3437236785888675,
+              5.341163635253906,
+              5.34260368347168,
+              5.340011215209961,
+              5.3395637512207035
+            ],
+            "B": [
+              9.346411895751952,
+              9.330188751220703,
+              9.35556411743164,
+              9.324748992919922,
+              10.194878387451173,
+              9.280716705322266
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          5.3699951171875,
+          5.3610992431640625,
+          5.3643951416015625,
+          5.3694511413574215,
+          5.362283325195312,
+          5.363819122314453
+        ],
+        "B": [
+          9.346411895751952,
+          9.347692108154297,
+          9.35556411743164,
+          9.331724548339844,
+          10.194878387451173,
+          9.295884704589843
+        ]
+      },
+      "median_ms": {
+        "A": 5.364107131958008,
+        "B": 9.347052001953124
+      },
+      "speedup": 0.573882239109951,
+      "send_bytes_per_rank": 268435456,
+      "extra_static_buffers_bytes": 805306368,
+      "sink_exchange_once_outside_timing": true
+    },
+    {
+      "family": "c4",
+      "m": 32768,
+      "request_len": 8192,
+      "logical_fixture_hashes": [
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09",
+        "f9847c478ad267d18bef3173734a3d9fa1d212b64a61ce8c0f8c7f1967064b09"
+      ],
+      "q_stride": [
+        8192,
+        512,
+        1
+      ],
+      "per_rank": [
+        {
+          "samples": {
+            "A": [
+              16.42015686035156,
+              16.495451354980467,
+              16.42034912109375,
+              16.418428039550783,
+              16.417021179199217,
+              16.412701416015626
+            ],
+            "B": [
+              15.159919738769531,
+              15.149711608886719,
+              15.240557861328124,
+              15.122991943359375,
+              15.167376708984374,
+              15.138479614257813
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        },
+        {
+          "samples": {
+            "A": [
+              16.330685424804688,
+              26.245346069335938,
+              16.40172424316406,
+              16.32665252685547,
+              16.323933410644532,
+              16.331741333007812
+            ],
+            "B": [
+              15.156912231445313,
+              15.132496643066407,
+              15.238542175292968,
+              15.118800354003906,
+              15.170095825195313,
+              15.115664672851562
+            ]
+          },
+          "checks": [
+            {
+              "mutation": 0,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 1,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 2,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 3,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "mutation": 4,
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "resources": {
+            "8": {
+              "hash": "1d015c97e999932ab22aa89964367d95f48c94cb8fc6544526c348601d4e6ee0",
+              "registers": 376,
+              "spills": 0,
+              "lds": 16384
+            },
+            "16": {
+              "hash": "d8a5684f0c7964e78932cd42d43cd708c0548bfe0c8ae99667a8c41c936176a3",
+              "registers": 380,
+              "spills": 0,
+              "lds": 16384
+            }
+          }
+        }
+      ],
+      "rankmax_samples_ms": {
+        "A": [
+          16.42015686035156,
+          26.245346069335938,
+          16.42034912109375,
+          16.418428039550783,
+          16.417021179199217,
+          16.412701416015626
+        ],
+        "B": [
+          15.159919738769531,
+          15.149711608886719,
+          15.240557861328124,
+          15.122991943359375,
+          15.170095825195313,
+          15.138479614257813
+        ]
+      },
+      "median_ms": {
+        "A": 16.419292449951172,
+        "B": 15.154815673828125
+      },
+      "speedup": 1.0834372917056825,
+      "send_bytes_per_rank": 268435456,
+      "extra_static_buffers_bytes": 805306368,
+      "sink_exchange_once_outside_timing": true
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_c16_h16_exchange_20260915/pair.py": "876f48ce0810ca09a742ee67503ac057ba635b6c66c27a982e9371f2ce4d5af3",
+    "python/sglang/kernels/ops/attention/dsv4/unified_kv_kernels/paged_prefill.py": "c20b9482c7d2f973279158fda8fe724c5f5e5ef938c5b887d3eb35d8cb238898"
+  },
+  "topology": [
+    {
+      "gpu": 0,
+      "bdf": "0000:11:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 1,
+      "bdf": "0000:14:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 2,
+      "bdf": "0000:32:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 3,
+      "bdf": "0000:35:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 4,
+      "bdf": "0000:8e:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 5,
+      "bdf": "0000:93:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 6,
+      "bdf": "0000:ae:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-100000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        }
+      ]
+    },
+    {
+      "gpu": 7,
+      "bdf": "0000:b3:00.0",
+      "links": [
+        {
+          "gpu": 0,
+          "bdf": "0000:11:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 1,
+          "bdf": "0000:14:00.0",
+          "weight": 45,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 2,
+          "bdf": "0000:32:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 3,
+          "bdf": "0000:35:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 4,
+          "bdf": "0000:8e:00.0",
+          "weight": 30,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "0-0",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 5,
+          "bdf": "0000:93:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-50000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 6,
+          "bdf": "0000:ae:00.0",
+          "weight": 15,
+          "link_status": "ENABLED",
+          "link_type": "XGMI",
+          "num_hops": 1,
+          "bandwidth": "50000-200000",
+          "coherent": "C",
+          "atomics": "64,32",
+          "dma": "T",
+          "bi_dir": "T"
+        },
+        {
+          "gpu": 7,
+          "bdf": "0000:b3:00.0",
+          "weight": 0,
+          "link_status": "ENABLED",
+          "link_type": "SELF",
+          "num_hops": 0,
+          "bandwidth": "N/A",
+          "coherent": "SELF",
+          "atomics": "SELF",
+          "dma": "SELF",
+          "bi_dir": "SELF"
+        }
+      ]
+    }
+  ]
+}

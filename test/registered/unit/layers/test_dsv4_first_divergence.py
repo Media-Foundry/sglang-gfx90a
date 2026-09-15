@@ -6,6 +6,17 @@ from sglang.kernels.ops.debug import dsv4_first_divergence as audit
 
 
 class FingerprintTest(unittest.TestCase):
+    def test_cached_chunk_selection(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(audit.prefix_eligible([0]))
+        with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_FIRST_DIV_MIN_PREFIX': '8192'}):
+            self.assertFalse(audit.prefix_eligible([0, 4096]))
+            self.assertFalse(audit.prefix_eligible([]))
+            self.assertTrue(audit.prefix_eligible([0, 8192]))
+        for invalid in ('-1', 'x'):
+            with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_FIRST_DIV_MIN_PREFIX': invalid}):
+                with self.assertRaises(ValueError): audit.prefix_eligible([0])
+
     def test_explicit_diagnostic_coverage(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(audit.selected_layers(), frozenset(range(20,25)))

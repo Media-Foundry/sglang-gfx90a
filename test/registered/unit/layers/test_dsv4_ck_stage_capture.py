@@ -15,6 +15,21 @@ def test_disabled_scope_does_not_inspect_batch(monkeypatch):
         assert m.current() is None
 
 
+def test_explicit_target_preserves_defaults(monkeypatch):
+    import pytest
+    for suffix in ('LAYER', 'RANK', 'MIN_PREFIX'):
+        monkeypatch.delenv('SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_' + suffix, raising=False)
+    assert m.selected_target() == (21, 5, 0)
+    monkeypatch.setenv('SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_LAYER', '1')
+    monkeypatch.setenv('SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_RANK', '6')
+    monkeypatch.setenv('SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_MIN_PREFIX', '8192')
+    assert m.selected_target() == (1, 6, 8192)
+    for suffix, value in (('LAYER', '43'), ('RANK', '8'), ('MIN_PREFIX', '-1')):
+        with monkeypatch.context() as env:
+            env.setenv('SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_' + suffix, value)
+            with pytest.raises(ValueError): m.selected_target()
+
+
 def test_capture_preserves_bf16_bits_and_rejects_overwrite(tmp_path):
     import pytest
     cap=m.Capture(tmp_path/'fixture')

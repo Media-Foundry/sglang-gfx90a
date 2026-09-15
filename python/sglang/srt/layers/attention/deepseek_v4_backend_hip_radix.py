@@ -2197,6 +2197,9 @@ class DeepseekV4HipRadixBackend(
             softmax_scale=self.softmax_scale,
         )
         o = runtime.prefill(**prefill_args, num_stages=1 if stage1 else None)
+        if stage1 and os.getenv("SGLANG_DSV4_DEBUG_ATTN_PEER_CAPTURE_DIR"):
+            from sglang.kernels.ops.debug.dsv4_attention_peer_capture import capture
+            capture(layer.layer_id, get_parallel().tp_rank, forward_batch, prefill_args, o)
         if stage1:
             checking = os.getenv("SGLANG_DSV4_DEBUG_PREFILL_ATTN_STAGE1_CHECK", "0") == "1"
             if checking:

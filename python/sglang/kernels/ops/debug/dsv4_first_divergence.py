@@ -1,4 +1,4 @@
-"""Default-off first-forward full-state/row-hash audit. Never a speed probe."""
+"""Default-off first-eligible-forward state audit. Never a speed probe."""
 import hashlib
 import json
 import os
@@ -32,6 +32,14 @@ def selected_stages():
     return stages
 
 
+def prefix_eligible(prefix_lens):
+    """Optionally wait for a cached chunk; leave the historical default intact."""
+    minimum = int(os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_MIN_PREFIX', '0'))
+    if minimum < 0:
+        raise ValueError('first-div minimum prefix must be nonnegative')
+    return max(prefix_lens, default=0) >= minimum
+
+
 def fingerprint(raw, rows=None):
     raw = np.ascontiguousarray(raw)
     flat = memoryview(raw).cast('B') if raw.size else memoryview(b'')
@@ -58,6 +66,8 @@ def get_probe(layer, batch, positions):
     if torch.cuda.is_current_stream_capturing():
         return None
     assert batch.forward_mode.name == 'EXTEND'
+    if not prefix_eligible(batch.extend_prefix_lens_cpu):
+        return None
     if _batch is None:
         _batch = batch  # Strong identity prevents Python object-id reuse.
     if batch is not _batch:
