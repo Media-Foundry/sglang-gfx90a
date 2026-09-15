@@ -1,4 +1,5 @@
 """Distinguish new bank-address error from inherited CK probability rounding."""
+import argparse
 import hashlib
 import json
 import os
@@ -13,10 +14,13 @@ from sglang.kernels.jit.utils import load_jit
 from sglang.kernels.ops.attention.dsv4.unified_kv_kernels.paged_prefill import _sparse_attn_v4_paged_prefill_triton
 from oracle import Runner, ROOT
 
-output=ROOT/'diagnosis.json';assert not output.exists()
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--refined',action='store_true')
+args=parser.parse_args()
+output=ROOT/('diagnosis-refined.json' if args.refined else 'diagnosis.json');assert not output.exists()
 path=ROOT/'smoke-repro.failure.pt'
 f={k:v.cuda() for k,v in torch.load(path,weights_only=True).items()}
-runner=Runner(*(f[k] for k in ('q','pkv','pi','pp','ekv','ei','ep','sink')))
+runner=Runner(*(f[k] for k in ('q','pkv','pi','pp','ekv','ei','ep','sink')),refined=args.refined)
 new=runner(2).clone()
 kv=torch.cat((f['pkv'],f['ekv']),dim=0)
 indices=runner.combined.clone()
@@ -38,7 +42,7 @@ pi=torch.where((f['pi']>=0)&(f['pi']<len(f['pkv'])),f['pi'],-1)
 ei=torch.where((f['ei']>=0)&(f['ei']<len(f['ekv'])),f['ei'],-1)
 triton=_sparse_attn_v4_paged_prefill_triton(f['q'],f['pkv'],pi,f['pp'],f['ekv'],ei,f['ep'],f['sink'],512**-.5)
 index=(1,0,237)
-result=dict(fixture_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+result=dict(fixture_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),refined=args.refined,
     new_equals_original_ck_bits=torch.equal(new.view(torch.uint8),old.view(torch.uint8)),
     global_max_abs={name:float((value.float()-f['expected']).abs().max()) for name,value in [('new',new),('original_ck',old),('production_triton',triton)]},
     failed_element={name:float(value[index]) for name,value in [('new',new),('original_ck',old),('production_triton',triton),('reference',f['expected'])]},

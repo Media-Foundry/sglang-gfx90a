@@ -8,6 +8,7 @@ import subprocess
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
+p.add_argument('--refined',action='store_true')
 args=p.parse_args();assert not args.output.exists()
 assert os.environ.get('HIP_VISIBLE_DEVICES')=='4'
 owners=json.loads(subprocess.check_output(['amd-smi','process','--json']))
@@ -19,7 +20,7 @@ torch.manual_seed(20260915)
 files=[Path(__file__),ROOT/'oracle.py',ROOT/'dsv4_prefill_two_source_core.cuh',
        REPO/'python/sglang/kernels/jit/csrc/debug/gfx90a_prefill_two_source_ck_oracle.cuh',
        REPO/'python/sglang/kernels/jit/csrc/deepseek_v4/dsv4_unified_sparse_decode_ck.cuh']
-result=dict(status='running',scope=__doc__,cases=[],mutations=[],
+result=dict(status='running',scope=__doc__,refined=args.refined,cases=[],mutations=[],
             sources={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
 def save():args.output.write_text(json.dumps(result,indent=2)+'\n')
 def ints(x):return torch.tensor(x,device='cuda',dtype=torch.int32)
@@ -34,7 +35,7 @@ cases=[('empty',[],[]),('prefix',[0],[]),('extend',[],[0]),
        ('all_invalid',[-1]*17,[-2]*33),('swa',[],[0]*128),
        ('top512_swa',[0]*512,[0]*128)]
 for name,pids,eids in cases:
-    runner=Runner(q,pkv,ints(pids),ints([0,len(pids)]),ekv,ints(eids),ints([0,len(eids)]),sink)
+    runner=Runner(q,pkv,ints(pids),ints([0,len(pids)]),ekv,ints(eids),ints([0,len(eids)]),sink,refined=args.refined)
     np=sum(0<=s<2 for s in pids);ne=sum(0<=s<2 for s in eids)
     expected=torch.full_like(q,(np+3*ne)/(np+ne+1))
     for splits in (1,2):
@@ -51,7 +52,7 @@ ekv=torch.empty((96,512),device='cuda',dtype=torch.bfloat16)
 pi=ints([0]*530);pp=ints([0,0,1,18,530])
 ei=ints([0]*146);ep=ints([0,0,1,129,146])
 sink=torch.empty(8,device='cuda')
-runner=Runner(q,pkv,pi,pp,ekv,ei,ep,sink)
+runner=Runner(q,pkv,pi,pp,ekv,ei,ep,sink,refined=args.refined)
 def mutate():
     q.normal_(std=.3);pkv.normal_(std=.5);ekv.normal_(std=.8);sink.uniform_(-2,2)
     pi.random_(-4,68);ei.random_(-4,100)

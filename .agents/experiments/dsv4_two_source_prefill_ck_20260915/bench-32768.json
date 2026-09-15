@@ -1,0 +1,203 @@
+{
+  "status": "complete",
+  "scope": "Synthetic H8 two-bank prefill consumer screen, including all new GPU work.",
+  "rows": 32768,
+  "strided_q": false,
+  "metric": "GPU consumer with pre-existing ragged metadata: candidate encoder+core+reducer; allocations and common metadata builder excluded. Optional Q copy is timed.",
+  "real_service_capture": false,
+  "results": [
+    {
+      "family": "c128",
+      "samples_ms": {
+        "triton": [
+          8.266592407226563,
+          8.279167938232423,
+          8.276416015625,
+          8.241375732421876,
+          8.236831665039062,
+          8.275872802734375,
+          8.244863891601563,
+          8.221118927001953,
+          8.247039794921875,
+          8.25763168334961,
+          8.243583679199219,
+          8.258656311035157
+        ],
+        "ck1": [
+          16.137306213378906,
+          16.139927673339844,
+          16.142970275878906,
+          16.137049865722656,
+          16.13829803466797,
+          16.140217590332032
+        ],
+        "ck2": [
+          18.341859436035158,
+          18.33865966796875,
+          18.338114929199218,
+          18.332290649414062,
+          18.339715576171876,
+          18.341891479492187
+        ]
+      },
+      "median_ms": {
+        "triton": 8.252335739135741,
+        "ck1": 16.139112854003905,
+        "ck2": 18.339187622070312
+      },
+      "checks": {
+        "triton": {
+          "sampled_max_abs": 0.0053337812423706055
+        },
+        "ck1": {
+          "sampled_max_abs": 0.0038957595825195312
+        },
+        "ck2": {
+          "sampled_max_abs": 0.0038957595825195312
+        }
+      },
+      "prefix_indices": 1032448,
+      "extend_indices": 4161792,
+      "combined_index_bytes": 20776960,
+      "workspace_bytes": 1077936128,
+      "q_copy_bytes": 0,
+      "baseline_code": {
+        "registers": 354,
+        "spills": 0,
+        "lds": 16384,
+        "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+      }
+    },
+    {
+      "family": "c4_reused",
+      "samples_ms": {
+        "triton": [
+          24.14331512451172,
+          25.768722534179688,
+          24.230453491210938,
+          24.1534912109375,
+          24.119345092773436,
+          24.31243896484375,
+          24.104817199707032,
+          24.1648193359375,
+          24.023056030273438,
+          24.16693115234375,
+          24.171859741210938,
+          24.225331115722657
+        ],
+        "ck1": [
+          50.3200439453125,
+          50.32478332519531,
+          50.32071533203125,
+          50.32452392578125,
+          50.309933471679685,
+          50.32609252929687
+        ],
+        "ck2": [
+          52.2960205078125,
+          52.29630737304687,
+          52.29038696289062,
+          52.292852783203124,
+          52.279058837890624,
+          52.28341064453125
+        ]
+      },
+      "median_ms": {
+        "triton": 24.165875244140626,
+        "ck1": 50.32261962890625,
+        "ck2": 52.29161987304687
+      },
+      "checks": {
+        "triton": {
+          "sampled_max_abs": 0.009609222412109375
+        },
+        "ck1": {
+          "sampled_max_abs": 0.006110429763793945
+        },
+        "ck2": {
+          "sampled_max_abs": 0.006110429763793945
+        }
+      },
+      "prefix_indices": 14678016,
+      "extend_indices": 4161792,
+      "combined_index_bytes": 75359232,
+      "workspace_bytes": 1077936128,
+      "q_copy_bytes": 0,
+      "baseline_code": {
+        "registers": 354,
+        "spills": 0,
+        "lds": 16384,
+        "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+      }
+    },
+    {
+      "family": "c4_varied",
+      "samples_ms": {
+        "triton": [
+          24.26082000732422,
+          24.139250183105467,
+          24.123121643066405,
+          24.219155883789064,
+          24.182098388671875,
+          24.30357208251953,
+          24.180467224121095,
+          24.141554260253905,
+          24.103695678710938,
+          24.1255859375,
+          24.09783935546875,
+          24.180882263183594
+        ],
+        "ck1": [
+          50.306829833984374,
+          50.321389770507814,
+          50.29725646972656,
+          50.32010498046875,
+          50.308648681640626,
+          50.325225830078125
+        ],
+        "ck2": [
+          52.2786376953125,
+          52.28651123046875,
+          52.262384033203126,
+          52.27816162109375,
+          52.262481689453125,
+          52.27943725585938
+        ]
+      },
+      "median_ms": {
+        "triton": 24.1610107421875,
+        "ck1": 50.31437683105469,
+        "ck2": 52.27839965820313
+      },
+      "checks": {
+        "triton": {
+          "sampled_max_abs": 0.005842447280883789
+        },
+        "ck1": {
+          "sampled_max_abs": 0.005842447280883789
+        },
+        "ck2": {
+          "sampled_max_abs": 0.005842447280883789
+        }
+      },
+      "prefix_indices": 14678016,
+      "extend_indices": 4161792,
+      "combined_index_bytes": 75359232,
+      "workspace_bytes": 1077936128,
+      "q_copy_bytes": 0,
+      "baseline_code": {
+        "registers": 354,
+        "spills": 0,
+        "lds": 16384,
+        "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+      }
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/bench.py": "872761d93246d2e40df005ddc4e8c41d15652a65b488bbd563deb10839ea29b9",
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/oracle.py": "7c9977148bb9d21063907ff31dba16c06f4178a7f42b6c3fc4e3c54457c253de",
+    ".agents/experiments/dsv4_two_source_prefill_ck_20260915/dsv4_prefill_two_source_core.cuh": "e8a0aa51fc578df1cef0fea842b6749211ba1e7d4b991e48b74b44fe3e853d51",
+    "python/sglang/kernels/jit/csrc/debug/gfx90a_prefill_two_source_ck_oracle.cuh": "18eb450982d01501d3fbc9edc5207ab83d49d852487f2a00c4f9dc827093b23f",
+    "python/sglang/kernels/ops/attention/dsv4/unified_kv_kernels/paged_prefill.py": "2d28efd7efe40749d3b55249e49cf43ac98c74acdce78a8e2ee4c4cf542fe441"
+  }
+}

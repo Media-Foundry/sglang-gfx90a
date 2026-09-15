@@ -638,6 +638,9 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
     __shared__ bf16_t kv_tile[kTile * kKvLdsStride];
     __shared__ float score_partial[kWaves][kLocalHeads * kTile];
     __shared__ bf16_t probabilities[kLocalHeads * kTile];
+#if defined(SGLANG_PREFILL_TWO_SOURCE_REFINE_PROB)
+    __shared__ bf16_t probabilities_lo[kLocalHeads * kTile];
+#endif
     __shared__ float alpha_shared[kLocalHeads];
 
     static_assert(!PairH8 || Heads == 8);
@@ -871,7 +874,14 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             softmax_norm = softmax_norm * alpha + block_sum;
             softmax_max = next_max;
         }
+#if defined(SGLANG_PREFILL_TWO_SOURCE_REFINE_PROB)
+        const bf16_t p_hi = type_convert<bf16_t>(weight);
+        probabilities[softmax_head * kTile + softmax_key] = p_hi;
+        probabilities_lo[softmax_head * kTile + softmax_key] =
+            type_convert<bf16_t>(weight - type_convert<float>(p_hi));
+#else
         probabilities[softmax_head * kTile + softmax_key] = type_convert<bf16_t>(weight);
+#endif
         if(softmax_key == 0) alpha_shared[softmax_head] = alpha;
         __syncthreads();
 
@@ -888,6 +898,15 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
         typename WarpGemm::AWarpTensor p_tensor;
         p_tensor.get_thread_buffer().template set_as<AVec>(number<0>{}, p_vec);
 
+#if defined(SGLANG_PREFILL_TWO_SOURCE_REFINE_PROB)
+        AVec p_lo_vec{};
+#pragma unroll
+        for(int k = 0; k < kValuesPerLane; ++k)
+            p_lo_vec[k] = probabilities_lo[matrix_lane * kTile + k_group * kValuesPerLane + k];
+        typename WarpGemm::AWarpTensor p_lo_tensor;
+        p_lo_tensor.get_thread_buffer().template set_as<AVec>(number<0>{}, p_lo_vec);
+#endif
+
 #pragma unroll
         for(int n = 0; n < kOutputTilesPerWave; ++n)
         {
@@ -903,6 +922,9 @@ unified_sparse_decode_d512_mfma_split_core_kernel(UnifiedSparseDecodeArgs args,
             typename WarpGemm::BWarpTensor v_tensor;
             v_tensor.get_thread_buffer().template set_as<BVec>(number<0>{}, v_vec);
             WarpGemm{}(value_tensors[n], p_tensor, v_tensor);
+#if defined(SGLANG_PREFILL_TWO_SOURCE_REFINE_PROB)
+            WarpGemm{}(value_tensors[n], p_lo_tensor, v_tensor);
+#endif
         }
 
 #pragma unroll
@@ -1208,4 +1230,3 @@ inline hipError_t launch_unified_sparse_decode_d512(const UnifiedSparseDecodeArg
 }
 
 } // namespace ck_tile::dsv4_prefill_oracle
-

@@ -9,25 +9,26 @@ ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[2]
 
 @cache
-def module():
-    return load_jit('gfx90a_prefill_two_source_ck_oracle_v1',
+def module(refined=False):
+    return load_jit('gfx90a_prefill_two_source_ck_oracle_refined_v1' if refined else 'gfx90a_prefill_two_source_ck_oracle_v1',
         cuda_files=['debug/gfx90a_prefill_two_source_ck_oracle.cuh'],
         cuda_wrappers=[('run', 'sglang::prefill_two_source_oracle::Entry::run')],
         extra_cuda_cflags=['-O3','-std=c++20','-DCK_ENABLE_BF16','-DCK_USE_XDL',
-                          '-DSGLANG_DSV4_CK_SENTINEL_ORACLE=1'],
+                          '-DSGLANG_DSV4_CK_SENTINEL_ORACLE=1']+
+                         (['-DSGLANG_PREFILL_TWO_SOURCE_REFINE_PROB=1'] if refined else []),
         extra_include_paths=[str(ROOT),*include_paths(),
             '/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include',
             '/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/library/include'])
 
 class Runner:
-    def __init__(self,q,pkv,pi,pp,ekv,ei,ep,sink):
+    def __init__(self,q,pkv,pi,pp,ekv,ei,ep,sink,*,refined=False):
         assert 'gfx90a' in torch.cuda.get_device_properties(q.device).gcnArchName
         self.inputs = (q,pkv,pi,pp,ekv,ei,ep,sink)
         self.out = torch.empty_like(q, memory_format=torch.contiguous_format)
         self.scratch = torch.empty(q.shape[0]*2*8*514*4, device=q.device, dtype=torch.uint8)
         self.combined = torch.empty(max(1,pi.numel()+ei.numel()), device=q.device, dtype=torch.int32)
         self.ptr = torch.empty(q.shape[0]+1, device=q.device, dtype=torch.int32)
-        self.mod = module()
+        self.mod = module(refined)
     def __call__(self, splits=2):
         self.mod.run(*self.inputs,self.out,self.scratch,self.combined,self.ptr,512**-.5,splits)
         return self.out
