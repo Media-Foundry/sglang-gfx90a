@@ -25,3 +25,25 @@ for factual accuracy. In particular, fluent assertions about batch filtering,
 scale handling or backpressure are not established repository findings.
 
 A1 quality wave1 and both candidate/final-control quality waves remain pending.
+
+## A1 quality wave1 and completion (supersedes A1 pending note)
+
+Read all15 changed excerpts in round1; case4 is token-identical to the already
+read round0. Text remains coherent and on the supplied code topics without
+obvious looping/garbling. Case8 now discusses the provided helper functions
+instead of the prior absence assertion. This demonstrates control answer
+variation; it does not establish which numerical operation caused it.
+
+Complete128-token outputs repeat only1/16, first tokens12/16. First divergence
+positions(case:zero-based index):
+`0:21,1:0,2:41,3:10,5:0,6:9,7:50,8:0,9:12,10:10,11:0,12:55,13:3,14:9,15:61`.
+Do not describe this as globally stable output. The multiple potential bug
+claims in both rounds remain unverified, notwithstanding fluent wording.
+
+A1 stopped with remaining owned PIDs=[]; B started separately. Candidate and
+final-control quality review remain pending; no overall semantic verdict yet.
+
+Independent local-tokenizer verification subsequently checked both A1 waves:
+32/32 exact input echoes and32/32 output-ID decoding equal stored text,128
+completion tokens each, identical planned/actual cache vectors. This check
+does not certify the generated claims as true.

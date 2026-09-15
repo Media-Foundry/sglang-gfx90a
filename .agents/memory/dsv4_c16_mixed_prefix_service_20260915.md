@@ -69,3 +69,21 @@ Formal throughput range/median is0.443660%; no recorded slow Triton compile
 warnings in the formal log interval. First-token matches between formal wave
 pairs(0,1)/(0,2)/(1,2) are13/16,12/16,12/16: stable timing does not imply
 stable greedy outputs, even with identical IDs and cache-hit counts.
+
+## A1 quality complete; candidate B running
+
+A1 completed and stopped with remaining owned PIDs=[]; B PID1516348 was
+birth-verified live and entered warmup. Always revalidate live state.
+Read both A1 quality waves (all16 first excerpts,15 changed second excerpts).
+32/32 input echoes and output-token decoding verified, counts128 each,
+actual cache vectors identical. Full-output repeat1/16, first-token repeat12/16.
+No obvious repetition collapse/garbling, but not a general accuracy pass:
+case8 first wave asserts missing distributed helper code, contradicted by
+definitions in the actual decoded input. Second wave discusses the functions.
+See `manual-review.md` for bounds and case-specific evidence. This control
+variation must not be attributed to the wide-query candidate, which was off.
+
+The prior config20 trial on zero-prefix32K did not establish global drift
+improvement. A future mixed-prefix config20/refinement check would be a new
+workload test, not an already-proven determinism fix. Do not silently enable
+it inside the current wide-query ABBA; its measured source/config remains frozen.
