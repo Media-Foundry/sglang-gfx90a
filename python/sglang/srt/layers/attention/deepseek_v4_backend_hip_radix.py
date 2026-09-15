@@ -775,6 +775,16 @@ class DeepseekV4HipRadixBackend(
             DSV4RawVerifyMetadata,
             DSV4RawDecodeMetadata,
         ] = None
+        self._peer_prefill = None
+        peer_manifest = os.getenv("SGLANG_DSV4_DEBUG_H16_IPC_MANIFEST")
+        if peer_manifest:
+            from sglang.kernels.ops.debug.dsv4_h16_peer import PeerPrefill
+            cfg = model_runner.model_config.hf_text_config
+            ps = model_runner.ps
+            assert self._prefill_stage_model_type == "deepseek_v4" and cfg.num_hidden_layers == 43
+            assert ps.tp_size == ps.attn_tp_size == 8 and ps.moe_ep_size == ps.attn_cp_size == 1
+            assert not self.is_draft_worker and model_runner.spec_algorithm.is_none()
+            self._peer_prefill = PeerPrefill(model_runner.server_args.chunked_prefill_size,peer_manifest)
 
     def _move_to_device(self, x: List[int]) -> torch.Tensor:
         pin_tensor = torch.tensor(x, dtype=torch.int32, pin_memory=True)
@@ -2196,7 +2206,15 @@ class DeepseekV4HipRadixBackend(
             attn_sink=attn_sink,
             softmax_scale=self.softmax_scale,
         )
-        o = runtime.prefill(**prefill_args, num_stages=1 if stage1 else None)
+        peer_active = False
+        if self._peer_prefill is not None:
+            from sglang.kernels.ops.debug.dsv4_h16_peer import eligible
+            peer_active = eligible(stage1,T,compress_ratio,self._peer_prefill.capacity)
+        if peer_active:
+            o = self._peer_prefill.forward(layer.layer_id,prefill_args,forward_batch,
+                checking=os.getenv("SGLANG_DSV4_DEBUG_H16_CHECK", "0") == "1")
+        else:
+            o = runtime.prefill(**prefill_args, num_stages=1 if stage1 else None)
         if stage1 and os.getenv("SGLANG_DSV4_DEBUG_ATTN_PEER_CAPTURE_DIR"):
             from sglang.kernels.ops.debug.dsv4_attention_peer_capture import capture
             capture(layer.layer_id, get_parallel().tp_rank, forward_batch, prefill_args, o)

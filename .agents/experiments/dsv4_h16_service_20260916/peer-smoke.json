@@ -1,0 +1,346 @@
+{
+  "status": "complete",
+  "per_rank": [
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ],
+    [
+      {
+        "iteration": 0,
+        "byte_exact": true
+      },
+      {
+        "iteration": 1,
+        "byte_exact": true
+      },
+      {
+        "iteration": 2,
+        "byte_exact": true
+      },
+      {
+        "iteration": 3,
+        "byte_exact": true
+      },
+      {
+        "iteration": 4,
+        "byte_exact": true
+      },
+      {
+        "iteration": 5,
+        "byte_exact": true
+      },
+      {
+        "iteration": 6,
+        "byte_exact": true
+      },
+      {
+        "iteration": 7,
+        "byte_exact": true
+      },
+      {
+        "iteration": 8,
+        "byte_exact": true
+      },
+      {
+        "iteration": 9,
+        "byte_exact": true
+      }
+    ]
+  ],
+  "explicit_close": true,
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_h16_service_20260916/peer_smoke.py": "a72524480f416405bee22ce005296489bc8980f9f4ba53ec258b674fbcf32281",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/debug/dsv4_h16_peer.py": "7acd46a916c16a9c703799751180a81931709c1cdbc4002704ad38565cf03c36"
+  }
+}

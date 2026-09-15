@@ -1,0 +1,65 @@
+{
+  "layer": 20,
+  "key": "layers.20.attn.attn_sink",
+  "checkpoint_shard": "/home/pc/models/modelscope/model-00022-of-00048.safetensors",
+  "records": [
+    {
+      "rank": 0,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": true,
+      "max_abs_wrong_slice": 0.0,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 1,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 0.5247112512588501,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 2,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 0.7667813301086426,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 3,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 0.9643193483352661,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 4,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 1.0581436157226562,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 5,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 0.7446820139884949,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 6,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 1.027433156967163,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    },
+    {
+      "rank": 7,
+      "consumed_equals_checkpoint_first8": true,
+      "consumed_equals_own_head_shard": false,
+      "max_abs_wrong_slice": 0.8426005840301514,
+      "consumed_sha256": "8ec54f5b82259f783736d36c616862afe59a1bad65af97885c86881964c446f6"
+    }
+  ],
+  "finding": "Captured TP1..7 consume rank0 sink values. Unified model call passes self.attn_sink rather than existing _local_attn_sink result.",
+  "causal_scope": "Deterministic head-ownership error; not proof of the cause of cross-run token drift."
+}

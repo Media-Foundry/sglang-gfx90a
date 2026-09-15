@@ -1,0 +1,8 @@
+{
+  "archive": "evidence.tar.gz",
+  "sha256": "855557dd534c79805a1b8bb84eff89aa01610e4f1f5a59a83f50a909d5d56b23",
+  "bytes": 3311746,
+  "evidence_files": 123,
+  "source_files": 36,
+  "excludes": "Full fixtures, model weights, DSO/object files and compiler cache"
+}

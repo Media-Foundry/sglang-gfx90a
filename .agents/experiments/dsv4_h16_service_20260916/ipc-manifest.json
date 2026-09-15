@@ -1,0 +1,7 @@
+{
+  "module": "/home/pc/Code/sglang/.agents/experiments/dsv4_h16_service_20260916/ipc-build-optrocm-a05832e0e647/dsv4_h16_ipc_a05832e0e647.so",
+  "name": "dsv4_h16_ipc_a05832e0e647",
+  "source": "/home/pc/Code/sglang/.agents/experiments/dsv4_h16_service_20260916/ipc.cu",
+  "source_sha256": "a05832e0e64733065fca18a93333626fe5999a3c146b2daa0ba868db385efbd0",
+  "module_sha256": "23ac5dadf1b08cb73084e77d9c0cbf1d87c28580f8acddb0dea3536457140c94"
+}
