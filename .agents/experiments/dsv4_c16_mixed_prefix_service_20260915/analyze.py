@@ -2,12 +2,27 @@
 import collections
 import importlib.util
 import json
+import math
 from pathlib import Path
 import re
 import statistics
 
 ROOT=Path(__file__).resolve().parent
 def read(p):return json.loads((ROOT/p).read_text())
+
+def validate_wave_timing(wave):
+    """Recompute TTFT from raw timestamps, not only from precomputed rates."""
+    rows=wave['responses'];assert len(rows)==16
+    for row in rows:
+        assert all(math.isfinite(row[k]) for k in ('begin','first','end'))
+        assert row['begin']<=row['first']<=row['end']
+    elapsed=max(r['first'] for r in rows)-min(r['begin'] for r in rows)
+    assert elapsed>0 and math.isfinite(wave['prime_wall_s']) and wave['prime_wall_s']>0
+    assert abs(wave['wave_ttft_s']-elapsed)<1e-9
+    total=wave['total_input_tokens'];computed=wave['newly_computed_tokens']
+    assert type(total) is int and type(computed) is int and 0<computed<=total
+    assert abs(wave['full_input_tok_s']-total/elapsed)<1e-6
+    assert abs(wave['newly_computed_tok_s']-computed/elapsed)<1e-6
 
 def main():
     from transformers import AutoTokenizer
@@ -53,6 +68,7 @@ def main():
             assert len(data['rounds'])==(1 if name=='warmup' else 2 if name=='quality' else 3)
             answers=[]
             for wave in data['rounds']:
+                validate_wave_timing(wave)
                 cached=wave['cached_tokens'];client.validate_cache_pattern(cached,planned,expected)
                 if expected is None:expected=cached
                 assert wave['total_input_tokens']==524286

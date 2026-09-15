@@ -105,3 +105,17 @@ wave is about21.5% above A1 median4098.389140, not yet a finalABBA result.
 `partial-B1-first-wave.json` independently rechecks completed-wave input echoes
 and cache quantities and retains first-token comparisons; it is explicitly
 partial and must not be treated as completed quality or drift attribution.
+
+## B1 formal leg complete
+
+Rates4979.736918/4993.264899/4979.359971, median4979.736918 newly-computed
+tok/s. All actual cached vectors remain identical. B2 has started; quality
+and final-control review are outstanding. This is about+21.50% versus A1,
+not the finalABBA center.
+
+Analysis now independently recomputes `max(first)-min(begin)` from all16 raw
+request timestamps, validates finite ordered times and both throughput
+numerators, and keeps priming separate. Four synthetic CPU tests reject
+drain-time substitution, missing/nonfinite/reversed timestamps and counting
+cached tokens as newly computed work. These checks pass on all completed
+A1 warm/formal/quality and B warm/B1 waves; no new GPU requests were issued.
