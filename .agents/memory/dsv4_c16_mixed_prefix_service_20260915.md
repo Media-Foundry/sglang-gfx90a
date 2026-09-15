@@ -56,3 +56,16 @@ these pairs, and reusing a prefix is not necessary (zero-hit cases also drift).
 Equal cache counts do not establish equal cache values. Dynamic admission,
 GEMM/MHC branches and atomic MoE reduction remain possible contributors;
 this partial audit does not isolate the first numerical divergence.
+
+## A1 formal timing complete; quality/candidate still pending
+
+Three newly-computed-token rates:4114.456887,4098.389140,4096.273974 tok/s;
+median4098.389140. Actual cache vectors remain exactly the planned pattern
+in all three rounds. Full-input rate at the median wave is6547.207558 tok/s,
+not a zero-cache comparison. Priming times36.4735/36.4839/36.4869s are excluded.
+The owned A1 service continues into two128-token quality waves; do not stop
+or restart it based on these partial notes. B and A2 remain required forABBA.
+Formal throughput range/median is0.443660%; no recorded slow Triton compile
+warnings in the formal log interval. First-token matches between formal wave
+pairs(0,1)/(0,2)/(1,2) are13/16,12/16,12/16: stable timing does not imply
+stable greedy outputs, even with identical IDs and cache-hit counts.
