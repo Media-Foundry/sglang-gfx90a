@@ -1,0 +1,284 @@
+{
+  "scope": "H8 native two-source prefill geometry screen; no production selector changes.",
+  "real_service_capture": false,
+  "rows": 8192,
+  "results": [
+    {
+      "family": "c128",
+      "candidates": {
+        "H8W1": {
+          "checks": [
+            {
+              "bits_exact": false,
+              "max_abs": 0.0009765625,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.001953125,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.001953125,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.0009765625,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.0009765625,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              2.0023466110229493,
+              1.9883623123168945,
+              2.014154815673828,
+              1.99754638671875,
+              2.008170509338379,
+              1.9847463607788085
+            ],
+            "B": [
+              32.4250732421875,
+              32.37089538574219,
+              32.437582397460936,
+              32.455953979492186,
+              32.451028442382814,
+              32.39323425292969
+            ]
+          },
+          "median_ms": {
+            "A": 1.9999464988708495,
+            "B": 32.43132781982422
+          },
+          "rate_gain_pct": -93.83328826379922,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 512,
+              "spills": 1081,
+              "lds": 32768,
+              "hsaco_sha256": "98ac0d77753d3429b3303bb91ddf94c19fd5a1bce8097d4a7f030ad31e4d079a"
+            }
+          }
+        },
+        "H16W2": {
+          "checks": [
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              1.9865062713623047,
+              2.002794647216797,
+              1.9767780303955078,
+              1.9834661483764648,
+              1.973225975036621,
+              2.0010345458984373
+            ],
+            "B": [
+              3.0157760620117187,
+              3.001567840576172,
+              3.016448211669922,
+              2.995807647705078,
+              3.0094079971313477,
+              2.9989757537841797
+            ]
+          },
+          "median_ms": {
+            "A": 1.9849862098693847,
+            "B": 3.0054879188537598
+          },
+          "rate_gain_pct": -33.95461025088986,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 267,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "2ad7f341b07f1e68bf274fbcbdef45f9510671e480ce26a8c418ad28b946e69f"
+            }
+          }
+        }
+      }
+    },
+    {
+      "family": "c4_varied",
+      "candidates": {
+        "H8W1": {
+          "checks": [
+            {
+              "bits_exact": false,
+              "max_abs": 0.001953125,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.00048828125,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.001953125,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.0009765625,
+              "finite": true
+            },
+            {
+              "bits_exact": false,
+              "max_abs": 0.0009765625,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              5.933918380737305,
+              5.939230346679688,
+              5.927261734008789,
+              5.935998153686524,
+              5.926717758178711,
+              5.981183242797852
+            ],
+            "B": [
+              96.34662475585938,
+              96.35072021484375,
+              96.30914306640625,
+              96.3343994140625,
+              96.24421997070313,
+              98.04390258789063
+            ]
+          },
+          "median_ms": {
+            "A": 5.934958267211915,
+            "B": 96.34051208496095
+          },
+          "rate_gain_pct": -93.83960273952252,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 512,
+              "spills": 1081,
+              "lds": 32768,
+              "hsaco_sha256": "98ac0d77753d3429b3303bb91ddf94c19fd5a1bce8097d4a7f030ad31e4d079a"
+            }
+          }
+        },
+        "H16W2": {
+          "checks": [
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              5.945342254638672,
+              5.9327339172363285,
+              5.938621902465821,
+              5.9322856903076175,
+              5.93353385925293,
+              5.934269714355469
+            ],
+            "B": [
+              9.973268127441406,
+              9.960018920898438,
+              9.977555084228516,
+              9.966643524169921,
+              9.970419311523438,
+              9.96459503173828
+            ]
+          },
+          "median_ms": {
+            "A": 5.933901786804199,
+            "B": 9.96853141784668
+          },
+          "rate_gain_pct": -40.47366118362506,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 267,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "2ad7f341b07f1e68bf274fbcbdef45f9510671e480ce26a8c418ad28b946e69f"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "compile_errors": {},
+  "status": "complete",
+  "source_sha256": "2d28efd7efe40749d3b55249e49cf43ac98c74acdce78a8e2ee4c4cf542fe441"
+}

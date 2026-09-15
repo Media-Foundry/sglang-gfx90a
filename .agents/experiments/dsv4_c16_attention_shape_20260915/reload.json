@@ -1,0 +1,153 @@
+{
+  "scope": "H8 native two-source prefill geometry screen; no production selector changes.",
+  "real_service_capture": false,
+  "rows": 8192,
+  "results": [
+    {
+      "family": "c128",
+      "candidates": {
+        "reloadQ": {
+          "checks": [
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              1.9796537399291991,
+              1.9828218460083007,
+              1.9816377639770508,
+              1.9831098556518554,
+              1.9983739852905273,
+              1.9880378723144532
+            ],
+            "B": [
+              3.5101470947265625,
+              3.509475326538086,
+              3.515651321411133,
+              3.498850631713867,
+              3.515043258666992,
+              3.513794708251953
+            ]
+          },
+          "median_ms": {
+            "A": 1.982965850830078,
+            "B": 3.5119709014892577
+          },
+          "rate_gain_pct": -43.53695100408726,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 416,
+              "spills": 0,
+              "lds": 32768,
+              "hsaco_sha256": "fa4fdb937f8dcea6a8c2f05772f63bc4c1d95470fc53b884845bdc34e98fffa3"
+            }
+          }
+        }
+      }
+    },
+    {
+      "family": "c4_varied",
+      "candidates": {
+        "reloadQ": {
+          "checks": [
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            },
+            {
+              "bits_exact": true,
+              "max_abs": 0.0,
+              "finite": true
+            }
+          ],
+          "samples_ms": {
+            "A": [
+              5.927473068237305,
+              5.9330089569091795,
+              5.932496643066406,
+              5.924048614501953,
+              5.921904754638672,
+              5.9269287109375
+            ],
+            "B": [
+              11.254807281494141,
+              11.285974884033203,
+              11.261398315429688,
+              11.269398498535157,
+              11.289527130126952,
+              11.26239013671875
+            ]
+          },
+          "median_ms": {
+            "A": 5.927200889587402,
+            "B": 11.265894317626953
+          },
+          "rate_gain_pct": -47.388101446029665,
+          "resources": {
+            "A": {
+              "registers": 354,
+              "spills": 0,
+              "lds": 16384,
+              "hsaco_sha256": "62d955717bf78f7b58bb89ccdf0fe2d5575d48da8d1cc57aa35e64979b91db86"
+            },
+            "B": {
+              "registers": 416,
+              "spills": 0,
+              "lds": 32768,
+              "hsaco_sha256": "fa4fdb937f8dcea6a8c2f05772f63bc4c1d95470fc53b884845bdc34e98fffa3"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "compile_errors": {},
+  "status": "complete",
+  "source_sha256": "2d28efd7efe40749d3b55249e49cf43ac98c74acdce78a8e2ee4c4cf542fe441",
+  "candidate_sha256": "6cac70ee63a60512ec54300dda1a757f98d6c84d42f35e4071b76e452b429ffd"
+}
