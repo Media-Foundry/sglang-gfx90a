@@ -56,3 +56,9 @@ unique-store fixed-reduction remedy and H16 speed candidate must be revalidated
 against this corrected model baseline, not the older sink contract. Next useful
 steps are fixed-token first-divergence on the remaining request and corrected-
 sink H16 ABBA; no new performance selector should hide this correctness change.
+
+Follow-up: dsv4_corrected_h16_unique_20260916.md completes the corrected-model
+unique-CK/H16 comparison. All16 continuations match over12 waves across three
+processes; H16 reaches8672.80 input tok/s. This improves the bounded replay
+evidence, not a claim of arbitrary-batch invariance. The atomic-vs-fixed
+reduction trajectories remain distinct.
