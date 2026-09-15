@@ -97,3 +97,11 @@ selected, with the first-hit C4 capacity4096 during priming. This first-hit
 log is NOT a per-forward proof that every later capacity8192 call hits the
 path. No additional probes or source changes occur during the service trial.
 B1/B2 formal waves and final A2 remain required; do not promote on warmup.
+
+First B1 formal wave:4979.736918 newly-computed tok/s, wave65.9050880s,
+full-input rate7955.167281 (includes196096 cached tokens; not zero-prefix
+throughput). Actual cached vector matches A1 exactly. This single candidate
+wave is about21.5% above A1 median4098.389140, not yet a finalABBA result.
+`partial-B1-first-wave.json` independently rechecks completed-wave input echoes
+and cache quantities and retains first-token comparisons; it is explicitly
+partial and must not be treated as completed quality or drift attribution.
