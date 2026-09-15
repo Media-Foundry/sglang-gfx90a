@@ -80,3 +80,12 @@ review and completed ABBA analysis remain required.
 Independent local-tokenizer verification of both B waves passes32/32 exact
 input echoes and32/32 output-ID/text equality,128 completion tokens each,
 with the same planned/actual cache vector in each wave.
+
+## A2 quality wave0
+
+Read all16 final-control first-wave128-token excerpts. Input echoes16/16
+match and actual cache counts equal the planned pattern. Text remains coherent
+and on the code topics, without obvious repetitive collapse or garbling.
+The various purported defects and proposed test names are not validated facts.
+Case8 discusses the supplied helper code; no absence assertion in this wave.
+Second A2 wave remains pending before final review confirmation.
