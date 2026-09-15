@@ -1,0 +1,720 @@
+{
+  "2": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    }
+  ],
+  "20": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    }
+  ],
+  "22": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    }
+  ],
+  "24": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 33,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 591,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 0.08117282390594482,
+      "full_dequantized_relative_l2": 0.0006903837784193456
+    }
+  ],
+  "26": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.231034517288208,
+      "full_dequantized_relative_l2": 0.024035533890128136
+    }
+  ],
+  "28": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.0742558240890503,
+      "full_dequantized_relative_l2": 0.03012954629957676
+    }
+  ],
+  "30": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.4147393703460693,
+      "full_dequantized_relative_l2": 0.027997219935059547
+    }
+  ],
+  "32": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.223358392715454,
+      "full_dequantized_relative_l2": 0.03539421781897545
+    }
+  ],
+  "34": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.0746945142745972,
+      "full_dequantized_relative_l2": 0.05037467181682587
+    }
+  ],
+  "36": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 0.8585928678512573,
+      "full_dequantized_relative_l2": 0.04344157129526138
+    }
+  ],
+  "38": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.2062885761260986,
+      "full_dequantized_relative_l2": 0.0390729121863842
+    }
+  ],
+  "40": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.6699166297912598,
+      "full_dequantized_relative_l2": 0.04652613773941994
+    }
+  ],
+  "42": [
+    {
+      "case": 0,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 1,
+      "valid_rows": 2048,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 2,
+      "valid_rows": 2047,
+      "changed_rows": 0,
+      "first_changed_logical_ids": []
+    },
+    {
+      "case": 3,
+      "valid_rows": 2048,
+      "changed_rows": 1489,
+      "first_changed_logical_ids": [
+        559,
+        560,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570,
+        571,
+        572,
+        573,
+        574,
+        575,
+        576,
+        577,
+        578,
+        579,
+        580,
+        581,
+        582,
+        583,
+        584,
+        585,
+        586,
+        587,
+        588,
+        589,
+        590
+      ],
+      "changed_min": 559,
+      "changed_max": 2047,
+      "changed_contiguous": true,
+      "full_dequantized_max_abs": 1.1913968324661255,
+      "full_dequantized_relative_l2": 0.050192590802907944
+    }
+  ]
+}

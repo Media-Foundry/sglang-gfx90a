@@ -6,6 +6,12 @@ import numpy as np
 from sglang.kernels.ops.debug import dsv4_indexer_owner_capture as capture
 
 class OwnerCaptureTest(unittest.TestCase):
+    def test_layer_selection(self):
+        with patch.dict(os.environ,{'SGLANG_DSV4_DEBUG_INDEXER_OWNER_LAYERS':'2,20,22,42'}):
+            self.assertEqual(capture.selected_layers(),(2,20,22,42))
+        for value in ('0','21','44','20,20',''):
+            with patch.dict(os.environ,{'SGLANG_DSV4_DEBUG_INDEXER_OWNER_LAYERS':value}):
+                with self.assertRaises((AssertionError,ValueError)):capture.selected_layers()
     def test_logical_pages_partial_and_preshuffle(self):
         rng=np.random.default_rng(8)
         keys=rng.integers(0,256,(2,64,128),dtype=np.uint8)

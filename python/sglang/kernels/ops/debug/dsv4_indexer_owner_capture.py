@@ -8,6 +8,13 @@ import torch
 
 _seen = set()
 
+def selected_layers():
+    value=os.getenv('SGLANG_DSV4_DEBUG_INDEXER_OWNER_LAYERS','2,20,42')
+    layers=tuple(int(x.strip()) for x in value.split(','))
+    assert layers and len(layers)==len(set(layers))
+    assert all(2<=x<=42 and x%2==0 for x in layers),layers
+    return layers
+
 def digest(raw):
     raw=np.ascontiguousarray(raw)
     return hashlib.sha256(memoryview(raw).cast('B') if raw.size else b'').hexdigest()
@@ -29,7 +36,7 @@ def capture(*, layer_id, rank, batch, x, q_lora, q, weights, positions,
             seq_lens, page_table, cache, preshuffle_tile, dot_fp16, fp8_fnuz):
     from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
     directory=os.getenv('SGLANG_DSV4_DEBUG_INDEXER_OWNER_DIR')
-    if not directory or not mix_pair_active() or layer_id not in (2,20,42): return
+    if not directory or not mix_pair_active() or layer_id not in selected_layers(): return
     if (rank,layer_id) in _seen: return
     if torch.cuda.is_current_stream_capturing(): return
     assert q.ndim==4 and q.shape[1:]==(1,64,128)
@@ -86,7 +93,7 @@ def capture(*, layer_id, rank, batch, x, q_lora, q, weights, positions,
     record['packed_sha256']=hashlib.sha256(packed_path.read_bytes()).hexdigest()
     saved=dict(input_ids=ids,positions=pos,seq_lens=torch.from_numpy(lens.copy()),
                sample_rows=samples,samples={})
-    full = {} if rank==0 and layer_id==20 else None
+    full = {} if rank==0 and layer_id==20 and os.getenv('SGLANG_DSV4_DEBUG_INDEXER_OWNER_FULL','1')=='1' else None
     for name,tensor in (('x',x),('q_lora',q_lora),('q',q),('weights',weights)):
         raw=tensor.detach().contiguous().view(torch.uint8).cpu()
         record['tensors'][name]=dict(shape=list(tensor.shape),dtype=str(tensor.dtype),
