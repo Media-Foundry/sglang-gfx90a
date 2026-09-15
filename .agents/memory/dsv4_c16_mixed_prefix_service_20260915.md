@@ -39,3 +39,20 @@ raw responses. Final acceptance needs all arms complete/stopped, source/input
 and tokenizer checks, all-rank dispatch, warm versus formal compile evidence,
 bounded manual output review, and separate within/cross-arm drift reporting.
 The default wide-query flag has not been promoted.
+
+## Partial control drift evidence, before candidate starts
+
+`partial-A1-two-waves.json`, produced by `audit_partial.py`, checks warmup
+and the first two completed A1 formal waves. Full input echoes48/48 match,
+actual cache vectors match exactly. First-token matches versus warmup are
+13/16 then12/16. Changed cases include zero-hit requests12 (both waves) and4
+(second wave), as well as primed requests1/9/10. Examples are headings `##`
+versus `#`, or `Based` versus `Looking`; these one-token excerpts alone cannot
+judge answer quality.
+
+This is **wide-query off in all three waves**, so the candidate is not needed
+for drift to occur. Changed input IDs/cache-hit quantities are excluded for
+these pairs, and reusing a prefix is not necessary (zero-hit cases also drift).
+Equal cache counts do not establish equal cache values. Dynamic admission,
+GEMM/MHC branches and atomic MoE reduction remain possible contributors;
+this partial audit does not isolate the first numerical divergence.

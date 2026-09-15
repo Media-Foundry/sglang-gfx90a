@@ -1,0 +1,385 @@
+{
+  "scope": "Partial completed timing waves only. Same full input IDs and cache counts, not cache-value equality or numerical cause attribution.",
+  "complete_abba": false,
+  "waves": [
+    {
+      "arm": "A1",
+      "leg": "warmup",
+      "round": 0,
+      "cached_tokens": [
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16128,
+        24320,
+        0,
+        8192,
+        16384,
+        24576
+      ],
+      "input_echo_exact": 16,
+      "answers": [
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 671,
+          "text": "The"
+        },
+        {
+          "token": 32111,
+          "text": "Based"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        }
+      ],
+      "newly_computed_tok_s": 4095.4948043222907
+    },
+    {
+      "arm": "A1",
+      "leg": "A1",
+      "round": 0,
+      "cached_tokens": [
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16128,
+        24320,
+        0,
+        8192,
+        16384,
+        24576
+      ],
+      "input_echo_exact": 16,
+      "answers": [
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 671,
+          "text": "The"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        }
+      ],
+      "newly_computed_tok_s": 4114.456887050704
+    },
+    {
+      "arm": "A1",
+      "leg": "A1",
+      "round": 1,
+      "cached_tokens": [
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16384,
+        24576,
+        0,
+        8192,
+        16128,
+        24320,
+        0,
+        8192,
+        16384,
+        24576
+      ],
+      "input_echo_exact": 16,
+      "answers": [
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 671,
+          "text": "The"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 671,
+          "text": "The"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 372,
+          "text": "##"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 5,
+          "text": "#"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        },
+        {
+          "token": 39111,
+          "text": "Looking"
+        }
+      ],
+      "newly_computed_tok_s": 4098.389139818685
+    }
+  ],
+  "comparisons_to_first_warmup": [
+    {
+      "arm": "A1",
+      "leg": "A1",
+      "round": 0,
+      "first_exact": 13,
+      "changes": [
+        {
+          "case": 9,
+          "cached_tokens": 8192,
+          "reference": {
+            "token": 32111,
+            "text": "Based"
+          },
+          "current": {
+            "token": 39111,
+            "text": "Looking"
+          }
+        },
+        {
+          "case": 10,
+          "cached_tokens": 16128,
+          "reference": {
+            "token": 372,
+            "text": "##"
+          },
+          "current": {
+            "token": 5,
+            "text": "#"
+          }
+        },
+        {
+          "case": 12,
+          "cached_tokens": 0,
+          "reference": {
+            "token": 372,
+            "text": "##"
+          },
+          "current": {
+            "token": 5,
+            "text": "#"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "A1",
+      "leg": "A1",
+      "round": 1,
+      "first_exact": 12,
+      "changes": [
+        {
+          "case": 1,
+          "cached_tokens": 8192,
+          "reference": {
+            "token": 5,
+            "text": "#"
+          },
+          "current": {
+            "token": 39111,
+            "text": "Looking"
+          }
+        },
+        {
+          "case": 4,
+          "cached_tokens": 0,
+          "reference": {
+            "token": 372,
+            "text": "##"
+          },
+          "current": {
+            "token": 671,
+            "text": "The"
+          }
+        },
+        {
+          "case": 9,
+          "cached_tokens": 8192,
+          "reference": {
+            "token": 32111,
+            "text": "Based"
+          },
+          "current": {
+            "token": 39111,
+            "text": "Looking"
+          }
+        },
+        {
+          "case": 12,
+          "cached_tokens": 0,
+          "reference": {
+            "token": 372,
+            "text": "##"
+          },
+          "current": {
+            "token": 5,
+            "text": "#"
+          }
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "A1/warmup.json": "500e3b5b3e6ffa04cec26b09c30d05e6fb1c3aa3c4cd5a38afb47d68ba8fea50",
+    "A1/A1.json": "eb7b44f5a54dcad383936a1720b16d5ba9fa1dff4a85af6243c9abdd94d84a41"
+  }
+}
