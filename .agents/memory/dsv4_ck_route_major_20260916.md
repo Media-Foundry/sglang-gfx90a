@@ -67,3 +67,9 @@ changing arithmetic, reintroducing atomics or creating cross-CTA spin protocols.
 That is a new untested design, not an existing measured win. Another distinct
 target is long-context indexer owner chain, now measured3.50s/32Kwave versus
 0.290s/8Kwave. Goal remains active.
+
+Read-only follow-up audit: gfx90a_indexer_owner.host_plan already assigns
+original query16 groups with groups[r::8] (round-robin), not contiguous query
+chunks per rank. Do NOT propose round-robin assignment as a new load-balancing
+fix or blame contiguous ownership for the measured long-history cost. Further
+indexer work first needs actual logits/TopK/pack/AllGather breakdown.
