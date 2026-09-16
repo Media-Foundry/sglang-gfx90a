@@ -1,4 +1,33 @@
-# Prepared, not yet compiled or GPU-tested: route-major stage1 output
+# Route-major stage1 output: exact component oracle complete, not integrated
+
+Clean build-v1 completed both modules (session20705 exit0). SingleGCD screen-v1
+(session73111 exit0, HIP_VISIBLE_DEVICES5/PCI0000:b3:00.0) compares newly built
+token output against BOTH installed production stage1 and captured outputs.
+All four mutations including reversed expert-block order pass mapped stage1,
+stage2 FP32 partial and final BF16 bit-exact checks;100 graph replays pass.
+
+| Shape | Installed stage1+unique stage2+reducer | Route producer+metadata+stage2+reducer |
+|---|---:|---:|
+|M8192 eager|4.813390ms|4.818402ms|
+|M8192 graph|4.800192ms|4.813816ms|
+|M32767 eager|17.208379ms|16.569146ms|
+|M32767 graph|17.155668ms|16.561548ms|
+
+Three component ABBA cycles per mode,preallocated buffers,no service timing.
+Weight expansion and sorter are outside this measured chain. Large-M saves
+0.639ms eager(~3.71% latency); small-M is slightly slower and must not be
+promoted from this screen. Additional intermediate8,385,536bytes plus
+partial268,337,152bytes(~264MiB/GCD) still needs1M-pool service verification.
+Do not interpret3.86% component throughput ratio as an E2E improvement.
+
+Integration trap from current AIter source: after `metadata.stage1`,even
+QuantType.No runs a reshape `a2.view(token_num,topk,inter_dim)` before stage2.
+Returning a sorter-capacity tensor from only the stage1 hook is invalid.
+Next oracle should reuse the same sorter and expanded weights but explicitly
+call the two stages,or design an explicit ownership-aware boundary; do not
+hide route data behind the old tensor shape or global cached metadata state.
+
+## Original preparation and contracts
 
 The earlier route-major stage2 oracle saved only about3% of stage2 time; a
 separate BF16 pack consumed about0.23ms atM32767. This experiment tests whether
@@ -21,9 +50,9 @@ Output is below2GiB for the supported M8192..36864 and local I256 contract.
 
 `build.py --output-dir <new-directory>` clean-builds token and route modules,
 reusing the existing source-hashed offline compiler configuration. Do not run
-compilation during service ABBA. Neither module has been compiled or timed yet.
+compilation during service ABBA. Both modules are now built and tested above.
 
-Required next gates:
+Initial gates (1–3 completed in screen-v1; full routed/service gate remains):
 
 1. Compare newly built token-stage1 against captured stage1 output AND the
    currently installed production entry on real M8192/M32767 fixtures.
@@ -36,4 +65,4 @@ Required next gates:
 
 The CPU address audit in the sibling route-major experiment shows thousands
 of live routes exceed the old output descriptor. Merely changing store offsets
-would be incorrect. No speed or numerical success is claimed by this scaffold.
+would be incorrect. Production dispatch remains unchanged.

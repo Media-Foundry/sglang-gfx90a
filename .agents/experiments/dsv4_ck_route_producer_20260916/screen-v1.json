@@ -1,0 +1,380 @@
+{
+  "status": "complete",
+  "scope": "Real-fixture stage1 producer correctness, then full stage1+stage2 ABBA.\n\nIncludes metadata and fixed reduction; excludes weight expansion and sorter.\nRequires one idle GCD. No production selector or installed header changes.\n",
+  "pci": "0000:b3:00.0",
+  "cases": [
+    {
+      "m": 8192,
+      "capacity": 65530,
+      "valid": 57152,
+      "checks": [
+        {
+          "mutation": 0,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 1,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 2,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 3,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        }
+      ],
+      "captured_stage1_exact": true,
+      "replay100_exact": true,
+      "timings": {
+        "eager": {
+          "median_ms": {
+            "A": 4.813389619191488,
+            "B": 4.8184019724528
+          },
+          "speedup": 0.9989597477981357,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.7671858469645185
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.852608362833659
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.678723971048991
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.866952260335286
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.8061113357543945
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.8888139724731445
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.78419558207194
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.806111017862956
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.823387781778972
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.9095033009847
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.719621976216634
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.820667902628581
+            }
+          ]
+        },
+        "graph": {
+          "median_ms": {
+            "A": 4.800192356109619,
+            "B": 4.813816388448079
+          },
+          "speedup": 0.9971698063991069,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.8073374430338545
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.735032399495442
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.859273592631022
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.699253082275391
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.772090911865234
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.8205617268880205
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.982075055440267
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.809684117635091
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.793047269185384
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.775503794352214
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.807071050008138
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 5.11111577351888
+            }
+          ]
+        }
+      },
+      "extra_intermediate_bytes": 8385536,
+      "extra_partial_bytes": 268337152
+    },
+    {
+      "m": 32767,
+      "capacity": 212980,
+      "valid": 205056,
+      "checks": [
+        {
+          "mutation": 0,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 1,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 2,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        },
+        {
+          "mutation": 3,
+          "stage1_exact": true,
+          "partial_exact": true,
+          "final_exact": true
+        }
+      ],
+      "captured_stage1_exact": true,
+      "replay100_exact": true,
+      "timings": {
+        "eager": {
+          "median_ms": {
+            "A": 17.208379109700523,
+            "B": 16.569146474202473
+          },
+          "speedup": 1.0385796960931761,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 17.230719248453777
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 16.569146474202473
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 16.638843536376953
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 17.188278198242188
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 17.129352569580078
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 16.585676829020183
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 16.569146474202473
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 17.169344584147137
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 17.228480021158855
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 16.561256408691406
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 16.543498992919922
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 17.27684275309245
+            }
+          ]
+        },
+        "graph": {
+          "median_ms": {
+            "A": 17.155667622884113,
+            "B": 16.561548233032227
+          },
+          "speedup": 1.035873420859706,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 17.125086466471355
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 16.527873992919922
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 16.57271957397461
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 17.158040364583332
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 17.225067138671875
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 16.54520543416341
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 16.58477020263672
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 17.162413279215496
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 17.150468190511067
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 16.59986114501953
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 16.550376892089844
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 17.153294881184895
+            }
+          ]
+        }
+      },
+      "extra_intermediate_bytes": 8385536,
+      "extra_partial_bytes": 268337152
+    }
+  ],
+  "modules": {
+    "token": {
+      "manifest": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/build-v1/token/manifest.json",
+      "sha256": "f5e7b292685e15d2e9355b7c58840d0234087f2f361ee41b1734f30c67fedcb2"
+    },
+    "route": {
+      "manifest": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/build-v1/route/manifest.json",
+      "sha256": "4a76b27b068bc768ae09be81eb894748ab0fac50b073b0809f310911553c0a4e"
+    },
+    "unique_stage2": {
+      "manifest": "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_extras_build_20260916/build-v1/unique/manifest.json",
+      "sha256": "52e3b383b3625c69af7fa6b455f26a0d6a0577e64ff00e64218bc3ecbcd4defd"
+    }
+  },
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/screen.py": "ff750a7b94033022feccea1ecc84df562f8fe2d84ef5a00107222d0f08145955",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/metadata.cuh": "60729ac29a23fca8d6d6fe022e7a536aa23bcb9ce2d4204c161cffb8aefa236f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/route_major.cuh": "b015af0313b5a6c2d8b98294a4676ded3bc9f3a2f9676cc6322ba5e27fcb1448"
+  },
+  "installed_stage1": {
+    "path": "/home/pc/pytorch/third_party/aiter/aiter/jit/module_moe_ck2stages_b16_b16_preshuffle_off_b16_dsv4silu_no_mulWeightStage2_.so",
+    "sha256": "32af423d55857e19682330bc8cc9252ef5f5a98e568c881bae896de8ea1abe48"
+  }
+}

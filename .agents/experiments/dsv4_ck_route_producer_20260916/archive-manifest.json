@@ -1,0 +1,67 @@
+{
+  "archive": "oracle-evidence.tar.gz",
+  "sha256": "5cc375ce04674ea3c0a6c68c96a2b91b071b48fe1586adf8d7d61fd59aecaac3",
+  "bytes": 59462,
+  "files": [
+    {
+      "path": "build-v1/build.json",
+      "bytes": 389,
+      "sha256": "d89d06b1d0ebdae50aa1f858c9b1eafe10f0021deda9152798e016c924856f8f"
+    },
+    {
+      "path": "build-v1/overlay/ck/tensor_operation/gpu/grid/gridwise_moe_gemm.hpp",
+      "bytes": 132905,
+      "sha256": "0e77f0ded6ae6c1d979c236f6b2792c2bdaf3805fe8a22c4b7e8d8d88201a386"
+    },
+    {
+      "path": "build-v1/route/command-0.log",
+      "bytes": 1736,
+      "sha256": "fe2116bc6aa43d89253d83bab9c436120d90f85ed03eddfbfb163b423f80c0b1"
+    },
+    {
+      "path": "build-v1/route/command-1.log",
+      "bytes": 57088,
+      "sha256": "ec3b2a25b95b8e3a879faf3687653c857879e6ce3b139a0fdec0b80b7f377efd"
+    },
+    {
+      "path": "build-v1/route/entry.d",
+      "bytes": 27484,
+      "sha256": "28e68aeb6e2034960225febc6ee321660cb8e8c6148764d8fc48722a491640a8"
+    },
+    {
+      "path": "build-v1/route/manifest.json",
+      "bytes": 49800,
+      "sha256": "2cd9de521050d34c215238f278ee48187068c8111f918e499580d695c00c4f4e"
+    },
+    {
+      "path": "build-v1/token/command-0.log",
+      "bytes": 1736,
+      "sha256": "fe2116bc6aa43d89253d83bab9c436120d90f85ed03eddfbfb163b423f80c0b1"
+    },
+    {
+      "path": "build-v1/token/command-1.log",
+      "bytes": 57088,
+      "sha256": "ed574d98fae3b72e7259bda662ee4f5e3387f86cd3ccfadfdef40d511bd9c30a"
+    },
+    {
+      "path": "build-v1/token/entry.d",
+      "bytes": 27484,
+      "sha256": "64b41c123d6802db98f0c51f5a8139de35dfd41b6d0364ab832718d632464efd"
+    },
+    {
+      "path": "build-v1/token/manifest.json",
+      "bytes": 49800,
+      "sha256": "662c2dee9214ebb0f5cad6bf408fb0b2264729f8f5320a4a815d6c8b75419bfd"
+    },
+    {
+      "path": "build-v1.log",
+      "bytes": 865,
+      "sha256": "6f6411627c129b08449880b88a174e91aa23f31f4f22396cf1783db042016fb8"
+    },
+    {
+      "path": "screen-v1.log",
+      "bytes": 698,
+      "sha256": "23d8c8535baeab4f5be9f4884ab14e5228e663d6a418c68f87377b1b6062d680"
+    }
+  ]
+}
