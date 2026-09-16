@@ -1,0 +1,318 @@
+{
+  "status": "complete",
+  "scope": "Exact route-major storage oracle; complete pack+CK+fixed-reduction ABBA.\n\nUses the accepted unique-Set CK binary unchanged. No production selector edits.\n",
+  "pci": "0000:b3:00.0",
+  "cases": [
+    {
+      "m": 8192,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "capacity": 65530,
+      "valid": 57152,
+      "unique_assignments": 49152,
+      "mutations5_partial_bf16_exact": true,
+      "expert_block_permutation_exact": true,
+      "replay100_exact": true,
+      "baseline_partial_bytes": 805306368,
+      "candidate_partial_bytes": 1073643520,
+      "packing_bytes": 33551360,
+      "timings": {
+        "eager": {
+          "median_ms": {
+            "A": 2.744048595428467,
+            "B": 2.6728458404541016
+          },
+          "speedup": 1.026639304780207,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 2.7469285329182944
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.6689526240030923
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.6757259368896484
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 2.7377551396687827
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 2.7380749384562173
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.6762593587239585
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.662872314453125
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 2.74495538075765
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 2.7441018422444663
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.6721522013346353
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.673539479573568
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 2.7439953486124673
+            }
+          ]
+        },
+        "graph": {
+          "median_ms": {
+            "A": 2.741835276285807,
+            "B": 2.669485727945964
+          },
+          "speedup": 1.027102429349009,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 2.741968790690104
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.6587656339009604
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.6618587176005044
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 2.7417017618815103
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 2.729647954305013
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.6671390533447266
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.6718324025472007
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 2.743621508280436
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 2.7417017618815103
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.6749261220296225
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.68057918548584
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 2.742341995239258
+            }
+          ]
+        }
+      }
+    },
+    {
+      "m": 32767,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "capacity": 212980,
+      "valid": 205056,
+      "unique_assignments": 196602,
+      "mutations5_partial_bf16_exact": true,
+      "expert_block_permutation_exact": true,
+      "replay100_exact": true,
+      "baseline_partial_bytes": 3221127168,
+      "candidate_partial_bytes": 3489464320,
+      "packing_bytes": 109045760,
+      "timings": {
+        "eager": {
+          "median_ms": {
+            "A": 10.499909718831379,
+            "B": 10.18955167134603
+          },
+          "speedup": 1.0304584595569701,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 10.512603759765625
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 10.191312154134115
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 10.199578603108725
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 10.499750137329102
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 10.45430819193522
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 10.208538691202799
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 10.173978169759115
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 10.520123163859049
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 10.463321050008139
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 10.187791188557943
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 10.180110931396484
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 10.500069300333658
+            }
+          ]
+        },
+        "graph": {
+          "median_ms": {
+            "A": 10.494469324747723,
+            "B": 10.191578547159832
+          },
+          "speedup": 1.0297197118372108,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 10.501829147338867
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 10.192805608113607
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 10.19040552775065
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 10.50806999206543
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 10.482682545979818
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 12.9377072652181
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 10.191258748372396
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 10.506149291992188
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 10.487109502156576
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 10.191898345947266
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 10.176591237386068
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 10.475482940673828
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/screen.py": "78e472521d03365872ba0a18606c5983edac2fc21b379084fd84878d762f1a8b",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/route_major.cuh": "b015af0313b5a6c2d8b98294a4676ded3bc9f3a2f9676cc6322ba5e27fcb1448"
+  },
+  "baseline_module_sha256": "52e3b383b3625c69af7fa6b455f26a0d6a0577e64ff00e64218bc3ecbcd4defd"
+}

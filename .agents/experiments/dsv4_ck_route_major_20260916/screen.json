@@ -1,0 +1,12 @@
+{
+  "status": "failed",
+  "scope": "Exact route-major storage oracle; complete pack+CK+fixed-reduction ABBA.\n\nUses the accepted unique-Set CK binary unchanged. No production selector edits.\n",
+  "pci": "0000:b3:00.0",
+  "cases": [],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/screen.py": "e88d13790d166a6b12ae866a97e04e0caf3b92071cbabbd4a57fa6cdb7ec5caf",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/route_major.cuh": "b015af0313b5a6c2d8b98294a4676ded3bc9f3a2f9676cc6322ba5e27fcb1448"
+  },
+  "baseline_module_sha256": "52e3b383b3625c69af7fa6b455f26a0d6a0577e64ff00e64218bc3ecbcd4defd",
+  "error": "Traceback (most recent call last):\n  File \"/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/screen.py\", line 57, in <module>\n    capacity=ids.numel();assert capacity%64==valid%64==0\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+}
