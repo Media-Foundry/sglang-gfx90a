@@ -1,0 +1,14 @@
+{
+  "status": "validated_indexer_delta_over_legacy_32k_mhc",
+  "summary_sha256": "3df4e6fe35ad2ad16700c28c2660431df9cf20bc67bd42e7e7a44c4dd869b322",
+  "launcher_sha256": "b08ae7d39dca8d7613631b2a73845f5ce5870e2da34fa312fd94c8598fe4c483",
+  "scope": "Original V4 TP8 C16x32K, original checkpoint/native AR, 1M logical KV",
+  "default_promoted": false,
+  "service_32k_indexer_validated": true,
+  "common_fp32_20_mhc_validated": false,
+  "legacy_mhc": {
+    "fn_dtype": "FP16",
+    "sinkhorn_iterations": 8
+  },
+  "universal_batch_invariance_claimed": false
+}
