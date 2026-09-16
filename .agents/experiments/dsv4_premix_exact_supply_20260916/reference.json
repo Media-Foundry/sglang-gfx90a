@@ -1,0 +1,11 @@
+{
+  "pci": "0000:b3:00.0",
+  "m": 32767,
+  "registers": 78,
+  "spills": 0,
+  "hashes": {
+    "ttgir": "b8a48a6f588230ca7d802d99db1060006c0658a7f05762051dec69a27b940c64",
+    "llir": "38f97b9f7f7e10e2723d0f9912bcca962c300ad2cc5883f43f52fe96d44064cd",
+    "amdgcn": "6a312e12ef88ff9a672bcf8230e55bb1f65970ba0c7398c2d50d826bdf35b78c"
+  }
+}
