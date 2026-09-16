@@ -55,13 +55,30 @@ def fingerprint(raw, rows=None):
     return whole, np.frombuffer(hashes,dtype=np.uint8).copy().reshape(rows,16)
 
 
+def small_scope_enabled():
+    # Independent diagnostic admission; never expand any optimization scope.
+    if os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_SMALL', '0') != '1':
+        return False
+    from sglang.srt.layers.dsv4_prefill_tail_policy import active
+    return active()
+
+
+def logical_bounds(extend_lens, rows, allow_padding=False):
+    assert extend_lens and all(x >= 0 for x in extend_lens)
+    count = sum(extend_lens)
+    assert 0 < count <= rows
+    assert allow_padding or count == rows
+    return np.cumsum([0, *extend_lens])
+
+
 def get_probe(layer, batch, positions):
     global _batch
     directory = os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_DIR')
     if not directory:
         return None
     from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
-    if not mix_pair_active() or layer not in selected_layers():
+    small_scope = small_scope_enabled()
+    if not (mix_pair_active() or small_scope) or layer not in selected_layers():
         return None
     if torch.cuda.is_current_stream_capturing():
         return None
@@ -83,16 +100,21 @@ def get_probe(layer, batch, positions):
     pos=positions.detach().cpu();ids=batch.input_ids.detach().cpu()
     n=positions.numel()
     ext=list(map(int,batch.extend_seq_lens_cpu));pre=list(map(int,batch.extend_prefix_lens_cpu))
-    assert len(ids)==n==sum(ext) and 8192<=n<=65536
-    bounds=np.cumsum([0,*ext])
+    assert len(ids)==n and (1 if small_scope else 8192)<=n<=65536
+    bounds=logical_bounds(ext, n, allow_padding=small_scope)
     # Samples are only supplemental numeric values. ALL rows get row hashes.
     wanted=set(range(2216,2401,8))|set(range(2230,2247))
     chosen=[i for i in range(int(bounds[-2]),n) if int(pos[i]) in wanted]
     chosen=sorted(set([0,n-1,*[int(x) for x in bounds[:-1]],*chosen]))
+    if os.getenv('SGLANG_DSV4_DEBUG_FIRST_DIV_SMALL', '0') == '1':
+        # Logical suffix rows, not padding, allow numeric comparisons across M.
+        chosen=sorted(set(chosen)|{i for lo,hi in zip(bounds[:-1],bounds[1:])
+                                  for i in range(max(int(lo),int(hi)-64),int(hi))})
     stem=f'layer-{layer}-rank-{rank}'
     meta=dict(layer=layer,rank=rank,rows=n,extend_lens=ext,prefix_lens=pre,
               input_sha256=fingerprint(ids.numpy())[0],position_sha256=fingerprint(pos.numpy())[0],
-              sampled_rows=chosen,diagnostic_only=True)
+              sampled_rows=chosen,diagnostic_only=True,logical_rows=int(bounds[-1]),
+              small_scope=small_scope)
     meta_path=root/(stem+'-metadata.pt');assert not meta_path.exists()
     torch.save(dict(metadata=meta,input_ids=ids,positions=pos),meta_path)
     seen=set();counter=0

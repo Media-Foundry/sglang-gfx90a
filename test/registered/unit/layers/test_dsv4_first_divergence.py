@@ -6,6 +6,22 @@ from sglang.kernels.ops.debug import dsv4_first_divergence as audit
 
 
 class FingerprintTest(unittest.TestCase):
+    def test_small_scope_requires_explicit_diagnostic_and_tail_scope(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch('sglang.srt.layers.dsv4_prefill_tail_policy.active', return_value=True):
+            self.assertFalse(audit.small_scope_enabled())
+        with patch.dict(os.environ, {'SGLANG_DSV4_DEBUG_FIRST_DIV_SMALL': '1'}):
+            for active in (False, True):
+                with patch('sglang.srt.layers.dsv4_prefill_tail_policy.active', return_value=active):
+                    self.assertEqual(audit.small_scope_enabled(), active)
+
+    def test_logical_bounds_do_not_treat_padding_as_request_tokens(self):
+        self.assertEqual(audit.logical_bounds([64], 256, True).tolist(), [0,64])
+        self.assertEqual(audit.logical_bounds([64,32704],32768).tolist(), [0,64,32768])
+        for lengths, rows, padded in [([64],256,False),([257],256,True),([],256,True),([-1,65],64,True)]:
+            with self.assertRaises(AssertionError):
+                audit.logical_bounds(lengths,rows,padded)
+
     def test_cached_chunk_selection(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertTrue(audit.prefix_eligible([0]))

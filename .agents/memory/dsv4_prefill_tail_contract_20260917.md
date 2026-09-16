@@ -36,3 +36,43 @@ producerOFF,1Mpool,32Kbudget. No scored performance waves. Compare resulting
 require equality to historical mixed FP16/8 math or declare universal batch
 invariance. If residual drift remains,locate its next source before promotion.
 Reducer and consolidated-launcher GPU screens remain pending.
+
+Three-service intervention completed; all three services stopped cleanly.
+service-analysis.json validates identical teacher prompts, actual scope hits,
+source hashes, 1M pool and different admission layouts. No performance waves.
+With the same FP32/20 policy, mixed versus serial still has 544/1008 differing
+selected logprobs (max absolute 0.67956644, mean 0.02043068), 15/1008 differing
+Top-1 IDs and 381/1008 exactly equal Top-5 records. Requests10..15 match;
+requests0..9 differ. This disproves sufficiency of the MHC-tail intervention,
+NOT its component correctness. It remains default-off; no new speed accepted.
+Next: align logical token rows across small/mixed forwards and identify the
+first differing layer/stage. Do not infer MoE, projection, or attention cause
+from final logits alone. Preserve this run's source snapshots before probes.
+
+Completed row-aligned first-cached-chunk probes (trace-mixed session32419,
+trace-serial session94067; both exit0, services stopped). Added a separate
+default-off DEBUG_FIRST_DIV_SMALL admission that requires the existing small
+tail policy scope; large optimization scopes remain unchanged.11 CPU tests pass.
+Request0 positions32768..32831 match exactly across M32576 mixed / M64 serial;
+three layers and all8 ranks captured. At layer0 residual, pre-norm and attention
+input are byte-exact on all64 rows. Q differs on every rank (rank0:17/64 rows,
+1235/262144 elements,max0.015625). This isolates a difference within Q production
+before MoE, not yet its exact projection/norm/RoPE source.
+
+IMPORTANT: trace-analysis.json first_different_stage means observation order,
+NOT causal execution order. Existing ffn_mhc_post/comb dumps contain attention
+input coefficients generated BEFORE attention but recorded AFTER attn_out.
+They also differ already at layer0: rank0 post max0.000177577,comb0.000527471;
+all256/1024 coefficient elements differ. Equal BF16 weighted activations do not
+prove equal FP32 MHC coefficients. Do not attribute these differences to Q.
+Next narrow probes should capture qkv_a,q_lora before/after norm,wq_b before
+norm/RoPE, plus first/unfused MHC coefficients at their production boundary.
+The current small common policy targets fused post/pre, not every possible
+unfused first-layer pre implementation. Do not promote until fully localized.
+
+service-evidence.tar.gz (~8MB) preserves the three original arms and source
+versions. trace-evidence.tar.gz (~899MB) is LOCAL-ONLY with tracked manifest:
+2874 files including all row hashes/samples/source snapshots. Keep raw files;
+do not put this large diagnostic archive in git. trace-values.json quantifies
+all64 suffix rows, not a selected few outliers. No new performance score.
+Latest accepted P remains8K10372.9045 /16K10216.8948 /32K9854.3244 input tok/s.
