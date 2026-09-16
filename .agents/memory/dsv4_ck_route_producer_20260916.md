@@ -1,4 +1,21 @@
-# CK route producer: exact large-M component gain; no runtime integration
+# CK route producer: accepted8K service gain; longer regressions next
+
+## Latest: real8K ABBA accepted, September17
+
+Session53179 exited0; all three owned services stopped and all8GCDs idle.
+A1/B1/B2/A2 medians10270.913070/10375.279163/10370.529876/10280.087707.
+Control10275.500388→candidate10372.904520 input tok/s,+0.947926%; control
+drift0.089326%, largest within-leg range0.432763% (not a statistical CI).
+192 full128-token answers identical;1008 teacher positions exact logprobs/Top5
+against both controls and prior accepted K32. All8 actual route hits,1Mpool
+retained; no decode/spec/precision change. Default remains off. Explicit
+launcher and full evidence: dsv4_ck_route_producer_service_20260917/.
+
+Current accepted8K10372.904520;16K10151.650740/32K9854.324387 remain prior
+K32 results pending route-producer regressions. Prepared separate drivers in
+dsv4_ck_route_producer_regression_20260917/, gated on8K acceptance.
+
+## Earlier component work (historical state below)
 
 Current accepted service matrix after K32: originalV4TP8C16/nativeAR/original
 weights/1Mpool,8K10282.763437,16K10151.650740,32K9854.324387 input tok/s.

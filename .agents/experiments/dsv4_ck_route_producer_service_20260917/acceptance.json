@@ -1,0 +1,19 @@
+{
+  "status": "accepted_explicit_8k_profile",
+  "numerical_exact_on_tested_inputs": true,
+  "scope": "Original V4 TP8 C16x8K CK route producer off vs on, K32 fixed, common FP32/20 MHC, original weights/native AR/1M KV",
+  "default_promoted": false,
+  "service_16k_32k_regression_validated": false,
+  "universal_batch_invariance_claimed": false,
+  "screening": {
+    "gain_pct": 0.9479259156521369,
+    "control_drift_pct": 0.08932640052565777,
+    "within_leg_range_pct": {
+      "A1": 0.4327634938754089,
+      "B1": 0.13223776139232032,
+      "B2": 0.1851435612167617,
+      "A2": 0.17906646201614043
+    }
+  },
+  "summary_sha256": "e503f4138d978979856ce9ef1dbb3ba841e861f6e814f27a2196b79e92dc446f"
+}
