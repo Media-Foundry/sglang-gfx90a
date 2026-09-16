@@ -93,3 +93,24 @@ at this point local s13/s2 have already been unshuffled; recursive reference
 must receive scales_shuffled=False,otherwise it would inverse-map twice.
 Next: opt-in dispatch,unit/source guards,real all-layer exact/capacity oracle,
 then C16x8K serviceABBA. No formal speed update from component timings.
+
+## Actual selector integration, September17
+
+Default-off runtime selector now preserves native ordinary-prefill scope and
+only admits M16384..36864, I256 and the verified CK contracts. Reference uses
+a ContextVar guard and logical scales; no global stage replacement is added.
+Five CPU tests and15 scope subtests pass; disabled-path AST is unchanged.
+
+Integrated-v1 failed at JIT because the prototype-relative include was invalid
+in the runtime header. The sibling-relative include fixes this; original source,
+failure and successful v2 are archived separately. Integrated-v2 session49064
+exited0: six shapes, four mutations each, all full outputs byte-exact. M8192
+falls back; the other five shapes produce20 exact diagnostic comparisons.
+M32768 full-helper timing20.480977→19.877558ms; this is single-GCD component
+evidence, not service throughput. Current accepted8K/16K/32K remain
+10282.763437/10151.650740/9854.324387 input tok/s.
+
+Next diagnostic driver: dsv4_ck_route_producer_service_20260917/service.py.
+Keeps current K32/commonFP32/20/1Mpool/32Kbudget and uses the archived real8K
+inputs. Requires all8 actual route hits and1376 full-reference comparisons
+before formal ABBA. No new service acceptance yet; default remains off.

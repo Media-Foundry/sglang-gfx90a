@@ -1,0 +1,46 @@
+{
+  "archive": "integrated-evidence.tar.gz",
+  "sha256": "bfbf8eaa3ca49f46acef377013cfeae87f8200c56061d5f4713b3f30a50acf2c",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated-v1.json",
+      "sha256": "322f53bfc402aacc469a6a259fc8fe58bd2b7c68c5bef83514f61cb3f5eb85d9"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated-v1.log",
+      "sha256": "a985bf2eb30755ba3ac3653010e4f2386818c969a8588dd3243628714f612ae9"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated-v2.json",
+      "sha256": "c39b1c8ad84d985426aed6f3d33b003bbf6459b8d1523b49514074d7b6400f45"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated-v2.log",
+      "sha256": "a205ba2692635f63d09c7438f392db3dc786f1a46b473320b2fc8d4010af02a0"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated.py",
+      "sha256": "1b2bd30e0ed7c9dd2430294dc99d17cf32a06e96eec3c1c62753c8d5e1666855"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated_header_v1.cuh",
+      "sha256": "21c77a90c8fe3349b1bc0f4d09562ae1b975f4d3dc1b5a5c4311a496c0f0b608"
+    },
+    {
+      "path": ".agents/experiments/dsv4_ck_route_producer_20260916/integrated_v1.py",
+      "sha256": "ce132af5e0a8834ff6f9e1b2cb6c2231123f09d3bbecc5442f2198608f839986"
+    },
+    {
+      "path": "python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_ck_route_producer.cuh",
+      "sha256": "17b5dce4a963bcf78a87542f9561f1e0d68755246b7ee55c7cc37d457c74966e"
+    },
+    {
+      "path": "python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py",
+      "sha256": "b5e5a036ad105c0ccaa861180f3c784fd7560c0e5aa82a40f49fb9acc7136b47"
+    },
+    {
+      "path": "python/sglang/kernels/ops/moe/gfx90a_ck_route_producer.py",
+      "sha256": "81f832cf5086088bce86ac995f8b4609d3f00e719983bdb6f66975b2adc76eab"
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "status": "failed",
+  "scope": "Integrated default-off route selector versus guarded original helper.\n\nIncludes raw FP4/scale conversion, weight workspace, sorting, allocations,\nboth CK stages and final fixed reduction. No service or1M-pool claim.\n",
+  "pci": "0000:b3:00.0",
+  "settings": {
+    "SGLANG_DSV4_PREFILL_CK_ROUTE_PRODUCER": "1",
+    "SGLANG_DSV4_DEBUG_CK_ROUTE_MANIFEST": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/build-v1/route/manifest.json",
+    "SGLANG_DSV4_DEBUG_CK_ROUTE_CHECK": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT": "1",
+    "SGLANG_DSV4_DEBUG_CK_UNIQUE_MANIFEST": "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_extras_build_20260916/build-v1/unique/manifest.json",
+    "SGLANG_DSV4_DEBUG_CK_REDUCE_VEC4": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT_CHECK": "0",
+    "AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS": "0",
+    "AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS": "1",
+    "AITER_DSV4_DEBUG_RAW_LOGICAL_B_STAGE1": "0",
+    "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR": "",
+    "AITER_DSV4_DEBUG_ACTIVATION": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK_M": "64",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE1_KERNEL": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_KERNEL": ""
+  },
+  "cases": [
+    {
+      "m": 8192,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "scales_shuffled": true,
+      "repeated_prefix_rows": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "output_byte_exact": true
+        }
+      ],
+      "expanded_weights_exact": true,
+      "median_ms": {
+        "A": 7.766684850056967,
+        "B": 7.7656707763671875
+      },
+      "speedup": 1.0001305841721833,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 7.799979527791341
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 7.780877431233724
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 7.750464121500651
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 7.9284108479817705
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 7.774314880371094
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 7.666372934977214
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 7.784292221069336
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 7.751370747884114
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 7.759054819742839
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 7.791602452596028
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 7.750197092692058
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 7.690757115681966
+        }
+      ],
+      "memory": {
+        "A": {
+          "initial_allocated": 3716548096,
+          "peak_allocated": 4640086016,
+          "incremental_peak": 923537920
+        },
+        "B": {
+          "initial_allocated": 3716548096,
+          "peak_allocated": 4640086016,
+          "incremental_peak": 923537920
+        }
+      }
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/integrated.py": "ce132af5e0a8834ff6f9e1b2cb6c2231123f09d3bbecc5442f2198608f839986",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_ck_route_producer.py": "81f832cf5086088bce86ac995f8b4609d3f00e719983bdb6f66975b2adc76eab",
+    "/home/pc/Code/sglang/python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_ck_route_producer.cuh": "21c77a90c8fe3349b1bc0f4d09562ae1b975f4d3dc1b5a5c4311a496c0f0b608",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "b5e5a036ad105c0ccaa861180f3c784fd7560c0e5aa82a40f49fb9acc7136b47"
+  },
+  "component_process_group": "real single-rank Gloo, local rank0; not eight-rank service",
+  "error": "Traceback (most recent call last):\n  File \"/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/integrated.py\", line 113, in <module>\n    expected=baseline();got=candidate()\n                            ^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/integrated.py\", line 105, in candidate\n    return current.gfx90a_bf16_ck_moe(hidden,ids,weights,raw13,s13,raw2,s2,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py\", line 329, in gfx90a_bf16_ck_moe\n    result = route.forward(hidden, topk_ids, topk_weights, ck_weight13, ck_weight2,\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_ck_route_producer.py\", line 96, in forward\n    maps = helper()\n           ^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/jit/utils/common.py\", line 38, in wrapper\n    result_map[key] = fn(*args, **kwargs)\n                      ^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_ck_route_producer.py\", line 67, in helper\n    return load_jit('gfx90a_ck_route_producer',\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py\", line 1298, in _fn\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/jit/utils/compile/loader.py\", line 159, in load_jit\n    library = ninja.build(spec=spec, build_dir=staging, build_file=build_file)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/jit/utils/compile/ninja.py\", line 168, in build\n    raise RuntimeError(\nRuntimeError: Failed to build JIT module sgl_kernel_jit_gfx90a_ck_route_producer in /home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_gfx90a_ck_route_producer/build-c3c165326e48f118/.staging-0b8d18bcf2494744bd2b88e160935a1b\nstdout:\n[1/2] /opt/rocm/bin/hipcc -MD -MF \"cuda_0.o.d\" -fPIC -D__HIP_PLATFORM_AMD__=1 -fno-gpu-rdc --offload-arch=gfx90a:sramecc+:xnack- -DUSE_ROCM -std=c++20 -O3 -DHIP_FP8_TYPE_E4M3=1 -O3 -fno-fast-math -ffp-contract=off -I/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/tvm_ffi/include -I/opt/rocm/include -I/home/pc/Code/sglang/python/sglang/kernels/jit/include -c \"cuda.cu\" -o \"cuda_0.o\"\nFAILED: [code=1] cuda_0.o \n/opt/rocm/bin/hipcc -MD -MF \"cuda_0.o.d\" -fPIC -D__HIP_PLATFORM_AMD__=1 -fno-gpu-rdc --offload-arch=gfx90a:sramecc+:xnack- -DUSE_ROCM -std=c++20 -O3 -DHIP_FP8_TYPE_E4M3=1 -O3 -fno-fast-math -ffp-contract=off -I/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/tvm_ffi/include -I/opt/rocm/include -I/home/pc/Code/sglang/python/sglang/kernels/jit/include -c \"cuda.cu\" -o \"cuda_0.o\"\nIn file included from cuda.cu:6:\n/home/pc/Code/sglang/python/sglang/kernels/jit/csrc/deepseek_v4/gfx90a_ck_route_producer.cuh:2:10: fatal error: 'deepseek_v4/gfx90a_ck_fixed_slot.cuh' file not found\n    2 | #include \"deepseek_v4/gfx90a_ck_fixed_slot.cuh\"\n      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n1 error generated when compiling for gfx90a.\nfailed to execute:/opt/rocm/lib/llvm/bin/clang++  --offload-arch=gfx90a:sramecc+:xnack-  -MD -MF cuda_0.o.d -fPIC -D__HIP_PLATFORM_AMD__=1 -fno-gpu-rdc -DUSE_ROCM -std=c++20 -O3 -DHIP_FP8_TYPE_E4M3=1 -O3 -fno-fast-math -ffp-contract=off -I/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/tvm_ffi/include -I/opt/rocm/include -I/home/pc/Code/sglang/python/sglang/kernels/jit/include -c -x hip cuda.cu -o \"cuda_0.o\"\nninja: build stopped: subcommand failed.\n\nstderr:\n\n"
+}

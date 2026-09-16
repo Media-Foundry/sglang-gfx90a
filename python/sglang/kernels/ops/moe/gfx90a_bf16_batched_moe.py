@@ -303,6 +303,37 @@ def gfx90a_bf16_ck_moe(
             "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_"
             "Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16"
         )
+    if os.getenv("SGLANG_DSV4_PREFILL_CK_ROUTE_PRODUCER", "0") == "1":
+        from sglang.kernels.ops.moe import gfx90a_ck_route_producer as route
+        from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
+
+        route_manifest = os.getenv("SGLANG_DSV4_DEBUG_CK_ROUTE_MANIFEST")
+        unique_manifest = os.getenv("SGLANG_DSV4_DEBUG_CK_UNIQUE_MANIFEST")
+        if route.eligible(m, i, native_scope=mix_pair_active(),
+            reference=route.in_reference(), shuffle=shuffle_bf16, keep=keep_bf16,
+            raw=raw_logical_b_stage1, stage2_fp32=stage2_fp32,
+            block_m=block_m_override, stage1_kernel=stage1_kernel,
+            stage2_kernel=os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_KERNEL", ""),
+            dsv4_activation=activation == ActivationType.Dsv4Silu,
+            fixed_slot=os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT", "0") == "1",
+            unique_manifest=unique_manifest, route_manifest=route_manifest,
+            capturing=torch.cuda.is_current_stream_capturing(), has_probe=probe is not None):
+            reference = None
+            if os.getenv("SGLANG_DSV4_DEBUG_CK_ROUTE_CHECK", "0") == "1":
+                # Run reference first so the two large partials do not coexist.
+                # Local scales have already been converted to logical layout.
+                with route.reference_scope():
+                    reference = gfx90a_bf16_ck_moe(
+                        hidden, topk_ids, topk_weights, w13, s13, w2, s2,
+                        blocks=blocks, scales_shuffled=False)
+            result = route.forward(hidden, topk_ids, topk_weights, ck_weight13, ck_weight2,
+                route_manifest=route_manifest, unique_manifest=unique_manifest, out=out)
+            if reference is not None:
+                if not torch.equal(result.view(torch.int16), reference.view(torch.int16)):
+                    raise AssertionError("route producer differs from current full routed reference")
+                from sglang.srt.distributed import get_tp_group
+                print(f"[TP{get_tp_group().rank_in_group}] route-producer exact: rows={m} output=byte_exact", flush=True)
+            return result
     if probe is not None:
         assert stage1_kernel and stage2_fp32 and not raw_logical_b_stage1
         assert os.getenv("SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT", "0") == "0"
