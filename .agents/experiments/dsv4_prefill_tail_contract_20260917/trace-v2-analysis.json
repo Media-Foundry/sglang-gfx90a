@@ -1,0 +1,4928 @@
+{
+  "status": "complete",
+  "diagnostic_only": true,
+  "request": 0,
+  "comparison": "same logical token positions, mixed versus serial, common FP32/20",
+  "results": [
+    {
+      "rank": 0,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 17,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 17,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 26,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 0,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 16,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 16,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 26,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 13,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 13,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 13,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 13,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 23,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 18,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 17,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 18,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 18,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 23,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 15,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 19,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 19,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 24,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 15,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 22,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 22,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 28,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 15,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 15,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 17,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 16,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 22,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "layer": 0,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "unfused_mhc_mixes",
+      "stages": [
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "unfused_mhc_mixes",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_pre_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 10,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 9,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 15,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 2,
+          "first_different_position": 32783
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 13,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 14,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 24,
+          "first_different_position": 32769
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 52,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "layer": 1,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "layer": 2,
+      "shapes": [
+        32576,
+        64
+      ],
+      "logical_shapes": [
+        32576,
+        64
+      ],
+      "first_observed_different_stage": "entry_prev_residual",
+      "stages": [
+        {
+          "stage": "entry_prev_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "entry_prev_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_input_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_qkv_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_raw",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_lora_norm",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_q_before_norm_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "prepare_full_kv",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "q",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_core",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_inverse_rope",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_a",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "wo_b",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "attn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_residual",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_post",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_mhc_comb",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_input",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_router_logits",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_topk_ids",
+          "compared_rows": 64,
+          "different_rows": 0,
+          "first_different_position": null
+        },
+        {
+          "stage": "ffn_topk_weights",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_routed",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_shared",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_partial",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        },
+        {
+          "stage": "ffn_out",
+          "compared_rows": 64,
+          "different_rows": 64,
+          "first_different_position": 32768
+        }
+      ]
+    }
+  ]
+}

@@ -1,12 +1,17 @@
 """Align the same request's logical positions; never compare padded batch hashes."""
 import hashlib
+import argparse
 import json
 from pathlib import Path
 
 import torch
 
 root = Path(__file__).resolve().parent
-target = root / 'trace-analysis.json'
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--version',choices=('v1','v2','v3'),default='v1')
+args=parser.parse_args()
+prefix='trace-' if args.version=='v1' else f'trace-{args.version}-'
+target = root / (prefix+'analysis.json')
 assert not target.exists()
 arms = ('mixed', 'serial')
 prompt = json.loads((root/'mixed/teacher-prompts.json').read_text())['input_ids'][0]
@@ -39,18 +44,24 @@ def records(directory, layer, rank):
         result[item['stage']] = item
     for name in ('attn_residual','attn_norm','q','attn_core','attn_out','ffn_input','ffn_out'):
         assert name in result, (directory, name)
+    if args.version != 'v1':
+        for name in ('attn_input_post','attn_input_comb','prepare_qkv_a',
+                     'prepare_q_lora_raw','prepare_q_lora_norm','prepare_q_before_norm_rope'):
+            assert name in result, (directory,name)
+        if layer==0:
+            assert 'unfused_mhc_mixes' in result
     return result
 
 
 for arm in arms:
-    directory = root/f'trace-{arm}'
+    directory = root/f'{prefix}{arm}'
     assert json.loads((directory/'complete.json').read_text())['status'] == 'diagnostic_complete'
-    assert not json.loads((directory/f'P32k-tail-policy-trace-{arm}.stop.json').read_text())['remaining']
+    assert not json.loads((directory/f'P32k-tail-policy-{prefix}{arm}.stop.json').read_text())['remaining']
 
 results = []
 for rank in range(8):
     for layer in range(3):
-        directories = [root/f'trace-{arm}'/'trace' for arm in arms]
+        directories = [root/f'{prefix}{arm}'/'trace' for arm in arms]
         left, right = [load_metadata(d, layer, rank) for d in directories]
         positions = sorted(set(left[1]) & set(right[1]))
         assert len(positions) >= 32, (rank, layer, len(positions))
@@ -72,7 +83,7 @@ for rank in range(8):
                     assert x['sha256'] == y['sha256'], ('non-row input changed', name, rank, layer)
         results.append(dict(rank=rank, layer=layer, shapes=[left[0]['rows'],right[0]['rows']],
             logical_shapes=[left[0]['logical_rows'],right[0]['logical_rows']],
-            first_different_stage=next((s['stage'] for s in stages if s['different_rows']), None), stages=stages))
+            first_observed_different_stage=next((s['stage'] for s in stages if s['different_rows']), None), stages=stages))
 output = dict(status='complete', diagnostic_only=True, request=0,
               comparison='same logical token positions, mixed versus serial, common FP32/20', results=results)
 target.write_text(json.dumps(output, indent=2)+'\n')

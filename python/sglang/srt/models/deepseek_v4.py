@@ -1580,6 +1580,11 @@ class MQALayer(MqaAttentionBase):
 
             prepare_dump = make_prepare_dump(
                 self.layer_id, get_tp_group().rank_in_group, forward_batch, positions)
+        if _first_div_probe is not None:
+            first_div_prepare = _first_div_probe(self.layer_id, forward_batch, positions)
+            if first_div_prepare is not None:
+                assert prepare_dump is None, "Use only one prepare diagnostic at a time"
+                prepare_dump = first_div_prepare
         mark(8)
         x_linear = x_quant if x_quant is not None else x
         # kv_score depends only on x, so its CP all-gather can start before the
@@ -2852,6 +2857,10 @@ class DeepseekV4DecoderLayer(nn.Module):
 
         shape, dtype = x.size(), x.dtype
 
+        pre_probe = None
+        if _first_div_probe is not None and forward_batch is not None:
+            pre_probe = _first_div_probe(self.layer_id, forward_batch, forward_batch.positions)
+
         if _is_npu:
             return _get_mhc_ops().npu_hc_pre(
                 x,
@@ -2968,6 +2977,10 @@ class DeepseekV4DecoderLayer(nn.Module):
                 return y, post.squeeze(-1), comb, False
 
         if use_gfx90a_mhc_pre_mix:
+            if pre_probe is not None:
+                logger.info("first-div unfused MHC pre: layer=%s bf16_dot=%s wave64=%s",
+                            self.layer_id, envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get(),
+                            _use_gfx90a_wave64_mhc_pre_mix)
             if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
                 from sglang.kernels.ops.layernorm.mhc import (
                     gfx90a_mhc_pre_mix_bf16_dot_triton,
@@ -3048,6 +3061,9 @@ class DeepseekV4DecoderLayer(nn.Module):
             mixes = (d_out * rsqrt.unsqueeze(1)).unsqueeze(1)
         else:
             x_flat, mixes = hc_pre_torch_impl(x, hc_fn)
+
+        if pre_probe is not None:
+            pre_probe("unfused_mhc_mixes", mixes)
 
         if os.getenv("SGLANG_DSV4_DEBUG_FORCE_TORCH_MHC"):
             pre_logits, post_logits, comb_logits = torch.split(
@@ -3611,6 +3627,10 @@ class DeepseekV4DecoderLayer(nn.Module):
             else:
                 x_quant = None
         dump_stage("attn_norm", hidden_states)
+        if first_div is not None:
+            # These coefficients are produced before attention, not by it.
+            dump_stage("attn_input_post", post)
+            dump_stage("attn_input_comb", comb)
 
         if token_row_owner:
             hidden_states = self._token_row_all_gather(hidden_states)

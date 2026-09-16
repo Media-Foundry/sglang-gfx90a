@@ -1,0 +1,310 @@
+{
+  "status": "complete",
+  "weight_sha256": "f5c1ffdfb92df2c04ac17e9a31e38701f2b7a5cac0cd427a2df2aa3e239987fc",
+  "input_sha256": "092ca838f2af3e0c77acbdd9eedff08b4039b17cba76b51903f1f680a2a91bae",
+  "scope": "Isolate the unfused first-MHC BF16-Fn shortcut on identical live residuals.\n\nNo service mutation. Require both traced services to have stopped. The full-M\ninput repeats real suffix rows; it is not claimed to reproduce unrelated rows\nin the original batch. Compare corresponding rows, order permutations, and an\nFP64 mathematical reference. Timings are component-only.\n",
+  "cases": [
+    {
+      "mutation": 0,
+      "m64_variants": {
+        "byte_exact": true,
+        "different_elements": 0,
+        "max_abs": 0.0,
+        "mean_abs": 0.0
+      },
+      "fp32_vs_fp64": {
+        "byte_exact": false,
+        "different_elements": 1536,
+        "max_abs": 0.00016293510327614058,
+        "mean_abs": 1.0978474131959756e-05
+      },
+      "shapes": [
+        {
+          "m": 65,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 0.00016293510327614058,
+            "mean_abs": 1.0978474131959756e-05
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 0.09708349779248238,
+            "bf16_shortcut": 0.09940449893474579
+          }
+        },
+        {
+          "m": 8192,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.547607421875,
+            "mean_abs": 0.09598319165181124
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.5477118360645363,
+            "mean_abs": 0.09598280631222152
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 3.642511487007141,
+            "bf16_shortcut": 1.298662006855011
+          }
+        },
+        {
+          "m": 32576,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.547607421875,
+            "mean_abs": 0.09598319165181124
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.5477118360645363,
+            "mean_abs": 0.09598280631222152
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 14.327777862548828,
+            "bf16_shortcut": 4.126327991485596
+          },
+          "service_large_replay": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          }
+        }
+      ],
+      "service_small_replay": {
+        "byte_exact": true,
+        "different_elements": 0,
+        "max_abs": 0.0,
+        "mean_abs": 0.0
+      }
+    },
+    {
+      "mutation": 1,
+      "m64_variants": {
+        "byte_exact": true,
+        "different_elements": 0,
+        "max_abs": 0.0,
+        "mean_abs": 0.0
+      },
+      "fp32_vs_fp64": {
+        "byte_exact": false,
+        "different_elements": 1536,
+        "max_abs": 0.00020265311297862354,
+        "mean_abs": 1.1831005369175522e-05
+      },
+      "shapes": [
+        {
+          "m": 65,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 0.00020265311297862354,
+            "mean_abs": 1.1831005369175522e-05
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 0.09420199692249298,
+            "bf16_shortcut": 0.09332149848341942
+          }
+        },
+        {
+          "m": 8192,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 1.9967041015625,
+            "mean_abs": 0.09623406102852528
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 1.9966190565741044,
+            "mean_abs": 0.0962354478995725
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 3.644431948661804,
+            "bf16_shortcut": 1.2935395240783691
+          }
+        },
+        {
+          "m": 32576,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 1.9967041015625,
+            "mean_abs": 0.09623406102852528
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 1.9966190565741044,
+            "mean_abs": 0.0962354478995725
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 14.32393503189087,
+            "bf16_shortcut": 4.084789514541626
+          }
+        }
+      ]
+    },
+    {
+      "mutation": 2,
+      "m64_variants": {
+        "byte_exact": true,
+        "different_elements": 0,
+        "max_abs": 0.0,
+        "mean_abs": 0.0
+      },
+      "fp32_vs_fp64": {
+        "byte_exact": false,
+        "different_elements": 1536,
+        "max_abs": 0.00020930197410962137,
+        "mean_abs": 1.2605813135627149e-05
+      },
+      "shapes": [
+        {
+          "m": 65,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 0.00020930197410962137,
+            "mean_abs": 1.2605813135627149e-05
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 0.09316150099039078,
+            "bf16_shortcut": 0.0920414999127388
+          }
+        },
+        {
+          "m": 8192,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.4349365234375,
+            "mean_abs": 0.10142305396583613
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.434789598426846,
+            "mean_abs": 0.10142181264181419
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 3.6457929611206055,
+            "bf16_shortcut": 1.294099509716034
+          }
+        },
+        {
+          "m": 32576,
+          "fp32_shape_exact": {
+            "byte_exact": true,
+            "different_elements": 0,
+            "max_abs": 0.0,
+            "mean_abs": 0.0
+          },
+          "bf16_vs_fp32": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.4349365234375,
+            "mean_abs": 0.10142305396583613
+          },
+          "bf16_vs_fp64": {
+            "byte_exact": false,
+            "different_elements": 1536,
+            "max_abs": 2.434789598426846,
+            "mean_abs": 0.10142181264181419
+          },
+          "permutation_exact": true,
+          "median_ms": {
+            "fp32": 14.317931652069092,
+            "bf16_shortcut": 4.084869146347046
+          }
+        }
+      ]
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_prefill_tail_contract_20260917/first_mhc_oracle.py": "6ee7dfd8bb93f6a1a7ea21c06309e58f8a93c8c9d227e3df72af5aa4a798f09f",
+    "python/sglang/kernels/ops/layernorm/gfx90a_mhc_pre_mix.py": "cec74ed96ad49df924e945de3426606ec720fdf2cf202a37ccea9cf7eea42ab0",
+    "python/sglang/kernels/jit/csrc/gemm/gfx90a_mhc_pre_mix.cuh": "8f46d491a958fa3a3b36833d26a5260728c5ca4cfeac17db30b22a97362f7249"
+  }
+}

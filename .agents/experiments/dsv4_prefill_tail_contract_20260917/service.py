@@ -17,6 +17,7 @@ prior=reg/'32k-B'
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--arm',choices=('baseline','mixed','serial'),required=True)
 parser.add_argument('--trace',action='store_true',help='Unscored first cached-chunk layer0..2 audit')
+parser.add_argument('--trace-version',choices=('v1','v2','v3'),default='v1')
 args=parser.parse_args()
 small=args.arm!='baseline'
 max_requests=1 if args.arm=='serial' else 16
@@ -28,7 +29,9 @@ for arm in ('A1','B','A2'):
     assert (d/'complete.json').is_file()
     assert not json.loads((d/f'P32k-route-producer-regression-{arm}.stop.json').read_text())['remaining']
 assert not args.trace or small
-out=root/(('trace-' if args.trace else '')+args.arm);out.mkdir(exist_ok=False)
+trace_prefix='trace-' if args.trace_version=='v1' else f'trace-{args.trace_version}-'
+assert args.trace or args.trace_version=='v1'
+out=root/((trace_prefix if args.trace else '')+args.arm);out.mkdir(exist_ok=False)
 spec=importlib.util.spec_from_file_location('prior_teacher_life',root.parent/'dsv4_tp8_ar_down_consumer_20260914/trial.py')
 life=importlib.util.module_from_spec(spec);spec.loader.exec_module(life)
 sys.path.insert(0,str(root.parent/'dsv4_ck_unique_service_20260916'))
@@ -58,6 +61,8 @@ if args.trace:
         'export SGLANG_DSV4_DEBUG_FIRST_DIV_SMALL=1\n'
         'export SGLANG_DSV4_DEBUG_FIRST_DIV_MIN_PREFIX=32768\n'
         'export SGLANG_DSV4_DEBUG_FIRST_DIV_LAYERS=0,1,2\n'+entry)
+    if args.trace_version=='v3':
+        launcher=launcher.replace(entry,'export SGLANG_DSV4_PREFILL_MHC_COMMON_UNFUSED=1\n'+entry)
 (out/'start-ar-matrix.sh').write_text(launcher)
 paths=set(json.loads((prior/'plan.json').read_text())['sources'])|{str(Path(__file__).relative_to(repo)),
     'python/sglang/srt/layers/dsv4_prefill_tail_policy.py',
@@ -66,11 +71,16 @@ if args.trace:
     paths.add('python/sglang/kernels/ops/debug/dsv4_first_divergence.py')
 sources={p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in sorted(paths)}
 changed={p for p,h in json.loads((prior/'plan.json').read_text())['sources'].items() if sources[p]!=h}
-assert changed <= {'python/sglang/kernels/ops/layernorm/gfx90a_mhc_prefill_policy.py',
-                   'python/sglang/srt/model_executor/runner/eager_runner.py'},changed
+allowed_changes={'python/sglang/kernels/ops/layernorm/gfx90a_mhc_prefill_policy.py',
+                 'python/sglang/srt/model_executor/runner/eager_runner.py'}
+if args.trace and args.trace_version in ('v2','v3'):
+    allowed_changes.add('python/sglang/srt/models/deepseek_v4.py')
+if args.trace and args.trace_version=='v3':
+    allowed_changes.add('python/sglang/kernels/ops/layernorm/gfx90a_mhc_pre_mix.py')
+assert changed <= allowed_changes,changed
 life.save('plan.json',dict(sources=sources,candidate=False,scored_performance=False,
     kv_tokens=1048576,small_policy=small,max_prefill_requests=max_requests,changed_since_prior=sorted(changed),reference_sha256=hashlib.sha256(reference_path.read_bytes()).hexdigest()))
-label='P32k-tail-policy-'+('trace-' if args.trace else '')+args.arm;state=life.start(label,0)
+label='P32k-tail-policy-'+(trace_prefix if args.trace else '')+args.arm;state=life.start(label,0)
 try:
     life.ready(state)
     info=json.loads((out/(label+'.server-info.json')).read_text())
@@ -83,6 +93,8 @@ try:
                 'SGLANG_DSV4_PREFILL_MHC_COMMON_FP32'):
         assert env[key]=='1'
     assert env['SGLANG_DSV4_DEBUG_CK_ROUTE_CHECK']=='0'
+    if args.trace_version=='v3':
+        assert env['SGLANG_DSV4_PREFILL_MHC_COMMON_UNFUSED']=='1'
     france=json.loads((repo/'.agents/memory/dsv4_tp8_diverse_32_input_ids.json').read_text())['requests'][0]
     answer=life.post(life.URL+'/generate',dict(input_ids=france['input_ids'],
         cache_salt=f'prior-bridge-france-{time.time_ns()}',sampling_params=dict(temperature=0,max_new_tokens=32)),600)

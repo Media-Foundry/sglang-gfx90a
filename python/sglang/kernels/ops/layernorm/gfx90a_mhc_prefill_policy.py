@@ -14,15 +14,16 @@ from sglang.srt.layers.dsv4_prefill_tail_policy import active as small_prefill_a
 logger = logging.getLogger(__name__)
 _logged = set()
 ENV = "SGLANG_DSV4_PREFILL_MHC_COMMON_FP32"
+UNFUSED_ENV = "SGLANG_DSV4_PREFILL_MHC_COMMON_UNFUSED"
 
 
-def common_prefill_batch_hint(batch_size, rows):
+def common_prefill_active(rows):
     # The scope enforces original V4, TP8/EP1, native eager EXTEND, no CP,
     # TBO, graph capture or draft. Do not infer those conditions from M alone.
     large = mix_pair_active() and 8192 <= rows <= 65536
     small = small_prefill_active() and 0 < rows < 8192
     if os.getenv(ENV, "0") != "1" or not (large or small):
-        return batch_size
+        return False
     conflicts = [name for name, active in (
         ("BF16 MHC dot", envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get()),
         ("MFMA pre-mix", os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MIX_MFMA", "0") == "1"),
@@ -31,6 +32,19 @@ def common_prefill_batch_hint(batch_size, rows):
     ) if active]
     if conflicts:
         raise ValueError("Common FP32/20 prefill conflicts with " + ", ".join(conflicts))
+    return True
+
+
+def common_unfused_fp32(rows):
+    # Separate opt-in while the first-boundary service regression is measured.
+    # A shape alone must never affect decode, draft, or another model's scope.
+    return os.getenv(UNFUSED_ENV, "0") == "1" and common_prefill_active(rows)
+
+
+def common_prefill_batch_hint(batch_size, rows):
+    if not common_prefill_active(rows):
+        return batch_size
+    small = small_prefill_active() and 0 < rows < 8192
     key = ("small", batch_size) if small else batch_size
     if key not in _logged:
         logger.info("DSV4 common FP32/20 prefill MHC selected: rows=%d scheduler_batch=%s dispatch_hint=None small_tail=%s",

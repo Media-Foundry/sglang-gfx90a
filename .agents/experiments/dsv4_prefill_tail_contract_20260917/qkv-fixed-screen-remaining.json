@@ -1,0 +1,242 @@
+{
+  "status": "complete",
+  "scope": "Small fixed-K QKV geometry screen: exact to fixed128 reference, not old BLAS.\n\nOnly real layer0 residual-derived input and checkpoint-identical BF16 weight.\nGraph component timing excludes the rest of prepare and service scheduling.\n",
+  "weight_sha256": "b3f1a835f59e6c0b41a013761445a2f2c5eb89f603f873e67e22460688a740b7",
+  "input_sha256": "7e94ea50fbc851fe36ffb8f0eb96324e8e5a4aec27a82505f9046985138f41a6",
+  "cases": [
+    {
+      "geometry": [
+        64,
+        256,
+        8
+      ],
+      "checks": [],
+      "timings": [],
+      "rejected": "compiler resource limit",
+      "resource_error": "out of resource: shared memory, Required: 81920, Hardware limit: 65536. Reducing block sizes or `num_stages` may help."
+    },
+    {
+      "geometry": [
+        128,
+        256,
+        8
+      ],
+      "checks": [],
+      "timings": [],
+      "rejected": "compiler resource limit",
+      "resource_error": "out of resource: shared memory, Required: 98304, Hardware limit: 65536. Reducing block sizes or `num_stages` may help."
+    },
+    {
+      "geometry": [
+        128,
+        64,
+        8
+      ],
+      "checks": [
+        {
+          "m": 64,
+          "mutation": 0,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 64,
+          "mutation": 1,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 64,
+          "mutation": 2,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 65,
+          "mutation": 0,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 65,
+          "mutation": 1,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 65,
+          "mutation": 2,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 8192,
+          "mutation": 0,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 8192,
+          "mutation": 1,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 8192,
+          "mutation": 2,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 32576,
+          "mutation": 0,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 32576,
+          "mutation": 1,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        },
+        {
+          "m": 32576,
+          "mutation": 2,
+          "reference_exact": true,
+          "shape_exact": true,
+          "row_order_exact": true
+        }
+      ],
+      "timings": [
+        {
+          "m": 64,
+          "samples_ms": {
+            "control": [
+              0.037696874141693114,
+              0.036888524889945984,
+              0.03681249916553497,
+              0.036748474836349486,
+              0.03679650127887726,
+              0.03688452541828156,
+              0.036684450507164,
+              0.03701657354831696
+            ],
+            "candidate": [
+              0.06348444819450379,
+              0.06322832703590393,
+              0.0629442274570465,
+              0.06298822760581971,
+              0.06318432688713074,
+              0.06320032477378845,
+              0.06306427717208862,
+              0.06302825212478638
+            ]
+          },
+          "median_ms": {
+            "control": 0.03684851229190826,
+            "candidate": 0.06312430202960968
+          }
+        },
+        {
+          "m": 65,
+          "samples_ms": {
+            "control": [
+              0.03609614968299866,
+              0.035824048519134524,
+              0.035796049237251285,
+              0.03587607443332672,
+              0.03588007390499115,
+              0.03572799861431122,
+              0.03579602539539337,
+              0.03591209948062897
+            ],
+            "candidate": [
+              0.06312427520751954,
+              0.06292420029640197,
+              0.06311627626419067,
+              0.06316829919815063,
+              0.06302024722099304,
+              0.06319230198860168,
+              0.06306825280189514,
+              0.0631923258304596
+            ]
+          },
+          "median_ms": {
+            "control": 0.03585006147623063,
+            "candidate": 0.0631202757358551
+          }
+        },
+        {
+          "m": 8192,
+          "samples_ms": {
+            "control": [
+              0.8091745376586914,
+              0.8087263107299805,
+              0.8087263107299805,
+              0.808586311340332,
+              0.8088664054870606,
+              0.8086142539978027,
+              0.8088224411010743,
+              0.808686351776123
+            ],
+            "candidate": [
+              1.2287744522094726,
+              1.2217674255371094,
+              1.228154182434082,
+              1.2408040046691895,
+              1.218145751953125,
+              1.2261693954467774,
+              1.2372544288635254,
+              1.2458742141723633
+            ]
+          },
+          "median_ms": {
+            "control": 0.8087263107299805,
+            "candidate": 1.2284643173217773
+          }
+        },
+        {
+          "m": 32576,
+          "samples_ms": {
+            "control": [
+              3.2259052276611326,
+              3.2209793090820313,
+              3.2219558715820313,
+              3.222623825073242,
+              3.2302272796630858,
+              3.2271820068359376,
+              3.2207271575927736,
+              3.2209510803222656
+            ],
+            "candidate": [
+              5.698733520507813,
+              5.713891983032227,
+              5.709994506835938,
+              5.7232002258300785,
+              5.710418701171875,
+              5.707088851928711,
+              5.723684310913086,
+              5.698649597167969
+            ]
+          },
+          "median_ms": {
+            "control": 3.2222898483276365,
+            "candidate": 5.710206604003906
+          }
+        }
+      ]
+    }
+  ],
+  "source_sha256": "c8bcac88e8379c46c7136d4bbc6def7d885301923ae55ba59e333ac0e2f68f5e"
+}

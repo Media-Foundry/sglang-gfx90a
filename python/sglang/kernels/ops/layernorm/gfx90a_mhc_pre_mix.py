@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from sglang.kernels.ops.layernorm.gfx90a_mhc_prefill_policy import common_unfused_fp32
 from sglang.kernels.jit.utils import cache_once, load_jit
 
 if TYPE_CHECKING:
@@ -63,6 +64,7 @@ def gfx90a_mhc_pre_mix_wave64(
         residual.shape[0] >= 2048
         and os.getenv("SGLANG_DSV4_GFX90A_MHC_LARGE_M_BF16_GEMM", "0") == "1"
         and not torch.cuda.is_current_stream_capturing()
+        and not common_unfused_fp32(residual.shape[0])
     ):
         device_index = residual.device.index
         if device_index is None:
