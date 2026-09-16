@@ -17,6 +17,13 @@ from .gfx90a_indexer_query_reuse import prefill_query_reuse4
 from .topk import topk_transform_512
 
 
+# Import-time disabled outside the existing asynchronous diagnostic profile.
+# Spare per-layer slots55..61 split owner work without host/device synchronization.
+_detail_mark = None
+if os.getenv('SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR'):
+    from sglang.kernels.ops.debug.dsv4_prefill_markers import detail_mark as _detail_mark
+
+
 def host_plan(extend_lens, prefix_lens, rank):
     """Mirror metadata_kernel's seq_len//4; keep original query16 groups."""
     if not (0 <= rank < 8 and len(extend_lens) == len(prefix_lens)):
@@ -89,6 +96,8 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
     # A configured score-width cap must never turn longer live causal rows
     # into out-of-bounds Top-K reads. This is CPU metadata, not a device sync.
     if not ext or max((n+p)//4 for n,p in zip(ext,pre))>width:return False
+    if _detail_mark is not None:
+        _detail_mark(55, 'owner_plan_begin', absolute=True)
     key=(ext,pre,rank,str(q.device))
     plan=getattr(metadata,'_gfx90a_owner_plan',None)
     if plan is None or plan.key!=key:
@@ -98,6 +107,8 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
                        torch.from_numpy(valid).to(q.device),
                        torch.from_numpy(inverse).to(q.device),expected)
         metadata._gfx90a_owner_plan=plan
+    if _detail_mark is not None:
+        _detail_mark(56, 'owner_plan_done', absolute=True)
     check=os.getenv('SGLANG_DSV4_DEBUG_PREFILL_OWNER_CHECK','0')=='1'
     lengths=lengths.reshape(-1)
     if check:
@@ -106,21 +117,31 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
     pw=weights.index_select(0,plan.rowids)
     pl=lengths.index_select(0,plan.rowids)*plan.valid
     pp=pages.index_select(0,plan.rowids)
+    if _detail_mark is not None:
+        _detail_mark(57, 'owner_pack_done', absolute=True)
     kw=dict(block_s=16,preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,
             fp8_fnuz=fp8_fnuz,query_group_size=16,runtime_m=True)
     owner_kw = dict(allow_wide=True, admitted_global_rows=m) if wide else {}
     scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw,**owner_kw)
     assert scores is not None,'Admitted query-owner layout unsupported'
+    if _detail_mark is not None:
+        _detail_mark(58, 'owner_logits_done', absolute=True)
     local_phys=torch.empty((len(plan.rowids),512),device=q.device,dtype=torch.int32)
     local_raw=torch.empty_like(local_phys)
     topk_transform_512(scores,pl,pp,local_phys,64,local_raw)
+    if _detail_mark is not None:
+        _detail_mark(59, 'owner_topk_done', absolute=True)
     gathered=torch.empty((8*len(plan.rowids),512),device=q.device,dtype=torch.int32)
     # Exactly the integer RCCL API exercised by the eight-rank oracle. Do not
     # bitcast into a float custom-AG selector or add a separate peer allocator.
     dist.all_gather_into_tensor(gathered,local_raw,group=group)
+    if _detail_mark is not None:
+        _detail_mark(60, 'owner_gather_done', absolute=True)
     actual_raw=raw_output if raw_output is not None else torch.empty_like(output) if check else None
     reconstruct[(m,)](gathered,plan.inverse,lengths,pages,actual_raw,output,
                        pages.stride(0),actual_raw is not None,num_warps=4)
+    if _detail_mark is not None:
+        _detail_mark(61, 'owner_reconstruct_done', absolute=True)
     if check:
         full_scores=prefill_query_reuse4(q,cache,weights,lengths,pages,width,**kw,
                                        **(dict(allow_wide=True) if wide else {}))
