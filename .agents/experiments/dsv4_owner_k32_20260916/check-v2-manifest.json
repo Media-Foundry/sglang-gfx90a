@@ -1,0 +1,90 @@
+{
+  "tested_source_commit": "a630fc8cf3",
+  "k32_service_validated": true,
+  "throughput_score": false,
+  "live_comparisons": 2688,
+  "sha256": "ecdbe6659e832f73fc96ee347cbb12e74244f3348664de0487c61d6b266717c3",
+  "bytes": 1235743,
+  "files": [
+    {
+      "path": "check-v2/France.json",
+      "sha256": "9331f20fb44a3e09d2916faed94b349f829242423a0aa41c18c4a1411ab88e03"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2-after-stop.gpu.json",
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2-before-start.gpu.json",
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2-ready.gpu.json",
+      "sha256": "c866cabd048322b113319e806f87cbeac4c903e220d468079a219cd4dc5907af"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2.server-info.json",
+      "sha256": "5fa87a7840c5540d98411f9578f1db9d8487051b619d59e57a4836f558a8b1b3"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2.service.log",
+      "sha256": "c7e23c62e5440079ea66521c5d0c08d65eea09933dde6401f8e82f3442cf9e6c"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2.source.patch",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2.state.json",
+      "sha256": "88e1fed9c0ffb2072c89cc9c7b5a887cf293a8a490ef578dadfc928753a44da0"
+    },
+    {
+      "path": "check-v2/P32-owner-k32-check-v2.stop.json",
+      "sha256": "86ba5c53ebc84ec385943c1273151e4bdde49c73b031fa0126622695c02f46fe"
+    },
+    {
+      "path": "check-v2/check-before.gpu.json",
+      "sha256": "fdc99bf8b3abb5301ce0568313a9466f64c7c646a440bec8f00f876f6a2d395e"
+    },
+    {
+      "path": "check-v2/check.client.log",
+      "sha256": "ed04e16ec2931d4f47b383eaca66edd6a6a14d8ae29b459f8f8b3d729d714132"
+    },
+    {
+      "path": "check-v2/check.json",
+      "sha256": "f7e6f08f7490b7b68ed5048bafe5946505f4ab9c36775704b5da6d72996088b0"
+    },
+    {
+      "path": "check-v2/complete.json",
+      "sha256": "f3d04b88b881f10fff5aa442b8852e1e1f14806f3bb2cb00c5a0a243e4083aeb"
+    },
+    {
+      "path": "check-v2/inputs.json",
+      "sha256": "aa3ce70a7b0f36f682cfa100e246dbeece32a315d9ac7b52cee9a2d768035e23"
+    },
+    {
+      "path": "check-v2/plan.json",
+      "sha256": "6c0e5c08ff7bb42910820191a8ef8a97acccb33963d503226c26b7a1de5df127"
+    },
+    {
+      "path": "check-v2/progress.json",
+      "sha256": "fe204d77dc3387274e2ed83b31f3390bea60ccba2c86ad5d545e78f80df6a93f"
+    },
+    {
+      "path": "check-v2/start-ar-matrix.sh",
+      "sha256": "26d4f96128603d88334e74db6e604bdea8fc8850191723ad5e64be944ed9fc51"
+    },
+    {
+      "path": "check-v2/timing-paths.json",
+      "sha256": "f414284d33b2276817cc6b7d2db0c5999a85d3a31d446b834594371683aca535"
+    },
+    {
+      "path": "check-v2-driver.log",
+      "sha256": "790aa76b9c1c2995c5d99c77f1fdf25f29982c005f0bb6aba04abbd049fc72c6"
+    },
+    {
+      "path": "oracle-shuffle16.log",
+      "sha256": "0974f52a696b8f11c9602f60d0b67a88ad1f258f4a65b0ea588f3b8f72d50bbd"
+    }
+  ]
+}
