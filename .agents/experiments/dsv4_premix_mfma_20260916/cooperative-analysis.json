@@ -1,0 +1,272 @@
+{
+  "status": "component-pass-not-integrated",
+  "production_input_tps_unchanged": 8964.910269,
+  "component_rows": [
+    {
+      "source": "cooperative-screen.json",
+      "m": 17,
+      "name": "k32",
+      "a_ms": 0.14107279777526854,
+      "b_ms": 1.1141611099243165,
+      "latency_reduction_pct": -689.7774251980136
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 17,
+      "name": "k64",
+      "a_ms": 0.14128080010414124,
+      "b_ms": 1.2269200801849367,
+      "latency_reduction_pct": -768.4266222165692
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 17,
+      "name": "k128",
+      "a_ms": 0.14108870029449463,
+      "b_ms": 1.156175708770752,
+      "latency_reduction_pct": -719.4672616286526
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 8192,
+      "name": "k32",
+      "a_ms": 1.3704256534576416,
+      "b_ms": 2.0070457458496094,
+      "latency_reduction_pct": -46.45418675473189
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 8192,
+      "name": "k64",
+      "a_ms": 1.3712898731231689,
+      "b_ms": 2.327940654754639,
+      "latency_reduction_pct": -69.76284156847588
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 8192,
+      "name": "k128",
+      "a_ms": 1.3733546257019043,
+      "b_ms": 2.1785128593444822,
+      "latency_reduction_pct": -58.6271177578094
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 32767,
+      "name": "k32",
+      "a_ms": 4.964900016784668,
+      "b_ms": 4.528252792358399,
+      "latency_reduction_pct": 8.794683134607162
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 32767,
+      "name": "k64",
+      "a_ms": 4.968517112731934,
+      "b_ms": 5.437767601013183,
+      "latency_reduction_pct": -9.444477650661277
+    },
+    {
+      "source": "cooperative-screen.json",
+      "m": 32767,
+      "name": "k128",
+      "a_ms": 4.95987548828125,
+      "b_ms": 5.664645767211914,
+      "latency_reduction_pct": -14.209434906094543
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 17,
+      "name": "p32",
+      "a_ms": 0.14041650295257568,
+      "b_ms": 0.5398825883865357,
+      "latency_reduction_pct": -284.48656463754537
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 17,
+      "name": "p64",
+      "a_ms": 0.14036850333213807,
+      "b_ms": 0.45218830108642577,
+      "latency_reduction_pct": -222.14370770660983
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 17,
+      "name": "p128",
+      "a_ms": 0.14072049856185914,
+      "b_ms": 0.4322613000869751,
+      "latency_reduction_pct": -207.17720908084897
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 8192,
+      "name": "p32",
+      "a_ms": 1.3566769123077393,
+      "b_ms": 0.9595955848693848,
+      "latency_reduction_pct": 29.268672875320767
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 8192,
+      "name": "p64",
+      "a_ms": 1.358549404144287,
+      "b_ms": 1.0516274929046632,
+      "latency_reduction_pct": 22.591884424913168
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 8192,
+      "name": "p128",
+      "a_ms": 1.3552682876586915,
+      "b_ms": 1.3980191230773926,
+      "latency_reduction_pct": -3.154418634893008
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 32767,
+      "name": "p32",
+      "a_ms": 4.966900253295899,
+      "b_ms": 3.181563377380371,
+      "latency_reduction_pct": 35.94468954215111
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 32767,
+      "name": "p64",
+      "a_ms": 4.966964149475098,
+      "b_ms": 3.0963179588317873,
+      "latency_reduction_pct": 37.6617614774006
+    },
+    {
+      "source": "padded-screen.json",
+      "m": 32767,
+      "name": "p128",
+      "a_ms": 4.968356513977051,
+      "b_ms": 3.712578773498535,
+      "latency_reduction_pct": 25.275515896368226
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 17,
+      "name": "s4",
+      "a_ms": 0.13955230116844178,
+      "b_ms": 0.12487509846687317,
+      "latency_reduction_pct": 10.517349107595864
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 17,
+      "name": "s16",
+      "a_ms": 0.13963220119476316,
+      "b_ms": 0.0395017996430397,
+      "latency_reduction_pct": 71.71010747876028
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 8192,
+      "name": "s4",
+      "a_ms": 1.3532835960388185,
+      "b_ms": 0.5383939027786255,
+      "latency_reduction_pct": 60.21573716296034
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 8192,
+      "name": "s16",
+      "a_ms": 1.3506106853485107,
+      "b_ms": 0.8252770900726318,
+      "latency_reduction_pct": 38.89600467216222
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 32767,
+      "name": "s4",
+      "a_ms": 4.963490676879883,
+      "b_ms": 3.0697807312011722,
+      "latency_reduction_pct": 38.15278538750319
+    },
+    {
+      "source": "cooperative-split-screen.json",
+      "m": 32767,
+      "name": "s16",
+      "a_ms": 4.964403533935547,
+      "b_ms": 3.544760894775391,
+      "latency_reduction_pct": 28.596439218846704
+    }
+  ],
+  "boundaries": [
+    {
+      "m": 8192,
+      "split": 4,
+      "a_ms": 1.9662636756896972,
+      "b_ms": 1.1415145874023438,
+      "latency_reduction_pct": 41.944989295398535,
+      "scratch_bytes": 3145728
+    },
+    {
+      "m": 8192,
+      "split": 16,
+      "a_ms": 1.9639267921447754,
+      "b_ms": 1.4289898872375488,
+      "latency_reduction_pct": 27.23812858233019,
+      "scratch_bytes": 12582912
+    },
+    {
+      "m": 32767,
+      "split": 4,
+      "a_ms": 7.369282913208008,
+      "b_ms": 5.461647605895996,
+      "latency_reduction_pct": 25.88630847504778,
+      "scratch_bytes": 12582528
+    },
+    {
+      "m": 32767,
+      "split": 16,
+      "a_ms": 7.363776779174804,
+      "b_ms": 5.9518327713012695,
+      "latency_reduction_pct": 19.174182626863377,
+      "scratch_bytes": 50330112
+    },
+    {
+      "m": 32768,
+      "split": 4,
+      "a_ms": 7.340680694580078,
+      "b_ms": 5.460398864746093,
+      "latency_reduction_pct": 25.614543229244024,
+      "scratch_bytes": 12582912
+    },
+    {
+      "m": 32768,
+      "split": 16,
+      "a_ms": 7.346938705444336,
+      "b_ms": 5.960475730895997,
+      "latency_reduction_pct": 18.871301777989814,
+      "scratch_bytes": 50331648
+    }
+  ],
+  "checkpoint_fn_count": 86,
+  "shape_count": 14,
+  "checkpoint_fn_error": {
+    "4": {
+      "max_abs": 7.62939453125e-05,
+      "max_relative_l2": 1.271143288424914e-06
+    },
+    "16": {
+      "max_abs": 3.0517578125e-05,
+      "max_relative_l2": 6.507121581319782e-07
+    }
+  },
+  "limitations": [
+    "FP32 summation order differs from production",
+    "Random activations with real Fn are not live model inputs",
+    "No whole-model logits, semantic quality, capacity or E2E acceptance yet"
+  ],
+  "pci_bus": "0000:b3:00.0",
+  "files": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/cooperative.hsaco": "305f13e6710fe582d4bbb04b24c9b66e6b0c79ebdf6cc6d8c452c265f05b32bd",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/cooperative-compiler-evidence.tar.gz": "10f4a9d3d4227af1f73df0363ef25ad0fc96ddb2a520b9d41a0574f57b12f353",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/cooperative-initial.tar.gz": "ad36963152ae6cbdbe7d6bba17dfd96d10df1df2d5a260d19870941dc1059494",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/padded-initial.tar.gz": "1f42a140b28ec1a374faca14d69c3f98768678d9e0d291b638da2c9c6a8ff0b8"
+  }
+}

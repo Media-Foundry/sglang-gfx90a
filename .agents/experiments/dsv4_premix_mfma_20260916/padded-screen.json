@@ -1,0 +1,983 @@
+{
+  "status": "complete",
+  "hip_visible_devices": "5",
+  "pci_bus": "0000:b3:00.0",
+  "scope": "Repeated/scaled sampled real layer0 inputs; raw MFMA plus RMS finish, not live full-M or service",
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/premix.cuh": "21470b52cade879818a6b210df7ef801e1457d1adeaadc05a103c777d1531298",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/split.cuh": "64bbdee84a7be5a496c4cd0025c9d62510ab9aaf3610a2aaba9909e28a38ecb5",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/cooperative.cuh": "bd1f9971bec8b7adb5870e0a5408613e4b09c95c7d5e3d13e64296d92c369c9e",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/module.py": "c9eba2bb086e73de5a2f1cd81014c44395539c3afc97edd2c403b5d91ba4c9c3",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/screen.py": "d9f8cb95b21be9e61956eaecd05b571d5b590c1c4339b50158c3b509b88227d2"
+  },
+  "cases": [
+    {
+      "m": 17,
+      "extra_scratch_bytes": 1632,
+      "candidates": [
+        {
+          "name": "p32",
+          "checks": [
+            {
+              "max_abs": 0.0010223388671875,
+              "relative_l2": 1.7791192639500374e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010833740234375,
+              "relative_l2": 1.8588352594768272e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010833740234375,
+              "relative_l2": 1.8224357843498868e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012969970703125,
+              "relative_l2": 1.875151258409753e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001220703125,
+              "relative_l2": 1.8778812193531319e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 5.112608636892446e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.14041650295257568,
+            "B": 0.5398825883865357
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14136099815368652
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.5368896007537842
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.5420114040374756
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14020860195159912
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.14020860195159912
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.5414991855621338
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.5408267974853516
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.14062440395355225
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.14004839658737184
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.5389383792877197
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.5388102054595947
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.14100860357284545
+            }
+          ],
+          "scratch_bytes": 1632
+        },
+        {
+          "name": "p64",
+          "checks": [
+            {
+              "max_abs": 0.001220703125,
+              "relative_l2": 1.8778812193531319e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001312255859375,
+              "relative_l2": 1.8922127535158317e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00103759765625,
+              "relative_l2": 1.815204193500968e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001190185546875,
+              "relative_l2": 1.7761092957895871e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.8795867192300276e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 5.907480142397503e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.14036850333213807,
+            "B": 0.45218830108642577
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14036860466003417
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.4510995864868164
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.45279641151428224
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14046460390090942
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.13947219848632814
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.4519961833953857
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.4526683807373047
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.14036840200424194
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.14056060314178467
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.4510037899017334
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.4523804187774658
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13854399919509888
+            }
+          ],
+          "scratch_bytes": 1632
+        },
+        {
+          "name": "p128",
+          "checks": [
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.8795867192300276e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012359619140625,
+              "relative_l2": 1.856606387835352e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.887040166201593e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001251220703125,
+              "relative_l2": 1.8920927700218489e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010986328125,
+              "relative_l2": 1.7752717399153422e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.20555123905342e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.14072049856185914,
+            "B": 0.4322613000869751
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14139280319213868
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.43413400650024414
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.43458218574523927
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.1400164008140564
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.14094460010528564
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.4327573776245117
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.430836820602417
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.1404963970184326
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.14120060205459595
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.4317652225494385
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.42869200706481936
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.14043240547180175
+            }
+          ],
+          "scratch_bytes": 1632
+        }
+      ]
+    },
+    {
+      "m": 8192,
+      "extra_scratch_bytes": 786432,
+      "candidates": [
+        {
+          "name": "p32",
+          "checks": [
+            {
+              "max_abs": 0.001495361328125,
+              "relative_l2": 1.8819386893853288e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00177001953125,
+              "relative_l2": 1.94519854038942e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9465154931600385e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9492293190842616e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9567392381833205e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.295421581294704e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.3566769123077393,
+            "B": 0.9595955848693848
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3563407897949218
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.9650053977966309
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.9575149536132812
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3539719581604004
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.351859188079834
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.9608437538146972
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.9595955848693848
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3570130348205567
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3601180076599122
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.9595955848693848
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.9512408256530762
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3576529502868653
+            }
+          ],
+          "scratch_bytes": 786432
+        },
+        {
+          "name": "p64",
+          "checks": [
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9567392381833205e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.954471484799672e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.955318957809801e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956361124831623e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956327970047238e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.547178474709426e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.358549404144287,
+            "B": 1.0516274929046632
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3592215538024903
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.0514034271240233
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.0518515586853028
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3584531784057616
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3573331832885742
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.0522675514221191
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.0500909805297851
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.358773422241211
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3586456298828125
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.0510831832885743
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.0525238037109375
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3487861633300782
+            }
+          ],
+          "scratch_bytes": 786432
+        },
+        {
+          "name": "p128",
+          "checks": [
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956327970047238e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9598664809776476e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9560338391689175e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9593563541565487e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0018310546875,
+              "relative_l2": 1.9585265549483202e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 9.606982187904123e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.3552682876586915,
+            "B": 1.3980191230773926
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3578452110290526
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.3973148345947266
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.3999717712402344
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3539398193359375
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3565967559814454
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.393665599822998
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.3960342407226562
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3570130348205567
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3528196334838867
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.400483989715576
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.3987234115600586
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3504827499389649
+            }
+          ],
+          "scratch_bytes": 786432
+        }
+      ]
+    },
+    {
+      "m": 32767,
+      "extra_scratch_bytes": 3145632,
+      "candidates": [
+        {
+          "name": "p32",
+          "checks": [
+            {
+              "max_abs": 0.001495361328125,
+              "relative_l2": 1.8819017565649385e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00177001953125,
+              "relative_l2": 1.9425018889624968e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9462023842161733e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.951499188606188e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.953932636213611e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.897672682550706e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.966900253295899,
+            "B": 3.181563377380371
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.960113906860352
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.175785446166992
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.183340072631836
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.969781112670899
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.968981170654297
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.1923349380493162
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.1797866821289062
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.963123321533203
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.968308639526367
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.1853885650634766
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.163076972961426
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.965491867065429
+            }
+          ],
+          "scratch_bytes": 3145632
+        },
+        {
+          "name": "p64",
+          "checks": [
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.953932636213611e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9565435507990367e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.958076781995198e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.960548316538592e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.9595402536498397e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.544679318589488e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.966964149475098,
+            "B": 3.0963179588317873
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.953583526611328
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.1460472106933595
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.1605802536010743
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.969845199584961
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.964083099365235
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.0732540130615233
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.119381904602051
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.960081481933594
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.970389556884766
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.0297830581665037
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.070916938781738
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.970421600341797
+            }
+          ],
+          "scratch_bytes": 3145632
+        },
+        {
+          "name": "p128",
+          "checks": [
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.9595402536498397e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.002044677734375,
+              "relative_l2": 1.9590666413718996e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9588172790806993e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.959660111504346e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9582677441503655e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.694644511246906e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.968356513977051,
+            "B": 3.712578773498535
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.961842346191406
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.715011978149414
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.716964340209961
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.967411804199219
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.9706775665283205
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.7115222930908205
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.708705520629883
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.969301223754883
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.970357513427734
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.7062404632568358
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.71363525390625
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.965620040893555
+            }
+          ],
+          "scratch_bytes": 3145632
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Bounded FP32 MFMA pre-mix experiment
 
-Outcome: rejected for large-prefill performance; no runtime selector added.
+Initial scalar-loaded outcome: rejected for large-prefill performance; no runtime selector added.
 See [memory](../../memory/dsv4_premix_mfma_20260916.md) for numerical limits,
 timing scope, ISA evidence and the GPU ordinal/PCI correction.
 
@@ -16,3 +16,15 @@ silently overwritten. Local real-input fixture paths and hashes are in JSON;
 fixture tensors and compiled objects are not part of this source record.
 
 No E2E improvement claimed; accepted checkpoint remains 8964.91 input tok/s.
+
+## Cooperative supply follow-up
+
+`cooperative.cuh` adds vector global loads, bounded LDS tiles, optional padding,
+and fixed-order split-K. It **wins component timing**, pending full-model/service
+acceptance. See [follow-up memory](../../memory/dsv4_premix_cooperative_mfma_20260916.md).
+
+Run `screen.py --cooperative`, `--padded`, or `--cooperative-split` for successive
+timing variants; `verify_cooperative.py` checks real checkpoint Fn and random
+shape/mutation stability; `boundary.py` includes the exact HIP post in both arms.
+`analyze_cooperative.py` closes the component evidence. Archived initial sources
+match intermediate result hashes. Compiler evidence is text in a separate archive.
