@@ -1,0 +1,215 @@
+{
+  "decision": "Reject scalar-loaded FP32 MFMA and split-K variants for production large-M pre-mix",
+  "scope": "Does not reject all MFMA designs: cooperative/vectorized supply is untested",
+  "actual_pci_bus": "0000:b3:00.0",
+  "hip_visible_devices": "5",
+  "gpu_label_correction": "Initial mapping/screen physical_gcd=5 denotes HIP_VISIBLE_DEVICES ordinal, not rocm-smi card index. Measured HIP device PCI B3:00.0 maps to rocm-smi card7.",
+  "rows": [
+    {
+      "kind": "unsplit",
+      "m": 17,
+      "name": "map0",
+      "reference_ms": 0.1399843990802765,
+      "candidate_ms": 1.4918756961822508,
+      "slowdown": 10.657442586346416,
+      "max_abs": 0.0012969970703125,
+      "max_relative_l2": 1.8778812193531319e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 17,
+      "name": "u4",
+      "reference_ms": 0.1396641969680786,
+      "candidate_ms": 1.3458892822265627,
+      "slowdown": 9.636609177183589,
+      "max_abs": 0.001312255859375,
+      "max_relative_l2": 1.8922127535158317e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 17,
+      "name": "u8",
+      "reference_ms": 0.13961640000343323,
+      "candidate_ms": 1.3078919887542724,
+      "slowdown": 9.367753277710289,
+      "max_abs": 0.0012664794921875,
+      "max_relative_l2": 1.8920927700218489e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 8192,
+      "name": "map0",
+      "reference_ms": 1.3582134723663328,
+      "candidate_ms": 4.053641319274902,
+      "slowdown": 2.984539177197594,
+      "max_abs": 0.001922607421875,
+      "max_relative_l2": 1.9567392381833205e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 8192,
+      "name": "u4",
+      "reference_ms": 1.3577172756195068,
+      "candidate_ms": 4.009289932250977,
+      "slowdown": 2.9529637754823406,
+      "max_abs": 0.001953125,
+      "max_relative_l2": 1.9567392381833205e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 8192,
+      "name": "u8",
+      "reference_ms": 1.358965587615967,
+      "candidate_ms": 3.992099952697754,
+      "slowdown": 2.937601944506258,
+      "max_abs": 0.001953125,
+      "max_relative_l2": 1.9598664809776476e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 32767,
+      "name": "map0",
+      "reference_ms": 4.963075447082519,
+      "candidate_ms": 17.412691497802733,
+      "slowdown": 3.5084478733924067,
+      "max_abs": 0.001922607421875,
+      "max_relative_l2": 1.953932636213611e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 32767,
+      "name": "u4",
+      "reference_ms": 4.962387466430664,
+      "candidate_ms": 13.932833099365235,
+      "slowdown": 2.8076874676992554,
+      "max_abs": 0.001983642578125,
+      "max_relative_l2": 1.960548316538592e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "unsplit",
+      "m": 32767,
+      "name": "u8",
+      "reference_ms": 4.96270751953125,
+      "candidate_ms": 13.792239379882812,
+      "slowdown": 2.7791763519413593,
+      "max_abs": 0.002044677734375,
+      "max_relative_l2": 1.959660111504346e-06,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 17,
+      "name": "s4",
+      "reference_ms": 0.13998429775238036,
+      "candidate_ms": 0.34988090991973875,
+      "slowdown": 2.4994296898831228,
+      "max_abs": 0.00030517578125,
+      "max_relative_l2": 5.071725105179422e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 17,
+      "name": "s16",
+      "reference_ms": 0.14008040428161622,
+      "candidate_ms": 0.09584119915962219,
+      "slowdown": 0.6841870542216885,
+      "max_abs": 9.1552734375e-05,
+      "max_relative_l2": 1.7335189163034633e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 17,
+      "name": "s32",
+      "reference_ms": 0.13955230116844175,
+      "candidate_ms": 0.053938600420951846,
+      "slowdown": 0.38651172334196865,
+      "max_abs": 9.1552734375e-05,
+      "max_relative_l2": 1.4500492250246095e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 8192,
+      "name": "s4",
+      "reference_ms": 1.3578932762145997,
+      "candidate_ms": 3.816294860839844,
+      "slowdown": 2.8104527267993644,
+      "max_abs": 0.000396728515625,
+      "max_relative_l2": 4.960346711961119e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 8192,
+      "name": "s16",
+      "reference_ms": 1.3581974029541015,
+      "candidate_ms": 3.5728187561035156,
+      "slowdown": 2.630559260629255,
+      "max_abs": 0.0001983642578125,
+      "max_relative_l2": 1.711327838885983e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 8192,
+      "name": "s32",
+      "reference_ms": 1.3568688869476317,
+      "candidate_ms": 3.596394729614258,
+      "slowdown": 2.650510129762494,
+      "max_abs": 0.000213623046875,
+      "max_relative_l2": 1.4206170898499608e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 32767,
+      "name": "s4",
+      "reference_ms": 4.961954879760742,
+      "candidate_ms": 14.033794403076172,
+      "slowdown": 2.8282793260209695,
+      "max_abs": 0.00042724609375,
+      "max_relative_l2": 4.960743540665825e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 32767,
+      "name": "s16",
+      "reference_ms": 4.966708564758301,
+      "candidate_ms": 14.241321563720703,
+      "slowdown": 2.8673559920087115,
+      "max_abs": 0.00018310546875,
+      "max_relative_l2": 1.7014765222353666e-07,
+      "production_bit_exact": false
+    },
+    {
+      "kind": "split",
+      "m": 32767,
+      "name": "s32",
+      "reference_ms": 4.961650657653808,
+      "candidate_ms": 14.670621490478515,
+      "slowdown": 2.956802585012251,
+      "max_abs": 0.00018310546875,
+      "max_relative_l2": 1.4142757872942183e-07,
+      "production_bit_exact": false
+    }
+  ],
+  "production_speed_unchanged_input_tps": 8964.910269,
+  "files": {
+    "/home/pc/.cache/sglang/jit/gfx90a/sgl_kernel_jit_dsv4_premix_mfma_split_screen/build-0657f02f1dc536ad/deps-d96cf8b467a0ffb1/cuda_0.o": "d2afdb8e6306a61ac6fce77ebe3689a5c03714591dc17c61f356c7cd41fefe76",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/split.hsaco": "383e22cc14aec490a3bfc235f30a38e553a777ac0c51f0af2503d08c8b481384",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/initial-screen.tar.gz": "a0c839541ed034890783690d5695962c4a01615c7610f1c314aac276e7becc2e",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/split.metadata.txt": "02c57d8a8010aec2dac457c270c6232d8fd7b8a9f5f4902684255e1e2ae38749",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/split.disassembly.txt": "156bf9d046477c863acf950b839946f3cc338a989159dc16616d5e8c78f82a61"
+  }
+}

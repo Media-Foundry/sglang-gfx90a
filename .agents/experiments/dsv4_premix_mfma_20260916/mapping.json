@@ -1,0 +1,136 @@
+{
+  "status": "complete",
+  "physical_gcd": 5,
+  "cases": [
+    {
+      "shape": [
+        16,
+        16,
+        4
+      ],
+      "checks": {
+        "map0": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "map1": {
+          "exact": false,
+          "max_abs": 124.0
+        },
+        "u4": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "u8": {
+          "exact": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "shape": [
+        1,
+        24,
+        4
+      ],
+      "checks": {
+        "map0": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "map1": {
+          "exact": false,
+          "max_abs": 68.0
+        },
+        "u4": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "u8": {
+          "exact": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "shape": [
+        7,
+        32,
+        8
+      ],
+      "checks": {
+        "map0": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "map1": {
+          "exact": false,
+          "max_abs": 132.0
+        },
+        "u4": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "u8": {
+          "exact": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "shape": [
+        17,
+        24,
+        64
+      ],
+      "checks": {
+        "map0": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "map1": {
+          "exact": false,
+          "max_abs": 456.0
+        },
+        "u4": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "u8": {
+          "exact": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "shape": [
+        65,
+        24,
+        128
+      ],
+      "checks": {
+        "map0": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "map1": {
+          "exact": false,
+          "max_abs": 722.0
+        },
+        "u4": {
+          "exact": true,
+          "max_abs": 0.0
+        },
+        "u8": {
+          "exact": true,
+          "max_abs": 0.0
+        }
+      }
+    }
+  ],
+  "sources": {
+    "premix.cuh": "21470b52cade879818a6b210df7ef801e1457d1adeaadc05a103c777d1531298",
+    "module.py": "7ee4f4ef87ca6ff12bd0b8388c2412c98a9057723df9eb395468ebac5535be45",
+    "mapping.py": "15476c81d5e5c336afa8c4b6178d346504d60ea2b71fd929bde7b6dcdb5faf61"
+  }
+}

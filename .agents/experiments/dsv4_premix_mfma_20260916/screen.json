@@ -1,0 +1,971 @@
+{
+  "status": "complete",
+  "physical_gcd": 5,
+  "scope": "Repeated/scaled sampled real layer0 inputs; raw MFMA plus RMS finish, not live full-M or service",
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/premix.cuh": "21470b52cade879818a6b210df7ef801e1457d1adeaadc05a103c777d1531298",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/module.py": "7ee4f4ef87ca6ff12bd0b8388c2412c98a9057723df9eb395468ebac5535be45",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_mfma_20260916/screen.py": "36cbd73974ba71802c9e448debc0d748091dd6fc7c0475893368e50501d554ce"
+  },
+  "cases": [
+    {
+      "m": 17,
+      "extra_scratch_bytes": 1632,
+      "candidates": [
+        {
+          "name": "map0",
+          "checks": [
+            {
+              "max_abs": 0.0010223388671875,
+              "relative_l2": 1.7791192639500374e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010833740234375,
+              "relative_l2": 1.8588352594768272e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010833740234375,
+              "relative_l2": 1.8224357843498868e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012969970703125,
+              "relative_l2": 1.875151258409753e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001220703125,
+              "relative_l2": 1.8778812193531319e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 5.112608636892446e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.1399843990802765,
+            "B": 1.4918756961822508
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.1414247989654541
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.5041999816894531
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.483969020843506
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.14040060043334962
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.1400164008140564
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.4889947891235351
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.4997504234313965
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.1399523973464966
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13947240114212037
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.488002395629883
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.4947566032409667
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13934420347213744
+            }
+          ]
+        },
+        {
+          "name": "u4",
+          "checks": [
+            {
+              "max_abs": 0.001220703125,
+              "relative_l2": 1.8778812193531319e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001312255859375,
+              "relative_l2": 1.8922127535158317e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00103759765625,
+              "relative_l2": 1.815204193500968e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001190185546875,
+              "relative_l2": 1.7761092957895871e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.8795867192300276e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 5.907480142397503e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.1396641969680786,
+            "B": 1.3458892822265627
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.13953620195388794
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.346673583984375
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.34510498046875
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.1393761992454529
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.14017640352249144
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.3170632362365722
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.3515392303466798
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.13982440233230592
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13976019620895386
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.3587736129760741
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.3224732398986816
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13956819772720336
+            }
+          ]
+        },
+        {
+          "name": "u8",
+          "checks": [
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.8795867192300276e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012359619140625,
+              "relative_l2": 1.856606387835352e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0012664794921875,
+              "relative_l2": 1.887040166201593e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001251220703125,
+              "relative_l2": 1.8920927700218489e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0010986328125,
+              "relative_l2": 1.7752717399153422e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.20555123905342e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 0.13961640000343323,
+            "B": 1.3078919887542724
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.13963240385055542
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.2955517768859863
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.2891818046569825
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.13966439962387084
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.1390879988670349
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.2869409561157226
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.3202322006225586
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.13953620195388794
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13969639539718628
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.320456600189209
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.323209571838379
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.13960039615631104
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "m": 8192,
+      "extra_scratch_bytes": 786432,
+      "candidates": [
+        {
+          "name": "map0",
+          "checks": [
+            {
+              "max_abs": 0.001495361328125,
+              "relative_l2": 1.8819386893853288e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00177001953125,
+              "relative_l2": 1.94519854038942e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9465154931600385e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9492293190842616e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9567392381833205e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.295421581294704e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.3582134723663328,
+            "B": 4.053641319274902
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3623909950256348
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.070431137084961
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.012714767456055
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3548044204711913
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.355220413208008
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.120432281494141
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.999686431884766
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3594457626342773
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3614303588867187
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.077761459350586
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.036851501464843
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3569811820983886
+            }
+          ]
+        },
+        {
+          "name": "u4",
+          "checks": [
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9567392381833205e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.954471484799672e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.955318957809801e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956361124831623e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956327970047238e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.547178474709426e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.3577172756195068,
+            "B": 4.009289932250977
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3654640197753907
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.9994945526123047
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.0130352020263675
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3577493667602538
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3568211555480958
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.010698318481445
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.005704879760742
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3611105918884276
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3576851844787599
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.015243911743164
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.007881546020508
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3573331832885742
+            }
+          ]
+        },
+        {
+          "name": "u8",
+          "checks": [
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.956327970047238e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9598664809776476e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9560338391689175e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9593563541565487e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.0018310546875,
+              "relative_l2": 1.9585265549483202e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 9.606982187904123e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 1.358965587615967,
+            "B": 3.992099952697754
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3567569732666016
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.99005126953125
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 3.992451858520508
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.3570449829101563
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3613346099853516
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 3.991748046875
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 5.286307144165039
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.3608861923217774
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.3621350288391114
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.9944366455078124
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 3.9904033660888674
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.356052780151367
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "m": 32767,
+      "extra_scratch_bytes": 3145632,
+      "candidates": [
+        {
+          "name": "map0",
+          "checks": [
+            {
+              "max_abs": 0.001495361328125,
+              "relative_l2": 1.8819017565649385e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00177001953125,
+              "relative_l2": 1.9425018889624968e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.9462023842161733e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.951499188606188e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.953932636213611e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.897672682550706e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.963075447082519,
+            "B": 17.412691497802733
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.969749450683594
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 17.496063232421875
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 17.64305877685547
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.967156600952149
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.964051818847656
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 17.350222778320312
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 17.339497375488282
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.949422836303711
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.952016067504883
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 17.356655883789063
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 17.468727111816406
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.962099075317383
+            }
+          ]
+        },
+        {
+          "name": "u4",
+          "checks": [
+            {
+              "max_abs": 0.00189208984375,
+              "relative_l2": 1.953932636213611e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.9565435507990367e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.958076781995198e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.960548316538592e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.9595402536498397e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 8.544679318589488e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.962387466430664,
+            "B": 13.932833099365235
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.9716064453125
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 13.937649536132813
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 13.914601135253907
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.953104019165039
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.9669647216796875
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 13.929776000976563
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 14.743336486816407
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.966036605834961
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.957777404785157
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 13.925581359863282
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 13.935890197753906
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.958738327026367
+            }
+          ]
+        },
+        {
+          "name": "u8",
+          "checks": [
+            {
+              "max_abs": 0.001983642578125,
+              "relative_l2": 1.9595402536498397e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.002044677734375,
+              "relative_l2": 1.9590666413718996e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9588172790806993e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001922607421875,
+              "relative_l2": 1.959660111504346e-06,
+              "bit_exact": false,
+              "finite": true
+            },
+            {
+              "max_abs": 0.001953125,
+              "relative_l2": 1.9582677441503655e-06,
+              "bit_exact": false,
+              "finite": true
+            }
+          ],
+          "raw_fp64_max_abs": 7.694644511246906e-05,
+          "permutation_exact": true,
+          "replay100_exact": true,
+          "median_ms": {
+            "A": 4.96270751953125,
+            "B": 13.792239379882812
+          },
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.9527839660644535
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 13.808357238769531
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 13.832716369628907
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 4.966708755493164
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.964212036132812
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 13.828202819824218
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 13.7640869140625
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 4.952207946777344
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.961203002929688
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 13.776121520996094
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 13.751506042480468
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 4.9682456970214846
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
