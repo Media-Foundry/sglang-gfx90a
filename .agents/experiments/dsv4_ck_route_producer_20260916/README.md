@@ -27,6 +27,26 @@ Next oracle should reuse the same sorter and expanded weights but explicitly
 call the two stages,or design an explicit ownership-aware boundary; do not
 hide route data behind the old tensor shape or global cached metadata state.
 
+## Full routed-stage oracle completed
+
+`full-stage-v2.json` includes the current helper's weight expansion,scale
+inverse layout,shared weight workspace,sorter,per-call allocations and final
+output. M32767:20.413024→19.860006ms;M16384:11.910548→11.578140ms. Four
+mutation variants pass exact BF16 output and expanded-weight checks. The
+boundary sweepv3 also passes M16383,32765,32768,36864;larger fixtures append
+real prefix rows and are explicitly labeled,not presented as service captures.
+
+Peak allocator increment is about265MiB/GCD higher,still untested alongside
+the full model's1M KV pool. The successful harness uses a real single-rank Gloo
+group because production logging accesses TP rank. v1 failed before comparisons
+without this initialization;its exact source/report/log remain preserved.
+All component tests only used HIP_VISIBLE_DEVICES5/PCI0000:b3:00.0.
+
+`runner.py` demonstrates the explicit same-sorter route path without the old
+forced reshape. No production selector is connected yet. Next admission should
+start with16384..36864 rows and originalV4TP8 ordinary prefill only;all-layer
+service exactness,1M-pool peak and ABBA remain necessary.
+
 ## Original preparation and contracts
 
 The earlier route-major stage2 oracle saved only about3% of stage2 time; a

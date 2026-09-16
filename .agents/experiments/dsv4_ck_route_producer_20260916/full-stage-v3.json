@@ -1,0 +1,447 @@
+{
+  "status": "complete",
+  "scope": "Complete current routed helper versus explicit route-major producer.\n\nIncludes raw FP4/scale conversion, weight workspace, sorting, allocations,\nboth CK stages and final fixed reduction. No service or1M-pool claim.\n",
+  "pci": "0000:b3:00.0",
+  "settings": {
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT": "1",
+    "SGLANG_DSV4_DEBUG_CK_UNIQUE_MANIFEST": "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_extras_build_20260916/build-v1/unique/manifest.json",
+    "SGLANG_DSV4_DEBUG_CK_REDUCE_VEC4": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT_CHECK": "0",
+    "AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS": "0",
+    "AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS": "1",
+    "AITER_DSV4_DEBUG_RAW_LOGICAL_B_STAGE1": "0",
+    "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR": "",
+    "AITER_DSV4_DEBUG_ACTIVATION": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK_M": "64",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE1_KERNEL": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_KERNEL": ""
+  },
+  "cases": [
+    {
+      "m": 16383,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "scales_shuffled": true,
+      "repeated_prefix_rows": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "output_byte_exact": true
+        }
+      ],
+      "expanded_weights_exact": true,
+      "median_ms": {
+        "A": 11.91369374593099,
+        "B": 11.600590387980144
+      },
+      "speedup": 1.0269902951038825,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 11.913586934407553
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 11.603336334228516
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 11.543397267659506
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 11.912841796875
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 11.882712046305338
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 11.616933186848959
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 11.580618540445963
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 11.913800557454428
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 11.928038279215494
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 11.597844441731771
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 11.60418955485026
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 11.939771016438803
+        }
+      ],
+      "memory": {
+        "A": {
+          "initial_allocated": 3784050176,
+          "peak_allocated": 5605762048,
+          "incremental_peak": 1821711872
+        },
+        "B": {
+          "initial_allocated": 3784050176,
+          "peak_allocated": 5882973184,
+          "incremental_peak": 2098923008
+        }
+      }
+    },
+    {
+      "m": 32765,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "scales_shuffled": true,
+      "repeated_prefix_rows": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "output_byte_exact": true
+        }
+      ],
+      "expanded_weights_exact": true,
+      "median_ms": {
+        "A": 20.45424461364746,
+        "B": 19.875656127929688
+      },
+      "speedup": 1.029110409336612,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 20.40630340576172
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 19.879603068033855
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 19.808411916097004
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 20.529273986816406
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 20.468802134195965
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 19.91021219889323
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 19.873149871826172
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 20.466028849283855
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 20.435155232747395
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 19.798547108968098
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 19.878162384033203
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 20.442460378011067
+        }
+      ],
+      "memory": {
+        "A": {
+          "initial_allocated": 3919054336,
+          "peak_allocated": 7537114112,
+          "incremental_peak": 3618059776
+        },
+        "B": {
+          "initial_allocated": 3919054336,
+          "peak_allocated": 7814712320,
+          "incremental_peak": 3895657984
+        }
+      }
+    },
+    {
+      "m": 32768,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "scales_shuffled": true,
+      "repeated_prefix_rows": 1,
+      "checks": [
+        {
+          "mutation": 0,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "output_byte_exact": true
+        }
+      ],
+      "expanded_weights_exact": true,
+      "median_ms": {
+        "A": 20.394519805908203,
+        "B": 19.82830301920573
+      },
+      "speedup": 1.0285559881828532,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 20.398305257161457
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 19.888614654541016
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 19.833048502604168
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 20.381507873535156
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 20.427635192871094
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 19.784469604492188
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 19.823557535807293
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 20.375162760416668
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 20.395212809244793
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 19.815237681070965
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 19.845526377360027
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 20.393826802571613
+        }
+      ],
+      "memory": {
+        "A": {
+          "initial_allocated": 3919054336,
+          "peak_allocated": 7537114112,
+          "incremental_peak": 3618059776
+        },
+        "B": {
+          "initial_allocated": 3919054336,
+          "peak_allocated": 7814721536,
+          "incremental_peak": 3895667200
+        }
+      }
+    },
+    {
+      "m": 36864,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "scales_shuffled": true,
+      "repeated_prefix_rows": 4097,
+      "checks": [
+        {
+          "mutation": 0,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "output_byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "output_byte_exact": true
+        }
+      ],
+      "expanded_weights_exact": true,
+      "median_ms": {
+        "A": 22.5306027730306,
+        "B": 21.85453542073568
+      },
+      "speedup": 1.0309348764125852,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 22.53076171875
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 21.808247884114582
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 21.84765625
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 22.558387756347656
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 22.5304438273112
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 21.88188934326172
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 21.846694946289062
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 22.505755106608074
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 22.612510681152344
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 21.861414591471355
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 21.98913065592448
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 22.497273763020832
+        }
+      ],
+      "memory": {
+        "A": {
+          "initial_allocated": 3952805376,
+          "peak_allocated": 8019952128,
+          "incremental_peak": 4067146752
+        },
+        "B": {
+          "initial_allocated": 3952805376,
+          "peak_allocated": 8297657856,
+          "incremental_peak": 4344852480
+        }
+      }
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/full_stage.py": "28a0365882bb3cad1cf7b6b84178c38d763bbed155448b152ce4368a07abbb88",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/runner.py": "717be930c13427e0bc7ca20c6dc96b79651236ab9f937bce9d47d8f782de633f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/metadata.cuh": "60729ac29a23fca8d6d6fe022e7a536aa23bcb9ce2d4204c161cffb8aefa236f",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "c1c665961bfc1ce495e06c93e13fb60c72d001e0c267d52c11fbdf99fc830a6f"
+  },
+  "component_process_group": "real single-rank Gloo, local rank0; not eight-rank service"
+}

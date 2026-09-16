@@ -1,0 +1,30 @@
+{
+  "status": "failed",
+  "scope": "Complete current routed helper versus explicit route-major producer.\n\nIncludes raw FP4/scale conversion, weight workspace, sorting, allocations,\nboth CK stages and final fixed reduction. No service or1M-pool claim.\n",
+  "pci": "0000:b3:00.0",
+  "settings": {
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_FP32": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK64_V1": "1",
+    "SGLANG_DSV4_GFX90A_BF16_CK_FIXED_SLOT": "1",
+    "SGLANG_DSV4_DEBUG_CK_UNIQUE_MANIFEST": "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_extras_build_20260916/build-v1/unique/manifest.json",
+    "SGLANG_DSV4_DEBUG_CK_REDUCE_VEC4": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT": "1",
+    "SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT_CHECK": "0",
+    "AITER_DSV4_DEBUG_KEEP_BF16_WEIGHTS": "0",
+    "AITER_DSV4_DEBUG_SHUFFLE_BF16_WEIGHTS": "1",
+    "AITER_DSV4_DEBUG_RAW_LOGICAL_B_STAGE1": "0",
+    "SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR": "",
+    "AITER_DSV4_DEBUG_ACTIVATION": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_BLOCK_M": "64",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE1_KERNEL": "",
+    "SGLANG_DSV4_GFX90A_BF16_CK_STAGE2_KERNEL": ""
+  },
+  "cases": [],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/full_stage.py": "b0121c2b2f3f3b39bf511dcfff4195ce4e42dd56d949aa87a20fea0295f4da41",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/runner.py": "717be930c13427e0bc7ca20c6dc96b79651236ab9f937bce9d47d8f782de633f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/metadata.cuh": "60729ac29a23fca8d6d6fe022e7a536aa23bcb9ce2d4204c161cffb8aefa236f",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py": "c1c665961bfc1ce495e06c93e13fb60c72d001e0c267d52c11fbdf99fc830a6f"
+  },
+  "error": "Traceback (most recent call last):\n  File \"/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/full_stage.py\", line 86, in <module>\n    expected=baseline();torch.cuda.synchronize()\n             ^^^^^^^^^^\n  File \"/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_producer_20260916/full_stage.py\", line 83, in baseline\n    return current.gfx90a_bf16_ck_moe(hidden,ids,weights,raw13,s13,raw2,s2,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py\", line 464, in gfx90a_bf16_ck_moe\n    return aiter_fused_moe.fused_moe(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/pytorch/third_party/aiter/aiter/fused_moe.py\", line 130, in fused_moe\n    return fused_moe_(\n           ^^^^^^^^^^^\n  File \"/home/pc/pytorch/third_party/aiter/aiter/jit/utils/torch_guard.py\", line 278, in wrapper_custom\n    getattr(torch.ops.aiter, f\"{loadName}\")(*args, **kwargs)\n  File \"/home/pc/anaconda3/envs/DS/lib/python3.12/site-packages/torch/_ops.py\", line 1275, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/pytorch/third_party/aiter/aiter/jit/utils/torch_guard.py\", line 301, in outer_wrapper\n    wrapper(*args, **kwargs)\n  File \"/home/pc/pytorch/third_party/aiter/aiter/jit/utils/torch_guard.py\", line 196, in wrapper\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/pytorch/third_party/aiter/aiter/fused_moe.py\", line 327, in fused_moe_\n    return fused_moe_2stages(\n           ^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/pytorch/third_party/aiter/aiter/fused_moe.py\", line 1175, in fused_moe_2stages\n    metadata.stage2(\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_bf16_batched_moe.py\", line 385, in stage2_dsv4_fp32\n    return ck_fixed_slot_stage2(\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/moe/gfx90a_ck_fixed_slot.py\", line 70, in ck_fixed_slot_stage2\n    load_verified(manifest).stage2(inter.view(m * 6, 1, k), w2, remapped,\n    ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/kernels/ops/debug/dsv4_ck_unique_store.py\", line 31, in load_verified\n    get_tp_group().rank_in_group, manifest['name'], manifest['module_sha256'])\n    ^^^^^^^^^^^^^^\n  File \"/home/pc/Code/sglang/python/sglang/srt/distributed/parallel_state.py\", line 1953, in get_tp_group\n    assert _TP is not None, \"tensor model parallel group is not initialized\"\n           ^^^^^^^^^^^^^^^\nAssertionError: tensor model parallel group is not initialized\n"
+}
