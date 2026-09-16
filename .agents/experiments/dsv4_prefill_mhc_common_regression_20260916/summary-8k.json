@@ -1,0 +1,218 @@
+{
+  "timing_paths": {
+    "A1": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    "B": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    "A2": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    }
+  },
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x8k, best owner configuration common MHC policy off/on, native AR",
+  "control_input_tok_s": 10218.180142701942,
+  "candidate_input_tok_s": 10205.686130010203,
+  "gain_pct": -0.12227238624935577,
+  "control_drift_pct": -0.14865235012868627,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 10225.78057427327,
+      "rates": [
+        10234.62341837845,
+        10217.975093032068,
+        10225.78057427327
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 10213.64011026846,
+      "rates": [
+        10227.676252004607,
+        10213.068613401878,
+        10213.64011026846
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 10197.732149751944,
+      "rates": [
+        10218.414954262858,
+        10197.732149751944,
+        10186.968064131628
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 10210.579711130611,
+      "rates": [
+        10232.211315307795,
+        10210.579711130611,
+        10199.463520614056
+      ]
+    }
+  },
+  "kv_tokens": 1048576,
+  "original_weights": true,
+  "prior_32k_live_comparisons": 10880,
+  "quality": {
+    "A1": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "teacher_forced": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    }
+  ],
+  "universal_batch_invariance_claimed": false
+}

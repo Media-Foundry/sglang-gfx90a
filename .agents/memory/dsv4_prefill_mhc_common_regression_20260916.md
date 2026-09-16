@@ -1,4 +1,30 @@
-# Common MHC shorter-length regression: running, not yet accepted
+# Common MHC regression: 8K passed; 16K running
+
+## Latest authoritative progress
+
+8K all three processes stopped and analyzer completed. A1=10225.780574,
+B1=10213.640110,B2=10197.732150,A2=10210.579711 input tok/s.
+Control10218.180143,candidate**10205.686130**,delta**-0.122272%**,
+control drift-0.148652%. No material throughput regression; matches historical
+10205.900816. All192 128-token continuations exact per request; both A1/A2 and
+A1/B teacher comparisons1008/1008 exact selected-token logprobs and Top5 records.
+Historical direct-dequant B versus newA1 also16/16 full128-token answers exact.
+summary-8k.json has reconstructed raw timing, scoped paths and numerical records.
+
+16K control A1 PID2607054 confirmed live (new service process, ready), orchestrator
+2585923/session88438 still running. First control three waves10023.012013,
+10023.857027,10017.121310, median10023.012013. First quality wave complete at
+last observation. Do not restart; run.py will finish B1/B2/A2 serially.
+Full16K acceptance and complete regression archive still pending.
+
+Prepared non-scoring profile harness in dsv4_prefill_length_profile_20260916,
+committed/pushed26c646a132. No GPU profile launched alongside this regression.
+CPU analyzer reproduced historical8K analysis exactly and passed synthetic
+4/8/16-forward grouping, complete/nested closure and missing-rank rejection.
+Next profile should measure latest same configuration per length, not reuse
+old13.079s/8K budget as if direct-dequant and common32K policy were absent.
+
+The following notes preserve initial setup; old initial PID/status superseded.
 
 2026-09-16.32K common FP32/20 service acceptance committed/pushed34fa7b0e9c:
 8667.433540 ->9605.065395 input tok/s (+10.817872%),192 continuations exact,
