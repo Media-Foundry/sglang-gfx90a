@@ -1,0 +1,20 @@
+{
+  "status": "complete",
+  "scope": "Isolated baseline pre-mix counters; repeated real rows, not service profiling.",
+  "m": 32767,
+  "physical_gcd": 5,
+  "profiled_dispatches": 3,
+  "replay_byte_exact": true,
+  "registers": 78,
+  "spills": 0,
+  "lds_bytes": 0,
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_hc_ffn_fn.pt": "23d3dcdd4f861127ad7c43ae24970662f5fd9aee75c470bff4cf6387d94e5705",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_premix_order_20260916/probe.py": "9463baf1e76e108e40fdaeb0281499aae1167fd2442a62b7fa0740e0b98ad640",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/gfx90a_mhc_premix_pair.py": "136207a7d3b80821ff6cea815edcac716af0e291ef34d827b6650651cf815ebb"
+  }
+}

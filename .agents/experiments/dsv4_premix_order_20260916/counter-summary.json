@@ -1,0 +1,59 @@
+{
+  "scope": "Three isolated original pre-mix calls/pass; profiler durations, not E2E throughput",
+  "passes": {
+    "memory": {
+      "profiled_ms": [
+        4.957713,
+        4.930503,
+        4.930503
+      ],
+      "raw_counters": {
+        "FetchSize": [
+          2041232.4375,
+          2110570.3125,
+          2113061.125
+        ],
+        "WriteSize": [
+          10889.03125,
+          11220.84375,
+          11291.15625
+        ]
+      },
+      "mean_counters": {
+        "FetchSize": 2088287.9583333333,
+        "WriteSize": 11133.677083333334
+      },
+      "profiler_vgpr": 80,
+      "scratch_bytes": 0,
+      "trace_sha256": "94ec3992d7936c6d6adf1b08418be7766cc75d047d7489b587d618dd788df9e7",
+      "counter_sha256": "43de7f7fa659c22141d469931673cae76ef1a201f3c31388d6ac6b039f63b8f4"
+    },
+    "issue": {
+      "profiled_ms": [
+        4.964915,
+        4.949229,
+        4.961234
+      ],
+      "raw_counters": {
+        "SQ_INSTS_VALU": [
+          590315520.0,
+          590315520.0,
+          590315520.0
+        ],
+        "SQ_INSTS_VMEM": [
+          20054016.0,
+          20054016.0,
+          20054016.0
+        ]
+      },
+      "mean_counters": {
+        "SQ_INSTS_VALU": 590315520.0,
+        "SQ_INSTS_VMEM": 20054016.0
+      },
+      "profiler_vgpr": 80,
+      "scratch_bytes": 0,
+      "trace_sha256": "a0cd72b0ae96b043c3ec995175f0776844234524ca02bca45f50b80eba6c7af9",
+      "counter_sha256": "ff63ba491509d4f2d9035be3ae3d8817a9a6d4d40cc4840849d235c3990a0d1e"
+    }
+  }
+}

@@ -117,3 +117,40 @@ MHC/MoE optimization. Do not continue to count the old1.37-second post span as
 entirely unoptimized, or assume the component's36% improvement applies to all
 MHC. The rejected serial-column post-to-projection prototype remains rejected;
 this result does not validate two-pass fusion by itself.
+
+## Updated full-stage profile on the accepted HIP-post checkpoint
+
+A fifth fresh process uses the same exact HIP post / vec4 CK / corrected H16
+configuration with64-slot asynchronous markers. Four waves; first excluded.
+128 rank/forward snapshots, all43 coarse layers valid. Every forward selects
+the rank with the longest complete envelope and keeps all of that rank's
+subdivisions; no sum of independent per-stage rank maxima.
+
+Three diagnostic HTTP waves14.6253/14.6293/14.6318s. Mean selected GPU envelope
+**14.5320s**; event/realtime ratio1.0003367..1.0003634, max within-frame rank
+spread0.788ms. These are diagnostic times, not another scoring ABBA.
+
+| Range | Seconds/wave |
+| --- | ---: |
+|Routed MoE stage|4.3633|
+|All MHC/Norm boundaries|3.2591|
+|Main sparse attention|1.3738|
+|Attention output projection + collective|1.5470|
+|MoE output collective|0.7465|
+|Indexer query range|0.6296|
+|Indexer owner chain|0.3041|
+
+Nested MHC detail:post0.8263s,mix1.7666s,Sinkhorn0.0674s,weighted norm0.5717s.
+Indexer weights are separately0.0281s and compressor0.1172s. These nested
+values are not additive with their enclosing coarse ranges. The post range's
+outer wrapper may still be labelled fused4; actual HIP selection was checked
+on every rank and its debug reference checks were disabled. Coarse stages,
+interlayer gaps and outer gaps close the14.5320s envelope.
+
+Post's old1.3724s span is now0.8263s. Routed still consumes about30% of the
+envelope; MHC/Norm about22%. CPU/HTTP overhead is small in this steady workload,
+not evidence that cold-shape JIT or other request distributions are solved.
+The profile service stopped cleanly before any single-GCD experiment.
+Profile evidence is separately archived; the original scoring archive is not
+overwritten. Follow-up CTA-order and hardware-counter findings are recorded in
+`dsv4_premix_order_20260916.md`.
