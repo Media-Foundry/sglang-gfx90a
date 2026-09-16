@@ -1,0 +1,135 @@
+{
+  "status": "teacher_lineage_mismatch_confirmed",
+  "checks": [
+    {
+      "request": 0,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 21
+    },
+    {
+      "request": 1,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 3
+    },
+    {
+      "request": 2,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 8
+    },
+    {
+      "request": 3,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 4,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 2
+    },
+    {
+      "request": 5,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 6
+    },
+    {
+      "request": 6,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 23
+    },
+    {
+      "request": 7,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 35
+    },
+    {
+      "request": 8,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 9,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 2
+    },
+    {
+      "request": 10,
+      "base_tokens": 32767,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 11,
+      "base_tokens": 32767,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 12,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 13,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 20
+    },
+    {
+      "request": 14,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    },
+    {
+      "request": 15,
+      "base_tokens": 32768,
+      "original_prompt_equal": true,
+      "current_arms_prompt_and_logprobs_exact": true,
+      "historical_continuation_equal": false,
+      "first_continuation_difference": 0
+    }
+  ],
+  "historical_teacher_sha256": "4945b776197e14ebfa13e29b199a2bf7e537556d2a10e4b2b31fe3907546957d",
+  "correction": "Replay candidate on historical teacher prompt IDs; do not compare differing continuations or alter scored waves"
+}

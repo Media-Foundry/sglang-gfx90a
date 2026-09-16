@@ -77,9 +77,22 @@ prior=((root.parent/'dsv4_owner_k32_regression_20260916/16k-B' if args.length=='
         else root.parent/'dsv4_owner_k32_20260916/B')/'teacher-forced.json')
 prior_byid={r['meta_info']['id']:r for r in json.loads(prior.read_text())}
 teachers['prior_accepted']=[prior_byid[f'teacher-B-{i}'] for i in range(16)]
+bridge=None
+if args.length=='32k':
+    bridge_dir=root/'32k-prior-bridge'
+    bridge=json.loads((bridge_dir/'complete.json').read_text())
+    assert bridge['teacher_exact'] and bridge['positions']==1008 and not bridge['scored_performance']
+    assert not json.loads((bridge_dir/'P32k-route-prior-bridge.stop.json').read_text())['remaining']
+    bridge_byid={r['meta_info']['id']:r for r in json.loads((bridge_dir/'teacher-forced.json').read_text())}
+    teachers['prior_bridge']=[bridge_byid[f'teacher-B-{i}'] for i in range(16)]
 for lhs,rhs in [('A1','A2'),('A1','B'),('prior_accepted','B')]:
     differences=[];same=0;top_records_exact=0
-    for i,(a,b) in enumerate(zip(teachers[lhs],teachers[rhs],strict=True)):
+    # Current A1/A2/B share one continuation. The historical checkpoint used
+    # a different one; compare it only to a separately replayed identical input.
+    rhs_rows=teachers['prior_bridge'] if bridge and lhs=='prior_accepted' else teachers[rhs]
+    rhs_artifact=('32k-prior-bridge/teacher-forced.json' if bridge and lhs=='prior_accepted'
+                  else f'{args.length}-{rhs}/teacher-forced.json')
+    for i,(a,b) in enumerate(zip(teachers[lhs],rhs_rows,strict=True)):
         assert a['prompt_token_ids']==b['prompt_token_ids']
         x,y=a['meta_info']['input_token_logprobs'],b['meta_info']['input_token_logprobs']
         assert len(x)==len(y)==64
@@ -94,7 +107,7 @@ for lhs,rhs in [('A1','A2'),('A1','B'),('prior_accepted','B')]:
         same+=sum(v[0][1]==w[0][1] for v,w in zip(tx[1:],ty[1:],strict=True))
         top_records_exact+=sum(v==w for v,w in zip(tx[1:],ty[1:],strict=True))
     assert len(differences)==1008
-    teacher_checks.append(dict(lhs=lhs,rhs=rhs,max_abs_logprob=max(differences),
+    teacher_checks.append(dict(lhs=lhs,rhs=rhs,rhs_artifact=rhs_artifact,max_abs_logprob=max(differences),
         mean_abs_logprob=statistics.mean(differences),top1_same=same,top5_records_exact=top_records_exact,
         positions=1008,excluded_leading_nulls=16))
 control=statistics.mean(results[n]['median'] for n in ('A1','A2'))
@@ -105,6 +118,7 @@ summary=dict(timing_paths=paths,status='complete',scope=f'Original V4 TP8 C16x{a
     control_drift_pct=100*(results['A2']['median']/results['A1']['median']-1),legs=results,
     kv_tokens=1048576,original_weights=True,prior_8k_live_comparisons=check['live_comparisons'],quality=quality,
     cross_arm_continuations=cross,teacher_forced=teacher_checks,
+    historical_teacher_bridge=bridge,
     universal_batch_invariance_claimed=False)
 target.write_text(json.dumps(summary,indent=2)+'\n')
 print(json.dumps(summary,indent=2))

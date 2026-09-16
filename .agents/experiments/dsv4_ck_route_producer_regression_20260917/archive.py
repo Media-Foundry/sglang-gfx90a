@@ -25,6 +25,11 @@ for length in ('16k','32k'):
     for name in ('acceptance-'+length+'.json','acceptance-'+length+'.log'):
         if (root/name).is_file():files.append(root/name)
 files.extend(root/name for name in ('service.py','analyze.py','accept.py','run.py','run.log'))
+bridge=root/'32k-prior-bridge'
+assert json.loads((bridge/'complete.json').read_text())['teacher_exact']
+assert not json.loads((bridge/'P32k-route-prior-bridge.stop.json').read_text())['remaining']
+files.extend(p for p in bridge.iterdir() if p.is_file())
+files.extend(root/name for name in ('bridge_prior_teacher.py','bridge-driver.log','analyze_v1.py','analysis-v2.log'))
 with tarfile.open(target,'w:gz') as archive:
     for path in sorted(files):archive.add(path,arcname=str(path.relative_to(root)))
 manifest.write_text(json.dumps(dict(archive=target.name,

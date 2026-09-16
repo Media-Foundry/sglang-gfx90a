@@ -1,4 +1,45 @@
-# CK route producer: accepted8K/16K service gain;32K regression running
+# CK route producer: accepted8K/16K;32K teacher-history drift under investigation
+
+##32K is NOT accepted yet, September17
+
+Regression session29781 ended with exit1 in analysis AFTER all six services
+completed and stopped.32K A1/B1/B2/A2 medians:
+9843.052229/9934.898708/9933.363491/9844.204755. These timings are preserved,
+but do not promote32K yet. Current A1/A2/B use identical teacher prompts and
+all1008 logprobs/Top5 records are exact. A1/B four128-token waves match16/16.
+
+First failure was harness lineage:32K service picked continuation from K32-A1
+quality-0,whereas historical K32-B teacher had used wide-owner-A1 quality-0.
+All16 original prompt prefixes match; all16 appended64-token sequences differ.
+`analyze_v1.py`, original run.log and teacher-lineage.json preserve this finding.
+
+New candidate-only historical-input bridge(session89223) ALSO failed numerical
+comparison on identical prompt IDs:451/1008 logprobs exact,max_abs1.266876,
+mean_abs0.030476,Top1 979/1008,Top5 exact378/1008. Requests0..9 differ;10..15
+are exact. It stopped cleanly. This is real same-input historical drift,not
+merely the harness mismatch; do not waive acceptance or claim route is at fault.
+
+Fresh control bridge completed(session58617 exit0),using identical historical
+teacher prompts and measured B environment with ONLY ROUTE_PRODUCER=0.
+`control_teacher.py` records numeric differences against failed fresh candidate
+without asserting them away. ALL1008 logprobs/Top5 records match the fresh
+candidate exactly; route hits are empty in control. Both reproduce historical
+drift,so route-producer is not the cause in this paired check. Both services
+stopped; all8GCDs idle. Reducer/profile-consolidation experiments remain pending
+while this existing shape/history sensitivity is investigated.
+
+Read-only code finding to investigate:common_prefill_batch_hint still admits
+only8192<=rows<=65536. A64-token teacher tail can execute within a large mixed
+forward or an M256 singleton; logs confirm different historical vs fresh
+chunk arrangements. Thus small/large MHC arithmetic is a plausible cause,
+not yet experimentally attributed. The outer mix_pair scope ALSO requires
+8192<=batch.input_ids.shape[0]<=65536. Do not broaden that scope for a small-M
+fix: it controls other large-only kernels. If testing common small-prefill
+arithmetic,use a separate original-V4/native-EXTEND context and preserve AR,
+draft,spec,V4.1 exclusions. No runtime arithmetic changes have been made.
+The revised analyzer/acceptance remain fail-closed on a successful historical
+bridge;32K summary/acceptance are currently absent.8K/16K accepted values remain
+10372.904520/10216.894832;32K last accepted remains9854.324387 (prior K32).
 
 ## Latest16K closure, September17
 
