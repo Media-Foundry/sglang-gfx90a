@@ -1,0 +1,2259 @@
+{
+  "status": "complete",
+  "scope": "MHC small-tail arithmetic screen using real tensor seeds/checkpoint weights.\n\nNo production changes. Seeds are not claimed to be causal inputs of every\nsampled layer. Compare legacy singleton,explicit FP32/20 and repeated large-M\nrows. This isolates a boundary contract,not the whole-model drift root cause.\n",
+  "pci": "0000:b3:00.0",
+  "flags": {
+    "SGLANG_DSV4_PREFILL_MHC_COMMON_FP32": "1",
+    "SGLANG_DSV4_PREFILL_POST_FUSED4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_REUSE4": "1",
+    "SGLANG_DSV4_PREFILL_MIX_PAIR_COLUMNS": "1",
+    "SGLANG_DSV4_PREFILL_MIX_GROUP_SIZE": "8",
+    "SGLANG_DSV4_DEBUG_PREFILL_POST_WAVE": "1",
+    "SGLANG_DSV4_DEBUG_PREFILL_MIX_OWNER": "0",
+    "SGLANG_DSV4_DEBUG_PREFILL_MIX_MFMA": "0",
+    "SGLANG_DSV4_GFX90A_BF16_MHC_DOT": "0",
+    "SGLANG_DSV4_PREFILL_MHC_CONFIG_ITERS": "0",
+    "SGLANG_DSV4_PREFILL_MHC_COMB_REFINE20": "0",
+    "SGLANG_DSV4_GFX90A_FUSE_MHC_POST_RMS_PARTIALS": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_SPLITK_TAIL": "1",
+    "SGLANG_DSV4_GFX90A_SPLITK_MHC_PRE_MIX": "1",
+    "SGLANG_DSV4_GFX90A_FUSED_MHC_WEIGHTED_RMS": "1",
+    "SGLANG_DSV4_GFX90A_FP16_MHC_DOT": "1",
+    "SGLANG_DSV4_GFX90A_MHC_SINKHORN_ITERS": "8",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_SINKHORN": "1",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE_FULL": "0",
+    "SGLANG_DSV4_GFX90A_NATIVE_MHC_POST_PRE": "0",
+    "SGLANG_DSV4_GFX90A_MHC_BLOCK_K": "1024"
+  },
+  "cases": [
+    {
+      "layer": 0,
+      "m": 64,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 256
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 1024
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 935
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 935
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 856
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 1036
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.2937319874763489,
+          0.2557950019836426,
+          0.24506999552249908,
+          0.24795100092887878,
+          0.2570750117301941,
+          0.25899600982666016
+        ],
+        "common": [
+          0.3841719925403595,
+          0.37872999906539917,
+          0.3822520077228546,
+          0.35712099075317383,
+          0.3511970043182373,
+          0.3535979986190796
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.25643500685691833,
+        "common": 0.3679254949092865
+      }
+    },
+    {
+      "layer": 0,
+      "m": 256,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 1024
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 4096
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 3718
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 3718
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 3450
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 4065
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.28668901324272156,
+          0.2562749981880188,
+          0.24491000175476074,
+          0.24426999688148499,
+          0.2410680055618286,
+          0.24330900609493256
+        ],
+        "common": [
+          0.3697659969329834,
+          0.3619230091571808,
+          0.349916011095047,
+          0.36016198992729187,
+          0.366564005613327,
+          0.3471960127353668
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.24458999931812286,
+        "common": 0.36104249954223633
+      }
+    },
+    {
+      "layer": 0,
+      "m": 2048,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 8192
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 32768
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 29570
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 8192
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 32768
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 29570
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 8192
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 32768
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 27515
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 8192
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 32768
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 32161
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          1.0185359716415405,
+          1.0034890174865723,
+          0.996766984462738,
+          1.0025290250778198,
+          0.998528003692627,
+          0.99692702293396
+        ],
+        "common": [
+          1.5331670045852661,
+          1.5509350299835205,
+          1.5315669775009155,
+          1.5531760454177856,
+          1.523563027381897,
+          1.5458120107650757
+        ]
+      },
+      "median_ms": {
+        "legacy": 1.0005285143852234,
+        "common": 1.539489507675171
+      }
+    },
+    {
+      "layer": 0,
+      "m": 2560,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 10240
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 40960
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 36926
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 36926
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 34363
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 40200
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          1.3253940343856812,
+          1.3085860013961792,
+          1.299942970275879,
+          1.304744005203247,
+          1.2975410223007202,
+          1.3018629550933838
+        ],
+        "common": [
+          1.9770469665527344,
+          1.9900120496749878,
+          1.9645600318908691,
+          1.9869710206985474,
+          1.9672819375991821,
+          1.9813679456710815
+        ]
+      },
+      "median_ms": {
+        "legacy": 1.3033034801483154,
+        "common": 1.979207456111908
+      }
+    },
+    {
+      "layer": 0,
+      "m": 8191,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 32764
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 131056
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 118109
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 32764
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 131056
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 118109
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 32764
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 131056
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 109927
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 32764
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 131056
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 128476
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          4.152260780334473,
+          4.135293960571289,
+          4.136573791503906,
+          4.14121675491333,
+          4.135613918304443,
+          4.153061866760254
+        ],
+        "common": [
+          6.223750114440918,
+          6.311789035797119,
+          6.228392124176025,
+          6.295621871948242,
+          6.238316059112549,
+          6.315151214599609
+        ]
+      },
+      "median_ms": {
+        "legacy": 4.138895273208618,
+        "common": 6.2669689655303955
+      }
+    },
+    {
+      "layer": 0,
+      "m": 8192,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 2.4884939193725586e-05,
+          "unequal": 32768
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.15317022800445557,
+          "unequal": 131072
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.00390625,
+          "unequal": 118115
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.4884939193725586e-05,
+              "unequal": 32768
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15317022800445557,
+              "unequal": 131072
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 118115
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 32768
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15312546491622925,
+              "unequal": 131072
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 109932
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 2.485513687133789e-05,
+              "unequal": 32768
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.15315358340740204,
+              "unequal": 131072
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.00390625,
+              "unequal": 128481
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          4.220292091369629,
+          4.207645893096924,
+          4.184114933013916,
+          4.199962139129639,
+          4.1793131828308105,
+          4.179472923278809
+        ],
+        "common": [
+          6.290979862213135,
+          6.328597068786621,
+          6.294981956481934,
+          6.3631720542907715,
+          6.278493881225586,
+          6.367494106292725
+        ]
+      },
+      "median_ms": {
+        "legacy": 4.192038536071777,
+        "common": 6.311789512634277
+      }
+    },
+    {
+      "layer": 20,
+      "m": 64,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 0.00012248754501342773,
+          "unequal": 256
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.0860920324921608,
+          "unequal": 1024
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 1393
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012248754501342773,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.0860920324921608,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 1393
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 252
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08606234937906265,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.01171875,
+              "unequal": 1493
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08600685000419617,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 1436
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.27628299593925476,
+          0.25067201256752014,
+          0.24394899606704712,
+          0.2601169943809509,
+          0.24282899498939514,
+          0.24618999660015106
+        ],
+        "common": [
+          0.37568899989128113,
+          0.3595210015773773,
+          0.38081100583076477,
+          0.34847700595855713,
+          0.344635009765625,
+          0.37280699610710144
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.2484310045838356,
+        "common": 0.3661639988422394
+      }
+    },
+    {
+      "layer": 20,
+      "m": 256,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 0.00012248754501342773,
+          "unequal": 1024
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.0860920324921608,
+          "unequal": 4096
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 5560
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012248754501342773,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.0860920324921608,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 5560
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 1010
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08606234937906265,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.01171875,
+              "unequal": 5936
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08600685000419617,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 5654
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.2732430100440979,
+          0.26523900032043457,
+          0.24314899742603302,
+          0.24411000311374664,
+          0.2405879944562912,
+          0.2426690012216568
+        ],
+        "common": [
+          0.3684850037097931,
+          0.35583898425102234,
+          0.3543980121612549,
+          0.37200701236724854,
+          0.35503900051116943,
+          0.34447500109672546
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.24362950026988983,
+        "common": 0.3554389923810959
+      }
+    },
+    {
+      "layer": 20,
+      "m": 2560,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 0.00012248754501342773,
+          "unequal": 10240
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.0860920324921608,
+          "unequal": 40960
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 55638
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012248754501342773,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.0860920324921608,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 55638
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 10105
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08606234937906265,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.01171875,
+              "unequal": 59303
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 0.00012224912643432617,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.08600685000419617,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 56452
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          1.3319569826126099,
+          1.317389965057373,
+          1.3114670515060425,
+          1.3033050298690796,
+          1.317229986190796,
+          1.307947039604187
+        ],
+        "common": [
+          1.9767259359359741,
+          1.993533968925476,
+          1.9772059917449951,
+          1.988250970840454,
+          1.9797669649124146,
+          1.9876099824905396
+        ]
+      },
+      "median_ms": {
+        "legacy": 1.3143485188484192,
+        "common": 1.983688473701477
+      }
+    },
+    {
+      "layer": 42,
+      "m": 64,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 7.68899917602539e-05,
+          "unequal": 256
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.023406803607940674,
+          "unequal": 1024
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 795
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.68899917602539e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023406803607940674,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 795
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023399949073791504,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 901
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 256
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023396313190460205,
+              "unequal": 1024
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 661
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.3074980080127716,
+          0.28044599294662476,
+          0.2591559886932373,
+          0.2735629975795746,
+          0.24042800068855286,
+          0.24202899634838104
+        ],
+        "common": [
+          0.43395400047302246,
+          0.40834298729896545,
+          0.348796010017395,
+          0.3494359850883484,
+          0.34767600893974304,
+          0.3558399975299835
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.26635949313640594,
+        "common": 0.35263799130916595
+      }
+    },
+    {
+      "layer": 42,
+      "m": 256,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 7.68899917602539e-05,
+          "unequal": 1024
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.023406803607940674,
+          "unequal": 4096
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 3175
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.68899917602539e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023406803607940674,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 3175
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023399949073791504,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 3510
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 1024
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023396313190460205,
+              "unequal": 4096
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 2663
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          0.27340200543403625,
+          0.25147300958633423,
+          0.24571000039577484,
+          0.24379000067710876,
+          0.25563400983810425,
+          0.2508319914340973
+        ],
+        "common": [
+          0.36704400181770325,
+          0.380171000957489,
+          0.35840100049972534,
+          0.3462350070476532,
+          0.34399399161338806,
+          0.34271401166915894
+        ]
+      },
+      "median_ms": {
+        "legacy": 0.25115250051021576,
+        "common": 0.35231800377368927
+      }
+    },
+    {
+      "layer": 42,
+      "m": 2560,
+      "legacy_paths": [
+        "<genexpr>",
+        "_log_prefill_splitk_dispatch",
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_splitk_fused_tail_triton",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton"
+      ],
+      "common_paths": [
+        "_mhc_fusion_admitted",
+        "gfx90a_mhc_pre_mix_from_partials_triton",
+        "gfx90a_mhc_pre_mix_splitk_from_partials_triton",
+        "hc_split_sinkhorn",
+        "mhc_fused_post_pre",
+        "mhc_post_combine_rms_triton",
+        "mhc_weighted_sum_triton"
+      ],
+      "initial_legacy_vs_common": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": false,
+          "max_abs": 7.68899917602539e-05,
+          "unequal": 10240
+        },
+        {
+          "name": "comb",
+          "byte_exact": false,
+          "max_abs": 0.023406803607940674,
+          "unequal": 40960
+        },
+        {
+          "name": "normalized",
+          "byte_exact": false,
+          "max_abs": 0.0078125,
+          "unequal": 31946
+        }
+      ],
+      "common_small_vs_large": [
+        {
+          "name": "residual",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "post",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "comb",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        },
+        {
+          "name": "normalized",
+          "byte_exact": true,
+          "max_abs": 0.0,
+          "unequal": 0
+        }
+      ],
+      "batch2_common_exact": true,
+      "checks": [
+        {
+          "mutation": 0,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.68899917602539e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023406803607940674,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 31946
+            }
+          ]
+        },
+        {
+          "mutation": 1,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023399949073791504,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 35053
+            }
+          ]
+        },
+        {
+          "mutation": 2,
+          "legacy_vs_common": [
+            {
+              "name": "residual",
+              "byte_exact": true,
+              "max_abs": 0.0,
+              "unequal": 0
+            },
+            {
+              "name": "post",
+              "byte_exact": false,
+              "max_abs": 7.700920104980469e-05,
+              "unequal": 10240
+            },
+            {
+              "name": "comb",
+              "byte_exact": false,
+              "max_abs": 0.023396313190460205,
+              "unequal": 40960
+            },
+            {
+              "name": "normalized",
+              "byte_exact": false,
+              "max_abs": 0.0078125,
+              "unequal": 26824
+            }
+          ]
+        }
+      ],
+      "samples_ms": {
+        "legacy": [
+          1.3156299591064453,
+          1.3082669973373413,
+          1.303784966468811,
+          1.3029839992523193,
+          1.2949800491333008,
+          1.3002630472183228
+        ],
+        "common": [
+          1.9628000259399414,
+          1.9680830240249634,
+          1.965682029724121,
+          1.9920929670333862,
+          1.9611990451812744,
+          1.9808869361877441
+        ]
+      },
+      "median_ms": {
+        "legacy": 1.3033844828605652,
+        "common": 1.9668825268745422
+      }
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_prefill_tail_contract_20260917/oracle.py": "6e47881b671bbcf2a0fab8bb702b1506dbcf1a867bcfd887590ab484a418feb5",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/mhc.py": "a454a639b27e5c04e5095971d08463fb7b39d075de9f9fe41426b2e8bd518fb2",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/layernorm/gfx90a_mhc_prefill_policy.py": "108ac9ba53dc4e774e436e28f3fafa3c58fbfadbf6ae742a74a327ef8e73493b",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f"
+  }
+}

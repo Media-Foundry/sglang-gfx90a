@@ -1,0 +1,42 @@
+{
+  "archive": "oracle-v1-evidence.tar.gz",
+  "sha256": "926e94cf36da41a3dbb074ebfa9cbae4815d301677112f2954d23e45fdbbb9ed",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/oracle.py",
+      "sha256": "6e47881b671bbcf2a0fab8bb702b1506dbcf1a867bcfd887590ab484a418feb5"
+    },
+    {
+      "path": "python/sglang/kernels/ops/layernorm/mhc.py",
+      "sha256": "a454a639b27e5c04e5095971d08463fb7b39d075de9f9fe41426b2e8bd518fb2"
+    },
+    {
+      "path": "python/sglang/kernels/ops/layernorm/gfx90a_mhc_prefill_policy.py",
+      "sha256": "108ac9ba53dc4e774e436e28f3fafa3c58fbfadbf6ae742a74a327ef8e73493b"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt",
+      "sha256": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt",
+      "sha256": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt",
+      "sha256": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt",
+      "sha256": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f"
+    },
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/oracle-v1.json",
+      "sha256": "cadb9f6c48607d6587ee66fdb041a0500fb9bf246739f4cee941fa5bcf5a8dd2"
+    },
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/oracle-v1.log",
+      "sha256": "5c6af858622d10a94412eb0d1dc60f0ee576057507e1ae0d8742ed874e619df3"
+    }
+  ]
+}

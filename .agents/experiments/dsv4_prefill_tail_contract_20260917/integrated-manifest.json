@@ -1,0 +1,54 @@
+{
+  "archive": "integrated-evidence.tar.gz",
+  "sha256": "3576c5822c4bc8ee6a42589faebcb2d1d9cc0a8d0973272901fd13301656973c",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/integrated.py",
+      "sha256": "25fca70a29d80f45923eeb9f1e53776abe16faa31709d85bf4391d04b3ebb59d"
+    },
+    {
+      "path": "python/sglang/kernels/ops/layernorm/mhc.py",
+      "sha256": "a454a639b27e5c04e5095971d08463fb7b39d075de9f9fe41426b2e8bd518fb2"
+    },
+    {
+      "path": "python/sglang/kernels/ops/layernorm/gfx90a_mhc_prefill_policy.py",
+      "sha256": "ae3dfc6267409539e8a1dad1d5f411d5bd8cca4422d39ed7b531366d1e3ea4c5"
+    },
+    {
+      "path": "python/sglang/srt/layers/dsv4_prefill_tail_policy.py",
+      "sha256": "1213ae84c3a4cbfd42249805b06b979573361fb9a3f89616f9fe223e1a127898"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt",
+      "sha256": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt",
+      "sha256": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt",
+      "sha256": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede"
+    },
+    {
+      "path": ".agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt",
+      "sha256": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f"
+    },
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/integrated-v1.json",
+      "sha256": "f43581c832971ed0e8fd67071c199d3ec187ace3ccb1c379f72cbbd1aaaeb9ee"
+    },
+    {
+      "path": ".agents/experiments/dsv4_prefill_tail_contract_20260917/integrated-v1.log",
+      "sha256": "ebc7415c387620180c58d2ea55772ece4c0c4a0f02b31c69b504679e73d99aa8"
+    },
+    {
+      "path": "python/sglang/srt/model_executor/runner/eager_runner.py",
+      "sha256": "eb7e38411863058e6cb3fca25eda449e82b305f936fa5511558dbc1e66da104b"
+    },
+    {
+      "path": "test/registered/unit/layers/test_dsv4_prefill_tail_policy.py",
+      "sha256": "aaddcbb99f158544bd1a1943b8e5e6d3ff7741e2616b45dd40a18a73124cf4f9"
+    }
+  ]
+}

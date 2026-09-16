@@ -24,6 +24,7 @@ import torch
 
 from sglang.kernels.ops.debug.dsv4_prefill_markers import instrument as prefill_marker_instrument
 from sglang.srt.layers.dsv4_prefill_experiments import instrument_prefill_post_reuse, instrument_prefill_mix_reuse
+from sglang.srt.layers.dsv4_prefill_tail_policy import instrument as instrument_prefill_common_tail
 from sglang.srt.layers.dsv4_prefill_mhc_policy import instrument_prefill_mhc_iters
 from sglang.srt.dllm.config import DllmConfig
 from sglang.srt.environ import envs
@@ -262,6 +263,7 @@ class EagerRunner(BaseRunner):
             )
 
     @prefill_marker_instrument
+    @instrument_prefill_common_tail
     @instrument_prefill_post_reuse
     @instrument_prefill_mix_reuse
     @instrument_prefill_mhc_iters
