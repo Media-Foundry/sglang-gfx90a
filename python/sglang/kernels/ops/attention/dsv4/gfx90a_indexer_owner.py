@@ -122,7 +122,17 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
     kw=dict(block_s=16,preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,
             fp8_fnuz=fp8_fnuz,query_group_size=16,runtime_m=True)
     owner_kw = dict(allow_wide=True, admitted_global_rows=m) if wide else {}
-    scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw,**owner_kw)
+    scores=None
+    if os.getenv('SGLANG_DSV4_C4_PREFILL_OWNER_K32','0')=='1':
+        from .gfx90a_indexer_owner_k32 import prefill_owner_k32
+        scores=prefill_owner_k32(pq,cache,pw,pl,pp,width,admitted_global_rows=m,
+            preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,fp8_fnuz=fp8_fnuz)
+        if scores is not None and not getattr(metadata,'_gfx90a_owner_k32_logged',False):
+            print(f'[TP{rank}] owner-K32 logits selected: rows={m} local_rows={len(plan.rowids)} '
+                  f'width={width} query16=1 mfma16=1 runtime_m=1',flush=True)
+            metadata._gfx90a_owner_k32_logged=True
+    if scores is None:
+        scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw,**owner_kw)
     assert scores is not None,'Admitted query-owner layout unsupported'
     if _detail_mark is not None:
         _detail_mark(58, 'owner_logits_done', absolute=True)

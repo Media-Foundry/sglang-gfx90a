@@ -67,7 +67,27 @@ class OwnerTest(unittest.TestCase):
         root=Path(__file__).resolve().parents[4]
         measured=ast.parse((root/'.agents/experiments/dsv4_c16_indexer_owner_service_20260915/tested_helper.py').read_text())
         current=ast.parse((root/'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_owner.py').read_text())
+        # Diagnostics and default-off K32 must not change the measured fallback.
+        current.body=[n for n in current.body if not (
+            isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='_detail_mark' for t in n.targets)
+            or isinstance(n,ast.If) and 'SGLANG_DSV4_DEBUG_PREFILL_MARKERS_DIR' in ast.unparse(n.test))]
         fn=next(n for n in current.body if isinstance(n,ast.FunctionDef) and n.name=='forward')
+        k32=[n for n in fn.body if isinstance(n,ast.If) and 'SGLANG_DSV4_C4_PREFILL_OWNER_K32' in ast.unparse(n.test)]
+        self.assertEqual(len(k32),1)
+        self.assertIn("'0'",ast.unparse(k32[0].test))
+        stripped=[]
+        for n in fn.body:
+            if n is k32[0]:continue
+            if isinstance(n,ast.Assign) and ast.unparse(n)=='scores = None':continue
+            if isinstance(n,ast.If) and ast.unparse(n.test)=='scores is None':
+                self.assertEqual(len(n.body),1)
+                self.assertTrue(ast.unparse(n.body[0]).startswith('scores = prefill_query_reuse4('))
+                stripped.extend(n.body)
+            elif isinstance(n,ast.If) and ast.unparse(n.test)=='_detail_mark is not None':
+                self.assertEqual(len(n.body),1)
+                self.assertIn(n.body[0].value.args[0].value,range(55,62))
+            else:stripped.append(n)
+        fn.body=stripped
         guards=[n for n in fn.body if isinstance(n,ast.If) and 'not ext or max(' in ast.unparse(n.test)]
         self.assertEqual(len(guards),1)
         fn.body.remove(guards[0])

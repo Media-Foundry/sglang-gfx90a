@@ -1,0 +1,156 @@
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[TP5] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP0] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP1] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP2] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP7] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP6] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP3] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP4] owner-K32 logits selected: rows=32768 local_rows=3072 width=2048 query16=1 mfma16=1 runtime_m=1
+[TP7] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP5] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP3] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP0] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP1] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP2] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP6] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP4] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+8k-control {'A': 18.520431518554688, 'B': 2.37432869275411} speedup 7.800281222677664
+[TP7] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP3] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP2] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP4] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP0] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP1] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP5] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP6] owner-K32 logits selected: rows=32768 local_rows=3584 width=4096 query16=1 mfma16=1 runtime_m=1
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact[TP5] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+
+[TP2] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP3] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP4] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP7] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+
+[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+16k {'A': 38.78201675415039, 'B': 3.7251599629720054} speedup 10.41083259232963
+[TP2] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP4] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP3] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP7] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP5] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP0] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP1] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP6] owner-K32 logits selected: rows=32767 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+32k-ragged {'A': 79.42562357584634, 'B': 6.383233070373535} speedup 12.442851874621978
+[TP2] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP3] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1[TP5] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+
+[TP4] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP6] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP7] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP1] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP0] owner-K32 logits selected: rows=32768 local_rows=3840 width=8192 query16=1 mfma16=1 runtime_m=1
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+
+
+[TP5] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1[TP3] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP4] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+mixed-prefix {'A': 75.2149175008138, 'B': 6.100828806559244} speedup 12.328639253071197
