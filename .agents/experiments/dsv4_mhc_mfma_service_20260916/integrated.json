@@ -1,0 +1,20 @@
+{
+  "status": "complete",
+  "cases": [
+    {
+      "m": 17,
+      "oracle_exact": true,
+      "legacy_exact": true
+    },
+    {
+      "m": 8192,
+      "oracle_exact": true,
+      "legacy_exact": false
+    },
+    {
+      "m": 32767,
+      "oracle_exact": true,
+      "legacy_exact": false
+    }
+  ]
+}
