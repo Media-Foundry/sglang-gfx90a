@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 root=Path(__file__).resolve().parent
-assert json.loads((root/'check/complete.json').read_text())['live_comparisons']==2688
+assert json.loads((root/'check-v2/complete.json').read_text())['live_comparisons']==2688
 paths=[root/'service.py',root/'analyze.py',Path(__file__)]
 sources={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
 for arm in ('A1','B','A2'):

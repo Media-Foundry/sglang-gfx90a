@@ -52,7 +52,7 @@ def eligible(local_rows, width, global_rows, *, preshuffle_tile, dot_fp16, fp8_f
         global_rows is not None and 8192 <= global_rows <= 65536
         and 1024 <= local_rows <= ((global_rows + 127) // 128) * 16
         and local_rows % 16 == 0 and 2048 <= width <= 8192
-        and preshuffle_tile == 0 and not dot_fp16 and not fp8_fnuz
+        and preshuffle_tile in (0, 16) and not dot_fp16 and not fp8_fnuz
     )
 
 
@@ -84,8 +84,7 @@ def prefill_owner_k32(q, cache, weights, lengths, pages, width, *,
     reuse_grouped_grid[(triton.cdiv(m, 16) * triton.cdiv(width, 32),)](
         q.view(torch.uint8), cache.view(torch.uint8), weights, lengths, pages,
         out, m, width, pages.shape[1], pages.stride(0),
-        16, 32, 0, tl.bfloat16, tl.float8e4nv, 1,
+        16, 32, preshuffle_tile, tl.bfloat16, tl.float8e4nv, 1,
         num_warps=4, matrix_instr_nonkdim=16,
     )
     return out
-

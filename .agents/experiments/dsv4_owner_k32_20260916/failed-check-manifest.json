@@ -1,0 +1,102 @@
+{
+  "status": "failed_dispatch_k32_not_selected",
+  "tested_source_commit": "395b95dd18",
+  "cause": "Initial candidate admitted preshuffle0 only; launcher enables AIter and selects preshuffle16.",
+  "k32_service_validated": false,
+  "throughput_score": false,
+  "archive": "failed-check-evidence.tar.gz",
+  "bytes": 1233832,
+  "sha256": "052f61a768d861e9d5ef463e77a7578cd5b562bb0e0a59f21957c393d228c34b",
+  "files": [
+    {
+      "path": "check/France.json",
+      "bytes": 1055,
+      "sha256": "c1d76b6ca5ad49969d910efd49fda33f0081f4f39af47fe6c235cc7931301bc4"
+    },
+    {
+      "path": "check/P32-owner-k32-check-after-stop.gpu.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check/P32-owner-k32-check-before-start.gpu.json",
+      "bytes": 987,
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check/P32-owner-k32-check-ready.gpu.json",
+      "bytes": 142067,
+      "sha256": "cdad081a9929b96719d47ee15ac99dede08211b5b99c24ea46082db37c31c678"
+    },
+    {
+      "path": "check/P32-owner-k32-check.server-info.json",
+      "bytes": 41999,
+      "sha256": "839cf11bae92017f5f6f8fc3a92242c8283281020bf050e56e3d19e42e82ad51"
+    },
+    {
+      "path": "check/P32-owner-k32-check.service.log",
+      "bytes": 739840,
+      "sha256": "7f51f73dfe1d147658c5b41e526a81cc31538e6399c9c30af5af63f69325c265"
+    },
+    {
+      "path": "check/P32-owner-k32-check.source.patch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "check/P32-owner-k32-check.state.json",
+      "bytes": 2927,
+      "sha256": "87087357df690a814a450ede730b888da03a83c1f39cdbcf1a449629eb6bcd6a"
+    },
+    {
+      "path": "check/P32-owner-k32-check.stop.json",
+      "bytes": 70,
+      "sha256": "9961de063b6aebfd6e71e5b2c62d2cec0001b739e4e629e7a56b89ff0e950a4b"
+    },
+    {
+      "path": "check/check-before.gpu.json",
+      "bytes": 142067,
+      "sha256": "269370fc46e3c6aec2c526bd01949170d225484c466dccac4e2fe53264646213"
+    },
+    {
+      "path": "check/check.client.log",
+      "bytes": 11223,
+      "sha256": "578390dad802e3663ea4f0c17c72ec898581d8ba72557f4c1b118c67bae5a5aa"
+    },
+    {
+      "path": "check/check.json",
+      "bytes": 7401,
+      "sha256": "9b5538103e83fbc2c5e3014147dcc02e9dc0f4706ed4396958add873511ac35c"
+    },
+    {
+      "path": "check/inputs.json",
+      "bytes": 9584963,
+      "sha256": "aa3ce70a7b0f36f682cfa100e246dbeece32a315d9ac7b52cee9a2d768035e23"
+    },
+    {
+      "path": "check/plan.json",
+      "bytes": 7734,
+      "sha256": "5da663d61027c0b1b2ef5b363e7d8a23474ae6362cdf869239263b4601275c37"
+    },
+    {
+      "path": "check/progress.json",
+      "bytes": 110,
+      "sha256": "f26bcaec40b253125ff4a2e6e1fb4e186bbaf374ecbf4480af129df13a50c33b"
+    },
+    {
+      "path": "check/start-ar-matrix.sh",
+      "bytes": 7719,
+      "sha256": "26d4f96128603d88334e74db6e604bdea8fc8850191723ad5e64be944ed9fc51"
+    },
+    {
+      "path": "check/timing-paths.json",
+      "bytes": 147,
+      "sha256": "79d84c8a810e8257b5a582f387b214fb54bdce1331539ab1062d6d49d6ff9dab"
+    },
+    {
+      "path": "check-driver.log",
+      "bytes": 489,
+      "sha256": "ef127722c814084c066aeea1efab4695235384f43e38872cc0b4b0cfd1c88e58"
+    }
+  ]
+}

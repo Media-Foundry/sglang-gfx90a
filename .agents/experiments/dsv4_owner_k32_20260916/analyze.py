@@ -8,7 +8,7 @@ import statistics
 root=Path(__file__).resolve().parent
 target=root/'summary.json'
 assert not target.exists()
-check=json.loads((root/'check/complete.json').read_text())
+check=json.loads((root/'check-v2/complete.json').read_text())
 assert check['live_comparisons']>0 and check['diagnostic']
 plans=[];results={};answers={};teachers={};quality={}
 

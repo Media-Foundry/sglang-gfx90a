@@ -129,8 +129,13 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
             preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,fp8_fnuz=fp8_fnuz)
         if scores is not None and not getattr(metadata,'_gfx90a_owner_k32_logged',False):
             print(f'[TP{rank}] owner-K32 logits selected: rows={m} local_rows={len(plan.rowids)} '
-                  f'width={width} query16=1 mfma16=1 runtime_m=1',flush=True)
+                  f'width={width} preshuffle={preshuffle_tile} query16=1 mfma16=1 runtime_m=1',flush=True)
             metadata._gfx90a_owner_k32_logged=True
+        elif scores is None and not getattr(metadata,'_gfx90a_owner_k32_fallback_logged',False):
+            print(f'[TP{rank}] owner-K32 fallback: rows={m} local_rows={len(plan.rowids)} '
+                  f'width={width} preshuffle={preshuffle_tile} fp16={dot_fp16} fnuz={fp8_fnuz} '
+                  f'q_dtype={pq.dtype} cache_shape={tuple(cache.shape)}',flush=True)
+            metadata._gfx90a_owner_k32_fallback_logged=True
     if scores is None:
         scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw,**owner_kw)
     assert scores is not None,'Admitted query-owner layout unsupported'

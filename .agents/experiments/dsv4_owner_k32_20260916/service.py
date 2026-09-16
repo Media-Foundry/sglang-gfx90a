@@ -14,14 +14,17 @@ root=Path(__file__).resolve().parent
 repo=root.parents[2]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--arm',choices=('check','A1','B','A2'),required=True)
+parser.add_argument('--attempt',choices=('', '-v2'),default='')
 args=parser.parse_args()
+assert not args.attempt or args.arm=='check'
 checking=args.arm=='check'
 candidate=args.arm in ('check','B')
-screen=json.loads((root/'oracle.json').read_text())
+screen=json.loads((root/'oracle-shuffle16.json').read_text())
 assert screen['status']=='complete'
+assert screen['contract']==dict(shuffle=16,fp16=False,fnuz=False)
 if not checking:
-    assert json.loads((root/'check/complete.json').read_text())['live_comparisons'] == 2688
-out=root/args.arm
+    assert json.loads((root/'check-v2/complete.json').read_text())['live_comparisons'] == 2688
+out=root/(args.arm+args.attempt)
 out.mkdir(exist_ok=False)
 spec=importlib.util.spec_from_file_location('owner_perf_life',root.parent/'dsv4_tp8_ar_down_consumer_20260914/trial.py')
 life=importlib.util.module_from_spec(spec);spec.loader.exec_module(life)
@@ -69,7 +72,7 @@ paths=set(json.loads((prior/'plan.json').read_text())['sources']) | {
 sources={p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in sorted(paths)}
 life.save('plan.json',dict(sources=sources,candidate=candidate,diagnostic=checking,
     kv_tokens=1048576,prefill_budget=32768,original_weights=True))
-label='P32-owner-k32-'+args.arm
+label='P32-owner-k32-'+args.arm+args.attempt
 state=life.start(label,0)
 try:
     life.ready(state)
