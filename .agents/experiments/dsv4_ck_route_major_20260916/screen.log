@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/screen.py", line 57, in <module>
+    capacity=ids.numel();assert capacity%64==valid%64==0
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
