@@ -1,0 +1,173 @@
+{
+  "diagnostic_only": true,
+  "scope": "Same longest outer-envelope rank per forward; nested owner stages incl waits, not standalone kernel or independent rank-max sums.",
+  "input_tokens": 131069,
+  "warm_mean_owner_ms": {
+    "planning": 1.2753066666666675,
+    "pack": 6.193653333333334,
+    "logits": 177.34736,
+    "topk": 18.358613333333334,
+    "gather": 76.04549333333334,
+    "reconstruct": 14.324586666666667,
+    "outside_detail": 0.37712,
+    "owner_total": 293.9221333333333
+  },
+  "us_per_input_token": {
+    "planning": 0.009730040411284648,
+    "pack": 0.047254906448766176,
+    "logits": 1.353083948149448,
+    "topk": 0.14006831007586337,
+    "gather": 0.5801943505583574,
+    "reconstruct": 0.10929042463638744,
+    "outside_detail": 0.00287726312095156,
+    "owner_total": 2.2424992434010584
+  },
+  "owner_share": {
+    "planning": 0.004338926953896182,
+    "pack": 0.021072429160376265,
+    "logits": 0.6033821202531646,
+    "topk": 0.06246080594588318,
+    "gather": 0.25872666502148417,
+    "reconstruct": 0.048735991754732325,
+    "outside_detail": 0.0012830609104633609
+  },
+  "all_rank_frames_checked": 128,
+  "waves": [
+    {
+      "totals_ms": {
+        "planning": 1.2848000000000013,
+        "pack": 6.241440000000001,
+        "logits": 177.228,
+        "topk": 18.29552,
+        "gather": 76.76208000000001,
+        "reconstruct": 14.292800000000002,
+        "outside_detail": 0.37216,
+        "owner_total": 294.47679999999997
+      },
+      "ranks": [
+        3,
+        6,
+        0,
+        6
+      ]
+    },
+    {
+      "totals_ms": {
+        "planning": 1.1798400000000009,
+        "pack": 6.111040000000001,
+        "logits": 177.37040000000002,
+        "topk": 18.374399999999998,
+        "gather": 75.25616000000001,
+        "reconstruct": 14.34,
+        "outside_detail": 0.38176,
+        "owner_total": 293.01360000000005
+      },
+      "ranks": [
+        1,
+        7,
+        1,
+        2
+      ]
+    },
+    {
+      "totals_ms": {
+        "planning": 1.3612800000000003,
+        "pack": 6.22848,
+        "logits": 177.44368,
+        "topk": 18.405920000000002,
+        "gather": 76.11824,
+        "reconstruct": 14.34096,
+        "outside_detail": 0.37744000000000005,
+        "owner_total": 294.27599999999995
+      },
+      "ranks": [
+        2,
+        1,
+        1,
+        6
+      ]
+    }
+  ],
+  "per_rank_mean_wave_ms": {
+    "0": {
+      "planning": 1.2320000000000009,
+      "pack": 6.21792,
+      "logits": 178.86821333333333,
+      "topk": 18.427893333333333,
+      "gather": 65.32416,
+      "reconstruct": 14.300320000000001,
+      "outside_detail": 0.3791466666666667,
+      "owner_total": 284.74965333333336
+    },
+    "1": {
+      "planning": 1.3565333333333343,
+      "pack": 6.217386666666667,
+      "logits": 177.96469333333334,
+      "topk": 18.502293333333334,
+      "gather": 70.27376,
+      "reconstruct": 14.34202666666667,
+      "outside_detail": 0.38005333333333335,
+      "owner_total": 289.03674666666666
+    },
+    "2": {
+      "planning": 1.2325866666666674,
+      "pack": 6.2067733333333335,
+      "logits": 174.06138666666666,
+      "topk": 18.09936,
+      "gather": 91.7024,
+      "reconstruct": 14.322186666666667,
+      "outside_detail": 0.3717866666666667,
+      "owner_total": 305.99648
+    },
+    "3": {
+      "planning": 1.363520000000001,
+      "pack": 6.151840000000001,
+      "logits": 175.60458666666668,
+      "topk": 18.115360000000003,
+      "gather": 84.74416000000001,
+      "reconstruct": 14.299840000000001,
+      "outside_detail": 0.37210666666666664,
+      "owner_total": 300.6514133333333
+    },
+    "4": {
+      "planning": 1.2408533333333343,
+      "pack": 6.126826666666666,
+      "logits": 177.82570666666666,
+      "topk": 18.225440000000003,
+      "gather": 78.1336,
+      "reconstruct": 14.323413333333335,
+      "outside_detail": 0.3723733333333333,
+      "owner_total": 296.24821333333335
+    },
+    "5": {
+      "planning": 1.1896000000000007,
+      "pack": 6.14496,
+      "logits": 176.65546666666668,
+      "topk": 18.20464,
+      "gather": 90.42304,
+      "reconstruct": 14.314133333333336,
+      "outside_detail": 0.37301333333333336,
+      "owner_total": 307.3048533333333
+    },
+    "6": {
+      "planning": 1.2454933333333342,
+      "pack": 6.230293333333333,
+      "logits": 178.48138666666668,
+      "topk": 18.407946666666668,
+      "gather": 75.87301333333333,
+      "reconstruct": 14.320266666666669,
+      "outside_detail": 0.37605333333333335,
+      "owner_total": 294.93445333333335
+    },
+    "7": {
+      "planning": 1.2237866666666675,
+      "pack": 6.176373333333333,
+      "logits": 179.47295999999997,
+      "topk": 18.55392,
+      "gather": 68.8168,
+      "reconstruct": 14.343360000000002,
+      "outside_detail": 0.3757333333333333,
+      "owner_total": 288.96293333333335
+    }
+  }
+}
