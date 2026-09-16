@@ -1,0 +1,23 @@
+{
+  "status": "validated_large_prefill_common_fp32_20_owner",
+  "summary_sha256": "101c13bfe0d744c1ae3d8a2bc8758d0f0cd96ecb3c5cf37ede1053922591343d",
+  "launcher_sha256": "40c118752aef26c0691240d034b9e0902480244126760ba087d770a9d45691c2",
+  "scope": "Original V4 TP8 C16x32K, native AR, original checkpoint, 1M logical KV",
+  "gain_pct": 10.817871876635653,
+  "candidate_input_tok_s": 9605.065394981735,
+  "default_promoted": false,
+  "common_fp32_20_large_prefill_validated": true,
+  "universal_batch_invariance_claimed": false,
+  "small_prefill_decode_unchanged": true,
+  "legacy_fp16_8_comparison": {
+    "lhs": "legacy",
+    "rhs": "B",
+    "max_abs_logprob": 1.2393567562103271,
+    "mean_abs_logprob": 0.0466308586125855,
+    "top1_same": 968,
+    "top5_records_exact": 441,
+    "positions": 1008,
+    "excluded_leading_nulls": 16
+  },
+  "caveat": "Legacy FP16/8 is a different numerical contract, not the exactness reference."
+}

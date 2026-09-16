@@ -1,4 +1,38 @@
-# Common large-prefill MHC: runtime connected, component passed, live check running
+# Common large-prefill MHC: 32K service ABBA accepted, 9605.07 input tok/s
+
+## Final authoritative result
+
+All arms completed and owned services stopped. Formal non-diagnostic ABBA,
+three scored waves per leg, C16x32K / 524286 input tokens / zero prefix hits:
+
+| Leg | Median input tok/s |
+|---|---:|
+| A1 full paired FP32/20 | 8665.983485 |
+| B1 TP pre-mix owner FP32/20 | 9607.475082 |
+| B2 TP pre-mix owner FP32/20 | 9602.655708 |
+| A2 full paired FP32/20 | 8668.883595 |
+
+Control center **8667.433540**, candidate **9605.065395**, **+10.817872%**.
+Control drift +0.033465%. This gain is owner compute distribution against the
+same FP32/20 contract, NOT a numerical comparison against legacy FP16/8.
+All192 128-token continuations identical per request across three processes
+and12 waves. Both newA1/A2 and newA1/B have1008/1008 identical selected-token
+logprobs, Top1 and complete Top5 records on the same fixed continuation.
+Legacy/B retains the separately disclosed nonzero differences below.
+
+Acceptance gates source hashes, owned cleanup, all-rank path selection,
+10880 live full-reference comparisons, raw timing reconstruction and nonempty
+numerical evidence. See acceptance.json, summary.json, archive-manifest.json,
+service-evidence.tar.gz and validated-launcher.sh in this experiment directory.
+The launcher is a byte-for-byte copy of the measured candidate launcher;
+it does not rely on an outer export surviving older launcher overrides.
+No global defaults changed. Small prefill/decode unchanged and universal batch
+invariance unproven. Follow-up8K/16K common-policy regression and latest profile
+are still required. Historical8K10205.90 and16K10024.77 are different length
+workloads, not evidence that32K9605 is a same-workload slowdown.
+
+The following sections preserve the component evidence and chronological notes;
+their in-progress statements are superseded by this final result.
 
 Base HEAD7310f82ed1 (pushed) records32K indexer+38.0224% over legacy FP16/8
 MHC. Do NOT treat8507.415911 as a FP32/20 reference. Prior accepted8K10205.9
@@ -51,7 +85,7 @@ recording; no failed evidence overwritten. Full tested source hashes inv2json.
 CPU tests:28 passed,2 skipped,13 subtests; one preexisting asyncio_mode config
 warning and14 torch.jit deprecation warnings. unit.log stores exact output.
 Includes strict scope, hint contract, conflicts and existing AMD MHC metadata
-forwarding. New helper/kernel wiring still uncommitted at this note.
+forwarding. Helper/kernel wiring and checks committed/pushed as356f4dc0c0.
 
 ## Real-service validation in progress
 
@@ -67,9 +101,29 @@ Planned formal service.py arms A1/B/A2 usecommonFP32=1 in BOTH arms and only
 switch premix owner0/1. This provides the proper FP32/20 numerical reference.
 Fixed continuation is deliberately frozen from legacy32K A1: analyzer can
 compare A1/A2,B exact and also separately quantify legacy/B divergence on
-identical prefixes. No assumptions of legacy equality. run.py will now start
-after this passing diagnostic is checkpointed. Scope extends only
+identical prefixes. No assumptions of legacy equality. run.py is now running,
+session30486, parent2559164; A1 service2559175 confirmed live. A1 warmup8272.05;
+three scored waves8669.791041/8665.983485/8665.934539, median8665.983485.
+This is full paired FP32/20 without TP pre-mix owner. Formal B/A2 not completed
+at this update; do not infer final gain. A1 log confirms all8 ranks selecting
+common path for scheduler_batch1,dispatch_hintNone. Scope extends only
 large prefill; follow-up tail/decode regression still required.
+
+Further progress: A1 finished all four quality waves with16/16 repeat equality,
+teacher forcing saved and service2559175 stopped. Its16 free continuations all
+differ from the legacy32K baseline (common prefix lengths21,3,8,0,2,6,23,35,0,
+2,0,0,0,20,0,0). All16 excerpts read: coherent code-review starts, no obvious
+loop/garble; generated bug claims not certified. This is NOT a tiny-rounding
+change or an answer-quality score. On identical legacy-frozen continuations,
+newA1 versus legacyA1 at1008 positions: max selected-token logprob delta1.239357,
+mean0.04663086, Top1 matches968/1008, complete Top5 records match441/1008.
+This is expected semantic/precision restoration (FP32/20 versusFP16/8), not
+evidence of a failed exact optimization. B MUST match newA1, not legacy.
+
+B process2567203 confirmed live; first unscored warmup9107.8733. B1 three scored
+waves9607.953840/9604.225678/9607.475082, median9607.475082 (~10.9% over newA1).
+B2/A2 and cross-process numerical gates still pending at this update.
+Orchestrator remains session30486, no restart needed.
 
 Runtime source must now stay frozen during service tests. User/runtime pickle
 and unrelated untracked files preserved. Persistent goal active.
