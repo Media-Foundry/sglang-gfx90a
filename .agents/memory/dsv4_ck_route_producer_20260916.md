@@ -1,4 +1,17 @@
-# CK route producer: accepted8K service gain; longer regressions next
+# CK route producer: accepted8K/16K service gain;32K regression running
+
+## Latest16K closure, September17
+
+16K A1/B1/B2/A2 medians10132.673885/10214.171757/10219.617908/10136.473024.
+Control10134.573454→candidate10216.894832 input tok/s,+0.812283%; control
+drift0.037494%, maximum within-leg range0.099763%.192 answers identical and
+1008 teacher positions exact logprobs/Top5 against controls and prior K32.
+All8 actual route hits,1Mpool unchanged. Prior1376 live checks are8K only;
+this regression does not claim additional layerwise diagnostic comparisons.
+All three16K services stopped. Same driver session29781 continues into32K;
+do not launch the pending single-GCD reducer screen concurrently.
+Accepted speeds now8K10372.904520/16K10216.894832/32K9854.324387;32K still
+the prior K32 checkpoint pending this trial. Global default unchanged.
 
 ## Latest: real8K ABBA accepted, September17
 
@@ -11,9 +24,9 @@ against both controls and prior accepted K32. All8 actual route hits,1Mpool
 retained; no decode/spec/precision change. Default remains off. Explicit
 launcher and full evidence: dsv4_ck_route_producer_service_20260917/.
 
-Current accepted8K10372.904520;16K10151.650740/32K9854.324387 remain prior
-K32 results pending route-producer regressions. Prepared separate drivers in
-dsv4_ck_route_producer_regression_20260917/, gated on8K acceptance.
+At the8K closure,16K/32K still used prior K32 results. Separate drivers in
+dsv4_ck_route_producer_regression_20260917/ are gated on8K acceptance; see
+latest16K closure above for the updated matrix.
 
 ## Earlier component work (historical state below)
 

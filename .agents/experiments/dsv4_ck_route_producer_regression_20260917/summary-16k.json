@@ -1,0 +1,270 @@
+{
+  "timing_paths": {
+    "A1": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "route_ranks": []
+    },
+    "B": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "route_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    "A2": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "route_ranks": []
+    }
+  },
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x16k, common FP32/20 MHC fixed, K32 fixed, route producer off/on, native AR",
+  "control_input_tok_s": 10134.573454473897,
+  "candidate_input_tok_s": 10216.89483230923,
+  "gain_pct": 0.8122826106607528,
+  "control_drift_pct": 0.03749394924672522,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 10132.67388467207,
+      "rates": [
+        10138.044740086103,
+        10132.67388467207,
+        10129.630305802233
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 10214.171756814823,
+      "rates": [
+        10218.27082045474,
+        10214.171756814823,
+        10208.080811149635
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 10219.617907803637,
+      "rates": [
+        10220.076752480772,
+        10219.617907803637,
+        10215.157732696694
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 10136.473024275725,
+      "rates": [
+        10139.433714150891,
+        10136.473024275725,
+        10136.365286916141
+      ]
+    }
+  },
+  "kv_tokens": 1048576,
+  "original_weights": true,
+  "prior_8k_live_comparisons": 1376,
+  "quality": {
+    "A1": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "teacher_forced": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "prior_accepted",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    }
+  ],
+  "universal_batch_invariance_claimed": false
+}
