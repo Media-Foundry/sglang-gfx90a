@@ -1,0 +1,922 @@
+{
+  "status": "complete",
+  "scope": "K32 high-dynamic-range and non-page-aligned-width stress; synthetic, not E2E.",
+  "pci": "0000:b3:00.0",
+  "contract": {
+    "shuffle": 0,
+    "fp16": false,
+    "fnuz": false
+  },
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_indexer_grid_order_20260916/stress.py": "6c938818b8f8c4bbb8b7d120ea2db2110a8e496f780d0c1a72ed5c44046b5ac9",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_indexer_grid_order_20260916/kernel.py": "69318801aa21479b12a3fdb51c61c3a969ef6828485688eb56d27befd5ae8364",
+    "/home/pc/Code/sglang/python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_runtime_m.py": "3a517906502a7c20c9fd1be3a556e17fde653d0c9c06bf2b4a1350c0e2eda609"
+  },
+  "cases": [
+    {
+      "name": "8k-owner0",
+      "cap": 3072,
+      "width": 2048,
+      "ext": [
+        8192,
+        8192,
+        8192,
+        8192
+      ],
+      "prefix": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rank": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 1.922584056854248,
+            "B": 1.1712759017944334
+          },
+          "speedup": 1.6414442181460283,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.9242319107055663
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.174827766418457
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 1.1680438041687011
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 1.9224079132080079
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.9087116241455078
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.174507999420166
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 1.1676918029785157
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 1.9227602005004882
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.9069833755493164
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.1749557495117187
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 1.16733980178833
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 1.923975944519043
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "e78ea03be41f64db873015fcff8836fcfc8dd21c78078d5974ae54901634a194",
+          "n_regs": 95,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "32k-owner0",
+      "cap": 3840,
+      "width": 8192,
+      "ext": [
+        32768
+      ],
+      "prefix": [
+        0
+      ],
+      "rank": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 7.708512496948242,
+            "B": 4.6228448867797844
+          },
+          "speedup": 1.6674824022308685,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.710208892822266
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.62724494934082
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.621420669555664
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.708415985107422
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.690751647949218
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.624652862548828
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.620492935180664
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.708609008789063
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.686879730224609
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.624269104003906
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.620108795166016
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.70870361328125
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "d7be82060537fe08eaf5409208a05ada95f44787e2fb125a37bc8e778e768089",
+          "n_regs": 92,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "32k-ragged-owner7",
+      "cap": 3840,
+      "width": 8192,
+      "ext": [
+        32767
+      ],
+      "prefix": [
+        1
+      ],
+      "rank": 7,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 7.726337051391601,
+            "B": 4.6215970993042
+          },
+          "speedup": 1.671789402099727,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.730593872070313
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.627597045898438
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.620748901367188
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.726945495605468
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.7100166320800785
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.622445297241211
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.619244766235352
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.726881408691407
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.709407806396484
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.626221084594727
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.619852828979492
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.725792694091797
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "d7be82060537fe08eaf5409208a05ada95f44787e2fb125a37bc8e778e768089",
+          "n_regs": 92,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "mixed-prefix-owner7",
+      "cap": 3840,
+      "width": 8192,
+      "ext": [
+        8191,
+        8193,
+        8190,
+        8194
+      ],
+      "prefix": [
+        0,
+        4096,
+        16384,
+        24574
+      ],
+      "rank": 7,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 7.8856552124023445,
+            "B": 4.416949653625489
+          },
+          "speedup": 1.7853169790897883,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.887110900878906
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.421957778930664
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.4139892578125
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 7.891367340087891
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.867654418945312
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.419877624511718
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.4132530212402346
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 7.882630920410156
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.884199523925782
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.4198455810546875
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.414053726196289
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 7.887591552734375
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "d7be82060537fe08eaf5409208a05ada95f44787e2fb125a37bc8e778e768089",
+          "n_regs": 92,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "width513",
+      "cap": 16,
+      "width": 513,
+      "ext": [
+        2052,
+        2052,
+        2052,
+        2052
+      ],
+      "prefix": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rank": 0,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 0.051537901163101196,
+            "B": 0.0576662003993988
+          },
+          "speedup": 0.8937280557093633,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.05245000123977661
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.06435440182685852
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.05177800059318542
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.05142580270767212
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.03254539966583252
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.06358640193939209
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.05161780118942261
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.05363420248031616
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.03254519999027252
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.06355440020561218
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.05145779848098755
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.05164999961853027
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "56b9e745aa76dc45941e2f8872b74a760017935673a146e91762653bc52fa25c",
+          "n_regs": 95,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "width576",
+      "cap": 128,
+      "width": 576,
+      "ext": [
+        2304,
+        2304,
+        2304,
+        2304
+      ],
+      "prefix": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rank": 7,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 0.06433840095996857,
+            "B": 0.05840210020542145
+          },
+          "speedup": 1.101645330110852,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.0647704005241394
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.06425840258598328
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 0.052098000049591066
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 0.06438639760017395
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.052385997772216794
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.06438639760017395
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 0.05209779739379883
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 0.06435440182685852
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.05232200026512146
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.06448259949684143
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 0.052545797824859616
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 0.06432240009307862
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "234241acc4323847ab10337cfae19d9e6989c5811c0bbcc2e7db255f48013fe1",
+          "n_regs": 95,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "width4095",
+      "cap": 3600,
+      "width": 4095,
+      "ext": [
+        16380,
+        16380
+      ],
+      "prefix": [
+        0,
+        0
+      ],
+      "rank": 7,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 3.843471908569336,
+            "B": 2.349287986755371
+          },
+          "speedup": 1.6360156482465138,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 3.847856140136719
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.3530479431152345
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 2.346999931335449
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 3.8428958892822265
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 3.82801513671875
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.351576042175293
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 2.344759941101074
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 3.845935821533203
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 3.8304153442382813
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.351767730712891
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 2.3455280303955077
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 3.8440479278564452
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "d7ddc7c58a772376bebba56bb96e0d0a6f3e2271343f8e7ba935d94bea07a6f0",
+          "n_regs": 95,
+          "n_spills": 0
+        }
+      ]
+    },
+    {
+      "name": "width8191",
+      "cap": 3840,
+      "width": 8191,
+      "ext": [
+        32764
+      ],
+      "prefix": [
+        0
+      ],
+      "rank": 7,
+      "checks": [
+        {
+          "mutation": 0,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 1,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        },
+        {
+          "mutation": 2,
+          "config": 2,
+          "score_bits_exact": true,
+          "logical_physical_exact": true
+        }
+      ],
+      "candidates": [
+        {
+          "config": 2,
+          "status": "exact_on_tested_inputs",
+          "median_ms": {
+            "A": 8.024860763549805,
+            "B": 4.631757545471192
+          },
+          "speedup": 1.7325735824398447,
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 8.02679672241211
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.634989547729492
+            },
+            {
+              "cycle": 0,
+              "arm": "B",
+              "ms": 4.628429412841797
+            },
+            {
+              "cycle": 0,
+              "arm": "A",
+              "ms": 8.028268432617187
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 8.019340515136719
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.634541702270508
+            },
+            {
+              "cycle": 1,
+              "arm": "B",
+              "ms": 4.628429412841797
+            },
+            {
+              "cycle": 1,
+              "arm": "A",
+              "ms": 8.030188751220702
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 8.017228698730468
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.633965682983399
+            },
+            {
+              "cycle": 2,
+              "arm": "B",
+              "ms": 4.629549407958985
+            },
+            {
+              "cycle": 2,
+              "arm": "A",
+              "ms": 8.0229248046875
+            }
+          ],
+          "graph_replay100_exact": true,
+          "artifact": "ddd10f47c80084ded5184b43ea7c27031f6259dc915a5d16e3c788a2b23a0594",
+          "n_regs": 92,
+          "n_spills": 0
+        }
+      ]
+    }
+  ],
+  "configs": {
+    "2": [
+      32,
+      1,
+      16
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+TILE 8k-owner0 (16, 1, None) {'A': 1.919479560852051, 'B': 1.8078115463256834}
+TILE 8k-owner0 (32, 1, 16) {'A': 1.9157512664794922, 'B': 1.1715956687927247}
+TILE 32k-owner0 (16, 1, None) {'A': 7.7088153839111335, 'B': 7.402467727661133}
+TILE 32k-owner0 (32, 1, 16) {'A': 7.704639053344726, 'B': 4.620284080505371}
+TILE 32k-ragged-owner7 (16, 1, None) {'A': 7.730847930908203, 'B': 7.408884048461914}
+TILE 32k-ragged-owner7 (32, 1, 16) {'A': 7.729183959960938, 'B': 4.619708061218262}
+TILE mixed-prefix-owner7 (16, 1, None) {'A': 7.757409286499024, 'B': 7.0067085266113285}
+TILE mixed-prefix-owner7 (32, 1, 16) {'A': 7.751329040527343, 'B': 4.415108680725098}

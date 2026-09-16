@@ -1,0 +1,22 @@
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+GRID 8k-owner0 1 {'A': 1.9204551696777346, 'B': 1.8080989837646486}
+GRID 8k-owner0 4 {'A': 1.921399211883545, 'B': 1.8084509849548338}
+GRID 8k-owner0 8 {'A': 1.9198472023010256, 'B': 1.8592848777770996}
+GRID 8k-owner0 16 {'A': 1.9177990913391114, 'B': 1.8665971755981445}
+GRID 8k-owner0 32 {'A': 1.9172391891479492, 'B': 1.867061233520508}
+GRID 32k-owner0 1 {'A': 7.7221427917480465, 'B': 7.402755355834961}
+GRID 32k-owner0 4 {'A': 7.7173583984375, 'B': 7.3996833801269535}
+GRID 32k-owner0 8 {'A': 7.716190338134766, 'B': 7.464852905273437}
+GRID 32k-owner0 16 {'A': 7.7195182800292965, 'B': 7.474581527709961}
+GRID 32k-owner0 32 {'A': 7.714062500000001, 'B': 7.494486236572266}
+GRID 32k-ragged-owner7 1 {'A': 7.708046340942383, 'B': 7.404642868041992}
+GRID 32k-ragged-owner7 4 {'A': 7.704094314575196, 'B': 7.40456314086914}
+GRID 32k-ragged-owner7 8 {'A': 7.70422248840332, 'B': 7.486374282836914}
+GRID 32k-ragged-owner7 16 {'A': 7.706814575195312, 'B': 7.497398376464844}
+GRID 32k-ragged-owner7 32 {'A': 7.707518386840821, 'B': 7.521144104003906}
+GRID mixed-prefix-owner7 1 {'A': 7.7776329040527346, 'B': 7.004627990722656}
+GRID mixed-prefix-owner7 4 {'A': 7.777489089965821, 'B': 7.131737136840821}
+GRID mixed-prefix-owner7 8 {'A': 7.780753707885742, 'B': 7.387939071655273}
+GRID mixed-prefix-owner7 16 {'A': 7.775345230102539, 'B': 7.391043090820313}
+GRID mixed-prefix-owner7 32 {'A': 7.7778888702392575, 'B': 7.410147476196289}
