@@ -241,17 +241,28 @@ def gfx90a_bf16_ck_moe(
         dequant2 = _jit_dequant(e, h, i, blocks)
         dequant13_fn = dequant13.run_shuffled if shuffle_bf16 else dequant13.run
         dequant2_fn = dequant2.run_shuffled if shuffle_bf16 else dequant2.run
-        if not raw_logical_b_stage1:
-            dequant13_fn(
-                w13.view(torch.uint8),
-                s13.view(torch.uint8).reshape(e, 2 * i, h // 32),
-                weight13,
+        direct_rows = False
+        if os.getenv("SGLANG_DSV4_DEBUG_CK_DIRECT_DEQUANT", "0") == "1":
+            from sglang.kernels.ops.moe.gfx90a_bf16_direct_rows import eligible, run
+
+            direct_rows = eligible(m, i, shuffle_bf16) and not raw_logical_b_stage1
+        if direct_rows:
+            run("gate", w13.view(torch.uint8), s13.view(torch.uint8).reshape(e, 2 * i, h // 32),
+                weight13, dequant13_fn)
+            run("down", w2.view(torch.uint8), s2.view(torch.uint8).reshape(e, h, i // 32),
+                weight2, dequant2_fn)
+        else:
+            if not raw_logical_b_stage1:
+                dequant13_fn(
+                    w13.view(torch.uint8),
+                    s13.view(torch.uint8).reshape(e, 2 * i, h // 32),
+                    weight13,
+                )
+            dequant2_fn(
+                w2.view(torch.uint8),
+                s2.view(torch.uint8).reshape(e, h, i // 32),
+                weight2,
             )
-        dequant2_fn(
-            w2.view(torch.uint8),
-            s2.view(torch.uint8).reshape(e, h, i // 32),
-            weight2,
-        )
 
     import aiter.fused_moe as aiter_fused_moe
     from aiter import ActivationType

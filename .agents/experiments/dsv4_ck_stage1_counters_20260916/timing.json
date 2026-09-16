@@ -1,0 +1,42 @@
+{
+  "status": "complete",
+  "pci": "0000:b3:00.0",
+  "shape": [
+    32767,
+    6,
+    256
+  ],
+  "stage1_kernel": "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16",
+  "captured_intermediate_byte_exact": true,
+  "profiled": false,
+  "module": {
+    "path": "/home/pc/pytorch/third_party/aiter/aiter/jit/module_moe_ck2stages_b16_b16_preshuffle_off_b16_dsv4silu_no_mulWeightStage2_.so",
+    "sha256": "32af423d55857e19682330bc8cc9252ef5f5a98e568c881bae896de8ea1abe48"
+  },
+  "script_sha256": "09918d0eee7b48e98a7256cb05e114067c9e3325e723d07df2df0b98ac13c218",
+  "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+  "fixture_manifest_sha256": "69eda2eb4b6871806adc96b3fe100961fa6fa06d33b6b4a8a21faa46d546feb5",
+  "version_queries": [
+    {
+      "command": [
+        "/opt/rocm/core-10.0/bin/hipconfig",
+        "--version"
+      ],
+      "removed": []
+    }
+  ],
+  "replay100_exact": true,
+  "median_ms": 6.687019729614258,
+  "samples_ms": [
+    6.690956878662109,
+    6.636666107177734,
+    6.692877960205078,
+    6.679209136962891,
+    6.6544647216796875,
+    6.762725830078125,
+    6.690380859375,
+    6.675688171386719,
+    6.715189361572266,
+    6.683658599853516
+  ]
+}

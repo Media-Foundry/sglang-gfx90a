@@ -1,0 +1,232 @@
+{
+  "scope": "Historical real M32767 stage1 only, one GCD, output exactly matches captured stage1; not E2E",
+  "timing": {
+    "status": "complete",
+    "pci": "0000:b3:00.0",
+    "shape": [
+      32767,
+      6,
+      256
+    ],
+    "stage1_kernel": "moe_ck2stages_gemm1_256x64x64x128_1x4_TypeCast_v1_Nswizzle0_Quant0_MulRoutedWeight0_dsv4silu_B16_B16_B16",
+    "captured_intermediate_byte_exact": true,
+    "profiled": false,
+    "module": {
+      "path": "/home/pc/pytorch/third_party/aiter/aiter/jit/module_moe_ck2stages_b16_b16_preshuffle_off_b16_dsv4silu_no_mulWeightStage2_.so",
+      "sha256": "32af423d55857e19682330bc8cc9252ef5f5a98e568c881bae896de8ea1abe48"
+    },
+    "script_sha256": "09918d0eee7b48e98a7256cb05e114067c9e3325e723d07df2df0b98ac13c218",
+    "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+    "fixture_manifest_sha256": "69eda2eb4b6871806adc96b3fe100961fa6fa06d33b6b4a8a21faa46d546feb5",
+    "version_queries": [
+      {
+        "command": [
+          "/opt/rocm/core-10.0/bin/hipconfig",
+          "--version"
+        ],
+        "removed": []
+      }
+    ],
+    "replay100_exact": true,
+    "median_ms": 6.687019729614258,
+    "samples_ms": [
+      6.690956878662109,
+      6.636666107177734,
+      6.692877960205078,
+      6.679209136962891,
+      6.6544647216796875,
+      6.762725830078125,
+      6.690380859375,
+      6.675688171386719,
+      6.715189361572266,
+      6.683658599853516
+    ]
+  },
+  "measurements": {
+    "memory": {
+      "samples": [
+        {
+          "profiled_ms": 6.724888,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "FetchSize": 5457293.6875,
+            "WriteSize": 98103.875
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.635897,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "FetchSize": 4455724.125,
+            "WriteSize": 98055.5
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.627575,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "FetchSize": 4430377.1875,
+            "WriteSize": 97773.625
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        }
+      ],
+      "mean_profiled_ms": 6.662786666666666,
+      "mean_counters": {
+        "FetchSize": 4781131.666666667,
+        "WriteSize": 97977.66666666667
+      },
+      "trace_sha256": "045d8a84209a46ceee9ba6c50b204b42a671ded49d9ded1b0252e5045a736e89",
+      "counter_sha256": "bc64e508797775a0ab9b48ff6c830c0dbc682bcaff80c1a53b335629ee60ec1a"
+    },
+    "issue": {
+      "samples": [
+        {
+          "profiled_ms": 6.760101,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "SQ_INSTS_MFMA": 104988699.0,
+            "SQ_INSTS_VALU": 161276545.0
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.673831,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "SQ_INSTS_MFMA": 104988672.0,
+            "SQ_INSTS_VALU": 161276544.0
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.66967,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "SQ_INSTS_MFMA": 104988672.0,
+            "SQ_INSTS_VALU": 161276544.0
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        }
+      ],
+      "mean_profiled_ms": 6.701200666666667,
+      "mean_counters": {
+        "SQ_INSTS_MFMA": 104988681.0,
+        "SQ_INSTS_VALU": 161276544.33333334
+      },
+      "trace_sha256": "ae720bb61d5885a105ec4092d674b11e4f8f8f7b3edd618413249d3efc5ed3e1",
+      "counter_sha256": "e9a41b5052a6b49c40b541781e4430392aaa7376f79f5aa32e2444c83dbf7929"
+    },
+    "lds": {
+      "samples": [
+        {
+          "profiled_ms": 6.806996,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "LDSBankConflict": 0.325967072
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.691436,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "LDSBankConflict": 0.332414572
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        },
+        {
+          "profiled_ms": 6.599245,
+          "vgpr": 112,
+          "acc_vgpr": 128,
+          "lds_bytes": 16384,
+          "scratch_bytes": 0,
+          "grid": [
+            1024,
+            3328,
+            1
+          ],
+          "counters": {
+            "LDSBankConflict": 0.337831607
+          },
+          "kernel": "void ck::kernel_moe_gemm<ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>, true, (ck::InMemoryDataOperationEnum)0, 2, (ck::TailNumber)1>(ck::GridwiseMoeGemm<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::Tuple<ck::tensor_layout::gemm::RowMajor, ck::tensor_layout::gemm::ColumnMajor, ck::tensor_layout::gemm::RowMajor>, ck::tensor_layout::gemm::RowMajor, unsigned short, unsigned short, float, float, ck::Tuple<float, float, float>, unsigned short, ck::tensor_operation::element_wise::PassThrough, ck::tensor_operation::element_wise::PassThrough, TypeCast, (ck::tensor_operation::device::GemmSpecialization)0, 256, 64, 64, 128, 8, 8, 16, 16, 4, 1, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, ck::Sequence<16, 16, 1>, ck::Sequence<1, 0, 2>, ck::Sequence<1, 0, 2>, 2, 8, 8, false, 0, 2, 1, ck::Sequence<1, 32, 1, 8>, ck::Sequence<8, 1, 8>, (ck::BlockGemmPipelineScheduler)0, (ck::BlockGemmPipelineVersion)0, 2, false, true, false, true, int, unsigned short, unsigned short, unsigned short, unsigned short>::Argument)"
+        }
+      ],
+      "mean_profiled_ms": 6.699225666666667,
+      "mean_counters": {
+        "LDSBankConflict": 0.33207108366666666
+      },
+      "trace_sha256": "7ca1d34316decd22e54ae0604e5830f6fe8c4af2d56cf06bbf869c632e246c8f",
+      "counter_sha256": "b8d05778a094a80c66a6f873824e4872f055bfafb04e1e1ea2f63eea88d0c9b3"
+    }
+  },
+  "useful_flops": 824608555008,
+  "useful_tflops": 123.31480814332332,
+  "interpretation": "Useful FLOPs exclude padding/nonlinear/scalar work. Instruction counts are not utilization. Profiler intercept changes queue properties; profiled durations are diagnostic only."
+}

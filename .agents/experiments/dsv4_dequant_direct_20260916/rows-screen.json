@@ -1,0 +1,514 @@
+{
+  "status": "complete",
+  "pci": "0000:b3:00.0",
+  "cases": [
+    {
+      "name": "gate",
+      "blocks": 416,
+      "shape": [
+        256,
+        512,
+        4096
+      ],
+      "median_ms": {
+        "A": 3.145857048034668,
+        "B": 1.7637468338012696
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.146657180786133
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.7637788772583007
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.76477108001709
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.1446407318115233
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.089005470275879
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7637147903442383
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7690601348876953
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.170890045166016
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.1450569152832033
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.7576326370239257
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.759873390197754
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.1565807342529295
+        }
+      ]
+    },
+    {
+      "name": "gate",
+      "blocks": 832,
+      "shape": [
+        256,
+        512,
+        4096
+      ],
+      "median_ms": {
+        "A": 3.1416805267333983,
+        "B": 1.760049819946289
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.1328943252563475
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.7601303100585937
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.757121467590332
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.07895565032959
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.2176258087158205
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7614738464355468
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7599693298339845
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.128763198852539
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.1834062576293944
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.7684520721435546
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.7591049194335937
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.150466728210449
+        }
+      ]
+    },
+    {
+      "name": "gate",
+      "blocks": 1664,
+      "shape": [
+        256,
+        512,
+        4096
+      ],
+      "median_ms": {
+        "A": 3.109876728057861,
+        "B": 1.739162063598633
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.103922653198242
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.7395462036132812
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 1.7380096435546875
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.0870527267456054
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.1158308029174804
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7397703170776366
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 1.7387779235839844
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.0951194763183594
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.1316442489624023
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.73519287109375
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 1.7455644607543945
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.156068801879883
+        }
+      ]
+    },
+    {
+      "name": "down",
+      "blocks": 416,
+      "shape": [
+        256,
+        4096,
+        256
+      ],
+      "median_ms": {
+        "A": 1.3424007892608643,
+        "B": 0.8424996852874755
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.3440814018249512
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8499903678894043
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8425315856933594
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.325802993774414
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3438573837280274
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8424677848815918
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8428199768066407
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3458738327026367
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.331853199005127
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8392346382141114
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8396185874938965
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.340944194793701
+        }
+      ]
+    },
+    {
+      "name": "down",
+      "blocks": 832,
+      "shape": [
+        256,
+        4096,
+        256
+      ],
+      "median_ms": {
+        "A": 1.332333278656006,
+        "B": 0.8512387275695801
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.342608642578125
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8491900444030762
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8533836364746094
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.3375831604003907
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3300284385681151
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8515908241271972
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8535433769226074
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3338377952575684
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.3270833969116211
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8502143859863281
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8508866310119629
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.3308287620544434
+        }
+      ]
+    },
+    {
+      "name": "down",
+      "blocks": 1664,
+      "shape": [
+        256,
+        4096,
+        256
+      ],
+      "median_ms": {
+        "A": 1.3322853088378905,
+        "B": 0.867100191116333
+      },
+      "mutation10_byte_exact": true,
+      "replay100_byte_exact": true,
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.3323333740234375
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8655797958374023
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.8675004005432129
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.3301883697509767
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3322372436523438
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8636590003967285
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.8669881820678711
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.3334856033325195
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.3320772171020507
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8713738441467285
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.8672122001647949
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.3401120185852051
+        }
+      ]
+    }
+  ],
+  "exhaustive": [
+    {
+      "scale_start": 0,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 32,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 64,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 96,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 128,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 160,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 192,
+      "all16_nibbles": true,
+      "byte_exact": true
+    },
+    {
+      "scale_start": 224,
+      "all16_nibbles": true,
+      "byte_exact": true
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_dequant_direct_20260916/screen.py": "fdf54a0d5852606d9b7c1fe8ef9add95b5b0f284708a36011fbb018a5f490676",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_dequant_direct_20260916/direct.cuh": "6f8ac3113fe12831901d7d92557c5c8e0bc95cea735588a2e7cedc73e7ba1404"
+  }
+}
