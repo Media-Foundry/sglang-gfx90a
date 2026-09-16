@@ -10,8 +10,12 @@ from profile_labels import index_intervals
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--label', default='profile')
+p.add_argument('--root', type=Path, help='Explicit new profile directory; preserves historical default')
+p.add_argument('--stop-label', default='P16-markers-postwave')
 args=p.parse_args();assert re.fullmatch(r'[A-Za-z0-9-]+',args.label)
-ROOT = Path(__file__).resolve().parent / args.label
+assert re.fullmatch(r'[A-Za-z0-9-]+',args.stop_label)
+ROOT = args.root if args.root else Path(__file__).resolve().parent / args.label
+assert not (ROOT/'analysis.json').exists() and not (ROOT/'details-analysis.json').exists()
 NAMES = ['attn_mhc_norm', 'attn_entry_gap', 'attn_prepare', 'sparse_attention',
          'attn_output_projection_collective', 'ffn_mhc_norm', 'moe_collective']
 frames = [json.loads(p.read_text()) for p in sorted((ROOT/'markers').glob('rank-*-frame-*.json'))]
@@ -20,7 +24,7 @@ assert {(f['rank'], f['sequence']) for f in frames} == {(r,s) for r in range(8) 
 assert all(f['wall_clock_khz'] == 25000 and len(f['layers']) == 43 for f in frames)
 assert all(l['coarse_valid'] for f in frames for l in f['layers'])
 assert json.loads((ROOT/'complete.json').read_text())['input_echo_exact'] == 64
-assert not json.loads((ROOT/'P16-markers-postwave.stop.json').read_text())['remaining']
+assert not json.loads((ROOT/(args.stop_label+'.stop.json')).read_text())['remaining']
 
 def summarize(f):
     layers = f['layers']

@@ -1,0 +1,42 @@
+{
+  "archive": "build-evidence.tar.gz",
+  "sha256": "f7af6ad69f497eafa38df71c60c22365d71379883950713a56e2968d1a431c53",
+  "bytes": 44833,
+  "files": [
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_nstripe_20260916/build-c4d6d54990b8/command-0.log",
+      "member": "build-c4d6d54990b8/command-0.log",
+      "sha256": "61e122ca458d2e88e28135e3133f5e33bc179199eae1fe7165b23a6998d63d5b"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_nstripe_20260916/build-c4d6d54990b8/command-1.log",
+      "member": "build-c4d6d54990b8/command-1.log",
+      "sha256": "dee7bca92a3a006506e46ea963391b217f4dc0fbf4f2eccb3b3ef9aad4a1a6c6"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_nstripe_20260916/build-c4d6d54990b8/entry.d",
+      "member": "build-c4d6d54990b8/entry.d",
+      "sha256": "e21fcbfd98807190b6f44d1d241dd6489d1beebf82290dccdfdb65d02e3d154b"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_nstripe_20260916/build-c4d6d54990b8/manifest.json",
+      "member": "build-c4d6d54990b8/manifest.json",
+      "sha256": "7713f32e7d6c58dc2b918ebc9c57c7a4d164f3a9d48484db9ee0bff47a545ecb"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_nstripe_20260916/build-c4d6d54990b8/overlay/ck/tensor_operation/gpu/grid/gridwise_moe_gemm.hpp",
+      "member": "build-c4d6d54990b8/overlay/ck/tensor_operation/gpu/grid/gridwise_moe_gemm.hpp",
+      "sha256": "684f44ea1531d3665307bb6d8d05288a527d0dd41e9332267fa10ff5d387efef"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture/manifest.json",
+      "member": "fixture-0-manifest.json",
+      "sha256": "69eda2eb4b6871806adc96b3fe100961fa6fa06d33b6b4a8a21faa46d546feb5"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture/manifest.json",
+      "member": "fixture-1-manifest.json",
+      "sha256": "a257274a01eed83e4b3fc5c95b272cd339d714020f2c62cd72c772eb4f315c11"
+    }
+  ]
+}
