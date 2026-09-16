@@ -73,3 +73,34 @@ original query16 groups with groups[r::8] (round-robin), not contiguous query
 chunks per rank. Do NOT propose round-robin assignment as a new load-balancing
 fix or blame contiguous ownership for the measured long-history cost. Further
 indexer work first needs actual logits/TopK/pack/AllGather breakdown.
+
+## CPU-only producer ownership audit (while K32 ABBA uses GPUs)
+
+`producer_address_audit.py/json` checks two checksum-verified real sorter
+fixtures and reversed expert-block order; no GPU kernel is changed or tested.
+The current AIter `gridwise_moe_gemm.hpp` header hash is recorded. Stage1 input
+gather at lines1243..1250 must continue using original token IDs. Its output
+scatter at lines1877..1883 currently maps to token*TopK+slot; this is the narrow
+candidate location for writing route index instead, preserving arithmetic.
+
+Crucially, changing only the store offset is NOT sufficient. The output
+descriptor at lines1189..1194 uses NumTokens*TopK. In real M8192,6587 live
+routes lie beyond that old bound; in M32767,8208 do. A new independent overlay
+would need the sorter-capacity output descriptor too, retain input bounds,
+and prove invalid-route store behavior. Identity/inverse mapping is bijective
+for all live routes in both fixtures and block permutations (CPU proof only).
+
+Capacity arithmetic: replacing the old stage1 intermediate with a route-major
+one grows it by8385536bytes in each tested fixture, not by a whole new packed
+buffer. The report's `temporary_pack_removed_bytes` denotes the standalone
+pack buffer replaced by producer output, NOT net VRAM savings: the output
+itself still occupies that size. Relative to the existing route-major oracle,
+removing old token-major output would save old_intermediate_bytes; relative
+to current production, the larger stage2 partial still costs about256MiB plus
+the intermediate growth. No capacity/service/performance validation claimed.
+
+This isolates a future experiment: preserve CK stage1 MFMA/SwiGLU/rounding,
+change only output ownership and descriptor, then use existing route-major
+stage2 without BF16 repack. Compare the complete stage1+stage2 chain against
+production, not just the eliminated pack. Do not change live AIter headers;
+use a new source-hashed overlay/module after current K32 regression finishes.

@@ -1,0 +1,59 @@
+{
+  "scope": "CPU address-contract audit for a future stage1 route-major producer.\n\nThis is not a kernel implementation, numerical GPU oracle, or speed result.\nOnly sorter identities and destination bounds are modeled here.\n",
+  "status": "complete",
+  "gpu_tests": false,
+  "sources": {
+    "/home/pc/pytorch/third_party/aiter/3rdparty/composable_kernel/include/ck/tensor_operation/gpu/grid/gridwise_moe_gemm.hpp": "0d04e36b18b4a50e9331d5ad696f021e9b75bb2d23fc26163e37151794b5f7ac",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_ck_route_major_20260916/producer_address_audit.py": "b95185fbb9bf5492179ea8b85e6e9a988250e7c806a2b8bb7f09b7520c10e34e"
+  },
+  "cases": [
+    {
+      "m": 8192,
+      "capacity": 65530,
+      "valid_padded_rows": 57152,
+      "old_intermediate_bytes": 25165824,
+      "new_intermediate_bytes": 33551360,
+      "temporary_pack_removed_bytes": 33551360,
+      "checks": [
+        {
+          "reverse_expert_blocks": false,
+          "assignments": 49152,
+          "exact_inverse": true,
+          "last_live_route": 57150,
+          "live_routes_outside_old_descriptor": 6587
+        },
+        {
+          "reverse_expert_blocks": true,
+          "assignments": 49152,
+          "exact_inverse": true,
+          "last_live_route": 57151,
+          "live_routes_outside_old_descriptor": 7115
+        }
+      ]
+    },
+    {
+      "m": 32767,
+      "capacity": 212980,
+      "valid_padded_rows": 205056,
+      "old_intermediate_bytes": 100660224,
+      "new_intermediate_bytes": 109045760,
+      "temporary_pack_removed_bytes": 109045760,
+      "checks": [
+        {
+          "reverse_expert_blocks": false,
+          "assignments": 196602,
+          "exact_inverse": true,
+          "last_live_route": 205015,
+          "live_routes_outside_old_descriptor": 8208
+        },
+        {
+          "reverse_expert_blocks": true,
+          "assignments": 196602,
+          "exact_inverse": true,
+          "last_live_route": 205055,
+          "live_routes_outside_old_descriptor": 7793
+        }
+      ]
+    }
+  ]
+}
