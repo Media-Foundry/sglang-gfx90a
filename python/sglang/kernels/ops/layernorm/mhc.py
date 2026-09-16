@@ -42,6 +42,12 @@ if os.getenv("SGLANG_DSV4_PREFILL_MIX_REUSE4", "0") == "1":
 
 _prefill_splitk_paths_logged = set()
 
+_prefill_common_batch_hint = None
+if os.getenv("SGLANG_DSV4_PREFILL_MHC_COMMON_FP32", "0") == "1":
+    from sglang.kernels.ops.layernorm.gfx90a_mhc_prefill_policy import (
+        common_prefill_batch_hint as _prefill_common_batch_hint,
+    )
+
 _prefill_sinkhorn_iters = None
 _prefill_comb_refine_active = None
 _prefill_comb_refine_logged = False
@@ -2933,6 +2939,10 @@ def mhc_fused_post_pre(
         and hidden_size == 4096
         and sinkhorn_repeat == 20
     ):
+        if _prefill_common_batch_hint is not None:
+            # Only this MHC call's optimization hint changes. ForwardBatch and
+            # its real scheduler batch size are never mutated.
+            global_batch_size = _prefill_common_batch_hint(global_batch_size, num_tokens)
         if _prefill_detail_mark is not None:
             _prefill_detail_mark(0, "gfx90a_mhc_fused_post_pre")
         if (
