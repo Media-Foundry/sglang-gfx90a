@@ -1,0 +1,24 @@
+{
+  "status": "passed_shorter_input_common_mhc_regression",
+  "reports": {
+    "8k": {
+      "candidate_input_tok_s": 10205.686130010203,
+      "control_input_tok_s": 10218.180142701942,
+      "delta_pct": -0.12227238624935577,
+      "control_drift_pct": -0.14865235012868627,
+      "summary_sha256": "69ca10306a80cce8d92094ee3db6347c6ac98905bdf7a5f017d012be6aacdec1"
+    },
+    "16k": {
+      "candidate_input_tok_s": 10023.408672358659,
+      "control_input_tok_s": 10023.296455856915,
+      "delta_pct": 0.001119556846784775,
+      "control_drift_pct": 0.005675797475945821,
+      "summary_sha256": "364b127daa935c04ea0bb8b2e5957911227d19ad827d3ba15140b3c06bf90838"
+    }
+  },
+  "scope": "Original V4 TP8 C16x8K/16K native AR, original weights,1M KV,32K chunk",
+  "default_promoted": false,
+  "universal_batch_invariance_claimed": false,
+  "prior_32k_checkpoint": "34fa7b0e9c",
+  "caveat": "Regression only; does not certify arbitrary batch shapes, prefixes or answer correctness."
+}

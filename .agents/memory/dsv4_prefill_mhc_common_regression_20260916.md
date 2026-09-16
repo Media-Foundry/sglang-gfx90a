@@ -1,4 +1,32 @@
-# Common MHC regression: 8K passed; 16K running
+# Common MHC regression: 8K and16K passed, no material regression
+
+## Final acceptance (supersedes progress notes below)
+
+Both lengths completed all six service processes with owned cleanup; session88438
+exited0. Acceptance script verified current source hashes, identical A1/A2
+launchers, A/B differing only final common-policy0/1, identical B launchers
+between lengths, all-rank pre-mix owner paths, no legacy large-prefill splitK,
+1Mpool and zero cached tokens. No global defaults promoted.
+
+| Length | A1 | B1 | B2 | A2 | Control | Candidate | Delta |
+|---|---:|---:|---:|---:|---:|---:|---:|
+|8K|10225.780574|10213.640110|10197.732150|10210.579711|10218.180143|10205.686130|-0.122272%|
+|16K|10023.012013|10027.371768|10019.445577|10023.580899|10023.296456|10023.408672|+0.001120%|
+
+Three scored waves per leg. Control drift-0.148652% /+0.005676%. Each length
+has192 identical128-token continuations and two1008-position teacher comparisons
+(A1/A2,A1/B) with exact selected-token logprobs and complete Top5 records.
+These are repeatability/regression results for tested inputs, not general
+accuracy certification or universal batch/prefix invariance.
+
+acceptance.json,summary-{8k,16k}.json,service-evidence.tar.gz (162files,11825362
+bytes) and per-file archive-manifest.json preserve raw evidence. Both shorter
+lengths retain historical~10.2k/~10.0k speed.32K accepted9605.065395 remains
+a separate longer-input workload and same-contract reference improvement.
+
+Next action started: dsv4_prefill_length_profile_20260916/run.py (session43138),
+serial8K/16K/32K diagnostic marker profiles, not new formal scoring. No parallel
+GPU work; inspect actual live process/log before waiting or restarting.
 
 ## Latest authoritative progress
 
