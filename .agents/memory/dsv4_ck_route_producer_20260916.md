@@ -114,3 +114,9 @@ Next diagnostic driver: dsv4_ck_route_producer_service_20260917/service.py.
 Keeps current K32/commonFP32/20/1Mpool/32Kbudget and uses the archived real8K
 inputs. Requires all8 actual route hits and1376 full-reference comparisons
 before formal ABBA. No new service acceptance yet; default remains off.
+
+Real eight-rank check completed successfully (session62380 exited0):1376 full
+routed-output comparisons byte-exact, all8 route hits, France pass and1Mpool
+retained. Owned service stopped cleanly. Diagnostic6667.29tok/s duplicates
+reference computation and is NOT a performance result. Source hashes frozen.
+Formal C16x8K ABBA prepared next; all other accepted switches unchanged.

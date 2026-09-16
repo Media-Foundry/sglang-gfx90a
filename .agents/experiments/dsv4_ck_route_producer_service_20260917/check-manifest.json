@@ -1,0 +1,78 @@
+{
+  "archive": "check-evidence.tar.gz",
+  "sha256": "a9a3373fb0f2657759676ca4bea183ba27f16efe286261d7e649fe7785d83984",
+  "files": [
+    {
+      "path": "check/France.json",
+      "sha256": "0fbef186ed1e2839922b70444d3b73fb4d11d0c46ea953e5fdaceec9962ca4c1"
+    },
+    {
+      "path": "check/P8-route-producer-check-after-stop.gpu.json",
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check/P8-route-producer-check-before-start.gpu.json",
+      "sha256": "7692b75035239fe7a65fd853e859cc6df53622802e1b59e2b0191fa94956cdb8"
+    },
+    {
+      "path": "check/P8-route-producer-check-ready.gpu.json",
+      "sha256": "4b802984271c9233b65c22501139b84cb43eae5e145848c5d9c2c44673c15c4f"
+    },
+    {
+      "path": "check/P8-route-producer-check.server-info.json",
+      "sha256": "c94ec7e98c23a902fe888d459dccd1b80309ba58f33b326e7bf4a80d69970bab"
+    },
+    {
+      "path": "check/P8-route-producer-check.service.log",
+      "sha256": "624650fe0659d6a976ed4e028d5eb32f6f09da16182b91bd24b4d6b4a8dbce92"
+    },
+    {
+      "path": "check/P8-route-producer-check.source.patch",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "check/P8-route-producer-check.state.json",
+      "sha256": "901188e2c16aadda7426c80d820814a644c48dcd9be3a4f20419ec15634febf5"
+    },
+    {
+      "path": "check/P8-route-producer-check.stop.json",
+      "sha256": "c68604ec62e1dd1bf20ef7feac15e964f32ebbac4ea9722ccbab462eda90ce81"
+    },
+    {
+      "path": "check/check-before.gpu.json",
+      "sha256": "0e06f8452a81f1a2ae7c7c0baffa7312457743ff8ae5737d3bdb44e9543e0df8"
+    },
+    {
+      "path": "check/check.client.log",
+      "sha256": "fb92c0a0a33c7dfa0dfea51e03cebb0d41d6436c8a39ad1a72822cc4bbcf1ac8"
+    },
+    {
+      "path": "check/check.json",
+      "sha256": "4c8c4ac7cb0c32b7b51f4d2ba7e65e283dcf1f9157fe646d2a0de0ae8a442242"
+    },
+    {
+      "path": "check/complete.json",
+      "sha256": "6ffa8a7a2da60a018d22c2dd53e615929151b9f648940949dfc9e897f9658c2a"
+    },
+    {
+      "path": "check/inputs.json",
+      "sha256": "fe0f777dcad294466ef9169d2d6c4829b01e9202be0c4d49d26c1b7e13c69a9b"
+    },
+    {
+      "path": "check/plan.json",
+      "sha256": "d5721cbd5f5efc646bd84adcea3654d814d2561aa88b4f860742f4b171c92223"
+    },
+    {
+      "path": "check/progress.json",
+      "sha256": "a61c78613426715786218f9e5fffe2596607e4555c0765e39bc8501e761bc865"
+    },
+    {
+      "path": "check/start-ar-matrix.sh",
+      "sha256": "58a714d794c5b4d346ccd438997db541b876b63c7f45ecba252913dace7661e7"
+    },
+    {
+      "path": "check/timing-paths.json",
+      "sha256": "6a9f41baa17475029f3f8ed308f61676f93747a66a0c0e97da3a92f80a851df1"
+    }
+  ]
+}
