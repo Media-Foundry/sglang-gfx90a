@@ -1,0 +1,19 @@
+{
+  "status": "accepted_explicit_32k_profile",
+  "numerical_exact_on_tested_inputs": true,
+  "scope": "Original V4 TP8 C16x32K owner K16 vs K32, common FP32/20 MHC, original weights/native AR/1M KV",
+  "default_promoted": false,
+  "service_8k_16k_regression_validated": false,
+  "universal_batch_invariance_claimed": false,
+  "screening": {
+    "gain_pct": 2.618909779732248,
+    "control_drift_pct": 0.004672147747375455,
+    "within_leg_range_pct": {
+      "A1": 0.049516262914368885,
+      "B1": 0.03642289195464,
+      "B2": 0.039842066939635656,
+      "A2": 0.059479532679268546
+    }
+  },
+  "summary_sha256": "41424d08cda3938e30ab06ba12680267d2af2e7dcb2fd6ecad04f075307d2e81"
+}
