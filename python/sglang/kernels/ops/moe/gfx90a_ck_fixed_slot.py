@@ -20,6 +20,13 @@ def _announce():
 
 
 @cache_once
+def _announce_vec4():
+    logging.getLogger(__name__).warning(
+        "DSV4 unique CK fixed-order vec4 reducer selected (1664 blocks)"
+    )
+
+
+@cache_once
 def fixed_slot_module():
     return load_jit(
         "gfx90a_ck_fixed_slot",
@@ -28,6 +35,8 @@ def fixed_slot_module():
             ("remap", "sglang::Gfx90aCkFixedSlot::remap"),
             ("reduce", "sglang::Gfx90aCkFixedSlot::reduce"),
             ("reduce_float", "sglang::Gfx90aCkFixedSlot::reduce_float"),
+            ("reduce_vec4", "sglang::Gfx90aCkFixedSlot::reduce_vec4"),
+            ("reduce_vec4_float", "sglang::Gfx90aCkFixedSlot::reduce_vec4_float"),
         ],
         extra_cuda_cflags=["-O3", "-fno-fast-math", "-ffp-contract=off"],
     )
@@ -65,5 +74,12 @@ def ck_fixed_slot_stage2(ck_entry, inter, w1, w2, sorted_ids, sorted_experts,
         ck_entry(inter.view(m * 6, 1, k), w1, w2, remapped, sorted_experts,
                  valid, partial, 1, kernel_name, None, None, block_m, sorted_weights,
                  quant_type, activation, nt)
-    mod.reduce(partial.view(m, 6, 4096), out)
+    # The unique branch above already enforces original-V4 TP8 native prefill.
+    # Never broaden this experimental selector to AR or speculative execution.
+    vector_reduce = manifest and os.getenv("SGLANG_DSV4_DEBUG_CK_REDUCE_VEC4", "0") == "1"
+    if vector_reduce:
+        _announce_vec4()
+        mod.reduce_vec4(partial.view(m, 6, 4096), out)
+    else:
+        mod.reduce(partial.view(m, 6, 4096), out)
     return out

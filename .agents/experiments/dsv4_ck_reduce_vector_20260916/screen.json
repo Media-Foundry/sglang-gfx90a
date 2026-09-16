@@ -1,0 +1,1219 @@
+{
+  "scope": "Synthetic full-size partials, isolated reducer only; not routed stage or service throughput",
+  "physical_gcd": 6,
+  "status": "complete",
+  "sources": {
+    "screen.py": "b1bbb6698a15f67b5d12089f58069af68eb0fd47a8bc18f1af096afd293d7c36",
+    "vector.cuh": "85f4acff9e6ae905c0658a8e0ec407a25d8dda359aa57ac11eee1a4c9904e253"
+  },
+  "cases": [
+    {
+      "m": 1,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 17,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 8192,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-416",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9816397666931153
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 0.9253649711608887
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 0.927797794342041
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9798472404479981
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9850330352783203
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 0.9284700393676758
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 0.9294303894042969
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9736051559448242
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9799110412597656
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 0.9328873634338379
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 0.9212355613708496
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9716524124145508
+            }
+          ],
+          "median_ms": {
+            "scalar": 0.9798791408538818,
+            "vec4-416": 0.9281339168548584
+          },
+          "speedup": 1.0557518942679858
+        },
+        {
+          "candidate": "vec4-832",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9771262168884277
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 0.9187707901000977
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 0.921331787109375
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9803274154663086
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9729647636413574
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 0.9241166114807129
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 0.9305828094482422
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.980039405822754
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9765501976013183
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 0.922772216796875
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 0.9269654273986816
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9785027503967285
+            }
+          ],
+          "median_ms": {
+            "scalar": 0.9778144836425782,
+            "vec4-832": 0.923444414138794
+          },
+          "speedup": 1.0588774686070193
+        },
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9798791885375977
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 0.9196991920471191
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 0.9229641914367676
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9751737594604493
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9770622253417969
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 0.9191869735717774
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 0.9181305885314941
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9791749954223633
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9802313804626465
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 0.9257490158081054
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 0.9203714370727539
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.978854751586914
+            }
+          ],
+          "median_ms": {
+            "scalar": 0.9790148735046387,
+            "vec4-1664": 0.9200353145599365
+          },
+          "speedup": 1.0641057555197355
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 32767,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-416",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.9767200469970705
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 3.7745082855224608
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 3.785136032104492
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.9676288604736327
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9766239166259765
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 3.775212860107422
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 3.760232162475586
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.970925521850586
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.9813297271728514
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 3.7735801696777345
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 3.7910255432128905
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.9751834869384766
+            }
+          ],
+          "median_ms": {
+            "scalar": 3.9759037017822267,
+            "vec4-416": 3.7748605728149416
+          },
+          "speedup": 1.0532584250700856
+        },
+        {
+          "candidate": "vec4-832",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.9747032165527343
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 3.7550140380859376
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 3.781198501586914
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.977040100097656
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.987379455566406
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 3.772908020019531
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 3.7708911895751953
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9745750427246094
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.971086120605469
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 3.7848800659179687
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 3.789713668823242
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.9743511199951174
+            }
+          ],
+          "median_ms": {
+            "scalar": 3.974639129638672,
+            "vec4-832": 3.7770532608032226
+          },
+          "speedup": 1.052312174383644
+        },
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.9826736450195312
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 3.743362045288086
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 3.774348831176758
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.9767200469970705
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9873470306396483
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 3.769866943359375
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 3.7536697387695312
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9736469268798826
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.9667003631591795
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 3.743362045288086
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 3.753477096557617
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.978000259399414
+            }
+          ],
+          "median_ms": {
+            "scalar": 3.9773601531982425,
+            "vec4-1664": 3.753573417663574
+          },
+          "speedup": 1.0596196505659305
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 36864,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 416,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 832,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-416",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.480344009399414
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 4.239368057250976
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-416",
+              "ms": 4.241576385498047
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.45812873840332
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.472725677490234
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 4.228356170654297
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-416",
+              "ms": 4.2724662780761715
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.4757026672363285
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.476663208007812
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 4.2489067077636715
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-416",
+              "ms": 4.25700569152832
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.480696487426758
+            }
+          ],
+          "median_ms": {
+            "scalar": 4.47618293762207,
+            "vec4-416": 4.24524154663086
+          },
+          "speedup": 1.0544000590907465
+        },
+        {
+          "candidate": "vec4-832",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.48236083984375
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 4.256077575683594
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-832",
+              "ms": 4.2588623046875
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.475190353393555
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.4715415954589846
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 4.261135101318359
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-832",
+              "ms": 4.23664665222168
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.4654590606689455
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.476214599609375
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 4.262735366821289
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-832",
+              "ms": 4.254252624511719
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.474550247192383
+            }
+          ],
+          "median_ms": {
+            "scalar": 4.474870300292968,
+            "vec4-832": 4.257469940185547
+          },
+          "speedup": 1.0510632754104536
+        },
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.475990295410156
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 4.235718536376953
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 4.223298263549805
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.473493576049805
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.481784820556641
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 4.22733154296875
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 4.220993423461914
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.47474250793457
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.4676361083984375
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 4.208605194091797
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 4.232005310058594
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.480152130126953
+            }
+          ],
+          "median_ms": {
+            "scalar": 4.475366401672363,
+            "vec4-1664": 4.225314903259278
+          },
+          "speedup": 1.0591793757715438
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    }
+  ]
+}

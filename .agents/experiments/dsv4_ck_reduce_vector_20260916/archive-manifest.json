@@ -1,0 +1,9 @@
+{
+  "archive": "evidence.tar.gz",
+  "sha256": "b9c1fa39bfac7a69c1a02c008ddf92b7d0e15f252799b088ca45ec08c07e13f4",
+  "bytes": 3768928,
+  "evidence_files": 86,
+  "source_files": 42,
+  "recovered_B_post_test_log_assertion": true,
+  "full_tensors_or_binaries_included": false
+}

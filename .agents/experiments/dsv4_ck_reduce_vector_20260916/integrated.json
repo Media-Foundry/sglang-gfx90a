@@ -1,0 +1,440 @@
+{
+  "scope": "Synthetic full-size partials, isolated reducer only; not routed stage or service throughput",
+  "integrated": true,
+  "physical_gcd": 6,
+  "status": "complete",
+  "sources": {
+    "screen.py": "27f0ffcfb1617838e632ee262cb8da91a3cd88dd8ea4e61054a87e1367032fc4",
+    "vector.cuh": "85f4acff9e6ae905c0658a8e0ec407a25d8dda359aa57ac11eee1a4c9904e253"
+  },
+  "cases": [
+    {
+      "m": 1,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 17,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 8192,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9850640296936035
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 0.924499797821045
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 0.9246600151062012
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 0.9780858039855957
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9775416374206543
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 0.924563980102539
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 0.9193459510803222
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 0.9743404388427734
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.978853988647461
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 0.9111514091491699
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 0.9300377845764161
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 0.9779574394226074
+            }
+          ],
+          "median_ms": {
+            "scalar": 0.9780216217041016,
+            "vec4-1664": 0.924531888961792
+          },
+          "speedup": 1.0578560170621871
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 32767,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.973099136352539
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 3.734491729736328
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 3.752289581298828
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 3.985519027709961
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9790531158447267
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 3.750048828125
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 3.750849151611328
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 3.9690975189208983
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.980877685546875
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 3.762116622924805
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 3.756130599975586
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 3.9769725799560547
+            }
+          ],
+          "median_ms": {
+            "scalar": 3.9780128479003904,
+            "vec4-1664": 3.7515693664550778
+          },
+          "speedup": 1.0603596680018963
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    },
+    {
+      "m": 36864,
+      "checks": [
+        {
+          "dtype": "bf16",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "bf16",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 0,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 1,
+          "blocks": 1664,
+          "byte_exact": true
+        },
+        {
+          "dtype": "fp32",
+          "mutation": 2,
+          "blocks": 1664,
+          "byte_exact": true
+        }
+      ],
+      "abba": [
+        {
+          "candidate": "vec4-1664",
+          "samples": [
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.491960144042968
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 4.226111221313476
+            },
+            {
+              "cycle": 0,
+              "arm": "vec4-1664",
+              "ms": 4.239139556884766
+            },
+            {
+              "cycle": 0,
+              "arm": "scalar",
+              "ms": 4.48053207397461
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.475346374511719
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 4.239556121826172
+            },
+            {
+              "cycle": 1,
+              "arm": "vec4-1664",
+              "ms": 4.252008056640625
+            },
+            {
+              "cycle": 1,
+              "arm": "scalar",
+              "ms": 4.494936752319336
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.48699836730957
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 4.219164657592773
+            },
+            {
+              "cycle": 2,
+              "arm": "vec4-1664",
+              "ms": 4.231649017333984
+            },
+            {
+              "cycle": 2,
+              "arm": "scalar",
+              "ms": 4.48613395690918
+            }
+          ],
+          "median_ms": {
+            "scalar": 4.486566162109375,
+            "vec4-1664": 4.235394287109375
+          },
+          "speedup": 1.059303067901955
+        }
+      ],
+      "graph_replays_per_dtype": 100
+    }
+  ]
+}

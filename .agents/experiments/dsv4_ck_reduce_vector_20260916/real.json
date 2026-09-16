@@ -1,0 +1,434 @@
+{
+  "status": "complete",
+  "scope": "Historical real inputs; full unique CK stage2 incl remap/allocation/reducer, not whole routed MoE or E2E",
+  "module_sha256": "52e3b383b3625c69af7fa6b455f26a0d6a0577e64ff00e64218bc3ecbcd4defd",
+  "physical_gcd": 6,
+  "cases": [
+    {
+      "m": 8192,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_cached_ck_drift_20260915/capture/fixture",
+      "checks": [
+        {
+          "mutation": 0,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 0,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 4,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 4,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 5,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 5,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 6,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 6,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 7,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 7,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 8,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 8,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 9,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 9,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        }
+      ],
+      "records": [
+        {
+          "cycle": 0,
+          "arm": "scalar",
+          "ms": 2.8821121215820313
+        },
+        {
+          "cycle": 0,
+          "arm": "vec4",
+          "ms": 2.8270538330078123
+        },
+        {
+          "cycle": 0,
+          "arm": "vec4",
+          "ms": 2.8236927032470702
+        },
+        {
+          "cycle": 0,
+          "arm": "scalar",
+          "ms": 2.8784950256347654
+        },
+        {
+          "cycle": 1,
+          "arm": "scalar",
+          "ms": 2.8878101348876952
+        },
+        {
+          "cycle": 1,
+          "arm": "vec4",
+          "ms": 2.8234365463256834
+        },
+        {
+          "cycle": 1,
+          "arm": "vec4",
+          "ms": 2.829166603088379
+        },
+        {
+          "cycle": 1,
+          "arm": "scalar",
+          "ms": 2.883744812011719
+        },
+        {
+          "cycle": 2,
+          "arm": "scalar",
+          "ms": 2.8789432525634764
+        },
+        {
+          "cycle": 2,
+          "arm": "vec4",
+          "ms": 2.829198455810547
+        },
+        {
+          "cycle": 2,
+          "arm": "vec4",
+          "ms": 2.826349639892578
+        },
+        {
+          "cycle": 2,
+          "arm": "scalar",
+          "ms": 2.88156795501709
+        },
+        {
+          "cycle": 3,
+          "arm": "scalar",
+          "ms": 2.8784950256347654
+        },
+        {
+          "cycle": 3,
+          "arm": "vec4",
+          "ms": 2.8343843460083007
+        },
+        {
+          "cycle": 3,
+          "arm": "vec4",
+          "ms": 2.8229242324829102
+        },
+        {
+          "cycle": 3,
+          "arm": "scalar",
+          "ms": 2.879262924194336
+        },
+        {
+          "cycle": 4,
+          "arm": "scalar",
+          "ms": 2.882912254333496
+        },
+        {
+          "cycle": 4,
+          "arm": "vec4",
+          "ms": 2.8269256591796874
+        },
+        {
+          "cycle": 4,
+          "arm": "vec4",
+          "ms": 2.826573371887207
+        },
+        {
+          "cycle": 4,
+          "arm": "scalar",
+          "ms": 2.88336067199707
+        }
+      ],
+      "median_ms": {
+        "scalar": 2.8818400382995604,
+        "vec4": 2.8267495155334474
+      },
+      "speedup": 1.0194890005157449
+    },
+    {
+      "m": 32767,
+      "fixture": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_real_ck_replay_20260915/capture-v2/fixture",
+      "checks": [
+        {
+          "mutation": 0,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 0,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 1,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 2,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 3,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 4,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 4,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 5,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 5,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 6,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 6,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 7,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 7,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 8,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 8,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        },
+        {
+          "mutation": 9,
+          "dtype": "torch.bfloat16",
+          "byte_exact": true
+        },
+        {
+          "mutation": 9,
+          "dtype": "torch.float32",
+          "byte_exact": true
+        }
+      ],
+      "records": [
+        {
+          "cycle": 0,
+          "arm": "scalar",
+          "ms": 10.847740936279298
+        },
+        {
+          "cycle": 0,
+          "arm": "vec4",
+          "ms": 10.634422302246094
+        },
+        {
+          "cycle": 0,
+          "arm": "vec4",
+          "ms": 10.642552947998047
+        },
+        {
+          "cycle": 0,
+          "arm": "scalar",
+          "ms": 10.844316101074218
+        },
+        {
+          "cycle": 1,
+          "arm": "scalar",
+          "ms": 10.856031799316407
+        },
+        {
+          "cycle": 1,
+          "arm": "vec4",
+          "ms": 10.635382080078125
+        },
+        {
+          "cycle": 1,
+          "arm": "vec4",
+          "ms": 10.645913696289062
+        },
+        {
+          "cycle": 1,
+          "arm": "scalar",
+          "ms": 10.853630828857423
+        },
+        {
+          "cycle": 2,
+          "arm": "scalar",
+          "ms": 10.846300506591797
+        },
+        {
+          "cycle": 2,
+          "arm": "vec4",
+          "ms": 10.641752624511719
+        },
+        {
+          "cycle": 2,
+          "arm": "vec4",
+          "ms": 10.617232513427734
+        },
+        {
+          "cycle": 2,
+          "arm": "scalar",
+          "ms": 10.84927749633789
+        },
+        {
+          "cycle": 3,
+          "arm": "scalar",
+          "ms": 10.849565887451172
+        },
+        {
+          "cycle": 3,
+          "arm": "vec4",
+          "ms": 10.648859405517578
+        },
+        {
+          "cycle": 3,
+          "arm": "vec4",
+          "ms": 10.636310577392578
+        },
+        {
+          "cycle": 3,
+          "arm": "scalar",
+          "ms": 10.846908569335938
+        },
+        {
+          "cycle": 4,
+          "arm": "scalar",
+          "ms": 10.854496002197266
+        },
+        {
+          "cycle": 4,
+          "arm": "vec4",
+          "ms": 10.637751007080078
+        },
+        {
+          "cycle": 4,
+          "arm": "vec4",
+          "ms": 10.627571868896485
+        },
+        {
+          "cycle": 4,
+          "arm": "scalar",
+          "ms": 10.857984924316407
+        }
+      ],
+      "median_ms": {
+        "scalar": 10.84942169189453,
+        "vec4": 10.637030792236327
+      },
+      "speedup": 1.019967122762606
+    }
+  ]
+}
