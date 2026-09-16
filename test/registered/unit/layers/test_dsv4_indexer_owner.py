@@ -63,7 +63,7 @@ class OwnerTest(unittest.TestCase):
         self.assertEqual(flag({**both,'SGLANG_DSV4_C4_PREFILL_QUERY_OWNER':'0'}),'0')
         self.assertEqual(flag({**both,'TP_SIZE':'4'}),'unset')
 
-    def test_measured_body_only_adds_width_safety_guard(self):
+    def test_measured_narrow_body_preserved(self):
         root=Path(__file__).resolve().parents[4]
         measured=ast.parse((root/'.agents/experiments/dsv4_c16_indexer_owner_service_20260915/tested_helper.py').read_text())
         current=ast.parse((root/'python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_owner.py').read_text())
@@ -71,7 +71,31 @@ class OwnerTest(unittest.TestCase):
         guards=[n for n in fn.body if isinstance(n,ast.If) and 'not ext or max(' in ast.unparse(n.test)]
         self.assertEqual(len(guards),1)
         fn.body.remove(guards[0])
+        # Strip only the opt-in wide plumbing. The previously measured narrow
+        # packing, scoring, integer gather and reconstruction must stay intact.
+        fn.body=[n for n in fn.body if not (isinstance(n,ast.Assign)
+                 and any(isinstance(t,ast.Name) and t.id in ('wide','owner_kw') for t in n.targets))]
+        class Narrow(ast.NodeTransformer):
+            def visit_IfExp(self,n):
+                return self.visit(n.orelse) if isinstance(n.test,ast.Name) and n.test.id=='wide' else self.generic_visit(n)
+            def visit_If(self,n):
+                return None if isinstance(n.test,ast.Name) and n.test.id=='wide' else self.generic_visit(n)
+            def visit_Call(self,n):
+                if isinstance(n.func,ast.Name) and n.func.id=='prefill_query_reuse4':
+                    n.keywords=[k for k in n.keywords if not (k.arg is None and
+                        (isinstance(k.value,ast.IfExp) or isinstance(k.value,ast.Name) and k.value.id=='owner_kw'))]
+                return self.generic_visit(n)
+        Narrow().visit(current)
         self.assertEqual(ast.dump(current),ast.dump(measured))
+
+    def test_wide_global_and_local_admission(self):
+        from sglang.kernels.ops.attention.dsv4.gfx90a_indexer_query_reuse import _wide_rows_supported
+        for local,global_m in [(3584,32768),(3840,32767),(4096,32768),(16,8192),(8192,65536)]:
+            self.assertTrue(_wide_rows_supported(local,global_m))
+        for local,global_m in [(0,32768),(4097,32768),(4112,32768),(3584,8191),(16,65537),(15,32768)]:
+            self.assertFalse(_wide_rows_supported(local,global_m))
+        for m in (8192,32767,65536):self.assertTrue(_wide_rows_supported(m))
+        for m in (0,3584,8191,65537):self.assertFalse(_wide_rows_supported(m))
 
 
 if __name__=='__main__':unittest.main()

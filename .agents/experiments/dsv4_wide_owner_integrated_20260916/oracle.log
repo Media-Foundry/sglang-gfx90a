@@ -1,0 +1,133 @@
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] WARNING: NUMA balancing is enabled, which may cause errors. It is recommended to disable NUMA balancing by running "sudo sh -c 'echo 0 > /proc/sys/kernel/numa_balancing'" for more details: https://rocm.docs.amd.com/en/latest/how-to/system-optimization/mi300x.html#disable-numa-auto-balancing
+[aiter] import [module_aiter_enum] under /home/pc/pytorch/third_party/aiter/aiter/jit/module_aiter_enum.so
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] waiting for baton release at /tmp/aiter_configs/bf16_tuned_gemm.csv.lock
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[aiter] merge tuned file under model_configs/ and configs/ /home/pc/pytorch/third_party/aiter/aiter/configs/bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/gptoss_bf16_tuned_gemm.csv:/home/pc/pytorch/third_party/aiter/aiter/configs/model_configs/dsv3_bf16_tuned_gemm.csv
+[TP5] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP2] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP7] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP4] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP0] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP3] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP6] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+[TP1] prefill query-owner selected: rows=32768 local_rows=3072 width=2048 exchange_bytes=50331648 check=1
+8k-control {'A': 18.669177373250328, 'B': 3.1784435907999677} speedup 5.873685292791863
+[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP2] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP5] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+
+[TP4] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1[TP3] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP7] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32768 local_rows=3584 width=4096 exchange_bytes=58720256 check=1
+[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact[TP4] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+
+[TP5] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact[TP7] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+
+[TP1] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3584 width=4096 scores=byte_exact logical=exact physical=exact
+16k {'A': 39.014677683512375, 'B': 5.624608675638834} speedup 6.9364252579013685
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP6] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+
+[TP7] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32767 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP4] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+
+[TP0] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP6] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+
+[TP1] wide-owner exact: rows=32767 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+32k-ragged {'A': 79.75516001383463, 'B': 10.401093482971191} speedup 7.667959156833927
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+
+[TP4] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP5] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] prefill query-owner selected: rows=32768 local_rows=3840 width=8192 exchange_bytes=62914560 check=1
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+
+[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP2] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP4] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP7] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP0] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP5] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP3] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP6] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+[TP1] wide-owner exact: rows=32768 local_rows=3840 width=8192 scores=byte_exact logical=exact physical=exact
+mixed-prefix {'A': 75.2728017171224, 'B': 10.072891871134441} speedup 7.472809465256867

@@ -73,14 +73,30 @@ def reuse(q,cache,w,lens,pages,out,M:tl.constexpr,W:tl.constexpr,NP:tl.constexpr
         tl.store(out+rows[:,None]*W+cols[None,:],0.,mask=(rows[:,None]<M)&(cols[None,:]<W))
 
 
+def _wide_rows_supported(local_rows, admitted_global_rows=None):
+    """Owner packing keeps whole query16 groups, distributed across eight ranks.
+
+    A small local batch is not independently eligible for wide prefill. It must
+    belong to an already admitted large forward; no tensor/host synchronization.
+    """
+    if admitted_global_rows is None:
+        return 8192 <= local_rows <= 65536
+    return (
+        8192 <= admitted_global_rows <= 65536
+        and 0 < local_rows <= ((admitted_global_rows + 127) // 128) * 16
+        and local_rows % 16 == 0
+    )
+
+
 def prefill_query_reuse4(q, cache, weights, lengths, pages, width, *,
                         block_s, preshuffle_tile, dot_fp16, fp8_fnuz,
                         query_group_size=4, runtime_m=False, trace_rank=None,
-                        allow_wide=False):
+                        allow_wide=False, admitted_global_rows=None):
     """Return None for unsupported contracts; never repack query/cache tensors."""
     m = q.shape[0]
     max_width = 8192 if (
-        allow_wide and query_group_size == 16 and runtime_m and 8192 <= m <= 65536
+        allow_wide and query_group_size == 16 and runtime_m
+        and _wide_rows_supported(m, admitted_global_rows)
     ) else 2048
     dtype = torch.float8_e4m3fnuz if fp8_fnuz else torch.float8_e4m3fn
     if lengths.ndim == 2 and lengths.shape[-1] == 1:

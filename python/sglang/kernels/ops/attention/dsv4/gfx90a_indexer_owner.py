@@ -70,8 +70,10 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
             batch,metadata,rank,group,preshuffle_tile,dot_fp16,fp8_fnuz):
     """Returns False only before any collective; errors after admission fail fast."""
     m=q.shape[0]
+    wide = (os.getenv('SGLANG_DSV4_C4_PREFILL_QUERY_OWNER_WIDE', '0') == '1'
+            and 8192 <= m <= 65536 and width > 2048)
     if not (q.shape==(m,1,64,128) and weights.shape==(m,64)
-            and weights.dtype==torch.float32 and 512<=width<=2048
+            and weights.dtype==torch.float32 and 512<=width<=(8192 if wide else 2048)
             and pages.shape[0]==m and pages.stride(1)==1
             and output.shape==(m,512) and output.is_contiguous()
             and (raw_output is None or raw_output.shape==(m,512) and raw_output.is_contiguous())
@@ -106,7 +108,8 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
     pp=pages.index_select(0,plan.rowids)
     kw=dict(block_s=16,preshuffle_tile=preshuffle_tile,dot_fp16=dot_fp16,
             fp8_fnuz=fp8_fnuz,query_group_size=16,runtime_m=True)
-    scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw)
+    owner_kw = dict(allow_wide=True, admitted_global_rows=m) if wide else {}
+    scores=prefill_query_reuse4(pq,cache,pw,pl,pp,width,**kw,**owner_kw)
     assert scores is not None,'Admitted query-owner layout unsupported'
     local_phys=torch.empty((len(plan.rowids),512),device=q.device,dtype=torch.int32)
     local_raw=torch.empty_like(local_phys)
@@ -119,7 +122,8 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
     reconstruct[(m,)](gathered,plan.inverse,lengths,pages,actual_raw,output,
                        pages.stride(0),actual_raw is not None,num_warps=4)
     if check:
-        full_scores=prefill_query_reuse4(q,cache,weights,lengths,pages,width,**kw)
+        full_scores=prefill_query_reuse4(q,cache,weights,lengths,pages,width,**kw,
+                                       **(dict(allow_wide=True) if wide else {}))
         ref_phys=torch.empty_like(output);ref_raw=torch.empty_like(output)
         topk_transform_512(full_scores,lengths,pages,ref_phys,64,ref_raw)
         torch.testing.assert_close(output,ref_phys,atol=0,rtol=0)
@@ -127,6 +131,9 @@ def forward(*,q,cache,weights,lengths,pages,width,output,raw_output,
         a=full_scores.index_select(0,plan.rowids)[plan.valid.bool()]
         b=scores[plan.valid.bool()]
         assert torch.equal(a.view(torch.int32),b.view(torch.int32))
+        if wide:
+            print(f'[TP{rank}] wide-owner exact: rows={m} local_rows={len(plan.rowids)} '
+                  f'width={width} scores=byte_exact logical=exact physical=exact',flush=True)
     if not getattr(metadata,'_gfx90a_owner_logged',False):
         print(f'[TP{rank}] prefill query-owner selected: rows={m} local_rows={len(plan.rowids)} '
               f'width={width} exchange_bytes={gathered.numel()*4} check={int(check)}',flush=True)

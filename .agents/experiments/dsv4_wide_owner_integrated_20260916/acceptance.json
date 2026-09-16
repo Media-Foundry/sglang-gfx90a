@@ -1,0 +1,9 @@
+{
+  "status": "accepted_explicit_16k_profile",
+  "summary_sha256": "c4d6d02deaa13d9dc923bb680ca261d4d87600b0541d49fefd8ec1afc6ed16e7",
+  "launcher_sha256": "a419eecb5e25c48d6ecb4935bf4595938d9bb7a8a4ebf6929fb74e61715ac33b",
+  "scope": "Original V4 TP8 C16x16K, original checkpoint/native AR, 1M logical KV",
+  "default_promoted": false,
+  "service_32k_validated": false,
+  "universal_batch_invariance_claimed": false
+}
