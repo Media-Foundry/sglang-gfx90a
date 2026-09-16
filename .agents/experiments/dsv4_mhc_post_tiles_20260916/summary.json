@@ -1,0 +1,172 @@
+{
+  "scope": "Triton fused4 versus exact HIP wave post; vec4 CK/corrected H16 common; original V4 TP8 C16x8K",
+  "control_input_tok_s": 8695.557492823616,
+  "candidate_input_tok_s": 8964.910268760763,
+  "gain_pct": 3.097590650851778,
+  "control_drift_pct": 0.015387362620855605,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 8694.888535809374,
+      "rates": [
+        8695.320461559106,
+        8694.888535809374,
+        8694.469282032976
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 8970.763958361373,
+      "rates": [
+        8966.895554445284,
+        8970.763958361373,
+        8972.843899444144
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 8959.056579160155,
+      "rates": [
+        8960.792741766463,
+        8959.056579160155,
+        8956.454248139318
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 8696.226449837857,
+      "rates": [
+        8699.521950705963,
+        8696.226449837857,
+        8684.481871838907
+      ]
+    }
+  },
+  "original_weights": true,
+  "kv_tokens": 1048576,
+  "prefill_budget": 32768,
+  "post_exact_comparisons": 2720,
+  "quality": {
+    "A1": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeated_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "all_twelve_exact": true,
+      "common_prefix_tokens": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "all_model_batch_invariance_claimed": false,
+  "diagnostic_log_sha256": "bf7912dd6b51cb97ffc0dc65acac14622935f4a2d6290c8c414044fd57b9ea1f"
+}

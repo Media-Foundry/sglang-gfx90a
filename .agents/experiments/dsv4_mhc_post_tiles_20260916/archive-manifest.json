@@ -1,0 +1,8 @@
+{
+  "archive": "evidence.tar.gz",
+  "sha256": "51caa9516c6f9c314bce2036d2acfe5f21c144595707cf52b25c089be8f93991",
+  "bytes": 4236918,
+  "evidence_files": 116,
+  "source_files": 44,
+  "full_tensors_or_binaries_included": false
+}

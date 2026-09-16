@@ -1,0 +1,411 @@
+{
+  "status": "complete",
+  "scope": "Explicit observed FP32 arithmetic + DPP contract, HIP wave-owned H256.",
+  "physical_gcd": 4,
+  "cases": [
+    {
+      "m": 17,
+      "checks": [
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        }
+      ],
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 0.012291999906301499
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.009603399783372879
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.010403600335121155
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 0.009699200093746186
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 0.009795399755239487
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.01046760007739067
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.014500999450683593
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 0.009827399998903275
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 0.00973140001296997
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.009379199892282485
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.009347199648618697
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 0.009795399755239487
+        }
+      ],
+      "median_ms": {
+        "A": 0.009795399755239487,
+        "B": 0.010003500059247017
+      },
+      "all_exact": true
+    },
+    {
+      "m": 8192,
+      "checks": [
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        }
+      ],
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.0145259857177735
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.6315139770507813
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 0.6251758098602295
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 1.0038986206054688
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.0038986206054688
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.6262961864471436
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 0.6247275829315185
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 1.002202033996582
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.0018817901611328
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.6259439945220947
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 0.6222308158874512
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 1.0013376235961915
+        }
+      ],
+      "median_ms": {
+        "A": 1.0030503273010254,
+        "B": 0.6255599021911621
+      },
+      "all_exact": true
+    },
+    {
+      "m": 32767,
+      "checks": [
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        },
+        {
+          "residual_exact": true,
+          "rms_exact": true,
+          "residual_max_abs": 0.0,
+          "rms_max_abs": 0.0
+        }
+      ],
+      "samples": [
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.9875198364257813
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 2.538828468322754
+        },
+        {
+          "cycle": 0,
+          "arm": "B",
+          "ms": 2.5378679275512694
+        },
+        {
+          "cycle": 0,
+          "arm": "A",
+          "ms": 3.990785598754883
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.987200164794922
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 2.5331304550170897
+        },
+        {
+          "cycle": 1,
+          "arm": "B",
+          "ms": 2.541004943847656
+        },
+        {
+          "cycle": 1,
+          "arm": "A",
+          "ms": 3.9896011352539062
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.991361618041992
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 2.538828468322754
+        },
+        {
+          "cycle": 2,
+          "arm": "B",
+          "ms": 2.5440462112426756
+        },
+        {
+          "cycle": 2,
+          "arm": "A",
+          "ms": 3.990209197998047
+        }
+      ],
+      "median_ms": {
+        "A": 3.9899051666259764,
+        "B": 2.538828468322754
+      },
+      "all_exact": true
+    }
+  ],
+  "sources": {
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_attn_out.pt": "2b9d7753af56eeb73acf3653a8eaa0aee77491f40ca08ea3f4f505f9f3af705c",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_residual.pt": "17f81fa1361fe3e79502f8df64e002fa2c6f7d4fb54c3cbb5425b652eb651ba4",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_post.pt": "85077dcca7107e07a40eaa265348f0749893f634751b8583039279a704848ede",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_input_identity_20260914/trace-B1/layer_0_rank_0_ffn_mhc_comb.pt": "56013284e62fcac6e117d41fdf28a5d12c3cf4bc843d7b676d5abc576ec0e93f",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_mhc_post_tiles_20260916/hip_screen.py": "006ce716b6e7f5af51a5d3212f26828df16ca3673aba9dbd60e041a1a1208fcd",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_mhc_post_tiles_20260916/exact_post.cuh": "0feb87222320c3375d00cc1107302f67412eb10be8ccb4e33e46386426b71703"
+  }
+}

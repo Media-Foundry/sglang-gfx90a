@@ -1,5 +1,7 @@
 """Four-output H256 post-combine reuse, preserving the reference RMS partials."""
 
+import os
+
 import torch
 import triton
 import triton.language as tl
@@ -51,6 +53,15 @@ def post_combine_fused4(x, residual, post, comb):
         return None
     out = torch.empty_like(residual)
     partials = torch.empty((m, 64), dtype=torch.float32, device=x.device)
+    if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_POST_WAVE", "0") == "1":
+        from sglang.srt.layers.dsv4_prefill_experiments import mix_pair_active
+
+        # Stronger than a shape check: original V4 / TP8 / native EXTEND only.
+        if mix_pair_active() and 8192 <= m <= 65536:
+            from .gfx90a_mhc_post_wave import run_post_wave
+
+            run_post_wave(x, residual, post, comb, out, partials)
+            return out, partials
     _post_combine_fused4[(m, 16)](
         x, residual, post, comb, out, partials, num_warps=4
     )
