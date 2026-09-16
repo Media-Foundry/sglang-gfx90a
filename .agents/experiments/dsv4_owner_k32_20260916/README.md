@@ -40,7 +40,12 @@ machine's source-hashed CK/IPC modules and explicit 1M-pool configuration.
 Raw ABBA evidence is archived by `archive.py`; source hashes, startup, client
 timestamps, token IDs, teacher records and owned cleanup are included.
 
-8K/16K K32 regressions are pending in the separate regression directory.
+8K/16K K32 regressions are complete in the separate regression directory:
+8K10217.40→10282.76(+0.64%),16K10018.89→10151.65(+1.33%). Each length
+passes192 identical128-token answers and1008 exact teacher positions against
+its controls and preceding checkpoint. Three scored waves/ABBA leg, all8 ranks
+hit the candidate,1Mpool and zero cache retained. See that directory's separate
+summaries/acceptance/archive;32K acceptance.json remains its original snapshot.
 The old8K10.206k versus old32K9.605k difference is input-length cost, not a
 same-length regression; this result improves32K only. No universal precision,
 quality or arbitrary-batch determinism claim follows from this finite fixture.

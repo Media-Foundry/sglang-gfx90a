@@ -1,0 +1,240 @@
+{
+  "timing_paths": {
+    "A1": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": []
+    },
+    "B": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    "A2": {
+      "legacy_splitk": [],
+      "premix_owner_ranks": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "k32_ranks": []
+    }
+  },
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x16k, common FP32/20 MHC fixed, owner K16/K32, native AR",
+  "control_input_tok_s": 10018.886497958054,
+  "candidate_input_tok_s": 10151.650740305191,
+  "gain_pct": 1.3251396986500907,
+  "control_drift_pct": 0.09503556895638088,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 10014.1280061947,
+      "rates": [
+        10021.112521942654,
+        10014.1280061947,
+        10009.231129578226
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 10154.201118069215,
+      "rates": [
+        10154.201118069215,
+        10154.5818139978,
+        10147.585264426694
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 10149.100362541167,
+      "rates": [
+        10148.88905029046,
+        10160.299461370225,
+        10149.100362541167
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 10023.644989721408,
+      "rates": [
+        10023.644989721408,
+        10022.964042473015,
+        10030.66764717729
+      ]
+    }
+  },
+  "kv_tokens": 1048576,
+  "original_weights": true,
+  "prior_32k_live_comparisons": 2688,
+  "quality": {
+    "A1": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "teacher_forced": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "prior_accepted",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    }
+  ],
+  "universal_batch_invariance_claimed": false
+}

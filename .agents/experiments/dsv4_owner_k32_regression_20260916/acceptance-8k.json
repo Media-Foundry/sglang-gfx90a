@@ -1,0 +1,21 @@
+{
+  "status": "accepted_explicit_8k_profile",
+  "scope": "Original V4 TP8 C16x8k, common FP32/20 MHC fixed, owner K16/K32, native AR",
+  "numerical_exact_on_tested_inputs": true,
+  "default_promoted": false,
+  "universal_batch_invariance_claimed": false,
+  "new_live_reference_checks": 0,
+  "prior_32k_live_comparisons": 2688,
+  "screening": {
+    "gain_pct": 0.6397385650616982,
+    "control_drift_pct": 0.18508570301480898,
+    "within_leg_range_pct": {
+      "A1": 0.19408661610848685,
+      "B1": 0.111939857197088,
+      "B2": 0.05305846619939787,
+      "A2": 0.18825916576719
+    }
+  },
+  "summary_sha256": "f81723147bc2d37bcb031715638ae3596a91f3fe057b6fed5592e6785690ecf3",
+  "validator_sha256": "389f5f9cca966b66033a86a2fc3fb7cd8ac5df7a16eb06c743666d87e27d46a8"
+}
