@@ -1,0 +1,177 @@
+{
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x8K, exact paired pre-mix ownership, native AR",
+  "control_input_tok_s": 8977.848043113721,
+  "candidate_input_tok_s": 9975.299478575691,
+  "gain_pct": 11.11013943065171,
+  "control_drift_pct": -0.09955586079826162,
+  "legs": {
+    "A1": {
+      "leg": "A1",
+      "median": 8982.319255741073,
+      "rates": [
+        8993.87301750408,
+        8976.387667276214,
+        8982.319255741073
+      ]
+    },
+    "B1": {
+      "leg": "B1",
+      "median": 9973.404172059512,
+      "rates": [
+        9991.957763507848,
+        9973.404172059512,
+        9967.416252474906
+      ]
+    },
+    "B2": {
+      "leg": "B2",
+      "median": 9977.19478509187,
+      "rates": [
+        9986.274923463709,
+        9969.637444794633,
+        9977.19478509187
+      ]
+    },
+    "A2": {
+      "leg": "A2",
+      "median": 8973.376830486372,
+      "rates": [
+        8973.376830486372,
+        8971.19542381068,
+        8984.449083326788
+      ]
+    }
+  },
+  "kv_tokens": 1048576,
+  "original_weights": true,
+  "live_comparisons": 2720,
+  "quality": {
+    "A1": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "B": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    },
+    "A2": {
+      "repeat_exact_out_of16": [
+        16,
+        16,
+        16
+      ]
+    }
+  },
+  "cross_arm_continuations": [
+    {
+      "request": 0,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "common_prefix": 128,
+      "distinct_outputs": 1
+    }
+  ],
+  "teacher_forced": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "max_abs_logprob": 0.0,
+      "mean_abs_logprob": 0.0,
+      "top1_same": 1008,
+      "top5_records_exact": 1008,
+      "positions": 1008,
+      "excluded_leading_nulls": 16
+    }
+  ],
+  "universal_batch_invariance_claimed": false
+}

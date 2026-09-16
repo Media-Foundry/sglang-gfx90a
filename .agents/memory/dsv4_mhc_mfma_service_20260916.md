@@ -1,5 +1,13 @@
 # FP32 MFMA pre-mix split16: +5.00% TP8 C16 service, numerical alternative
 
+Later same-day follow-up: `dsv4_premix_owner_20260916.md` records an independent
+exact paired-kernel row-owner path at9975.30tok/s (+11.11%), with all tested
+continuations and fixed-prefix logprobs unchanged. It is now the stronger measured
+candidate. MFMA remains a separate default-off numerical alternative; do not add
+the two improvements or treat the older8.96k exact-reference statement below as
+the latest fastest result. Exact shared-supply screening is also now completed:
+see `dsv4_premix_exact_supply_20260916.md`.
+
 2026-09-16. Base b6b70bd5f9. Original V4 Flash, TP8/EP1/no-A2A, native AR,
 original checkpoint/Fn precision,1M logical KV,32K chunk,C16 x approximately8K
 diverse real source-code requests,zero prefix hits,131069 inputtokens/wave.

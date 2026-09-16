@@ -53,6 +53,12 @@ def premix_reuse4(residual, fn, rms_partials, rms_eps, *, group_size=4, pair_col
     out = torch.empty((m, 1, 24), dtype=torch.float32, device=residual.device)
     if group_size == 8 and 8192 <= m <= 65536:
         if pair_columns:
+            if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MIX_OWNER", "0") == "1":
+                from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_owner import try_premix_owner
+
+                owned = try_premix_owner(residual, fn, rms_partials, rms_eps)
+                if owned is not None:
+                    return owned
             if os.getenv("SGLANG_DSV4_DEBUG_PREFILL_MIX_MFMA", "0") == "1":
                 from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_mfma import try_premix_mfma
 
@@ -63,6 +69,10 @@ def premix_reuse4(residual, fn, rms_partials, rms_eps, *, group_size=4, pair_col
             premix8_pair[(12, triton.cdiv(m, 8))](
                 residual, fn, rms_partials, out, m, float(rms_eps), num_warps=1
             )
+            if os.getenv("SGLANG_DSV4_DEBUG_PREMIX_OWNER_AUDIT_DIR"):
+                from sglang.kernels.ops.debug.dsv4_premix_owner_audit import audit
+
+                audit(residual, fn, rms_partials, out, rms_eps)
             return out
         from sglang.kernels.ops.layernorm.gfx90a_mhc_premix_reuse8 import premix8
 
