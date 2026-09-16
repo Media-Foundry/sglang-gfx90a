@@ -1,0 +1,26 @@
+{
+  "archive": "evidence.tar.gz",
+  "sha256": "e118692a4ca9ba73e660f1d5d7565f5ecf2edf935237cddd037f5f0feeeaf210",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_first_mix_table_20260917/archive.py",
+      "sha256": "f4c8572a319aa827d632e0fa3bc798ea9ea0e71aad9e551cb09c24afbb26223d"
+    },
+    {
+      "path": ".agents/experiments/dsv4_first_mix_table_20260917/oracle.json",
+      "sha256": "8cc5c0837028a4b1e3745e6f374af12eb71a4a5f767d0338c786a645956138e0"
+    },
+    {
+      "path": ".agents/experiments/dsv4_first_mix_table_20260917/oracle.log",
+      "sha256": "d9c7ce0d0855f9c2075f8f3c0c81f30f0eca7502cd9226eda0104f4aa1279331"
+    },
+    {
+      "path": ".agents/experiments/dsv4_first_mix_table_20260917/oracle.py",
+      "sha256": "72524c996e664c5df5109f6be56469d3a854279bb4e0071db50552482b1f7e6c"
+    },
+    {
+      "path": "python/sglang/kernels/jit/csrc/gemm/gfx90a_mhc_pre_mix.cuh",
+      "sha256": "8f46d491a958fa3a3b36833d26a5260728c5ca4cfeac17db30b22a97362f7249"
+    }
+  ]
+}

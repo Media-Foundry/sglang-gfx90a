@@ -1,0 +1,487 @@
+{
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x8K,1M pool,32K budget,route producer ON",
+  "policy": "A:accepted mixed MHC; B:small-tail plus unfused first-boundary FP32 fixes",
+  "control_input_tok_s": 10361.508151571921,
+  "candidate_input_tok_s": 10313.653677131017,
+  "gain_pct": -0.46184854309693213,
+  "control_drift_pct": -0.2850295890057919,
+  "legs": {
+    "A1": {
+      "median": 10376.295908362737,
+      "rates": [
+        10395.78038360692,
+        10373.925990079837,
+        10376.295908362737
+      ],
+      "range_pct": 0.21066656488566426
+    },
+    "B1": {
+      "median": 10320.584363420354,
+      "rates": [
+        10313.68458236636,
+        10326.96281923935,
+        10320.584363420354
+      ],
+      "range_pct": 0.12874387195911385
+    },
+    "B2": {
+      "median": 10306.722990841681,
+      "rates": [
+        10305.96194175201,
+        10312.206092528035,
+        10306.722990841681
+      ],
+      "range_pct": 0.06058775310171516
+    },
+    "A2": {
+      "median": 10346.720394781107,
+      "rates": [
+        10346.720394781107,
+        10362.40014902613,
+        10327.324089861937
+      ],
+      "range_pct": 0.33964324987754146
+    }
+  },
+  "input_tokens": 131069,
+  "shapes": {
+    "A1": [
+      [
+        "1",
+        "256"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ]
+    ],
+    "B": [
+      [
+        "1",
+        "256"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ]
+    ],
+    "A2": [
+      [
+        "1",
+        "256"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ],
+      [
+        "4",
+        "32768"
+      ]
+    ]
+  },
+  "quality_comparisons": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "exact_out_of16": 16,
+      "requests": [
+        {
+          "request": 0,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 1,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 2,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 3,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 4,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 5,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 6,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 7,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 8,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 9,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 10,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 11,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 12,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 13,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 14,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 15,
+          "exact": true,
+          "common_prefix": 128
+        }
+      ]
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "exact_out_of16": 1,
+      "requests": [
+        {
+          "request": 0,
+          "exact": false,
+          "common_prefix": 0
+        },
+        {
+          "request": 1,
+          "exact": false,
+          "common_prefix": 8
+        },
+        {
+          "request": 2,
+          "exact": false,
+          "common_prefix": 10
+        },
+        {
+          "request": 3,
+          "exact": false,
+          "common_prefix": 30
+        },
+        {
+          "request": 4,
+          "exact": false,
+          "common_prefix": 35
+        },
+        {
+          "request": 5,
+          "exact": false,
+          "common_prefix": 37
+        },
+        {
+          "request": 6,
+          "exact": false,
+          "common_prefix": 0
+        },
+        {
+          "request": 7,
+          "exact": false,
+          "common_prefix": 35
+        },
+        {
+          "request": 8,
+          "exact": false,
+          "common_prefix": 47
+        },
+        {
+          "request": 9,
+          "exact": true,
+          "common_prefix": 128
+        },
+        {
+          "request": 10,
+          "exact": false,
+          "common_prefix": 19
+        },
+        {
+          "request": 11,
+          "exact": false,
+          "common_prefix": 3
+        },
+        {
+          "request": 12,
+          "exact": false,
+          "common_prefix": 16
+        },
+        {
+          "request": 13,
+          "exact": false,
+          "common_prefix": 74
+        },
+        {
+          "request": 14,
+          "exact": false,
+          "common_prefix": 33
+        },
+        {
+          "request": 15,
+          "exact": false,
+          "common_prefix": 6
+        }
+      ]
+    }
+  ],
+  "numerical_equivalence_claimed": false,
+  "default_changed": false,
+  "quality_manual_review_pending": true
+}

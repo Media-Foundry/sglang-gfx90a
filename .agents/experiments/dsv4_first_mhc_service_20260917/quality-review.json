@@ -1,0 +1,14 @@
+{
+  "status": "limited_manual_review_complete",
+  "reviewed": "All 16 candidate B 128-token answer excerpts, plus France checks",
+  "observations": [
+    "Candidate excerpts are coherent and on-topic code-analysis responses; no obvious looping or garbled output observed within these 128 tokens.",
+    "Several responses assert potential bugs. These generated technical claims were NOT independently verified against the source and are not treated as facts.",
+    "Outputs stop at the imposed 128-token boundary; this is not a full long-answer quality evaluation.",
+    "A1 and A2 match 16/16 complete 128-token outputs; B matches A1 only 1/16. Restoring FP32 first-boundary arithmetic changes generation trajectories."
+  ],
+  "quality_equivalence_claimed": false,
+  "whole_model_batch_invariance_claimed": false,
+  "performance_gain_claimed": false,
+  "decision": "Retain independent corrected reference, default unchanged; recover first-boundary cost before promotion."
+}

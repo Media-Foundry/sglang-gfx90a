@@ -1,0 +1,266 @@
+{
+  "status": "complete",
+  "scope": "First-layer-only FP32 mix table derived from original token embeddings.\n\nNo service integration. Applicable only before the first layer for plain token\nembedding inputs: it is NOT valid for input_embeds, adapters or later residuals.\nProduction would build from TP-local vocabulary shards, not replicate weights.\n",
+  "vocab_size": 129280,
+  "table_bytes": 12410880,
+  "build_activation_bound_bytes": 33554432,
+  "embed_sha256": "c05019ecf9435fa47cdcbb35df74c8ade6c4ceedd6ebe75db9ea7a607f6ad2ef",
+  "fn_sha256": "f5c1ffdfb92df2c04ac17e9a31e38701f2b7a5cac0cd427a2df2aa3e239987fc",
+  "live_residual_exact": true,
+  "checks": [
+    {
+      "m": 1,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 64,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 65,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 1024,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 8192,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 32576,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    },
+    {
+      "m": 32768,
+      "initial_exact": true,
+      "permutation_exact": true,
+      "graph_mutations_exact": 100
+    }
+  ],
+  "timings": [
+    {
+      "m": 1,
+      "samples_ms": {
+        "control_ready_residual": [
+          0.03922554850578308,
+          0.038889449834823606,
+          0.039081498980522156,
+          0.03904150128364563,
+          0.03896144926548004,
+          0.03896144926548004,
+          0.03905749917030334,
+          0.03889744877815247
+        ],
+        "table_lookup": [
+          0.007731450349092483,
+          0.007699450105428695,
+          0.007131200283765793,
+          0.00656294971704483,
+          0.008115600049495696,
+          0.006674949824810028,
+          0.0069631502032279965,
+          0.006130750104784965
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 0.03900147527456284,
+        "table_lookup": 0.007047175243496895
+      }
+    },
+    {
+      "m": 64,
+      "samples_ms": {
+        "control_ready_residual": [
+          0.04184274971485138,
+          0.04169870018959045,
+          0.041722699999809265,
+          0.0416907012462616,
+          0.041698649525642395,
+          0.0417787492275238,
+          0.04178670048713684,
+          0.04165864884853363
+        ],
+        "table_lookup": [
+          0.008163650333881379,
+          0.0073472999036312105,
+          0.007291249930858612,
+          0.007891549915075301,
+          0.006779050081968307,
+          0.007563400268554688,
+          0.007963600009679795,
+          0.007283250242471695
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 0.04171070009469986,
+        "table_lookup": 0.007455350086092949
+      }
+    },
+    {
+      "m": 65,
+      "samples_ms": {
+        "control_ready_residual": [
+          0.04182674884796143,
+          0.041698649525642395,
+          0.04178670048713684,
+          0.04167470037937164,
+          0.0417787492275238,
+          0.041666698455810544,
+          0.041666698455810544,
+          0.04176270067691803
+        ],
+        "table_lookup": [
+          0.007643450051546097,
+          0.008347749710083008,
+          0.0073232501745224,
+          0.006971149891614914,
+          0.0075713999569416044,
+          0.00713919997215271,
+          0.008483800292015075,
+          0.007091149687767029
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 0.041730675101280215,
+        "table_lookup": 0.007447325065732003
+      }
+    },
+    {
+      "m": 1024,
+      "samples_ms": {
+        "control_ready_residual": [
+          0.45664453506469727,
+          0.456044340133667,
+          0.45626039505004884,
+          0.456388521194458,
+          0.45626044273376465,
+          0.4561003684997559,
+          0.45627636909484864,
+          0.45617237091064455
+        ],
+        "table_lookup": [
+          0.007963550090789796,
+          0.007771500200033188,
+          0.007875499874353408,
+          0.006795000284910202,
+          0.006883099675178528,
+          0.00865190029144287,
+          0.007715500146150589,
+          0.006787049770355225
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 0.4562604188919067,
+        "table_lookup": 0.007743500173091888
+      }
+    },
+    {
+      "m": 8192,
+      "samples_ms": {
+        "control_ready_residual": [
+          3.6166202545166017,
+          3.6170364379882813,
+          3.615972137451172,
+          3.616115951538086,
+          3.6147876739501954,
+          3.6160041809082033,
+          3.6167240142822266,
+          3.6154117584228516
+        ],
+        "table_lookup": [
+          0.015606999397277832,
+          0.015462949872016907,
+          0.015518949925899505,
+          0.015446950495243073,
+          0.015582999587059021,
+          0.015502950549125672,
+          0.015599000453948974,
+          0.015462949872016907
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 3.6160600662231444,
+        "table_lookup": 0.015510950237512589
+      }
+    },
+    {
+      "m": 32576,
+      "samples_ms": {
+        "control_ready_residual": [
+          14.296540832519531,
+          14.294692993164062,
+          14.29481201171875,
+          14.293899536132812,
+          14.295549011230468,
+          14.29314727783203,
+          14.293563842773438,
+          14.292498779296874
+        ],
+        "table_lookup": [
+          0.045596399903297426,
+          0.04539634883403778,
+          0.045564448833465575,
+          0.04535630047321319,
+          0.04564445018768311,
+          0.04539634883403778,
+          0.04556440114974976,
+          0.04533230066299439
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 14.294296264648438,
+        "table_lookup": 0.045480374991893766
+      }
+    },
+    {
+      "m": 32768,
+      "samples_ms": {
+        "control_ready_residual": [
+          14.367788696289063,
+          14.368341064453125,
+          14.369223022460938,
+          14.367036437988281,
+          14.366804504394532,
+          14.366621398925782,
+          14.36937255859375,
+          14.369172668457031
+        ],
+        "table_lookup": [
+          0.04576449990272522,
+          0.04557240009307861,
+          0.04572449922561646,
+          0.04558044970035553,
+          0.04593254923820496,
+          0.045588400959968564,
+          0.04574849903583526,
+          0.04558044970035553
+        ]
+      },
+      "median_ms": {
+        "control_ready_residual": 14.368064880371094,
+        "table_lookup": 0.04565645009279251
+      }
+    }
+  ],
+  "sources": {
+    ".agents/experiments/dsv4_first_mix_table_20260917/oracle.py": "72524c996e664c5df5109f6be56469d3a854279bb4e0071db50552482b1f7e6c",
+    "python/sglang/kernels/jit/csrc/gemm/gfx90a_mhc_pre_mix.cuh": "8f46d491a958fa3a3b36833d26a5260728c5ca4cfeac17db30b22a97362f7249"
+  },
+  "build_and_validate_wall_s": 0.15026485500857234,
+  "whole_vocab_native_variants_exact": true,
+  "service_mixes_exact": true
+}
