@@ -4,7 +4,7 @@ OriginalV4/TP8/EP1/nativeAR/originalweights/1Mpool/32Kchunk,C16 heterogeneous
 public-code requests,zero prefix cache. Both arms retain owner-K32 and common
 FP32/20 MHC; only route producer changes. Three scored waves perABBA leg.
 
-##16K accepted
+## 16K accepted
 
 | Leg | Median input tok/s |
 |---|---:|
@@ -20,7 +20,7 @@ have exact logprobs and Top5 records versus both controls and prior accepted
 K32. All8 ranks selected route producer in B only,all retained K32/1Mpool.
 Owned16K services stopped. No new live reference checks:1376 were prior8K.
 
-##32K pending
+## 32K pending
 
 The same sequential driver(session29781) continues to32K. Do not treat16K
 acceptance as32K evidence. The prior32K accepted speed remains9854.324387.

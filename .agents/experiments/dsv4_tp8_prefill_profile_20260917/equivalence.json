@@ -1,0 +1,20 @@
+{
+  "status": "cpu_environment_equivalent",
+  "service_validated": false,
+  "source_sha256": "2cc53cb408ca88e188c683abffc2809725b1194d8766f3b0157b78c9bf42b10b",
+  "candidate_sha256": "53559654e7caa1faccaf41a1cc9b92ce6367afd00bc0d9807779dec13de4096a",
+  "source_lines": 166,
+  "candidate_lines": 109,
+  "checks": [
+    {
+      "seed": 0,
+      "environment_exact": true,
+      "key_count": 97
+    },
+    {
+      "seed": 1,
+      "environment_exact": true,
+      "key_count": 98
+    }
+  ]
+}
