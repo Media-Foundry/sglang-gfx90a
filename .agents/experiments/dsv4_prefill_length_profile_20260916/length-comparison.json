@@ -1,0 +1,114 @@
+{
+  "diagnostic_only": true,
+  "profiles": {
+    "8k": {
+      "input_tokens": 131069,
+      "gpu_envelope_s": 12.765527573333333,
+      "envelope_ms_per_token": 0.09739547546203399,
+      "stages_ms_per_token": {
+        "attn_mhc_norm": 0.007229021253436485,
+        "attn_entry_gap": 2.8398273682818465e-06,
+        "attn_prepare": 0.021531264295905208,
+        "sparse_attention": 0.010528763119679964,
+        "attn_output_projection_collective": 0.01171150015131979,
+        "ffn_mhc_norm": 0.007177383515552877,
+        "moe_collective": 0.03833062788810983
+      },
+      "nested_ms_per_token": {
+        "qkv_projection": 0.004242908798673473,
+        "qkv_prepare_plus_indexer": 0.012366591235659589,
+        "core_compressor": 0.00491286350446457,
+        "routed_stage": 0.03089869102025142,
+        "moe_output_collective": 0.005570984036398131
+      },
+      "details_ms_per_token": {
+        "ffn_post": 0.0031754270905655297,
+        "ffn_mix": 0.0015516285315368245,
+        "ffn_sinkhorn": 0.0002443984974835138,
+        "ffn_weighted_norm": 0.002200178125007948,
+        "attn_post": 0.003114717286314841,
+        "attn_mix": 0.0015247952350797415,
+        "attn_sinkhorn": 0.00023774673390860283,
+        "attn_weighted_norm": 0.0021497684425760477,
+        "index_weights": 0.00021269326334475222,
+        "index_query": 0.004786620380613773,
+        "index_compressor": 0.000895549468854827,
+        "index_owner_chain": 0.002211687177491754,
+        "index_owner_tail_marker": 1.4266277050001652e-06
+      }
+    },
+    "16k": {
+      "input_tokens": 262141,
+      "gpu_envelope_s": 26.034854666666668,
+      "envelope_ms_per_token": 0.09931622549187905,
+      "stages_ms_per_token": {
+        "attn_mhc_norm": 0.007224770791291709,
+        "attn_entry_gap": 2.847526076933152e-06,
+        "attn_prepare": 0.022996490590941516,
+        "sparse_attention": 0.011066627095087505,
+        "attn_output_projection_collective": 0.01166852668347696,
+        "ffn_mhc_norm": 0.007177371770662863,
+        "moe_collective": 0.03829602440416926
+      },
+      "nested_ms_per_token": {
+        "qkv_projection": 0.004215613429413941,
+        "qkv_prepare_plus_indexer": 0.013856356286629462,
+        "core_compressor": 0.004915623271445521,
+        "routed_stage": 0.030829870031776792,
+        "moe_output_collective": 0.005619948958766465
+      },
+      "details_ms_per_token": {
+        "ffn_post": 0.0031656541072679714,
+        "ffn_mix": 0.0015739151067555247,
+        "ffn_sinkhorn": 0.00024482437568585866,
+        "ffn_weighted_norm": 0.002187252000513718,
+        "attn_post": 0.0031164752811146165,
+        "attn_mix": 0.001525016028269773,
+        "attn_sinkhorn": 0.0002381861161232568,
+        "attn_weighted_norm": 0.0021445954657989402,
+        "index_weights": 0.00021278441754628237,
+        "index_query": 0.004795921380732761,
+        "index_compressor": 0.0008855378848278852,
+        "index_owner_chain": 0.0037128460383279746,
+        "index_owner_tail_marker": 1.437597832209896e-06
+      }
+    },
+    "32k": {
+      "input_tokens": 524286,
+      "gpu_envelope_s": 54.51612016,
+      "envelope_ms_per_token": 0.10398164391191067,
+      "stages_ms_per_token": {
+        "attn_mhc_norm": 0.007237519267473605,
+        "attn_entry_gap": 2.8442491311993838e-06,
+        "attn_prepare": 0.025936772219742662,
+        "sparse_attention": 0.012837424764346177,
+        "attn_output_projection_collective": 0.011633295415097868,
+        "ffn_mhc_norm": 0.007178512999902089,
+        "moe_collective": 0.038272653933158624
+      },
+      "nested_ms_per_token": {
+        "qkv_projection": 0.004190788081314398,
+        "qkv_prepare_plus_indexer": 0.01679352343313891,
+        "core_compressor": 0.004943557473084029,
+        "routed_stage": 0.030802643951329364,
+        "moe_output_collective": 0.005634407276435635
+      },
+      "details_ms_per_token": {
+        "ffn_post": 0.0031683569146102194,
+        "ffn_mix": 0.0015702347700809606,
+        "ffn_sinkhorn": 0.00024459688032867565,
+        "ffn_weighted_norm": 0.0021896261709575806,
+        "attn_post": 0.0031157158243147196,
+        "attn_mix": 0.0015363122163602825,
+        "attn_sinkhorn": 0.00023801909644735885,
+        "attn_weighted_norm": 0.002146044563463454,
+        "index_weights": 0.00021321726436842982,
+        "index_query": 0.004790001386011961,
+        "index_compressor": 0.000876854236046738,
+        "index_owner_chain": 0.006675974868678543,
+        "index_owner_tail_marker": 1.4577285425639224e-06
+      }
+    }
+  },
+  "caveat": "Nested scopes overlap; do not sum them with enclosing stages. Not formal throughput."
+}

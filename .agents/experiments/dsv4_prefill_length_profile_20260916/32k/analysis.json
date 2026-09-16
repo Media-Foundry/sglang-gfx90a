@@ -1,0 +1,1507 @@
+{
+  "scope": "Diagnostic spans include synchronization/waits and instrumentation. Select longest rank envelope per forward, then retain all its stages; not independent rank maxima or a synchronized multi-rank critical-path reconstruction.",
+  "snapshots": 512,
+  "warmup_frames": 128,
+  "event_envelope_ratio_range": [
+    1.0000306600666353,
+    1.000058205334786
+  ],
+  "max_rank_envelope_spread_ms": 1.6633600000000115,
+  "warm_mean_wave_ms": 54516.12016,
+  "warm_mean_stages_ms": {
+    "attn_mhc_norm": 3794.530026666667,
+    "attn_entry_gap": 1.4912,
+    "attn_prepare": 13598.28656,
+    "sparse_attention": 6730.48208,
+    "attn_output_projection_collective": 6099.17392,
+    "ffn_mhc_norm": 3763.5938666666666,
+    "moe_collective": 20065.81664
+  },
+  "warm_mean_subdivisions_ms": {
+    "qkv_projection": 2197.1715200000003,
+    "qkv_prepare_plus_indexer": 8804.609226666667,
+    "core_compressor": 2591.837973333333,
+    "routed_stage": 16149.394986666666,
+    "moe_output_collective": 2954.0408533333334
+  },
+  "waves": [
+    {
+      "sequence_range": [
+        17,
+        32
+      ],
+      "selected_ranks": [
+        1,
+        1,
+        6,
+        2,
+        0,
+        0,
+        3,
+        3,
+        1,
+        1,
+        7,
+        0,
+        2,
+        1,
+        2,
+        4
+      ],
+      "frame_ms": 54505.23984,
+      "stages_ms": {
+        "attn_mhc_norm": 3785.86144,
+        "attn_entry_gap": 1.48608,
+        "attn_prepare": 13591.9976,
+        "sparse_attention": 6732.80592,
+        "attn_output_projection_collective": 6102.43248,
+        "ffn_mhc_norm": 3762.0704,
+        "moe_collective": 20069.760000000002
+      },
+      "subdivisions_ms": {
+        "qkv_projection": 2196.3432000000003,
+        "qkv_prepare_plus_indexer": 8801.51024,
+        "core_compressor": 2589.48496,
+        "routed_stage": 16161.27056,
+        "moe_output_collective": 2945.57264
+      },
+      "interlayer_ms": 1.45487999999983,
+      "outer_ms": 457.3710400000014,
+      "http_s": 54.75615295197349
+    },
+    {
+      "sequence_range": [
+        33,
+        48
+      ],
+      "selected_ranks": [
+        2,
+        2,
+        0,
+        6,
+        0,
+        0,
+        1,
+        6,
+        6,
+        3,
+        0,
+        0,
+        3,
+        4,
+        3,
+        4
+      ],
+      "frame_ms": 54519.91376,
+      "stages_ms": {
+        "attn_mhc_norm": 3798.11296,
+        "attn_entry_gap": 1.4984000000000002,
+        "attn_prepare": 13596.00944,
+        "sparse_attention": 6726.75184,
+        "attn_output_projection_collective": 6099.80048,
+        "ffn_mhc_norm": 3768.44304,
+        "moe_collective": 20064.00288
+      },
+      "subdivisions_ms": {
+        "qkv_projection": 2197.35872,
+        "qkv_prepare_plus_indexer": 8804.00576,
+        "core_compressor": 2589.97616,
+        "routed_stage": 16145.56416,
+        "moe_output_collective": 2956.17632
+      },
+      "interlayer_ms": 1.4550400000006194,
+      "outer_ms": 463.83967999999925,
+      "http_s": 54.75299512798665
+    },
+    {
+      "sequence_range": [
+        49,
+        64
+      ],
+      "selected_ranks": [
+        0,
+        0,
+        6,
+        6,
+        0,
+        0,
+        6,
+        0,
+        0,
+        2,
+        2,
+        0,
+        1,
+        4,
+        2,
+        5
+      ],
+      "frame_ms": 54523.20688,
+      "stages_ms": {
+        "attn_mhc_norm": 3799.6156800000003,
+        "attn_entry_gap": 1.48912,
+        "attn_prepare": 13606.852640000001,
+        "sparse_attention": 6731.88848,
+        "attn_output_projection_collective": 6095.2888,
+        "ffn_mhc_norm": 3760.26816,
+        "moe_collective": 20063.68704
+      },
+      "subdivisions_ms": {
+        "qkv_projection": 2197.81264,
+        "qkv_prepare_plus_indexer": 8808.31168,
+        "core_compressor": 2596.0528,
+        "routed_stage": 16141.35024,
+        "moe_output_collective": 2960.3736
+      },
+      "interlayer_ms": 1.4641600000001054,
+      "outer_ms": 462.65279999999933,
+      "http_s": 54.744054968003184
+    }
+  ],
+  "selected_frames": [
+    {
+      "rank": 1,
+      "sequence": 17,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3399.09392,
+      "stages_ms": {
+        "attn_mhc_norm": 234.2176,
+        "attn_entry_gap": 0.09184,
+        "attn_prepare": 848.7952,
+        "sparse_attention": 420.45776,
+        "attn_output_projection_collective": 381.34224,
+        "ffn_mhc_norm": 232.96576000000002,
+        "moe_collective": 1253.7792
+      },
+      "interlayer_ms": 0.08912000000056287,
+      "outer_ms": 27.355200000000185,
+      "subdivisions_ms": {
+        "qkv_projection": 137.0416,
+        "qkv_prepare_plus_indexer": 549.28624,
+        "core_compressor": 162.1776,
+        "routed_stage": 1012.23312,
+        "moe_output_collective": 181.40848
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 18,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.52736,
+      "stages_ms": {
+        "attn_mhc_norm": 234.23808000000002,
+        "attn_entry_gap": 0.09168000000000001,
+        "attn_prepare": 849.39904,
+        "sparse_attention": 420.92784,
+        "attn_output_projection_collective": 381.80255999999997,
+        "ffn_mhc_norm": 233.1264,
+        "moe_collective": 1255.4728
+      },
+      "interlayer_ms": 0.08991999999833934,
+      "outer_ms": 28.37903999999957,
+      "subdivisions_ms": {
+        "qkv_projection": 137.10592,
+        "qkv_prepare_plus_indexer": 549.6176,
+        "core_compressor": 162.38416,
+        "routed_stage": 1012.0582400000001,
+        "moe_output_collective": 183.2496
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 19,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.3252800000005,
+      "stages_ms": {
+        "attn_mhc_norm": 236.87727999999998,
+        "attn_entry_gap": 0.09232000000000001,
+        "attn_prepare": 849.87888,
+        "sparse_attention": 422.60464,
+        "attn_output_projection_collective": 377.67024,
+        "ffn_mhc_norm": 234.6,
+        "moe_collective": 1254.68416
+      },
+      "interlayer_ms": 0.0918399999995454,
+      "outer_ms": 28.82592000000039,
+      "subdivisions_ms": {
+        "qkv_projection": 136.99216,
+        "qkv_prepare_plus_indexer": 550.4304,
+        "core_compressor": 162.16592,
+        "routed_stage": 1013.98992,
+        "moe_output_collective": 180.6824
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 20,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.68832,
+      "stages_ms": {
+        "attn_mhc_norm": 240.25776000000002,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 844.2711999999999,
+        "sparse_attention": 422.09632,
+        "attn_output_projection_collective": 378.89216000000005,
+        "ffn_mhc_norm": 239.72944,
+        "moe_collective": 1249.37552
+      },
+      "interlayer_ms": 0.09136000000029162,
+      "outer_ms": 28.88128000000026,
+      "subdivisions_ms": {
+        "qkv_projection": 135.78336000000002,
+        "qkv_prepare_plus_indexer": 549.53232,
+        "core_compressor": 158.66512,
+        "routed_stage": 1004.2580800000001,
+        "moe_output_collective": 185.2808
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 21,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.7096,
+      "stages_ms": {
+        "attn_mhc_norm": 237.54736000000003,
+        "attn_entry_gap": 0.09312000000000001,
+        "attn_prepare": 851.72704,
+        "sparse_attention": 419.52672,
+        "attn_output_projection_collective": 379.27664,
+        "ffn_mhc_norm": 233.41072,
+        "moe_collective": 1253.75456
+      },
+      "interlayer_ms": 0.09120000000069559,
+      "outer_ms": 28.282239999999756,
+      "subdivisions_ms": {
+        "qkv_projection": 137.59312,
+        "qkv_prepare_plus_indexer": 550.264,
+        "core_compressor": 163.57824,
+        "routed_stage": 1007.1166400000001,
+        "moe_output_collective": 186.64912
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 22,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.4036800000003,
+      "stages_ms": {
+        "attn_mhc_norm": 236.82672,
+        "attn_entry_gap": 0.09216,
+        "attn_prepare": 852.17264,
+        "sparse_attention": 421.03584,
+        "attn_output_projection_collective": 379.61072,
+        "ffn_mhc_norm": 233.02976,
+        "moe_collective": 1254.496
+      },
+      "interlayer_ms": 0.08911999999966065,
+      "outer_ms": 29.050720000000204,
+      "subdivisions_ms": {
+        "qkv_projection": 137.91904,
+        "qkv_prepare_plus_indexer": 550.42656,
+        "core_compressor": 163.53392,
+        "routed_stage": 1009.9576000000001,
+        "moe_output_collective": 184.65168
+      }
+    },
+    {
+      "rank": 3,
+      "sequence": 23,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.5779199999997,
+      "stages_ms": {
+        "attn_mhc_norm": 235.28080000000003,
+        "attn_entry_gap": 0.092,
+        "attn_prepare": 847.22848,
+        "sparse_attention": 420.388,
+        "attn_output_projection_collective": 383.71392,
+        "ffn_mhc_norm": 235.19888,
+        "moe_collective": 1255.5593600000002
+      },
+      "interlayer_ms": 0.09183999999992375,
+      "outer_ms": 29.024639999999664,
+      "subdivisions_ms": {
+        "qkv_projection": 136.83408,
+        "qkv_prepare_plus_indexer": 550.184,
+        "core_compressor": 159.92112,
+        "routed_stage": 1009.21072,
+        "moe_output_collective": 186.28224
+      }
+    },
+    {
+      "rank": 3,
+      "sequence": 24,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.28528,
+      "stages_ms": {
+        "attn_mhc_norm": 235.31168,
+        "attn_entry_gap": 0.09248,
+        "attn_prepare": 846.74512,
+        "sparse_attention": 420.67632000000003,
+        "attn_output_projection_collective": 384.18048,
+        "ffn_mhc_norm": 234.6288,
+        "moe_collective": 1254.58368
+      },
+      "interlayer_ms": 0.09120000000180152,
+      "outer_ms": 28.975520000000483,
+      "subdivisions_ms": {
+        "qkv_projection": 136.71568,
+        "qkv_prepare_plus_indexer": 550.03088,
+        "core_compressor": 159.7096,
+        "routed_stage": 1007.8867200000001,
+        "moe_output_collective": 186.61328
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 25,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3402.7198399999997,
+      "stages_ms": {
+        "attn_mhc_norm": 234.15312,
+        "attn_entry_gap": 0.09376000000000001,
+        "attn_prepare": 849.3294400000001,
+        "sparse_attention": 420.2008,
+        "attn_output_projection_collective": 382.73472000000004,
+        "ffn_mhc_norm": 233.27568,
+        "moe_collective": 1253.69328
+      },
+      "interlayer_ms": 0.09199999999902503,
+      "outer_ms": 29.147040000000036,
+      "subdivisions_ms": {
+        "qkv_projection": 137.14544,
+        "qkv_prepare_plus_indexer": 549.50032,
+        "core_compressor": 162.38832,
+        "routed_stage": 1011.39072,
+        "moe_output_collective": 182.16336
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 26,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.04256,
+      "stages_ms": {
+        "attn_mhc_norm": 234.64880000000002,
+        "attn_entry_gap": 0.0936,
+        "attn_prepare": 849.5723200000001,
+        "sparse_attention": 420.7472,
+        "attn_output_projection_collective": 382.50064000000003,
+        "ffn_mhc_norm": 232.73551999999998,
+        "moe_collective": 1254.76304
+      },
+      "interlayer_ms": 0.09071999999943364,
+      "outer_ms": 27.890720000000204,
+      "subdivisions_ms": {
+        "qkv_projection": 137.01616,
+        "qkv_prepare_plus_indexer": 549.90656,
+        "core_compressor": 162.35824,
+        "routed_stage": 1011.03648,
+        "moe_output_collective": 183.60464
+      }
+    },
+    {
+      "rank": 7,
+      "sequence": 27,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3424.20896,
+      "stages_ms": {
+        "attn_mhc_norm": 234.73760000000001,
+        "attn_entry_gap": 0.09456,
+        "attn_prepare": 859.024,
+        "sparse_attention": 421.73344000000003,
+        "attn_output_projection_collective": 382.87440000000004,
+        "ffn_mhc_norm": 234.17632,
+        "moe_collective": 1262.28096
+      },
+      "interlayer_ms": 0.09199999999943248,
+      "outer_ms": 29.1956799999997,
+      "subdivisions_ms": {
+        "qkv_projection": 140.64512,
+        "qkv_prepare_plus_indexer": 551.6771200000001,
+        "core_compressor": 166.41168,
+        "routed_stage": 1020.16288,
+        "moe_output_collective": 180.56176
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 28,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3423.94384,
+      "stages_ms": {
+        "attn_mhc_norm": 237.30432000000002,
+        "attn_entry_gap": 0.09280000000000001,
+        "attn_prepare": 859.4716800000001,
+        "sparse_attention": 418.76048,
+        "attn_output_projection_collective": 384.84752000000003,
+        "ffn_mhc_norm": 233.30496,
+        "moe_collective": 1261.1108800000002
+      },
+      "interlayer_ms": 0.09168000000098254,
+      "outer_ms": 28.95952000000002,
+      "subdivisions_ms": {
+        "qkv_projection": 140.47648,
+        "qkv_prepare_plus_indexer": 551.85968,
+        "core_compressor": 166.84096,
+        "routed_stage": 1014.45744,
+        "moe_output_collective": 185.5784
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 29,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.09376,
+      "stages_ms": {
+        "attn_mhc_norm": 239.98496,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 844.5808000000001,
+        "sparse_attention": 422.8368,
+        "attn_output_projection_collective": 378.81696,
+        "ffn_mhc_norm": 239.56832,
+        "moe_collective": 1251.1027199999999
+      },
+      "interlayer_ms": 0.09120000000116124,
+      "outer_ms": 29.018720000000204,
+      "subdivisions_ms": {
+        "qkv_projection": 135.76368,
+        "qkv_prepare_plus_indexer": 549.82736,
+        "core_compressor": 158.69744,
+        "routed_stage": 1004.93248,
+        "moe_output_collective": 186.23376
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 30,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3402.7947200000003,
+      "stages_ms": {
+        "attn_mhc_norm": 234.46256,
+        "attn_entry_gap": 0.0936,
+        "attn_prepare": 849.6961600000001,
+        "sparse_attention": 421.1136,
+        "attn_output_projection_collective": 382.148,
+        "ffn_mhc_norm": 232.83488,
+        "moe_collective": 1255.05232
+      },
+      "interlayer_ms": 0.09184000000004017,
+      "outer_ms": 27.301760000000243,
+      "subdivisions_ms": {
+        "qkv_projection": 137.08336,
+        "qkv_prepare_plus_indexer": 550.03616,
+        "core_compressor": 162.28480000000002,
+        "routed_stage": 1011.9729600000001,
+        "moe_output_collective": 183.02224
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 31,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.08912,
+      "stages_ms": {
+        "attn_mhc_norm": 239.63168,
+        "attn_entry_gap": 0.09248,
+        "attn_prepare": 844.26064,
+        "sparse_attention": 423.1,
+        "attn_output_projection_collective": 378.70928000000004,
+        "ffn_mhc_norm": 239.89792,
+        "moe_collective": 1251.13104
+      },
+      "interlayer_ms": 0.09072000000008848,
+      "outer_ms": 29.175360000000335,
+      "subdivisions_ms": {
+        "qkv_projection": 135.7648,
+        "qkv_prepare_plus_indexer": 549.4651200000001,
+        "core_compressor": 158.74032,
+        "routed_stage": 1004.9808,
+        "moe_output_collective": 186.32224
+      }
+    },
+    {
+      "rank": 4,
+      "sequence": 32,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3402.7356800000002,
+      "stages_ms": {
+        "attn_mhc_norm": 240.38111999999998,
+        "attn_entry_gap": 0.09312000000000001,
+        "attn_prepare": 845.84496,
+        "sparse_attention": 416.60016,
+        "attn_output_projection_collective": 383.312,
+        "ffn_mhc_norm": 239.58704,
+        "moe_collective": 1248.92048
+      },
+      "interlayer_ms": 0.08911999999884575,
+      "outer_ms": 27.907680000000166,
+      "subdivisions_ms": {
+        "qkv_projection": 136.4632,
+        "qkv_prepare_plus_indexer": 549.46592,
+        "core_compressor": 159.62752,
+        "routed_stage": 1005.62576,
+        "moe_output_collective": 183.26864
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 33,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3400.6532800000004,
+      "stages_ms": {
+        "attn_mhc_norm": 239.64464,
+        "attn_entry_gap": 0.09232000000000001,
+        "attn_prepare": 842.65904,
+        "sparse_attention": 423.8824,
+        "attn_output_projection_collective": 378.66432000000003,
+        "ffn_mhc_norm": 239.30528,
+        "moe_collective": 1247.89856
+      },
+      "interlayer_ms": 0.09088000000089233,
+      "outer_ms": 28.415840000000316,
+      "subdivisions_ms": {
+        "qkv_projection": 135.54848,
+        "qkv_prepare_plus_indexer": 548.45392,
+        "core_compressor": 158.36624,
+        "routed_stage": 1002.88352,
+        "moe_output_collective": 185.10016000000002
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 34,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.896,
+      "stages_ms": {
+        "attn_mhc_norm": 239.42623999999998,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 843.95664,
+        "sparse_attention": 422.74735999999996,
+        "attn_output_projection_collective": 378.88464,
+        "ffn_mhc_norm": 239.7072,
+        "moe_collective": 1249.59984
+      },
+      "interlayer_ms": 0.09168000000061875,
+      "outer_ms": 29.389120000000112,
+      "subdivisions_ms": {
+        "qkv_projection": 135.73760000000001,
+        "qkv_prepare_plus_indexer": 549.3624,
+        "core_compressor": 158.56432,
+        "routed_stage": 1004.7856,
+        "moe_output_collective": 184.94096
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 35,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.18992,
+      "stages_ms": {
+        "attn_mhc_norm": 237.54,
+        "attn_entry_gap": 0.09232000000000001,
+        "attn_prepare": 851.464,
+        "sparse_attention": 420.59904000000006,
+        "attn_output_projection_collective": 379.38768,
+        "ffn_mhc_norm": 233.56464000000003,
+        "moe_collective": 1254.0870400000001
+      },
+      "interlayer_ms": 0.0899200000003766,
+      "outer_ms": 29.365279999999796,
+      "subdivisions_ms": {
+        "qkv_projection": 137.6576,
+        "qkv_prepare_plus_indexer": 549.96624,
+        "core_compressor": 163.54992000000001,
+        "routed_stage": 1007.25088,
+        "moe_output_collective": 186.89312
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 36,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.5222400000002,
+      "stages_ms": {
+        "attn_mhc_norm": 235.54848,
+        "attn_entry_gap": 0.09280000000000001,
+        "attn_prepare": 850.2329599999999,
+        "sparse_attention": 423.24128,
+        "attn_output_projection_collective": 377.80368,
+        "ffn_mhc_norm": 234.53392000000002,
+        "moe_collective": 1253.9659199999999
+      },
+      "interlayer_ms": 0.09120000000012805,
+      "outer_ms": 29.012,
+      "subdivisions_ms": {
+        "qkv_projection": 137.21152,
+        "qkv_prepare_plus_indexer": 550.32848,
+        "core_compressor": 162.39856,
+        "routed_stage": 1013.0104,
+        "moe_output_collective": 180.89824000000002
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 37,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.02544,
+      "stages_ms": {
+        "attn_mhc_norm": 237.21872,
+        "attn_entry_gap": 0.09424,
+        "attn_prepare": 852.1344,
+        "sparse_attention": 419.46,
+        "attn_output_projection_collective": 379.64848000000006,
+        "ffn_mhc_norm": 233.77376,
+        "moe_collective": 1253.56912
+      },
+      "interlayer_ms": 0.0903999999990192,
+      "outer_ms": 29.036319999999833,
+      "subdivisions_ms": {
+        "qkv_projection": 137.57968,
+        "qkv_prepare_plus_indexer": 550.78336,
+        "core_compressor": 163.47935999999999,
+        "routed_stage": 1007.61776,
+        "moe_output_collective": 186.00688
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 38,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.8984,
+      "stages_ms": {
+        "attn_mhc_norm": 237.07504,
+        "attn_entry_gap": 0.09440000000000001,
+        "attn_prepare": 851.88864,
+        "sparse_attention": 419.31104,
+        "attn_output_projection_collective": 379.80656,
+        "ffn_mhc_norm": 233.49776,
+        "moe_collective": 1254.1331200000002
+      },
+      "interlayer_ms": 0.09008000000113679,
+      "outer_ms": 29.001759999999777,
+      "subdivisions_ms": {
+        "qkv_projection": 137.78112000000002,
+        "qkv_prepare_plus_indexer": 550.3192,
+        "core_compressor": 163.4984,
+        "routed_stage": 1008.4528,
+        "moe_output_collective": 185.75792
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 39,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3407.79008,
+      "stages_ms": {
+        "attn_mhc_norm": 236.01936,
+        "attn_entry_gap": 0.0936,
+        "attn_prepare": 849.56624,
+        "sparse_attention": 420.7912,
+        "attn_output_projection_collective": 382.29040000000003,
+        "ffn_mhc_norm": 233.24720000000002,
+        "moe_collective": 1256.1312
+      },
+      "interlayer_ms": 0.09199999999988359,
+      "outer_ms": 29.55887999999989,
+      "subdivisions_ms": {
+        "qkv_projection": 137.01760000000002,
+        "qkv_prepare_plus_indexer": 549.96992,
+        "core_compressor": 162.28464,
+        "routed_stage": 1013.5675200000001,
+        "moe_output_collective": 182.496
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 40,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.42576,
+      "stages_ms": {
+        "attn_mhc_norm": 236.37904,
+        "attn_entry_gap": 0.09296000000000001,
+        "attn_prepare": 850.244,
+        "sparse_attention": 423.79648000000003,
+        "attn_output_projection_collective": 377.2312,
+        "ffn_mhc_norm": 234.83376,
+        "moe_collective": 1253.15856
+      },
+      "interlayer_ms": 0.09119999999918219,
+      "outer_ms": 29.598560000000056,
+      "subdivisions_ms": {
+        "qkv_projection": 137.13328,
+        "qkv_prepare_plus_indexer": 550.28512,
+        "core_compressor": 162.53568,
+        "routed_stage": 1011.35952,
+        "moe_output_collective": 181.70992
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 41,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.80352,
+      "stages_ms": {
+        "attn_mhc_norm": 236.45088,
+        "attn_entry_gap": 0.09312000000000001,
+        "attn_prepare": 850.32304,
+        "sparse_attention": 423.71760000000006,
+        "attn_output_projection_collective": 377.43328,
+        "ffn_mhc_norm": 234.4384,
+        "moe_collective": 1252.7686400000002
+      },
+      "interlayer_ms": 0.09023999999930675,
+      "outer_ms": 29.488320000000297,
+      "subdivisions_ms": {
+        "qkv_projection": 137.14352,
+        "qkv_prepare_plus_indexer": 550.49456,
+        "core_compressor": 162.39440000000002,
+        "routed_stage": 1011.4504000000001,
+        "moe_output_collective": 181.14336
+      }
+    },
+    {
+      "rank": 3,
+      "sequence": 42,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.26304,
+      "stages_ms": {
+        "attn_mhc_norm": 235.12592,
+        "attn_entry_gap": 0.09456,
+        "attn_prepare": 847.80128,
+        "sparse_attention": 420.77808,
+        "attn_output_projection_collective": 383.24496000000005,
+        "ffn_mhc_norm": 234.77808000000002,
+        "moe_collective": 1254.5064000000002
+      },
+      "interlayer_ms": 0.09344000000078813,
+      "outer_ms": 27.84031999999983,
+      "subdivisions_ms": {
+        "qkv_projection": 136.96880000000002,
+        "qkv_prepare_plus_indexer": 550.47312,
+        "core_compressor": 160.06448,
+        "routed_stage": 1008.1368,
+        "moe_output_collective": 186.33968000000002
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 43,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3429.16976,
+      "stages_ms": {
+        "attn_mhc_norm": 238.0552,
+        "attn_entry_gap": 0.09456,
+        "attn_prepare": 858.85872,
+        "sparse_attention": 418.56688,
+        "attn_output_projection_collective": 384.3888,
+        "ffn_mhc_norm": 234.59616,
+        "moe_collective": 1265.18544
+      },
+      "interlayer_ms": 0.08896000000067579,
+      "outer_ms": 29.33504000000004,
+      "subdivisions_ms": {
+        "qkv_projection": 140.3632,
+        "qkv_prepare_plus_indexer": 551.6048,
+        "core_compressor": 166.59856,
+        "routed_stage": 1014.68704,
+        "moe_output_collective": 189.38144
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 44,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3424.71792,
+      "stages_ms": {
+        "attn_mhc_norm": 237.89248,
+        "attn_entry_gap": 0.0952,
+        "attn_prepare": 859.65728,
+        "sparse_attention": 418.75536,
+        "attn_output_projection_collective": 384.60720000000003,
+        "ffn_mhc_norm": 233.79680000000002,
+        "moe_collective": 1260.2283200000002
+      },
+      "interlayer_ms": 0.09039999999843712,
+      "outer_ms": 29.594879999999424,
+      "subdivisions_ms": {
+        "qkv_projection": 140.42336,
+        "qkv_prepare_plus_indexer": 552.26304,
+        "core_compressor": 166.67824,
+        "routed_stage": 1013.8676800000001,
+        "moe_output_collective": 185.248
+      }
+    },
+    {
+      "rank": 3,
+      "sequence": 45,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.92896,
+      "stages_ms": {
+        "attn_mhc_norm": 235.78016,
+        "attn_entry_gap": 0.09536,
+        "attn_prepare": 847.42128,
+        "sparse_attention": 419.59184000000005,
+        "attn_output_projection_collective": 383.82592,
+        "ffn_mhc_norm": 234.42095999999998,
+        "moe_collective": 1254.7416
+      },
+      "interlayer_ms": 0.09312000000011175,
+      "outer_ms": 28.95871999999974,
+      "subdivisions_ms": {
+        "qkv_projection": 136.88224,
+        "qkv_prepare_plus_indexer": 550.08368,
+        "core_compressor": 160.16224,
+        "routed_stage": 1008.78352,
+        "moe_output_collective": 185.91728
+      }
+    },
+    {
+      "rank": 4,
+      "sequence": 46,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.42816,
+      "stages_ms": {
+        "attn_mhc_norm": 239.452,
+        "attn_entry_gap": 0.09280000000000001,
+        "attn_prepare": 846.21984,
+        "sparse_attention": 416.11424,
+        "attn_output_projection_collective": 384.29264,
+        "ffn_mhc_norm": 239.73936,
+        "moe_collective": 1249.2206400000002
+      },
+      "interlayer_ms": 0.09023999999962688,
+      "outer_ms": 28.20640000000037,
+      "subdivisions_ms": {
+        "qkv_projection": 136.4376,
+        "qkv_prepare_plus_indexer": 549.89792,
+        "core_compressor": 159.59424,
+        "routed_stage": 1005.22176,
+        "moe_output_collective": 184.00944
+      }
+    },
+    {
+      "rank": 3,
+      "sequence": 47,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.40416,
+      "stages_ms": {
+        "attn_mhc_norm": 235.41216,
+        "attn_entry_gap": 0.09408000000000001,
+        "attn_prepare": 847.61984,
+        "sparse_attention": 419.67088,
+        "attn_output_projection_collective": 383.80624,
+        "ffn_mhc_norm": 234.90079999999998,
+        "moe_collective": 1254.76
+      },
+      "interlayer_ms": 0.09072000000043773,
+      "outer_ms": 29.049439999999944,
+      "subdivisions_ms": {
+        "qkv_projection": 136.96528,
+        "qkv_prepare_plus_indexer": 550.25776,
+        "core_compressor": 160.104,
+        "routed_stage": 1008.76304,
+        "moe_output_collective": 185.90112
+      }
+    },
+    {
+      "rank": 4,
+      "sequence": 48,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.79712,
+      "stages_ms": {
+        "attn_mhc_norm": 241.09264000000002,
+        "attn_entry_gap": 0.09280000000000001,
+        "attn_prepare": 845.96224,
+        "sparse_attention": 415.72816000000006,
+        "attn_output_projection_collective": 384.48447999999996,
+        "ffn_mhc_norm": 239.30895999999998,
+        "moe_collective": 1250.04848
+      },
+      "interlayer_ms": 0.09055999999999767,
+      "outer_ms": 27.988799999999813,
+      "subdivisions_ms": {
+        "qkv_projection": 136.50784000000002,
+        "qkv_prepare_plus_indexer": 549.46224,
+        "core_compressor": 159.70288,
+        "routed_stage": 1005.72592,
+        "moe_output_collective": 184.43280000000001
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 49,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3402.1841600000002,
+      "stages_ms": {
+        "attn_mhc_norm": 237.3664,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 850.72272,
+        "sparse_attention": 419.88608,
+        "attn_output_projection_collective": 379.33856,
+        "ffn_mhc_norm": 233.60880000000003,
+        "moe_collective": 1252.16
+      },
+      "interlayer_ms": 0.09087999999852037,
+      "outer_ms": 28.91744000000041,
+      "subdivisions_ms": {
+        "qkv_projection": 137.44192,
+        "qkv_prepare_plus_indexer": 549.7731200000001,
+        "core_compressor": 163.21584000000001,
+        "routed_stage": 1005.7488,
+        "moe_output_collective": 186.53104000000002
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 50,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.73792,
+      "stages_ms": {
+        "attn_mhc_norm": 237.01952000000003,
+        "attn_entry_gap": 0.09248,
+        "attn_prepare": 851.8951999999999,
+        "sparse_attention": 419.56384,
+        "attn_output_projection_collective": 379.812,
+        "ffn_mhc_norm": 233.21312,
+        "moe_collective": 1254.7464
+      },
+      "interlayer_ms": 0.09023999999939405,
+      "outer_ms": 29.305119999999647,
+      "subdivisions_ms": {
+        "qkv_projection": 137.80368,
+        "qkv_prepare_plus_indexer": 550.37648,
+        "core_compressor": 163.42304,
+        "routed_stage": 1009.59072,
+        "moe_output_collective": 185.27072
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 51,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.86816,
+      "stages_ms": {
+        "attn_mhc_norm": 236.47408000000001,
+        "attn_entry_gap": 0.092,
+        "attn_prepare": 850.47792,
+        "sparse_attention": 423.07472,
+        "attn_output_projection_collective": 377.55568,
+        "ffn_mhc_norm": 234.57680000000002,
+        "moe_collective": 1253.08464
+      },
+      "interlayer_ms": 0.09072000000036497,
+      "outer_ms": 29.441600000000093,
+      "subdivisions_ms": {
+        "qkv_projection": 137.27488,
+        "qkv_prepare_plus_indexer": 550.3211200000001,
+        "core_compressor": 162.58928,
+        "routed_stage": 1011.7096,
+        "moe_output_collective": 181.29456
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 52,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.28224,
+      "stages_ms": {
+        "attn_mhc_norm": 236.09792000000002,
+        "attn_entry_gap": 0.09232000000000001,
+        "attn_prepare": 850.9576,
+        "sparse_attention": 423.43647999999996,
+        "attn_output_projection_collective": 377.25903999999997,
+        "ffn_mhc_norm": 234.16016,
+        "moe_collective": 1254.0472
+      },
+      "interlayer_ms": 0.09167999999965833,
+      "outer_ms": 29.13983999999985,
+      "subdivisions_ms": {
+        "qkv_projection": 137.30352,
+        "qkv_prepare_plus_indexer": 550.8584,
+        "core_compressor": 162.50672,
+        "routed_stage": 1013.0944000000001,
+        "moe_output_collective": 180.79088000000002
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 53,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.1140800000003,
+      "stages_ms": {
+        "attn_mhc_norm": 237.53552,
+        "attn_entry_gap": 0.09280000000000001,
+        "attn_prepare": 851.8168000000001,
+        "sparse_attention": 419.64784000000003,
+        "attn_output_projection_collective": 380.01488,
+        "ffn_mhc_norm": 233.39776,
+        "moe_collective": 1254.33312
+      },
+      "interlayer_ms": 0.09136000000049535,
+      "outer_ms": 29.184,
+      "subdivisions_ms": {
+        "qkv_projection": 137.66768,
+        "qkv_prepare_plus_indexer": 550.19568,
+        "core_compressor": 163.66032,
+        "routed_stage": 1008.31024,
+        "moe_output_collective": 186.09648
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 54,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.57408,
+      "stages_ms": {
+        "attn_mhc_norm": 237.23552,
+        "attn_entry_gap": 0.09376000000000001,
+        "attn_prepare": 852.3196800000001,
+        "sparse_attention": 419.47456,
+        "attn_output_projection_collective": 379.8056,
+        "ffn_mhc_norm": 233.29344,
+        "moe_collective": 1255.20192
+      },
+      "interlayer_ms": 0.0908799999988696,
+      "outer_ms": 29.058719999999738,
+      "subdivisions_ms": {
+        "qkv_projection": 137.8512,
+        "qkv_prepare_plus_indexer": 550.64048,
+        "core_compressor": 163.53776,
+        "routed_stage": 1009.77648,
+        "moe_output_collective": 185.4928
+      }
+    },
+    {
+      "rank": 6,
+      "sequence": 55,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3407.55296,
+      "stages_ms": {
+        "attn_mhc_norm": 236.79536000000002,
+        "attn_entry_gap": 0.09216,
+        "attn_prepare": 850.74064,
+        "sparse_attention": 424.32736,
+        "attn_output_projection_collective": 376.90816,
+        "ffn_mhc_norm": 234.33392,
+        "moe_collective": 1254.9496000000001
+      },
+      "interlayer_ms": 0.09072000000008848,
+      "outer_ms": 29.31504000000004,
+      "subdivisions_ms": {
+        "qkv_projection": 137.22848,
+        "qkv_prepare_plus_indexer": 550.53584,
+        "core_compressor": 162.68608,
+        "routed_stage": 1013.6088,
+        "moe_output_collective": 181.108
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 56,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.5052800000003,
+      "stages_ms": {
+        "attn_mhc_norm": 236.93952000000002,
+        "attn_entry_gap": 0.09344000000000001,
+        "attn_prepare": 852.1380800000001,
+        "sparse_attention": 420.07968,
+        "attn_output_projection_collective": 380.0384,
+        "ffn_mhc_norm": 233.06448,
+        "moe_collective": 1253.62336
+      },
+      "interlayer_ms": 0.09120000000057917,
+      "outer_ms": 29.43712000000011,
+      "subdivisions_ms": {
+        "qkv_projection": 137.81472,
+        "qkv_prepare_plus_indexer": 550.6094400000001,
+        "core_compressor": 163.42256,
+        "routed_stage": 1007.84176,
+        "moe_output_collective": 185.8504
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 57,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.57776,
+      "stages_ms": {
+        "attn_mhc_norm": 237.11376,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 852.2193599999999,
+        "sparse_attention": 419.704,
+        "attn_output_projection_collective": 379.38864,
+        "ffn_mhc_norm": 233.7344,
+        "moe_collective": 1252.14128
+      },
+      "interlayer_ms": 0.09151999999959662,
+      "outer_ms": 29.091520000000017,
+      "subdivisions_ms": {
+        "qkv_projection": 137.61568,
+        "qkv_prepare_plus_indexer": 550.80704,
+        "core_compressor": 163.5064,
+        "routed_stage": 1006.30512,
+        "moe_output_collective": 185.89216
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 58,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3404.76848,
+      "stages_ms": {
+        "attn_mhc_norm": 239.54608000000002,
+        "attn_entry_gap": 0.0952,
+        "attn_prepare": 845.4916800000001,
+        "sparse_attention": 423.144,
+        "attn_output_projection_collective": 378.93152000000003,
+        "ffn_mhc_norm": 239.19072,
+        "moe_collective": 1250.0406400000002
+      },
+      "interlayer_ms": 0.09488000000045577,
+      "outer_ms": 28.233759999999776,
+      "subdivisions_ms": {
+        "qkv_projection": 135.85856,
+        "qkv_prepare_plus_indexer": 550.3592,
+        "core_compressor": 158.9768,
+        "routed_stage": 1005.4150400000001,
+        "moe_output_collective": 184.7432
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 59,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3425.05008,
+      "stages_ms": {
+        "attn_mhc_norm": 239.63456,
+        "attn_entry_gap": 0.09408000000000001,
+        "attn_prepare": 852.64192,
+        "sparse_attention": 423.60288,
+        "attn_output_projection_collective": 383.48447999999996,
+        "ffn_mhc_norm": 238.86896,
+        "moe_collective": 1257.45696
+      },
+      "interlayer_ms": 0.09408000000071479,
+      "outer_ms": 29.172160000000147,
+      "subdivisions_ms": {
+        "qkv_projection": 138.70464,
+        "qkv_prepare_plus_indexer": 551.4321600000001,
+        "core_compressor": 162.20464,
+        "routed_stage": 1011.13632,
+        "moe_output_collective": 185.05808
+      }
+    },
+    {
+      "rank": 0,
+      "sequence": 60,
+      "rows": 32767,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3425.5883200000003,
+      "stages_ms": {
+        "attn_mhc_norm": 237.0472,
+        "attn_entry_gap": 0.09152,
+        "attn_prepare": 859.9544000000001,
+        "sparse_attention": 419.35936,
+        "attn_output_projection_collective": 385.28704,
+        "ffn_mhc_norm": 232.86464,
+        "moe_collective": 1261.6838400000001
+      },
+      "interlayer_ms": 0.09103999999912048,
+      "outer_ms": 29.20928000000026,
+      "subdivisions_ms": {
+        "qkv_projection": 140.5832,
+        "qkv_prepare_plus_indexer": 552.1771200000001,
+        "core_compressor": 166.9008,
+        "routed_stage": 1014.85568,
+        "moe_output_collective": 185.76144
+      }
+    },
+    {
+      "rank": 1,
+      "sequence": 61,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.48144,
+      "stages_ms": {
+        "attn_mhc_norm": 234.60608000000002,
+        "attn_entry_gap": 0.09328,
+        "attn_prepare": 849.7504,
+        "sparse_attention": 420.78112,
+        "attn_output_projection_collective": 383.03488,
+        "ffn_mhc_norm": 232.56560000000002,
+        "moe_collective": 1255.6648
+      },
+      "interlayer_ms": 0.09040000000191503,
+      "outer_ms": 28.894879999999887,
+      "subdivisions_ms": {
+        "qkv_projection": 137.03232,
+        "qkv_prepare_plus_indexer": 550.14896,
+        "core_compressor": 162.27872,
+        "routed_stage": 1012.3902400000001,
+        "moe_output_collective": 183.09616
+      }
+    },
+    {
+      "rank": 4,
+      "sequence": 62,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3403.18448,
+      "stages_ms": {
+        "attn_mhc_norm": 240.1056,
+        "attn_entry_gap": 0.09232000000000001,
+        "attn_prepare": 846.0947199999999,
+        "sparse_attention": 415.97264,
+        "attn_output_projection_collective": 384.89936,
+        "ffn_mhc_norm": 239.97296000000003,
+        "moe_collective": 1248.56848
+      },
+      "interlayer_ms": 0.0902399999996851,
+      "outer_ms": 27.388159999999683,
+      "subdivisions_ms": {
+        "qkv_projection": 136.41664,
+        "qkv_prepare_plus_indexer": 549.7648,
+        "core_compressor": 159.62496,
+        "routed_stage": 1005.07776,
+        "moe_output_collective": 183.53712000000002
+      }
+    },
+    {
+      "rank": 2,
+      "sequence": 63,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3406.15488,
+      "stages_ms": {
+        "attn_mhc_norm": 240.04704,
+        "attn_entry_gap": 0.09456,
+        "attn_prepare": 845.0768,
+        "sparse_attention": 423.40176,
+        "attn_output_projection_collective": 379.18912,
+        "ffn_mhc_norm": 239.03152000000003,
+        "moe_collective": 1250.16048
+      },
+      "interlayer_ms": 0.0940800000004092,
+      "outer_ms": 29.05951999999955,
+      "subdivisions_ms": {
+        "qkv_projection": 135.7264,
+        "qkv_prepare_plus_indexer": 550.16336,
+        "core_compressor": 158.89104,
+        "routed_stage": 1004.33696,
+        "moe_output_collective": 185.91296
+      }
+    },
+    {
+      "rank": 5,
+      "sequence": 64,
+      "rows": 32768,
+      "requests": 1,
+      "prefix_lens": [
+        0
+      ],
+      "frame_ms": 3405.58256,
+      "stages_ms": {
+        "attn_mhc_norm": 236.05152,
+        "attn_entry_gap": 0.09264,
+        "attn_prepare": 844.55472,
+        "sparse_attention": 416.43216,
+        "attn_output_projection_collective": 390.34144,
+        "ffn_mhc_norm": 234.39088,
+        "moe_collective": 1255.8243200000002
+      },
+      "interlayer_ms": 0.09024000000023807,
+      "outer_ms": 27.80464000000013,
+      "subdivisions_ms": {
+        "qkv_projection": 135.48912,
+        "qkv_prepare_plus_indexer": 550.1484800000001,
+        "core_compressor": 158.62784,
+        "routed_stage": 1002.15232,
+        "moe_output_collective": 193.9376
+      }
+    }
+  ]
+}
