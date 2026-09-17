@@ -1,0 +1,144 @@
+{
+  "archive": "evidence.tar.gz",
+  "bytes": 44426,
+  "sha256": "e87698c5243e57e30b6944ba1049050bfd3202a65761913188b7dd32f62b9a09",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_c16_owner_producer_20260915/capture/oracle/report.json",
+      "bytes": 11225,
+      "sha256": "3bb3fc99205dacbfd4e8029f06c452f5141b9d44e7cc1aed08d96eef1dbc8480"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi-stream-guard-evidence.tar.gz",
+      "bytes": 3113,
+      "sha256": "b4397c1125299161aa18268065dea55f91fb62a6160ada21999de9e7a3f5e19c"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi-stream-guard.json",
+      "bytes": 8847,
+      "sha256": "1476c99e12f596b32a9ba0e849fd00ca3760d9e535b0806677847ac3964c581b"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi-stream-guard.log",
+      "bytes": 836,
+      "sha256": "126bbc092116930690ab8d63a199cf411a4b1314d0e749f8ba62689108281e26"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi.json",
+      "bytes": 8443,
+      "sha256": "621cc3ebbc8e09cbd17c7ddeb59d270983f4f639bde38761b2badffcef919c05"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/abi.py",
+      "bytes": 5096,
+      "sha256": "53d041151e8032d21cb92c76027bd8b840d5d1863c371e85db9ebb3397fc1ea6"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/archive.py",
+      "bytes": 2233,
+      "sha256": "d898c05c4a5e4122560e33e13ae49ba76a5ada01706f2dabebf24d33eed95e3b"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/build-driver.log",
+      "bytes": 3457,
+      "sha256": "3b8b2ea12832488abe36ebba377a60988e7590613c2e67917fc288ab229756fd"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/build-v1/build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/build-v1/manifest.json",
+      "bytes": 3457,
+      "sha256": "3b8b2ea12832488abe36ebba377a60988e7590613c2e67917fc288ab229756fd"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/build.py",
+      "bytes": 1200,
+      "sha256": "19b2d42a3d1ba01638f51f574cfa6b4324aa9d1fdac61e766fbeedbadaa68ef7"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/confirm.json",
+      "bytes": 69186,
+      "sha256": "ad886eed65ec75221a7c11cd1232000b5b4d24460449b1f01127cf1cf1d2dc13"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/confirm.log",
+      "bytes": 569,
+      "sha256": "25b8593de876db594ea2823858ddab8c983c11a164baf13440fab95c0ba0b996"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/confirm.py",
+      "bytes": 5637,
+      "sha256": "b32ee9d7cb9a8b14719a5b0f1422e87ec5ad023655c2fb09aec53c7045eb22d5"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/direct.py",
+      "bytes": 2913,
+      "sha256": "c7bd2b8d627be113e749fb93f9b362ec874cc2198dc22eb724c3fee0ac4e6a33"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/direct_lt.cpp",
+      "bytes": 3549,
+      "sha256": "e29636e9b267d09094187b0a70fc586183dc864142dd26d78921ecec67b10145"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/oracle.json",
+      "bytes": 106771,
+      "sha256": "c364d9bdad58fae9cd5181e0ee029827b0d179359d4cd2f5d2e4076a7f831f1d"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/oracle.log",
+      "bytes": 5122,
+      "sha256": "f75a433050398fe9c4ad10fc5fd3e6a700f23a20e75950000b54d06b1d617d87"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/oracle.py",
+      "bytes": 7213,
+      "sha256": "7228b38521b6d3b426082889451be6d6090728c2e2be6e9766a04b47379dfdc3"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/planner-count-failure.log",
+      "bytes": 514,
+      "sha256": "ad38b1a84c736e5740086c3f66ef12bcd227df40f25140cad890032949d7ec94"
+    },
+    {
+      "path": ".agents/experiments/dsv4_owner_query_phase_20260917/planner-count-failure.tar.gz",
+      "bytes": 3243,
+      "sha256": "b8ee3e678bf3d2b4b9aaeeb519cb57758bcc05a4eec51fd9e333a02c5f94a71a"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.py",
+      "bytes": 9252,
+      "sha256": "9a95a27005e631d6add177853e65edcfb55840f8ece68016a6129ba7e2369c66"
+    },
+    {
+      "path": "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_owner.py",
+      "bytes": 9233,
+      "sha256": "4c8994e87e9cd2058f5fb9a9b17c5202320ae45d6fd5c1f35ac9c2d238b8821e"
+    },
+    {
+      "path": "python/sglang/kernels/ops/attention/dsv4/gfx90a_indexer_producer.py",
+      "bytes": 7168,
+      "sha256": "0aa3dbeca002e61695ccbdc33543fdd36d37a6c24e21ff12a1986a605cc22a83"
+    },
+    {
+      "path": "python/sglang/kernels/ops/attention/dsv4/gfx90a_rocblas_linear.py",
+      "bytes": 3061,
+      "sha256": "11762c87fcf9ef436f44d82a7461f203f9f8257b9de6fe86a437ec3707a49f53"
+    }
+  ],
+  "local_input": {
+    "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_c16_owner_producer_20260915/capture/oracle/inputs.pt",
+    "sha256": "21c513c008b8b0d4063df0c93d401bab0579adfcd729510cc7e9f7cbaedc9951"
+  },
+  "build": "build.py rebuilds the small shim; compiled shared object excluded",
+  "production_changed": false,
+  "service_measurement": false
+}

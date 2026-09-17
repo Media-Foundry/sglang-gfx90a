@@ -1,0 +1,519 @@
+{
+  "status": "complete",
+  "preference": "_BlasBackend.Cublaslt",
+  "source_sha256": "53d041151e8032d21cb92c76027bd8b840d5d1863c371e85db9ebb3397fc1ea6",
+  "direct_sha256": "c7bd2b8d627be113e749fb93f9b362ec874cc2198dc22eb724c3fee0ac4e6a33",
+  "cases": [
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 0,
+      "active": 765,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 1,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 2,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 3,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 4,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 5,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 6,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 0,
+      "owner": 7,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 0,
+      "active": 765,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 1,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 2,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 3,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 4,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 5,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 6,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 1,
+      "owner": 7,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 0,
+      "active": 765,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 1,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 2,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 3,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 4,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 5,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 6,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 8192,
+      "mutation": 2,
+      "owner": 7,
+      "active": 768,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 0,
+      "owner": 7,
+      "active": 3071,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 1,
+      "owner": 7,
+      "active": 3071,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32767,
+      "mutation": 2,
+      "owner": 7,
+      "active": 3071,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 0,
+      "owner": 7,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 1,
+      "owner": 7,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 0,
+      "active": 3060,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 1,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 2,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 3,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 4,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 5,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 6,
+      "active": 3072,
+      "exact": true
+    },
+    {
+      "m": 32768,
+      "mutation": 2,
+      "owner": 7,
+      "active": 3072,
+      "exact": true
+    }
+  ],
+  "graph_mutations": 100,
+  "alternate_stream_exact": true,
+  "workspace_bytes": 0,
+  "plan_workspaces": {
+    "(3072, 8192, 1024)": 0,
+    "(768, 8192, 1024)": 0
+  }
+}

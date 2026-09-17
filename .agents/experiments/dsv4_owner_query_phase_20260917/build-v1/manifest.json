@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/opt/rocm/bin/hipcc",
+    "-O3",
+    "-std=c++17",
+    "--offload-arch=gfx90a",
+    "-fPIC",
+    "-shared",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_owner_query_phase_20260917/direct_lt.cpp",
+    "-I/opt/rocm/include",
+    "-L/opt/rocm/lib",
+    "-Wl,-rpath,/opt/rocm/lib",
+    "-lhipblaslt",
+    "-o",
+    "/home/pc/Code/sglang/.agents/experiments/dsv4_owner_query_phase_20260917/build-v1/libdsv4_owner_lt.so"
+  ],
+  "source": "/home/pc/Code/sglang/.agents/experiments/dsv4_owner_query_phase_20260917/direct_lt.cpp",
+  "source_sha256": "e29636e9b267d09094187b0a70fc586183dc864142dd26d78921ecec67b10145",
+  "output": "/home/pc/Code/sglang/.agents/experiments/dsv4_owner_query_phase_20260917/build-v1/libdsv4_owner_lt.so",
+  "output_sha256": "465242ca4d30ab80733e58f82421bd923fff0ab9f02daa0775e44f431aba0793",
+  "hipblaslt": "/opt/rocm/core-10.0/lib/libhipblaslt.so.1.4",
+  "hipblaslt_sha256": "1e8545626323f9b22c65d36492e1686b831cb85c8f7c8be3fc21c0d6cbb0d055",
+  "direct_index": 3952,
+  "rocblas_index": 3953,
+  "dependencies": "\tlinux-vdso.so.1 (0x000076f3106d3000)\n\tlibhipblaslt.so.1 => /opt/rocm/lib/libhipblaslt.so.1 (0x000076f310000000)\n\tlibamdhip64.so.7 => /opt/rocm/lib/libamdhip64.so.7 (0x000076f30e400000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x000076f30e000000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x000076f30e317000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x000076f310685000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x000076f30dc00000)\n\t/lib64/ld-linux-x86-64.so.2 (0x000076f3106d5000)\n\tlibdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x000076f31067e000)\n\tlibroctx64.so.4 => /opt/rocm/lib/libroctx64.so.4 (0x000076f31067a000)\n\tliborigami.so.1 => /opt/rocm/lib/liborigami.so.1 (0x000076f30ff8c000)\n\tlibrocm_sysdeps_z.so.1 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_z.so.1 (0x000076f31065c000)\n\tlibrocroller.so.1 => /opt/rocm/lib/librocroller.so.1 (0x000076f304c00000)\n\tlibrocm_kpack.so.0 => /opt/rocm/lib/librocm_kpack.so.0 (0x000076f30e2d3000)\n\tlibrocprofiler-register.so.0 => /opt/rocm/lib/librocprofiler-register.so.0 (0x000076f30df24000)\n\tlibrt.so.1 => /lib/x86_64-linux-gnu/librt.so.1 (0x000076f310655000)\n\tlibamd_comgr.so.3 => /opt/rocm/lib/libamd_comgr.so.3 (0x000076f303e00000)\n\tlibhsa-runtime64.so.1 => /opt/rocm/lib/libhsa-runtime64.so.1 (0x000076f303800000)\n\tlibpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x000076f31064e000)\n\tlibrocm_sysdeps_zstd.so.1 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_zstd.so.1 (0x000076f30de55000)\n\tlibclang-cpp.so.23.0git => /opt/rocm/lib/llvm/lib/libclang-cpp.so.23.0git (0x000076f2ff000000)\n\tlibLLVM.so.23.0git => /opt/rocm/lib/llvm/lib/libLLVM.so.23.0git (0x000076f2f8000000)\n\tlibrocm_sysdeps_elf.so.1 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_elf.so.1 (0x000076f30ff70000)\n\tlibrocm_sysdeps_drm.so.2 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_drm.so.2 (0x000076f30ff5b000)\n\tlibrocm_sysdeps_drm_amdgpu.so.1 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_drm_amdgpu.so.1 (0x000076f30e2be000)\n\tlibrocm_sysdeps_numa.so.1 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_numa.so.1 (0x000076f30e2af000)\n\tlibrocm_sysdeps_liblzma.so.5 => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_liblzma.so.5 (0x000076f30e27e000)\n\tlibrocm_sysdeps_bz2.so => /opt/rocm/lib/rocm_sysdeps/lib/librocm_sysdeps_bz2.so (0x000076f30de3c000)\n"
+}
