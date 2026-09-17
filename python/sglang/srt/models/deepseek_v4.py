@@ -28,6 +28,10 @@ _first_div_probe = None
 if os.getenv("SGLANG_DSV4_DEBUG_FIRST_DIV_DIR"):
     from sglang.kernels.ops.debug.dsv4_first_divergence import get_probe as _first_div_probe
 
+_first_mix_table = None
+if os.getenv("SGLANG_DSV4_PREFILL_FIRST_MIX_TABLE", "0") == "1":
+    from sglang.kernels.ops.layernorm import gfx90a_first_mix_table as _first_mix_table
+
 _ck_capture_scope = None
 if os.getenv("SGLANG_DSV4_DEBUG_CK_STAGE_CAPTURE_DIR"):
     from sglang.kernels.ops.debug.dsv4_ck_stage_capture import scope as _ck_capture_scope
@@ -2981,7 +2985,13 @@ class DeepseekV4DecoderLayer(nn.Module):
                 logger.info("first-div unfused MHC pre: layer=%s bf16_dot=%s wave64=%s",
                             self.layer_id, envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get(),
                             _use_gfx90a_wave64_mhc_pre_mix)
-            if envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
+            cached_first_mix = (
+                _first_mix_table.take(self.layer_id, forward_batch, hc_fn, x.shape[0])
+                if _first_mix_table is not None else None
+            )
+            if cached_first_mix is not None:
+                mixes = cached_first_mix
+            elif envs.SGLANG_DSV4_GFX90A_BF16_MHC_DOT.get():
                 from sglang.kernels.ops.layernorm.mhc import (
                     gfx90a_mhc_pre_mix_bf16_dot_triton,
                 )
@@ -4767,6 +4777,8 @@ class DeepseekV4Model(nn.Module):
             else:
                 hidden_states = input_embeds
             hidden_states = hidden_states.unsqueeze(1).repeat(1, self.hc_mult, 1)
+            if _first_mix_table is not None:
+                _first_mix_table.prepare(self, input_ids, forward_batch, input_embeds, hidden_states)
         else:
             assert pp_proxy_tensors is not None
             hidden_states = pp_proxy_tensors["hidden_states"]
@@ -5333,6 +5345,8 @@ class DeepseekV4ForCausalLM(nn.Module):
                 attn.wo_a.weight_scale_inv.format_ue8m0 = False
 
     def post_load_weights(self, is_nextn=False, weight_names=None):
+        if _first_mix_table is not None:
+            _first_mix_table.invalidate(self.model)
         if _FP8_WO_A_GEMM:
             self._setup_fp8_wo_a_scales(is_nextn)
 
@@ -5563,6 +5577,8 @@ class DeepseekV4ForCausalLM(nn.Module):
         )
 
     def load_weights(self, weights: Iterable[Tuple[str, torch.Tensor]], is_nextn=False):
+        if _first_mix_table is not None:
+            _first_mix_table.invalidate(self.model)
         params_dict = dict(self.named_parameters())
         loaded_params: Set[str] = set()
         expected_tid2eid: dict[str, torch.Tensor] = {}
@@ -5974,6 +5990,8 @@ class DeepseekV4ForCausalLM(nn.Module):
         return self.model.embed_tokens.weight, self.lm_head.weight
 
     def set_embed_and_head(self, embed, head):
+        if _first_mix_table is not None:
+            _first_mix_table.invalidate(self.model)
         del self.model.embed_tokens.weight
         del self.lm_head.weight
         self.model.embed_tokens.weight = embed

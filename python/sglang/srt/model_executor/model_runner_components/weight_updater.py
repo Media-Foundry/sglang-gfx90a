@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
@@ -40,6 +41,11 @@ def _unsupported_derived_weight_cache_error() -> Optional[str]:
     old weights. The check is startup-determined and rank-uniform, so an
     update never proceeds on some workers while rejected on others.
     """
+    if os.getenv("SGLANG_DSV4_PREFILL_FIRST_MIX_TABLE", "0") == "1":
+        return (
+            "Online weight updates are not supported while the experimental "
+            "first-MHC vocabulary table is enabled; restart after changing weights."
+        )
     from sglang.kernels.ops.attention.dsv4.gemm import hpc_bf16xfp32_gemm_enabled
 
     if hpc_bf16xfp32_gemm_enabled():

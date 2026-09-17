@@ -1,0 +1,185 @@
+{
+  "status": "complete",
+  "scope": "Original V4 TP8 C16x8K FP32-first MHC reference vs exact table,route ON,1M KV",
+  "control_input_tok_s": 10331.156877807836,
+  "candidate_input_tok_s": 10377.622622859015,
+  "gain_pct": 0.44976323175374144,
+  "control_drift_pct": 0.1730994641171435,
+  "legs": {
+    "A1": {
+      "median": 10322.223021440292,
+      "rates": [
+        10329.307997673704,
+        10322.223021440292,
+        10302.271960612015
+      ],
+      "range_pct": 0.2624279107079852
+    },
+    "B1": {
+      "median": 10390.892735123598,
+      "rates": [
+        10390.892735123598,
+        10399.49325035051,
+        10382.620501181462
+      ],
+      "range_pct": 0.1625095433963608
+    },
+    "B2": {
+      "median": 10364.352510594432,
+      "rates": [
+        10368.293178354212,
+        10364.352510594432,
+        10363.54477977992
+      ],
+      "range_pct": 0.04581828587797432
+    },
+    "A2": {
+      "median": 10340.090734175381,
+      "rates": [
+        10340.090734175381,
+        10325.3503185301,
+        10343.474182010223
+      ],
+      "range_pct": 0.17552783122134485
+    }
+  },
+  "live_exact_checks": 152,
+  "table_builds": [
+    [
+      "5",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "4",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "1",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "0",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "6",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "3",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "2",
+      "16160",
+      "129280",
+      "12410880"
+    ],
+    [
+      "7",
+      "16160",
+      "129280",
+      "12410880"
+    ]
+  ],
+  "teacher_checks": [
+    {
+      "lhs": "A1",
+      "rhs": "A2",
+      "positions": 1008,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "top1_same": 1008,
+      "top5_exact": 1008
+    },
+    {
+      "lhs": "A1",
+      "rhs": "B",
+      "positions": 1008,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "top1_same": 1008,
+      "top5_exact": 1008
+    }
+  ],
+  "quality_cross": [
+    {
+      "request": 0,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 1,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 2,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 3,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 4,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 5,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 6,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 7,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 8,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 9,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 10,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 11,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 12,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 13,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 14,
+      "distinct_outputs": 1
+    },
+    {
+      "request": 15,
+      "distinct_outputs": 1
+    }
+  ],
+  "universal_batch_invariance_claimed": false,
+  "default_changed": false
+}

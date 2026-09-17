@@ -1,0 +1,15 @@
+{
+  "status": "accepted_for_measured_8k_profile",
+  "candidate_input_tok_s": 10377.622622859015,
+  "gain_pct": 0.44976323175374144,
+  "corrected_reference_outputs_exact": 16,
+  "summary_sha256": "a8d8290a5537e42cb344c1aa4b1716e0ed86187f007bc7a09851f1707466aeba",
+  "launcher": "/home/pc/Code/sglang/.agents/experiments/dsv4_first_mix_table_service_20260917/B/start-ar-matrix.sh",
+  "launcher_sha256": "bd9757c3997c89b8e70478fb7a37a9f9605aa1fbf4b2b24a26639546c76d843f",
+  "limitations": [
+    "Not universal batch invariance",
+    "Longer-length regression pending",
+    "Static original-checkpoint experimental profile; online weight updates rejected",
+    "Global launcher default unchanged"
+  ]
+}
