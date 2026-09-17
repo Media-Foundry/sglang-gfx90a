@@ -1,0 +1,93 @@
+{
+  "archive": "evidence.tar.gz",
+  "bytes": 108839,
+  "sha256": "de5d1dbc779ca4f0858db9662384e4ac2ffc4cf7785a1ea92bec9fe4eeb85a3a",
+  "files": [
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.py",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.py",
+      "bytes": 9252,
+      "sha256": "9a95a27005e631d6add177853e65edcfb55840f8ece68016a6129ba7e2369c66"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.json",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.json",
+      "bytes": 97611,
+      "sha256": "4d44852468c1ef620a6b9287064e9d30fa73be9727668fe48278770fda2b3aee"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.log",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.log",
+      "bytes": 6999,
+      "sha256": "c6caba167892cd2eadc6392edae72a03c6e65ad018276080e1122cf356ffadfc"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/archive_failure.py",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/archive_failure.py",
+      "bytes": 885,
+      "sha256": "d94e132b67224f0b4e71b7ab0444068658ca453ea57584e0778f43efc9c8d11f"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero.json",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero.json",
+      "bytes": 57637,
+      "sha256": "670982b093c8de82838ccdbdf2a61bb4df9316af38f088ba7a9ef01d0aa228da"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero.log",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero.log",
+      "bytes": 758,
+      "sha256": "eae99784d0403148b5d671aa98b64b064cc9c29452013de3510fbce09865cc2c"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero-evidence.tar.gz",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/index-zero-evidence.tar.gz",
+      "bytes": 7722,
+      "sha256": "2e782235171b36401ccbe72f4b9779a7fee396d0513549612356c1bfafa24308"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm.py",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm.py",
+      "bytes": 7189,
+      "sha256": "d77476f8e1acebbce5a30103ab4f583d3d3ef07a3291248881513bf97cff25da"
+    },
+    {
+      "path": "/home/pc/Code/sglang/.agents/experiments/dsv4_qkv_fixed_solution_20260917/archive.py",
+      "archive_path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/archive.py",
+      "bytes": 1728,
+      "sha256": "34357b9291686dbac32d7927196d3de9a5b4cce832ede739a571a60a770270b7"
+    },
+    {
+      "path": "/home/pc/Code/sglang/python/sglang/kernels/ops/attention/dsv4/gfx90a_rocblas_linear.py",
+      "archive_path": "python/sglang/kernels/ops/attention/dsv4/gfx90a_rocblas_linear.py",
+      "bytes": 3061,
+      "sha256": "11762c87fcf9ef436f44d82a7461f203f9f8257b9de6fe86a437ec3707a49f53"
+    },
+    {
+      "path": "/opt/rocm/include/rocblas/internal/rocblas-version.h",
+      "archive_path": "installed-headers/rocblas-version.h",
+      "bytes": 1724,
+      "sha256": "775ee0765ac88ae389eb0e6ecc82d44033e873f574f17ce61648473951d249aa"
+    },
+    {
+      "path": "/opt/rocm/include/rocblas/internal/rocblas-types.h",
+      "archive_path": "installed-headers/rocblas-types.h",
+      "bytes": 14679,
+      "sha256": "a2c3b62ef51193cbadd267a45206fb7da9b09cf7f1a1e1b2355cd6fe3af0795e"
+    },
+    {
+      "path": "/opt/rocm/include/rocblas/internal/rocblas-beta.h",
+      "archive_path": "installed-headers/rocblas-beta.h",
+      "bytes": 26202,
+      "sha256": "59c512d6efec55a90ad55ba9bbbbd1225e6f456b6c692361359699c2192488f7"
+    },
+    {
+      "path": "/opt/rocm/include/rocblas/internal/rocblas-functions.h",
+      "archive_path": "installed-headers/rocblas-functions.h",
+      "bytes": 1516845,
+      "sha256": "809cb01ec340e6dabb213646e10633579cb8f9e00eeef8f60bf40dc98ea89c3c"
+    }
+  ],
+  "confirmation_status": "Script prepared; not executed in this archive",
+  "failure_note": "First run rejected negative IDs using a stale positive-only assumption; no candidate kernels ran"
+}
