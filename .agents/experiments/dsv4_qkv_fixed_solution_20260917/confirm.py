@@ -116,6 +116,14 @@ save()
 try:
     for layer in (0, 1, 10, 20, 30, 42):
         weight = weight_for(layer)
+        # Query the actual process before using a stored index. This also
+        # forces lazy Tensile solution libraries to populate their index map.
+        for m in (1,64,65,8192,32767,32768):
+            probe = seed.repeat((m+63)//64,1)[:m].contiguous()
+            available = fixed.solutions(probe,weight)
+            report.setdefault('preflight',[]).append(dict(layer=layer,m=m,available=available))
+            save()
+            assert all(s in available for s in solutions), (layer,m,solutions,available)
         for mutation in range(3):
             small = (seed.float()*(1-mutation*.011)).bfloat16().contiguous()
             double = small.double() @ weight.double().t()

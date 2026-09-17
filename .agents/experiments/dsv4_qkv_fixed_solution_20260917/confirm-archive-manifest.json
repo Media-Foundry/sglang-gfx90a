@@ -1,0 +1,62 @@
+{
+  "archive": "confirm-evidence.tar.gz",
+  "bytes": 35175,
+  "sha256": "654224f72afd7c670ea976aa54a6bc32eb6084def58d1ca0641e5c36807b2339",
+  "files": [
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm.py",
+      "bytes": 7707,
+      "sha256": "35a2c3085307bcbed9548f602212354eb08f477279cf13872b280c13836f98b8"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm.json",
+      "bytes": 513294,
+      "sha256": "b7debc4edc2990e6f378de4f4ba6f522790bb27100765843c2d6a8bd0e5e12e2"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm.log",
+      "bytes": 9774,
+      "sha256": "7ca2eb521add0ae7b88f8e7dca2aea367b94aeb97dc7d7f0f54873c7ceb1641c"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/archive_confirm.py",
+      "bytes": 1379,
+      "sha256": "c9501a10955c3d1bd22d60682cb64c7a93b60b35c5b3fdce55e3d5a134d70530"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/archive_confirm_failure.py",
+      "bytes": 745,
+      "sha256": "20efa1691024784abda23876b5ab19268e7eb1de7b52bc74591a8ea50e2d35d2"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm-no-enumeration-evidence.tar.gz",
+      "bytes": 3870,
+      "sha256": "3ba449adddc563e8f2ef88835e81cad8844f95d42e0f862b92975d7b85684746"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm-no-enumeration.json",
+      "bytes": 1277,
+      "sha256": "c29bb72a0c5fce565d15f549c45f3abe9fbd3c84a7d5dda97b223af5304ec669"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/confirm-no-enumeration.log",
+      "bytes": 873,
+      "sha256": "9ed245f08557fd0d608c37820e610f0cdd12ee9815000d5daf8b69b490545e91"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.py",
+      "bytes": 9252,
+      "sha256": "9a95a27005e631d6add177853e65edcfb55840f8ece68016a6129ba7e2369c66"
+    },
+    {
+      "path": ".agents/experiments/dsv4_qkv_fixed_solution_20260917/oracle.json",
+      "bytes": 97611,
+      "sha256": "4d44852468c1ef620a6b9287064e9d30fa73be9727668fe48278770fda2b3aee"
+    },
+    {
+      "path": "python/sglang/kernels/ops/attention/dsv4/gfx90a_rocblas_linear.py",
+      "bytes": 3061,
+      "sha256": "11762c87fcf9ef436f44d82a7461f203f9f8257b9de6fe86a437ec3707a49f53"
+    }
+  ]
+}

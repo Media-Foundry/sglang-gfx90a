@@ -25,10 +25,18 @@ and Top5 lists. France passed. All owned services stopped,GPUs confirmed empty.
 Evidence archive ~5.74MB includes raw responses/timestamps and runtime sources.
 This is measured same-workload stability,not universal batch invariance.
 
-32K regression has started with the same harness: session98457. A1 completed
-9904.922289 input tok/s (3waves); B/A2 not complete at this checkpoint. Do NOT
-claim a32K candidate result from A1. Re-poll the exact session and read driver
-logs; observation timeout is not terminal. No concurrent GPU tests during it.
+32K regression subsequently completed: session98457 exit0,all services stopped.
+524286 input tokens/wave,same guards and three waves/leg:
+A1/B1/B2/A2=9904.922289/9939.825955/9938.911974/9894.194662.
+Control9899.558476,candidate9939.368965,+0.402144%. Control drift-0.108306%,
+within-leg ranges0.023..0.076%. All16 outputs identical across6 waves; both
+teacher comparisons exact at1008 logprobs and Top5 lists. Evidence archive
+10.22MB includes raw responses/timing/source/owned-stop proofs. amd-smi then
+confirmed all8 GCDs empty before the next component run. No overlapping jobs.
+
+Same measured combination now has8K10377.622623,16K10232.304169,32K9939.368965.
+Lengths/requests are genuine code fixtures,not repeated random tokens. These
+are independent length-specific ABBA results,not per-user decode throughput.
 
 ## Bounded new QKV component direction
 
@@ -62,16 +70,45 @@ All four finalists pass3 input perturbations x5 M sizes and random row ordering
 They are internally shape/row stable on this fixture; NOT promised bit-identical
 to the old automatic BLAS path and NOT yet real late-layer input coverage.
 
-confirm.py is PREPARED,NOT RUN. It validates6 checkpoint weight pairs (layers
-0/1/10/20/30/42) and3 mutations x5 M shapes; checks layer0 expansion against the
-actual service weight hash; uses captured layer0 inputs for other weights and
-labels this limitation. It will measure four graph ABBA rounds on each of
-M64/65/8192/32767/32768 for the best3 solutions. Its guard requires32K A1/B/A2
-owned-stop proofs; do not run it while the32K service is active.
+## Formal confirmation completed; common M32768 is NOT a speed win
 
-Next: finish32K service comparison/archive; then run confirm.py in isolation.
-If a fixed solution is numerically stable and faster at relevant M,consider a
-separate opt-in native-prefill integration/live trace. Do not replace production
-based on this single-layer screen,broaden todecode,or claim whole-model drift
-solved. Earlier ordinary rocBLAS auto-selection still failed cross-M; earlier
-fixed-K Triton geometries were slower,so those are not fresh experiments.
+First fresh-process confirm(session68881) failed on the first explicit-index
+call with rocBLAS internal_error6,before any numeric/timing case. Layer0 weight
+expansion already matched the captured live-weight SHA. Failure report/log and
+that source are preserved in confirm-no-enumeration-evidence.tar.gz.
+
+Retry(session10929 exit0) enumerates supported solutions for actual shapes in
+the fresh process BEFORE invoking indices,and verifies membership. It succeeds.
+This is consistent with lazy solution-library/index-map initialization; do not
+claim a complete upstream root-cause proof. Production must not blindly reuse
+bare IDs; installed-version/library-hash and per-process preflight matter.
+
+Six checkpoint weight pairs(layers0/1/10/20/30/42),three mutations,five M shapes,
+three algorithms: all270 cross-M/random-row-order cases pass. Inputs for later
+weights remain captured layer0 samples,NOT actual late-layer activations.
+
+Paired4-round graph ABBA for best solution-606601783 (ms,preallocated output):
+
+| M | Control | Fixed solution | Time reduction |
+| ---: | ---: | ---: | ---: |
+|64|0.039921|0.071489|-79.08%|
+|65|0.039121|0.071777|-83.48%|
+|8192|0.810269|0.775260|+4.32%|
+|32767|3.214531|3.081713|+4.13%|
+|32768|3.086977|3.086049|+0.030%|
+
+Thus the common service M32768 is effectively tied,not4% faster. Other finalist
+algorithms are1.06..1.11% slower at32768. Fixed outputs differ from old BLAS
+(14 elements atM64,max_abs0.00048828125;5760 atM32768,max_abs0.0009765625).
+Internal shape stability is NOT old-reference bitwise equivalence.
+
+All component jobs exited and amd-smi confirmed no GPU processes. Production
+and global defaults unchanged. Confirmation evidence is archived separately;
+the earlier screen archive truthfully still labels confirmation as then-pending.
+
+Next: use the fixed algorithm only as a separately scoped correctness/live-trace
+candidate if addressing the earliest QKV drift. It is not a universal speed win;
+small-tail cost and real full-stage/service timing must be included. For main
+speed work,do not extrapolate irregular-M gains to current32K-aligned waves.
+Earlier ordinary rocBLAS auto-selection still failed cross-M,and earlier fixed-K
+Triton geometries were slower. Whole-model batch invariance remains unresolved.
