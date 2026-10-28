@@ -1,0 +1,15 @@
+{
+  "model_path": "/srv/models/DeepSeek-V4-Flash",
+  "aiter_root": "/srv/src/aiter",
+  "rocm_root": "/opt/rocm",
+  "aot_python_paths": [],
+  "gpus": [0, 1, 2, 3, 4, 5, 6, 7],
+  "host": "127.0.0.1",
+  "port": 30021,
+  "kv_tokens": 1048576,
+  "numa_interleave": true,
+  "paired_topology_verified": false,
+  "unique_manifest": "",
+  "ipc_manifest": "",
+  "route_manifest": ""
+}

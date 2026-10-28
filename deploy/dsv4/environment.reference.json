@@ -1,0 +1,39 @@
+{
+  "observed_date": "2026-10-28",
+  "purpose": "安装元数据参考，不是可直接 pip install 的锁文件，也不证明与历史跑分二进制相同",
+  "repo_head_observed": "147ce11b25aecdb04c8802fcd15429d1ce2fb944",
+  "repo_dirty": true,
+  "aiter_head_observed": "9a469a608b2c10b7157df573a38d31e5bf4038b4",
+  "python": "3.12.13",
+  "packages": {
+    "torch": "2.12.0a0+git78258b9",
+    "triton": "3.7.1+git0263a6a6.rocm7.14.0",
+    "transformers": "5.12.1",
+    "tokenizers": "0.22.2",
+    "apache-tvm-ffi": "0.1.11",
+    "amd-aiter": "0.1.11.dev32+g9a469a608",
+    "pybind11": "3.1.0",
+    "numpy": "2.4.4",
+    "safetensors": "0.8.0",
+    "ninja": "1.13.0",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.52.3",
+    "psutil": "7.2.2",
+    "requests": "2.34.2",
+    "pyzmq": "27.1.0",
+    "msgspec": "0.21.1",
+    "orjson": "3.12.0",
+    "packaging": "26.2",
+    "sentencepiece": "0.2.2",
+    "huggingface-hub": "1.27.0",
+    "einops": "0.8.2",
+    "dill": "0.4.1",
+    "xgrammar": "0.2.1",
+    "setuptools": "81.0.0"
+  },
+  "notes": [
+    "ROCm toolkit/driver 版本需要目标机实查；不能从 Triton 版本标签推导最低驱动要求",
+    "sgl_kernel 可通过源码/build PYTHONPATH 加载，distribution metadata 缺失不等于模块缺失",
+    "外部补丁与未跟踪文件不包含在 git commit SHA 内，需保留实际工作树"
+  ]
+}
